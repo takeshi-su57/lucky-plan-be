@@ -8685,6 +8685,11 @@ export const gnsMultiCollatDiamondAbi = [
           },
           {
             internalType: 'uint256',
+            name: 'oldPosSizePlusPnlCollateral',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
             name: 'newOpenPrice',
             type: 'uint256',
           },
@@ -8718,7 +8723,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PositionSizeIncreaseExecuted',
     type: 'event',
     signature:
-      '0xf09a9c949c4bd4cbe75b424bea11c683c3ae55e7cdb8321c3ec37e01af72c8d5',
+      '0x4627b6cfd38b837edb1d42b0c6c92e6ba06fded47652e32ce388fcaf3d513477',
   },
   {
     anonymous: false,

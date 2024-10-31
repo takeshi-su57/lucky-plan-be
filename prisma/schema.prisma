@@ -13,34 +13,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Post {
+model Metadata {
   id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(255)
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  content   String?
-  published Boolean  @default(false)
-  authorId  Int
-  user      User     @relation(fields: [authorId], references: [id])
-  tags      Tag[]
+  key       String   @unique @db.VarChar(255)
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Profile {
-  id     Int     @id @default(autoincrement())
-  bio    String?
-  userId Int     @unique
-  user   User    @relation(fields: [userId], references: [id])
+enum UserRole {
+  Leader
+  User
 }
 
 model User {
-  id      Int      @id @default(autoincrement())
-  name    String?  @db.VarChar(255)
-  email   String   @unique @db.VarChar(255)
-  post    Post[]
-  profile Profile?
+  address  String    @id @db.VarChar(255)
+  role     UserRole
+  follower Follower?
 }
 
-model Tag {
-  id    Int    @id @default(autoincrement())
-  name  String
-  posts Post[]
+model Follower {
+  address      String @id @db.VarChar(255)
+  publicKey    String
+  accountIndex Int
+  user         User   @relation(fields: [address], references: [address])
 }

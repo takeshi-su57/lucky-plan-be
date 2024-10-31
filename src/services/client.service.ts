@@ -8,81 +8,48 @@ import {
   http,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrum, polygon, base, arbitrumSepolia } from 'viem/chains';
+import { arbitrum, polygon, base, arbitrumSepolia, Chain } from 'viem/chains';
 
 @Injectable()
 export class ClientService {
-  readonly sepoliaWallet: WalletClient;
-  readonly sepoliaPublic: PublicClient;
-
-  readonly arbitrumWallet: WalletClient;
-  readonly arbitrumPublic: PublicClient;
-
-  readonly polygonWallet: WalletClient;
-  readonly polygonPublic: PublicClient;
-
-  readonly baseWallet: WalletClient;
-  readonly basePublic: PublicClient;
+  readonly availableChains: Chain[];
+  readonly publicClients: Record<number, PublicClient>;
+  readonly walletClients: Record<number, WalletClient>;
 
   constructor(private configService: ConfigService) {
+    this.availableChains = [arbitrum, polygon, base, arbitrumSepolia];
+    this.publicClients = {};
+    this.walletClients = {};
+
     try {
       const privateKey = this.configService.get<string>('PRIVATE_KEY');
 
       const account = privateKeyToAccount(privateKey as `0x`);
 
-      this.sepoliaWallet = createWalletClient({
-        account,
-        chain: arbitrumSepolia,
-        transport: http(),
+      this.availableChains.forEach((chain) => {
+        this.walletClients[chain.id] = createWalletClient({
+          account,
+          chain: chain,
+          transport: http(),
+        });
+        this.publicClients[chain.id] = createPublicClient({
+          chain: chain,
+          transport: http(),
+          batch: {
+            multicall: true,
+          },
+        }) as unknown as PublicClient;
       });
-      this.sepoliaPublic = createPublicClient({
-        chain: arbitrumSepolia,
-        transport: http(),
-        batch: {
-          multicall: true,
-        },
-      }) as unknown as PublicClient;
-
-      this.arbitrumWallet = createWalletClient({
-        account,
-        chain: arbitrum,
-        transport: http(),
-      });
-      this.arbitrumPublic = createPublicClient({
-        chain: arbitrum,
-        transport: http(),
-        batch: {
-          multicall: true,
-        },
-      }) as unknown as PublicClient;
-
-      this.polygonWallet = createWalletClient({
-        account,
-        chain: polygon,
-        transport: http(),
-      });
-      this.polygonPublic = createPublicClient({
-        chain: polygon,
-        transport: http(),
-        batch: {
-          multicall: true,
-        },
-      }) as unknown as PublicClient;
-
-      this.baseWallet = createWalletClient({
-        account,
-        chain: base,
-        transport: http(),
-      });
-      this.basePublic = createPublicClient({
-        chain: base,
-        transport: http(),
-        batch: {
-          multicall: true,
-        },
-      }) as unknown as PublicClient;
     } catch (err) {
       console.log('Error getting client', err);
     }
+  }
+
+  publicClient(chainId: number): PublicClient {
+    return this.publicClients[chainId];
+  }
+
+  walletClient(chainId: number): WalletClient {
+    return this.walletClients[chainId];
   }
 }
