@@ -26,15 +26,129 @@ enum UserRole {
   User
 }
 
+enum BotStatus {
+  Live
+  Finish
+  Dead
+}
+
 model User {
-  address  String    @id @db.VarChar(255)
-  role     UserRole
+  address String   @id @db.VarChar(255)
+  role    UserRole
+
   follower Follower?
+  bots     Bot[]
 }
 
 model Follower {
   address      String @id @db.VarChar(255)
-  publicKey    String
-  accountIndex Int
+  publicKey    String @unique
+  accountIndex Int    @unique
   user         User   @relation(fields: [address], references: [address])
+  bots         Bot[]
+}
+
+model StrategyMetadata {
+  key         String @id @db.VarChar(255)
+  title       String @db.VarChar(255)
+  description String
+
+  strategies Strategy[]
+}
+
+model Strategy {
+  id          Int    @id @default(autoincrement())
+  strategyKey String
+  params      String
+
+  strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
+
+  bots Bot[]
+
+  @@unique([strategyKey, params])
+}
+
+model Contract {
+  id      Int    @id @default(autoincrement())
+  chainId Int
+  address String
+
+  bots Bot[]
+
+  @@unique([chainId, address])
+}
+
+model Bot {
+  id              Int       @id @default(autoincrement())
+  leaderAddress   String    @db.VarChar(255)
+  followerAddress String    @db.VarChar(255)
+  strategyId      Int
+  contractId      Int
+  startedBlock    Int
+  pausedBlock     Int
+  endedBlock      Int
+  status          BotStatus
+
+  follower Follower @relation(fields: [followerAddress], references: [address])
+  leader   User     @relation(fields: [leaderAddress], references: [address])
+  strategy Strategy @relation(fields: [strategyId], references: [id])
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  missions Mission[]
+}
+
+model Position {
+  id      Int    @id @default(autoincrement())
+  address String @db.VarChar(255)
+  index   Int
+
+  targetMissions  Mission[] @relation("targetMissions")
+  achieveMissions Mission[] @relation("achieveMissions")
+
+  @@unique([address, index])
+}
+
+model Mission {
+  id                Int      @id @default(autoincrement())
+  botId             Int
+  targetPositionId  Int
+  achievePositionId Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  targetPosition  Position  @relation("targetMissions", fields: [targetPositionId], references: [id])
+  achievePosition Position? @relation("achieveMissions", fields: [achievePositionId], references: [id])
+  bot             Bot       @relation(fields: [botId], references: [id])
+  tasks           Task[]
+
+  @@unique([botId, targetPositionId])
+}
+
+enum TaskStatus {
+  Created
+  Await
+  Failed
+  Completed
+}
+
+model Task {
+  id        Int        @id @default(autoincrement())
+  missionId Int
+  actionId  Int
+  status    TaskStatus
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  action Action @relation(fields: [actionId], references: [id])
+
+  mission Mission @relation(fields: [missionId], references: [id])
+}
+
+model Action {
+  id        Int      @id @default(autoincrement())
+  name      String
+  args      String
+  createdAt DateTime @default(now())
+
+  tasks Task[]
 }
