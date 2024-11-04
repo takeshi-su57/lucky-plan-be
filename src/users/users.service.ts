@@ -37,4 +37,12 @@ export class UsersService {
       },
     });
   }
+
+  async getAllLeaders() {
+    return this.prismaService.user.findMany({
+      where: {
+        role: UserRole.Leader,
+      },
+    });
+  }
 }

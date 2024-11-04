@@ -25,4 +25,9 @@ export class UsersResolver {
   getUserByAddress(@Args('input') input: GetUserByAddressInput) {
     return this.usersService.getUserByAddress(input.address);
   }
+
+  @Query(() => [User])
+  getAllLeaders() {
+    return this.usersService.getAllLeaders();
+  }
 }
