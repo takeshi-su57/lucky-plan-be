@@ -25,6 +25,22 @@ type Bot {
   strategyId: Int!
 }
 
+type BotDetails {
+  contract: Contract!
+  contractId: Int!
+  endedBlock: Int
+  follower: Follower!
+  followerAddress: String!
+  id: Int!
+  leader: User!
+  leaderAddress: String!
+  pausedBlock: Int
+  startedBlock: Int
+  status: String!
+  strategy: Strategy!
+  strategyId: Int!
+}
+
 input ChangePasswordInput {
   newPassword: String!
   oldPassword: String!
@@ -38,24 +54,21 @@ input ChangeUserRoleInput {
 type Contract {
   address: String!
   chainId: Int!
+  description: String
   id: Int!
 }
 
 input CreateBotInput {
   contractId: Int!
-  endedBlock: Int
   followerAddress: String!
   leaderAddress: String!
-  pausedBlock: Int
-  startedBlock: Int
-  status: String!
   strategyId: Int!
 }
 
 input CreateContractInput {
   address: String!
   chainId: Int!
-  id: Int!
+  description: String
 }
 
 input CreatePositionInput {
@@ -126,12 +139,8 @@ type Mutation {
   createStrategyMetadata(input: CreateStrategyMetadataInput!): StrategyMetadata!
   generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
-  removeBot(id: Int!): Bot
-  removeContract(id: Int!): Contract
   removeStrategy(id: Int!): Strategy
   removeStrategyMetadata(key: String!): StrategyMetadata!
-  updateBot(id: Int!, input: UpdateBotInput!): Bot
-  updateContract(id: Int!, input: UpdateContractInput!): Contract
   updateStrategy(id: Int!, input: UpdateStrategyInput!): Strategy
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
 }
@@ -152,7 +161,7 @@ type Query {
   findAllStrategy: [Strategy!]!
   findAllStrategyMetadata: [StrategyMetadata!]!
   findAllTasks: [Task!]!
-  findBot(id: Int!): Bot
+  findBot(id: Int!): BotDetails
   findContract(id: Int!): Contract
   findMission(id: Int!): Mission
   findMissionByBot(botId: Int!): [Mission!]!
@@ -188,18 +197,6 @@ type Task {
   missionId: Int!
   status: String!
   updatedAt: DateTime!
-}
-
-input UpdateBotInput {
-  endedBlock: Int
-  pausedBlock: Int
-  startedBlock: Int
-  status: String
-}
-
-input UpdateContractInput {
-  address: String
-  chainId: Int
 }
 
 input UpdateStrategyInput {

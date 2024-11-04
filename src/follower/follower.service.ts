@@ -2,11 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { Follower } from '@prisma/client';
 import { validateMnemonic } from '@scure/bip39';
 import { PrismaService } from 'src/global/prisma.service';
+import { UsersService } from 'src/users/users.service';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 
 @Injectable()
 export class FollowerService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private usersService: UsersService,
+  ) {}
 
   async generateNewFollower(): Promise<Follower> {
     const mnemonicMetadata = await this.prismaService.metadata.findUnique({
@@ -34,6 +38,12 @@ export class FollowerService {
 
       // find new account
       if (!followerRecord) {
+        const user = await this.usersService.getUserByAddress(account.address);
+
+        if (!user) {
+          await this.usersService.addUser(account.address);
+        }
+
         return this.prismaService.follower.create({
           data: {
             address: account.address,

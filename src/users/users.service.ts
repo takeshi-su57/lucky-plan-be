@@ -45,4 +45,10 @@ export class UsersService {
       },
     });
   }
+
+  async isLeaderAddress(address: Address): Promise<boolean> {
+    const user = await this.getUserByAddress(address);
+
+    return !!user && user.role === UserRole.Leader;
+  }
 }

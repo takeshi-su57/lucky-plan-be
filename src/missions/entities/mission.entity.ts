@@ -12,7 +12,7 @@ export class Mission {
   targetPositionId: number;
 
   @Field(() => Int, { nullable: true })
-  achievePositionId: number;
+  achievePositionId: number | null;
 
   @Field(() => Date)
   createdAt: Date;

@@ -23,6 +23,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         key: 'mnemonic',
         initialValue: 'init',
       },
+      availableChainIds: {
+        key: 'availableChainIds',
+        initialValue: 'init',
+      },
     };
   }
 
