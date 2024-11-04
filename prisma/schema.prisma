@@ -27,6 +27,7 @@ enum UserRole {
 }
 
 enum BotStatus {
+  Created
   Live
   Finish
   Dead
@@ -44,8 +45,9 @@ model Follower {
   address      String @id @db.VarChar(255)
   publicKey    String @unique
   accountIndex Int    @unique
-  user         User   @relation(fields: [address], references: [address])
-  bots         Bot[]
+
+  user User  @relation(fields: [address], references: [address])
+  bots Bot[]
 }
 
 model StrategyMetadata {
@@ -84,9 +86,9 @@ model Bot {
   followerAddress String    @db.VarChar(255)
   strategyId      Int
   contractId      Int
-  startedBlock    Int
-  pausedBlock     Int
-  endedBlock      Int
+  startedBlock    Int?
+  pausedBlock     Int?
+  endedBlock      Int?
   status          BotStatus
 
   follower Follower @relation(fields: [followerAddress], references: [address])
