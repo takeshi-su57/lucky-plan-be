@@ -11,12 +11,12 @@ export class MissionsResolver {
     return this.missionsService.findAll();
   }
 
-  @Query(() => Mission)
+  @Query(() => Mission, { nullable: true })
   findMission(@Args('id', { type: () => Int }) id: number) {
     return this.missionsService.findOne(id);
   }
 
-  @Query(() => Mission)
+  @Query(() => [Mission])
   findMissionByBot(@Args('botId', { type: () => Int }) botId: number) {
     return this.missionsService.findByBot(botId);
   }

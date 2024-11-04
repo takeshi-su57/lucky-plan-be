@@ -60,7 +60,8 @@ export class ContractMonitorService implements OnModuleDestroy {
       const rawLogs = await this.clientService
         .publicClient(chainId)
         .getLogs<AbiEvent>({
-          address: addresses[chainId].global.gnsMultiCollatDiamond as Address,
+          address: addresses[chainId.toString() as keyof typeof addresses]
+            .global.gnsMultiCollatDiamond as Address,
           fromBlock: blockNumber,
           toBlock: blockNumber,
         });
@@ -87,7 +88,10 @@ export class ContractMonitorService implements OnModuleDestroy {
         })
         .filter((eventLog) => !!eventLog);
 
-      this.tradeService.handleLogs(chainId, logs as ContractEventLog[]);
+      this.tradeService.handleLogs(
+        chainId,
+        logs as unknown as ContractEventLog[],
+      );
 
       this.lastBlockNumberByChainId[chainId]++;
     } catch (err) {

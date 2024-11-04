@@ -18,12 +18,12 @@ export class StrategyResolver {
     return this.strategyService.findAll();
   }
 
-  @Query(() => Strategy)
+  @Query(() => Strategy, { nullable: true })
   findStrategy(@Args('id', { type: () => Int }) id: number) {
     return this.strategyService.findOne(id);
   }
 
-  @Mutation(() => Strategy)
+  @Mutation(() => Strategy, { nullable: true })
   updateStrategy(
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateStrategyInput,
@@ -31,7 +31,7 @@ export class StrategyResolver {
     return this.strategyService.update(id, input);
   }
 
-  @Mutation(() => Strategy)
+  @Mutation(() => Strategy, { nullable: true })
   removeStrategy(@Args('id', { type: () => Int }) id: number) {
     return this.strategyService.remove(id);
   }

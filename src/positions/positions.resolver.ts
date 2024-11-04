@@ -19,12 +19,12 @@ export class PositionsResolver {
     return this.positionsService.findAll();
   }
 
-  @Query(() => Position)
+  @Query(() => Position, { nullable: true })
   findPositionById(@Args('id', { type: () => Int }) id: number) {
     return this.positionsService.findOne(id);
   }
 
-  @Query(() => Position)
+  @Query(() => Position, { nullable: true })
   findPosition(@Args('input') input: FindPositionInput) {
     return this.positionsService.find(input.address, input.index);
   }

@@ -1,12 +1,8 @@
-import { InputType, Int, Field, PartialType, OmitType } from '@nestjs/graphql';
+import { InputType, Field, PartialType } from '@nestjs/graphql';
 import { IsNotEmpty, IsJSON } from 'class-validator';
 
 @InputType()
 export class CreateStrategyInput {
-  @IsNotEmpty()
-  @Field(() => Int)
-  id: number;
-
   @IsNotEmpty()
   @Field()
   strategyKey: string;
@@ -18,6 +14,4 @@ export class CreateStrategyInput {
 }
 
 @InputType()
-export class UpdateStrategyInput extends PartialType(
-  OmitType(CreateStrategyInput, ['id']),
-) {}
+export class UpdateStrategyInput extends PartialType(CreateStrategyInput) {}
