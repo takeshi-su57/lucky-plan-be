@@ -1,13 +1,21 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateContractInput, UpdateContractInput } from './dto/contract.input';
+import { CreateContractInput } from './dto/contract.input';
+import { ChainsService } from './chains.service';
 
 @Injectable()
 export class ContractsService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private chainsService: ChainsService,
+  ) {}
 
   create(input: CreateContractInput) {
+    if (!this.chainsService.isValidChainId(input.chainId)) {
+      throw new Error('Invalid chain Id');
+    }
+
     return this.prismaService.contract.create({
       data: input,
     });
@@ -19,13 +27,5 @@ export class ContractsService {
 
   findOne(id: number) {
     return this.prismaService.contract.findUnique({ where: { id } });
-  }
-
-  update(id: number, input: UpdateContractInput) {
-    return this.prismaService.contract.update({ where: { id }, data: input });
-  }
-
-  remove(id: number) {
-    return this.prismaService.contract.delete({ where: { id } });
   }
 }

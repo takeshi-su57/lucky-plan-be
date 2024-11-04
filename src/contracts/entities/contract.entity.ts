@@ -11,4 +11,7 @@ export class Contract {
 
   @Field()
   address: Address;
+
+  @Field(() => String, { nullable: true })
+  description: string | null;
 }
