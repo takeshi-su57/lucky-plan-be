@@ -17,12 +17,12 @@ export class BotsResolver {
     return this.botsService.findAll();
   }
 
-  @Query(() => Bot)
+  @Query(() => Bot, { nullable: true })
   findBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.findOne(id);
   }
 
-  @Mutation(() => Bot)
+  @Mutation(() => Bot, { nullable: true })
   updateBot(
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateBotInput,
@@ -30,7 +30,7 @@ export class BotsResolver {
     return this.botsService.update(id, input);
   }
 
-  @Mutation(() => Bot)
+  @Mutation(() => Bot, { nullable: true })
   removeBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.remove(id);
   }

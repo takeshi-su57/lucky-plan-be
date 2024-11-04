@@ -18,12 +18,12 @@ export class ContractsResolver {
     return this.contractsService.findAll();
   }
 
-  @Query(() => Contract, { name: 'contract' })
+  @Query(() => Contract, { nullable: true })
   findContract(@Args('id', { type: () => Int }) id: number) {
     return this.contractsService.findOne(id);
   }
 
-  @Mutation(() => Contract)
+  @Mutation(() => Contract, { nullable: true })
   updateContract(
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateContractInput,
@@ -31,7 +31,7 @@ export class ContractsResolver {
     return this.contractsService.update(id, input);
   }
 
-  @Mutation(() => Contract)
+  @Mutation(() => Contract, { nullable: true })
   removeContract(@Args('id', { type: () => Int }) id: number) {
     return this.contractsService.remove(id);
   }
