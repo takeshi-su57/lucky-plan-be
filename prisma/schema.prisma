@@ -71,9 +71,10 @@ model Strategy {
 }
 
 model Contract {
-  id      Int    @id @default(autoincrement())
-  chainId Int
-  address String
+  id          Int     @id @default(autoincrement())
+  chainId     Int
+  address     String
+  description String?
 
   bots Bot[]
 
@@ -97,6 +98,8 @@ model Bot {
   contract Contract @relation(fields: [contractId], references: [id])
 
   missions Mission[]
+
+  @@unique([leaderAddress, followerAddress, strategyId, contractId, startedBlock])
 }
 
 model Position {

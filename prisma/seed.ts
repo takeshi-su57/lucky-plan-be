@@ -19,9 +19,18 @@ async function main() {
       value: '',
     },
   });
+  const availableChainIds = await prisma.metadata.upsert({
+    where: { key: 'availableChainIds' },
+    update: {},
+    create: {
+      key: 'availableChainIds',
+      value: '[137,42161,421614,8453]',
+    },
+  });
 
   console.log('password metadata: ', password);
   console.log('mnemonic metadata: ', mnemonic);
+  console.log('availableChainIds metadata: ', availableChainIds);
 }
 main()
   .then(async () => {
