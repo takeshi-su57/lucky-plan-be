@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, OmitType } from '@nestjs/graphql';
 import { Address } from 'viem';
 
 @ObjectType()
@@ -12,3 +12,6 @@ export class Position {
   @Field(() => Int)
   index: number;
 }
+
+@ObjectType()
+export class PositionInfo extends OmitType(Position, ['id']) {}

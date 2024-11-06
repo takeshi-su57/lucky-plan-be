@@ -1,0 +1,7 @@
+BlockNumber: 94863844 
+
+MarketOrderInitiated ==> {"user":"0x104B4E127B9a6C82044c972cAfF88e75f41ae8Cc","index":66}
+
+BlockNumber: 94863845 
+
+MarketExecuted ==> {"user":"0x104B4E127B9a6C82044c972cAfF88e75f41ae8Cc","index":66}

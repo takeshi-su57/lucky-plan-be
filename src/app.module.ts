@@ -8,7 +8,6 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-import { ClientService } from './services/client.service';
 import { TradeService } from './services/trade.service';
 import { SystemService } from './services/system.service';
 import { ContractMonitorService } from './services/contract-monitor.service';
@@ -49,12 +48,6 @@ import { ActionsModule } from './actions/actions.module';
     ActionsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    ClientService,
-    TradeService,
-    SystemService,
-    ContractMonitorService,
-  ],
+  providers: [AppService, TradeService, SystemService, ContractMonitorService],
 })
 export class AppModule {}

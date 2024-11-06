@@ -1,0 +1,30 @@
+BlockNumber: 94390196 
+
+PendingOrderStored
+LinkRequestCreated
+PriceRequested
+MarketOrderInitiated
+
+BlockNumber: 94390197 
+
+PriceReceived
+
+BlockNumber: 94390198 
+
+TraderDailyPointsIncreased
+GovFeeCharged
+OtcBalanceUpdated
+GnsOtcFeeCharged
+GTokenFeeCharged
+BorrowingFeeCharged
+BorrowingPairAccFeesUpdated
+BorrowingGroupAccFeesUpdated
+BorrowingPairOiUpdated
+BorrowingGroupOiUpdated
+TradeBorrowingCallbackHandled
+PriceImpactOpenInterestAdded
+TradeClosed
+MarketExecuted
+PendingOrderClosed
+TradingCallbackExecuted
+PriceReceived

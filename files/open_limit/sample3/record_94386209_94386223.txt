@@ -1,0 +1,24 @@
+BlockNumber: 94386209 
+
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+OnePercentDepthUpdated
+
+BlockNumber: 94386210 
+
+BorrowingGroupAccFeesUpdated
+BorrowingGroupUpdated
+BorrowingGroupAccFeesUpdated
+BorrowingGroupUpdated

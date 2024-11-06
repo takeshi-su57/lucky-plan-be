@@ -7,6 +7,7 @@ type Action {
   createdAt: DateTime!
   id: Int!
   name: String!
+  positionId: Int!
 }
 
 input AddUserInput {
@@ -148,6 +149,11 @@ type Mutation {
 type Position {
   address: String!
   id: Int!
+  index: Int!
+}
+
+type PositionInfo {
+  address: String!
   index: Int!
 }
 

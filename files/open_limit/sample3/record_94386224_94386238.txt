@@ -1,0 +1,29 @@
+BlockNumber: 94386224 
+
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+BorrowingPairAccFeesUpdated
+BorrowingPairParamsUpdated
+
+BlockNumber: 94386225 
+
+BorrowingGroupAccFeesUpdated
+BorrowingGroupUpdated
+BorrowingGroupAccFeesUpdated
+BorrowingGroupUpdated

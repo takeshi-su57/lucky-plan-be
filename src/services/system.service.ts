@@ -8,6 +8,8 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   handleCheckContractMonitorStatusCron() {
-    this.contractMonitorService.checkContractByChains();
+    if (this.contractMonitorService.status === 'ready') {
+      this.contractMonitorService.checkContractByChains();
+    }
   }
 }
