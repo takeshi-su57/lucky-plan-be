@@ -31,8 +31,6 @@ export class PriceService {
 
       this.usdcPrice = data[1];
 
-      console.log(this.usdcPrice);
-
       // Convert the raw price to a human-readable format
       return data[1];
     } catch (error) {
