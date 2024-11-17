@@ -3,7 +3,7 @@ import { Follower } from '@prisma/client';
 import { validateMnemonic } from '@scure/bip39';
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { Address, english, mnemonicToAccount } from 'viem/accounts';
+import { english, mnemonicToAccount } from 'viem/accounts';
 
 @Injectable()
 export class FollowerService {
@@ -59,7 +59,7 @@ export class FollowerService {
     return this.prismaService.follower.findMany();
   }
 
-  async getFollowerByAddress(address: Address) {
+  async getFollowerByAddress(address: string) {
     return this.prismaService.follower.findUnique({
       where: {
         address,
