@@ -1,5 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { Address } from 'viem';
 
 @ObjectType()
 export class Contract {
@@ -10,7 +9,7 @@ export class Contract {
   chainId: number;
 
   @Field()
-  address: Address;
+  address: string;
 
   @Field(() => String, { nullable: true })
   description: string | null;

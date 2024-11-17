@@ -18,7 +18,7 @@ export class ContractsResolver {
     return this.contractsService.findAll();
   }
 
-  @Query(() => Contract, { nullable: true })
+  @Query(() => Contract)
   findContract(@Args('id', { type: () => Int }) id: number) {
     return this.contractsService.findOne(id);
   }

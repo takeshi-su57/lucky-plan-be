@@ -1,6 +1,5 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { Address } from 'viem';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
@@ -13,7 +12,7 @@ export class CreateContractInput {
   @IsNotEmpty()
   @IsWalletAddress()
   @Field()
-  address: Address;
+  address: string;
 
   @IsString()
   @Field(() => String, { nullable: true })
