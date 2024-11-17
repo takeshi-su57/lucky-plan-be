@@ -15,12 +15,18 @@ export class Action {
   @Field()
   args: string;
 
+  @Field(() => Int)
+  blockNumber: number;
+
+  @Field(() => Int)
+  orderInBlock: number;
+
   @Field(() => Date)
   createdAt: Date;
 }
 
 @ObjectType()
-export class ActionDetail extends Action {
+export class ActionDetails extends Action {
   @Field(() => Position)
   position: Position;
 }
@@ -29,6 +35,8 @@ export class ActionDetail extends Action {
 export class ActionItem extends OmitType(Action, [
   'id',
   'positionId',
+  'blockNumber',
+  'orderInBlock',
   'createdAt',
 ]) {
   @Field(() => PositionInfo)

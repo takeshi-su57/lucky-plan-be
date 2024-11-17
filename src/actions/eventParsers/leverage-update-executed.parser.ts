@@ -1,49 +1,36 @@
-import { AbiEvent, decodeEventLog, getAbiItem, GetLogsReturnType } from 'viem';
+import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
-import { ActionItem } from '../entities/action.entity';
 
 export const eventName = 'LeverageUpdateExecuted';
 
-const abiItem = getAbiItem({
+export const abiItem = getAbiItem({
   abi: gnsMultiCollatDiamondAbi,
   name: eventName,
 });
 
-export type LeverageUpdateExecutedEvent = typeof abiItem;
-export type LeverageUpdateExecutedEventArgs = typeof abiItem.inputs;
+export type LeverageUpdateExecutedEvent = DecodeEventLogReturnType<
+  typeof gnsMultiCollatDiamondAbi,
+  typeof eventName
+>;
+export type LeverageUpdateExecutedEventArgs =
+  LeverageUpdateExecutedEvent['args'];
 
-export function parseLeverageUpdateExecutedEventLog(
-  log: GetLogsReturnType<AbiEvent>[number],
+export function parseLeverageUpdateExecutedEvent(
+  event: LeverageUpdateExecutedEvent,
 ) {
-  const event = decodeEventLog({
-    abi: [abiItem],
-    data: log.data,
-    topics: log.topics,
-  });
-
-  return {
-    event,
-    action: eventToAction(
-      event.eventName,
-      {
-        address: event.args.orderId.user,
-        index: event.args.orderId.index,
-      },
-      event.args,
-    ),
-  };
+  return eventToAction(
+    event.eventName,
+    {
+      address: event.args.orderId.user,
+      index: event.args.orderId.index,
+    },
+    event.args,
+  );
 }
 
-export function parseLeverageUpdateExecutedAction(action: ActionItem) {
-  return {
-    event: actionToEvent<LeverageUpdateExecutedEventArgs>(action),
-    action,
-  };
-}
-
-export const leverageUpdateExecutedParser = {
+export const leverageUpdateExecutedEventParser = {
   eventName,
-  logParser: parseLeverageUpdateExecutedEventLog,
-  actionParser: parseLeverageUpdateExecutedAction,
+  logParser: parseLeverageUpdateExecutedEvent,
+  actionParser: actionToEvent<LeverageUpdateExecutedEventArgs>,
 };

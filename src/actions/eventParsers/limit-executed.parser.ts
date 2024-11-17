@@ -1,49 +1,33 @@
-import { AbiEvent, decodeEventLog, getAbiItem, GetLogsReturnType } from 'viem';
+import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
-import { ActionItem } from '../entities/action.entity';
 
 export const eventName = 'LimitExecuted';
 
-const abiItem = getAbiItem({
+export const abiItem = getAbiItem({
   abi: gnsMultiCollatDiamondAbi,
   name: eventName,
 });
 
-export type LimitExecutedEvent = typeof abiItem;
-export type LimitExecutedEventArgs = typeof abiItem.inputs;
+export type LimitExecutedEvent = DecodeEventLogReturnType<
+  typeof gnsMultiCollatDiamondAbi,
+  typeof eventName
+>;
+export type LimitExecutedEventArgs = LimitExecutedEvent['args'];
 
-export function parseLimitExecutedEventLog(
-  log: GetLogsReturnType<AbiEvent>[number],
-) {
-  const event = decodeEventLog({
-    abi: [abiItem],
-    data: log.data,
-    topics: log.topics,
-  });
-
-  return {
-    event,
-    action: eventToAction(
-      event.eventName,
-      {
-        address: event.args.orderId.user,
-        index: event.args.orderId.index,
-      },
-      event.args,
-    ),
-  };
-}
-
-export function parseLimitExecutedAction(action: ActionItem) {
-  return {
-    event: actionToEvent<LimitExecutedEventArgs>(action),
-    action,
-  };
+export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
+  return eventToAction(
+    event.eventName,
+    {
+      address: event.args.orderId.user,
+      index: event.args.orderId.index,
+    },
+    event.args,
+  );
 }
 
 export const limitExecutedEventParser = {
   eventName,
-  logParser: parseLimitExecutedEventLog,
-  actionParser: parseLimitExecutedAction,
+  logParser: parseLimitExecutedEvent,
+  actionParser: actionToEvent<LimitExecutedEventArgs>,
 };

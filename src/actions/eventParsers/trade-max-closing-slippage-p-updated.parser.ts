@@ -1,49 +1,36 @@
-import { AbiEvent, decodeEventLog, getAbiItem, GetLogsReturnType } from 'viem';
+import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
-import { ActionItem } from '../entities/action.entity';
 
 export const eventName = 'TradeMaxClosingSlippagePUpdated';
 
-const abiItem = getAbiItem({
+export const abiItem = getAbiItem({
   abi: gnsMultiCollatDiamondAbi,
   name: eventName,
 });
 
-export type TradeMaxClosingSlippagePUpdatedEvent = typeof abiItem;
-export type TradeMaxClosingSlippagePUpdatedEventArgs = typeof abiItem.inputs;
+export type TradeMaxClosingSlippagePUpdatedEvent = DecodeEventLogReturnType<
+  typeof gnsMultiCollatDiamondAbi,
+  typeof eventName
+>;
+export type TradeMaxClosingSlippagePUpdatedEventArgs =
+  TradeMaxClosingSlippagePUpdatedEvent['args'];
 
-export function parseTradeMaxClosingSlippagePUpdatedEventLog(
-  log: GetLogsReturnType<AbiEvent>[number],
+export function parseTradeMaxClosingSlippagePUpdatedEvent(
+  event: TradeMaxClosingSlippagePUpdatedEvent,
 ) {
-  const event = decodeEventLog({
-    abi: [abiItem],
-    data: log.data,
-    topics: log.topics,
-  });
-
-  return {
-    event,
-    action: eventToAction(
-      event.eventName,
-      {
-        address: event.args.user,
-        index: event.args.index,
-      },
-      event.args,
-    ),
-  };
+  return eventToAction(
+    event.eventName,
+    {
+      address: event.args.user,
+      index: event.args.index,
+    },
+    event.args,
+  );
 }
 
-export function parseTradeMaxClosingSlippagePUpdatedAction(action: ActionItem) {
-  return {
-    event: actionToEvent<TradeMaxClosingSlippagePUpdatedEventArgs>(action),
-    action,
-  };
-}
-
-export const tradeMaxClosingSlippagePUpdatedParser = {
+export const tradeMaxClosingSlippagePUpdatedEventParser = {
   eventName,
-  logParser: parseTradeMaxClosingSlippagePUpdatedEventLog,
-  actionParser: parseTradeMaxClosingSlippagePUpdatedAction,
+  logParser: parseTradeMaxClosingSlippagePUpdatedEvent,
+  actionParser: actionToEvent<TradeMaxClosingSlippagePUpdatedEventArgs>,
 };

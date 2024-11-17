@@ -17,7 +17,7 @@ export class ActionsResolver {
   }
 
   @Query(() => Action, { nullable: true })
-  findOne(@Args('id', { type: () => Int }) id: number) {
+  findAction(@Args('id', { type: () => Int }) id: number) {
     return this.actionsService.findOne(id);
   }
 }

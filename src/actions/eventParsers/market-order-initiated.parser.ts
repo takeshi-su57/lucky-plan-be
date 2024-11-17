@@ -1,49 +1,35 @@
-import { AbiEvent, decodeEventLog, getAbiItem, GetLogsReturnType } from 'viem';
+import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
-import { ActionItem } from '../entities/action.entity';
 
 export const eventName = 'MarketOrderInitiated';
 
-const abiItem = getAbiItem({
+export const abiItem = getAbiItem({
   abi: gnsMultiCollatDiamondAbi,
   name: eventName,
 });
 
-export type MarketOrderInitiatedEvent = typeof abiItem;
-export type MarketOrderInitiatedEventArgs = typeof abiItem.inputs;
+export type MarketOrderInitiatedEvent = DecodeEventLogReturnType<
+  typeof gnsMultiCollatDiamondAbi,
+  typeof eventName
+>;
+export type MarketOrderInitiatedEventArgs = MarketOrderInitiatedEvent['args'];
 
-export function parseMarketOrderInitiatedEventLog(
-  log: GetLogsReturnType<AbiEvent>[number],
+export function parseMarketOrderInitiatedEvent(
+  event: MarketOrderInitiatedEvent,
 ) {
-  const event = decodeEventLog({
-    abi: [abiItem],
-    data: log.data,
-    topics: log.topics,
-  });
-
-  return {
-    event,
-    action: eventToAction(
-      event.eventName,
-      {
-        address: event.args.orderId.user,
-        index: event.args.orderId.index,
-      },
-      event.args,
-    ),
-  };
+  return eventToAction(
+    event.eventName,
+    {
+      address: event.args.orderId.user,
+      index: event.args.orderId.index,
+    },
+    event.args,
+  );
 }
 
-export function parseMarketOrderInitiatedAction(action: ActionItem) {
-  return {
-    event: actionToEvent<MarketOrderInitiatedEventArgs>(action),
-    action,
-  };
-}
-
-export const marketOrderInitiatedParser = {
+export const marketOrderInitiatedEventParser = {
   eventName,
-  logParser: parseMarketOrderInitiatedEventLog,
-  actionParser: parseMarketOrderInitiatedAction,
+  logParser: parseMarketOrderInitiatedEvent,
+  actionParser: actionToEvent<MarketOrderInitiatedEventArgs>,
 };

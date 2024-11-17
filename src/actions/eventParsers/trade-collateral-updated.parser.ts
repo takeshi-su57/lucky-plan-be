@@ -1,49 +1,36 @@
-import { AbiEvent, decodeEventLog, getAbiItem, GetLogsReturnType } from 'viem';
+import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
-import { ActionItem } from '../entities/action.entity';
 
 export const eventName = 'TradeCollateralUpdated';
 
-const abiItem = getAbiItem({
+export const abiItem = getAbiItem({
   abi: gnsMultiCollatDiamondAbi,
   name: eventName,
 });
 
-export type TradeCollateralUpdatedEvent = typeof abiItem;
-export type TradeCollateralUpdatedEventArgs = typeof abiItem.inputs;
+export type TradeCollateralUpdatedEvent = DecodeEventLogReturnType<
+  typeof gnsMultiCollatDiamondAbi,
+  typeof eventName
+>;
+export type TradeCollateralUpdatedEventArgs =
+  TradeCollateralUpdatedEvent['args'];
 
-export function parseTradeCollateralUpdatedEventLog(
-  log: GetLogsReturnType<AbiEvent>[number],
+export function parseTradeCollateralUpdatedEvent(
+  event: TradeCollateralUpdatedEvent,
 ) {
-  const event = decodeEventLog({
-    abi: [abiItem],
-    data: log.data,
-    topics: log.topics,
-  });
-
-  return {
-    event,
-    action: eventToAction(
-      event.eventName,
-      {
-        address: event.args.user,
-        index: event.args.index,
-      },
-      event.args,
-    ),
-  };
+  return eventToAction(
+    event.eventName,
+    {
+      address: event.args.user,
+      index: event.args.index,
+    },
+    event.args,
+  );
 }
 
-export function parseTradeCollateralUpdatedAction(action: ActionItem) {
-  return {
-    event: actionToEvent<TradeCollateralUpdatedEventArgs>(action),
-    action,
-  };
-}
-
-export const tradeCollateralUpdatedParser = {
+export const tradeCollateralUpdatedEventParser = {
   eventName,
-  logParser: parseTradeCollateralUpdatedEventLog,
-  actionParser: parseTradeCollateralUpdatedAction,
+  logParser: parseTradeCollateralUpdatedEvent,
+  actionParser: actionToEvent<TradeCollateralUpdatedEventArgs>,
 };
