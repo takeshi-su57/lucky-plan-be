@@ -2,16 +2,23 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { CreatePositionInput } from './dto/position.input';
-import { Address } from 'viem';
 
 @Injectable()
 export class PositionsService {
   constructor(private prismaService: PrismaService) {}
 
-  create(input: CreatePositionInput) {
-    return this.prismaService.position.create({
-      data: input,
-    });
+  upsertMany(positions: CreatePositionInput[]) {
+    return this.prismaService.$transaction(
+      positions.map((position) =>
+        this.prismaService.position.upsert({
+          where: {
+            address_index: position,
+          },
+          update: {},
+          create: position,
+        }),
+      ),
+    );
   }
 
   findAll() {
@@ -22,7 +29,7 @@ export class PositionsService {
     return this.prismaService.position.findUnique({ where: { id } });
   }
 
-  find(address: Address, index: number) {
+  find(address: string, index: number) {
     return this.prismaService.position.findFirst({
       where: { address: address, index: index },
     });
