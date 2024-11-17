@@ -114,13 +114,19 @@ model Position {
   @@unique([address, index])
 }
 
+enum MissionStatus {
+  Opened
+  Closed
+}
+
 model Mission {
-  id                Int      @id @default(autoincrement())
+  id                Int           @id @default(autoincrement())
   botId             Int
   targetPositionId  Int
   achievePositionId Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  status            MissionStatus
 
   targetPosition  Position  @relation("targetMissions", fields: [targetPositionId], references: [id])
   achievePosition Position? @relation("achieveMissions", fields: [achievePositionId], references: [id])
@@ -133,6 +139,7 @@ model Mission {
 enum TaskStatus {
   Created
   Await
+  Initiated
   Failed
   Completed
 }
@@ -142,23 +149,37 @@ model Task {
   missionId Int
   actionId  Int
   status    TaskStatus
+  logs      String[]
   createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
 
-  action Action @relation(fields: [actionId], references: [id])
-
-  mission Mission @relation(fields: [missionId], references: [id])
+  action          Action           @relation(fields: [actionId], references: [id])
+  mission         Mission          @relation(fields: [missionId], references: [id])
+  followerActions FollowerAction[]
 
   @@unique([missionId, actionId])
 }
 
 model Action {
-  id         Int      @id @default(autoincrement())
-  name       String
-  positionId Int
-  args       String
-  createdAt  DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  name         String
+  positionId   Int
+  args         String
+  blockNumber  Int
+  orderInBlock Int
+  createdAt    DateTime @default(now())
 
-  position Position @relation(fields: [positionId], references: [id])
-  tasks    Task[]
+  position       Position        @relation(fields: [positionId], references: [id])
+  tasks          Task[]
+  followerAction FollowerAction?
+}
+
+model FollowerAction {
+  id       Int @id @default(autoincrement())
+  actionId Int @unique
+  taskId   Int
+
+  action Action @relation(fields: [actionId], references: [id])
+  task   Task   @relation(fields: [taskId], references: [id])
+
+  @@unique([actionId, taskId])
 }
