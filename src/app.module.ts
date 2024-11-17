@@ -3,14 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+
 import { join } from 'path';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-import { TradeService } from './services/trade.service';
-import { SystemService } from './services/system.service';
-import { ContractMonitorService } from './services/contract-monitor.service';
+import { SystemService } from './system.service';
 
 import { GlobalModule } from './global/global.module';
 import { UsersModule } from './users/users.module';
@@ -23,6 +19,7 @@ import { PositionsModule } from './positions/positions.module';
 import { MissionsModule } from './missions/missions.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ActionsModule } from './actions/actions.module';
+import { FollowerActionsModule } from './follower-actions/follower-actions.module';
 
 @Module({
   imports: [
@@ -46,8 +43,9 @@ import { ActionsModule } from './actions/actions.module';
     MissionsModule,
     TasksModule,
     ActionsModule,
+    FollowerActionsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, TradeService, SystemService, ContractMonitorService],
+  controllers: [],
+  providers: [SystemService],
 })
 export class AppModule {}

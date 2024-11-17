@@ -20,3 +20,6 @@ export class CreateStrategyMetadataInput {
 export class UpdateStrategyMetadataInput extends PartialType(
   OmitType(CreateStrategyMetadataInput, ['key']),
 ) {}
+
+@InputType()
+export class EqualCopyParamsInput {}

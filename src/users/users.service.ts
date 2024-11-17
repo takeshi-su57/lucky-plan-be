@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { User, UserRole } from '@prisma/client';
-import { Address } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
 
@@ -8,7 +7,7 @@ import { PrismaService } from 'src/global/prisma.service';
 export class UsersService {
   constructor(private prismaService: PrismaService) {}
 
-  async addUser(address: Address): Promise<User> {
+  async addUser(address: string): Promise<User> {
     return this.prismaService.user.upsert({
       where: { address },
       update: {},
@@ -19,7 +18,7 @@ export class UsersService {
     });
   }
 
-  async changeRole(address: Address, role: UserRole): Promise<User> {
+  async changeRole(address: string, role: UserRole): Promise<User> {
     return this.prismaService.user.update({
       where: {
         address,
@@ -30,7 +29,7 @@ export class UsersService {
     });
   }
 
-  async getUserByAddress(address: Address): Promise<User | null> {
+  async getUserByAddress(address: string): Promise<User | null> {
     return this.prismaService.user.findUnique({
       where: {
         address,
@@ -46,7 +45,7 @@ export class UsersService {
     });
   }
 
-  async isLeaderAddress(address: Address): Promise<boolean> {
+  async isLeaderAddress(address: string): Promise<boolean> {
     const user = await this.getUserByAddress(address);
 
     return !!user && user.role === UserRole.Leader;

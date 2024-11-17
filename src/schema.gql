@@ -4,9 +4,11 @@
 
 type Action {
   args: String!
+  blockNumber: Int!
   createdAt: DateTime!
   id: Int!
   name: String!
+  orderInBlock: Int!
   positionId: Int!
 }
 
@@ -72,11 +74,6 @@ input CreateContractInput {
   description: String
 }
 
-input CreatePositionInput {
-  address: String!
-  index: Int!
-}
-
 input CreateStrategyInput {
   params: String!
   strategyKey: String!
@@ -104,6 +101,20 @@ type Follower {
   publicKey: String!
 }
 
+type FollowerAction {
+  actionId: Int!
+  id: Int!
+  taskId: Int!
+}
+
+type FollowerActionDetails {
+  action: Action!
+  actionId: Int!
+  id: Int!
+  task: Task!
+  taskId: Int!
+}
+
 input GetFollowerByAddressInput {
   address: String!
 }
@@ -125,6 +136,19 @@ type Mission {
   botId: Int!
   createdAt: DateTime!
   id: Int!
+  status: String!
+  targetPositionId: Int!
+  updatedAt: DateTime!
+}
+
+type MissionDetails {
+  achievePosition: Position
+  achievePositionId: Int
+  bot: BotDetails!
+  botId: Int!
+  createdAt: DateTime!
+  id: Int!
+  status: String!
   targetPositionId: Int!
   updatedAt: DateTime!
 }
@@ -135,7 +159,6 @@ type Mutation {
   changeRole(input: ChangeUserRoleInput!): User!
   createBot(input: CreateBotInput!): Bot!
   createContract(input: CreateContractInput!): Contract!
-  createPosition(createPositionInput: CreatePositionInput!): Position!
   createStrategy(input: CreateStrategyInput!): Strategy!
   createStrategyMetadata(input: CreateStrategyMetadataInput!): StrategyMetadata!
   generateNewFollower: Follower!
@@ -158,20 +181,22 @@ type PositionInfo {
 }
 
 type Query {
+  findAction(id: Int!): Action
   findActionsByPosition(positionId: Float!): [Action!]!
   findAllActions: [Action!]!
   findAllBots: [Bot!]!
   findAllContracts: [Contract!]!
+  findAllFollowerActions: [FollowerAction!]!
   findAllMissions: [Mission!]!
   findAllPositions: [Position!]!
   findAllStrategy: [Strategy!]!
   findAllStrategyMetadata: [StrategyMetadata!]!
   findAllTasks: [Task!]!
-  findBot(id: Int!): BotDetails
-  findContract(id: Int!): Contract
+  findBot(id: Int!): BotDetails!
+  findContract(id: Int!): Contract!
+  findFollowerAction(id: Int!): FollowerActionDetails
   findMission(id: Int!): Mission
   findMissionByBot(botId: Int!): [Mission!]!
-  findOne(id: Int!): Action
   findPosition(input: FindPositionInput!): Position
   findPositionById(id: Int!): Position
   findStrategy(id: Int!): Strategy
@@ -200,9 +225,9 @@ type Task {
   actionId: Int!
   createdAt: DateTime!
   id: Int!
+  logs: [String!]!
   missionId: Int!
   status: String!
-  updatedAt: DateTime!
 }
 
 input UpdateStrategyInput {

@@ -1,3 +1,0 @@
-BlockNumber: 94888081 
-
-PositionSizeIncreaseExecuted ==> {"user":"0xf04483D6D96e321A555BE97a35E8cd560C506A0d","index":7}

@@ -1,4 +1,0 @@
-BlockNumber: 94389340 
-
-BorrowingGroupAccFeesUpdated
-BorrowingGroupUpdated

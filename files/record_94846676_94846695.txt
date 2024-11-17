@@ -1,3 +1,0 @@
-BlockNumber: 94846676 
-
-MarketOrderInitiated ==> {"trader":"0x2b95CCDE4Df0e9f4700A335ee882d3Ee89bA8Aa9","pairIndex":0,"orderId":{"user":"0x2b95CCDE4Df0e9f4700A335ee882d3Ee89bA8Aa9","index":25},"open":true}

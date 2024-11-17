@@ -1,4 +1,4 @@
-import { ActionItem } from 'src/actions/entities/action.entity';
+import { ActionItem, Action } from 'src/actions/entities/action.entity';
 import { PositionInfo } from 'src/positions/entities/position.entity';
 import { TradeEvent } from 'src/types';
 
@@ -16,7 +16,7 @@ export function eventToAction(
   };
 }
 
-export function actionToEvent<T>(action: ActionItem): TradeEvent<T> {
+export function actionToEvent<T>(action: Action): TradeEvent<T> {
   return {
     eventName: action.name,
     args: JSON.parse(action.args) as T,
