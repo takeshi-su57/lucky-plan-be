@@ -1,4 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { MissionStatus } from '@prisma/client';
+import { BotDetails } from 'src/bots/entities/bot.entity';
+import { Position } from 'src/positions/entities/position.entity';
 
 @ObjectType()
 export class Mission {
@@ -19,4 +22,16 @@ export class Mission {
 
   @Field(() => Date)
   updatedAt: Date;
+
+  @Field()
+  status: MissionStatus;
+}
+
+@ObjectType()
+export class MissionDetails extends Mission {
+  @Field(() => BotDetails)
+  bot: BotDetails;
+
+  @Field(() => Position, { nullable: true })
+  achievePosition: Position | null;
 }
