@@ -1,8 +1,6 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { BotStatus } from '@prisma/client';
 
-import { Address } from 'viem';
-
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -14,10 +12,10 @@ export class Bot {
   id: number;
 
   @Field()
-  leaderAddress: Address;
+  leaderAddress: string;
 
   @Field()
-  followerAddress: Address;
+  followerAddress: string;
 
   @Field(() => Int)
   strategyId: number;

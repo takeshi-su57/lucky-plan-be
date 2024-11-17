@@ -17,7 +17,7 @@ export class BotsResolver {
     return this.botsService.findAll();
   }
 
-  @Query(() => BotDetails, { nullable: true })
+  @Query(() => BotDetails)
   findBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.findOne(id);
   }
