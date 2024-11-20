@@ -8,8 +8,8 @@ import { CreateFollowerActionInput } from './dto/follower-action.input';
 export class FollowerActionsService {
   constructor(private prismaService: PrismaService) {}
 
-  async createMany(inputs: CreateFollowerActionInput[]) {
-    return await this.prismaService.followerAction.createManyAndReturn({
+  createMany(inputs: CreateFollowerActionInput[]) {
+    return this.prismaService.followerAction.createManyAndReturn({
       data: inputs,
       include: {
         action: true,

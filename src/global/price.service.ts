@@ -40,10 +40,10 @@ export class PriceService {
   }
 
   async getUSDCPrice() {
-    if (this.usdcPrice !== undefined || this.usdcPrice !== null) {
+    if (this.usdcPrice !== undefined && this.usdcPrice !== null) {
       return this.usdcPrice;
     }
 
-    return this.loadUSDCPrice();
+    return await this.loadUSDCPrice();
   }
 }

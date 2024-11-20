@@ -26,7 +26,7 @@ export class TradeService {
       args: [args.trade, args.maxSlippageP, zeroAddress],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async updateMaxClosingSlippageP(
@@ -47,7 +47,7 @@ export class TradeService {
       args: [args.index, args.maxSlippageP],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async closeTradeMarket(
@@ -68,7 +68,7 @@ export class TradeService {
       args: [args.index, args.expectedPrice],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async updateTp(
@@ -89,7 +89,7 @@ export class TradeService {
       args: [args.index, args.newTp],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async updateSl(
@@ -110,7 +110,7 @@ export class TradeService {
       args: [args.index, args.newSl],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async updateLeverage(
@@ -131,7 +131,7 @@ export class TradeService {
       args: [args.index, args.newLeverage],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async increasePositionSize(
@@ -161,7 +161,7 @@ export class TradeService {
       ],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 
   async decreasePositionSize(
@@ -189,6 +189,6 @@ export class TradeService {
       ],
     });
 
-    return wallet.writeContract(request);
+    return await wallet.writeContract(request);
   }
 }
