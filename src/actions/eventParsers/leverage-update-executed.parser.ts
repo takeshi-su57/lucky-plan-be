@@ -22,8 +22,8 @@ export function parseLeverageUpdateExecutedEvent(
   return eventToAction(
     event.eventName,
     {
-      address: event.args.orderId.user,
-      index: event.args.orderId.index,
+      address: event.args.trader,
+      index: Number(event.args.index),
     },
     event.args,
   );

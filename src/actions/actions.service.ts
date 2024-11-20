@@ -19,7 +19,7 @@ export class ActionsService {
       new Set(
         inputs.map((input) =>
           JSON.stringify({
-            address: input.positionAddress,
+            address: input.positionAddress.toLowerCase(),
             index: input.positionIndex,
           }),
         ),
@@ -31,7 +31,7 @@ export class ActionsService {
     (await this.positionsService.upsertMany(positionInputs)).forEach(
       (position) =>
         positionsMap.set(
-          `${position.address}-${position.index}`,
+          `${position.address.toLowerCase()}-${position.index}`,
           position as Position,
         ),
     );
@@ -40,7 +40,7 @@ export class ActionsService {
       data: inputs.map((input) => ({
         name: input.name,
         positionId: positionsMap.get(
-          `${input.positionAddress}-${input.positionIndex}`,
+          `${input.positionAddress.toLowerCase()}-${input.positionIndex}`,
         )!.id,
         args: input.args,
         blockNumber: input.blockNumber,

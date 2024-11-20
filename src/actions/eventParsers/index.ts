@@ -8,7 +8,7 @@ import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 // import { positionSizeUpdateInitiatedEventParser } from 'src/actions/eventParsers/position-size-update-initiated.parser';
-import { tradeCollateralUpdatedEventParser } from 'src/actions/eventParsers/trade-collateral-updated.parser';
+
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
 import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
 import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
@@ -25,7 +25,6 @@ export const missionEventNames = missionEventParsers.map(
 );
 
 export const updateEventParsers = [
-  tradeCollateralUpdatedEventParser,
   tradeSLUpdatedEventParser,
   tradeTPUpdatedEventParser,
   tradeMaxClosingSlippagePUpdatedEventParser,
@@ -47,17 +46,11 @@ export const missionCanceledEventNames = missionCanceledEventParsers.map(
   (item) => item.eventName,
 );
 
-// export const updateTrackEventParsers = [
-//   leverageUpdateInitiatedEventParser,
-//   positionSizeUpdateInitiatedEventParser,
-// ];
-
 export const eventParsers = [
   marketOrderInitiatedEventParser,
   ...missionEventParsers,
   ...updateEventParsers,
   ...missionCanceledEventParsers,
-  // ...updateTrackEventParsers,
 ];
 
 export const registeredEventNames = eventParsers.map((item) => item.eventName);
@@ -112,4 +105,26 @@ export function isSameUpdateAction(
   }
 
   return leaderAction.name === followerAction.name;
+}
+
+export function getOrderIdFromMissionAction(action: Action) {
+  if (!missionEventNames.includes(action.name)) {
+    return null;
+  }
+
+  if (action.name === marketExecutedEventParser.eventName) {
+    return marketExecutedEventParser.actionParser(action).args.orderId;
+  } else {
+    const event = limitExecutedEventParser.actionParser(action);
+
+    if (
+      [PendingOrderType.LIMIT_OPEN, PendingOrderType.STOP_OPEN].includes(
+        event.args.orderType,
+      )
+    ) {
+      return event.args.orderId;
+    }
+
+    return null;
+  }
 }

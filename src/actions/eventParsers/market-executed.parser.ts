@@ -19,8 +19,8 @@ export function parseMarketExecutedEvent(event: MarketExecutedEvent) {
   return eventToAction(
     event.eventName,
     {
-      address: event.args.orderId.user,
-      index: event.args.orderId.index,
+      address: event.args.t.user,
+      index: event.args.t.index,
     },
     event.args,
   );
