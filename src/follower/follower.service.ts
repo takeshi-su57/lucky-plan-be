@@ -12,6 +12,36 @@ export class FollowerService {
     private usersService: UsersService,
   ) {}
 
+  async getPrivateKey(address: string) {
+    const mnemonicMetadata = await this.prismaService.metadata.findUnique({
+      where: {
+        key: this.prismaService.metadataKeys.mnemonic.key,
+      },
+    });
+
+    const mnemonic = mnemonicMetadata?.value || '';
+
+    if (!validateMnemonic(mnemonic, english)) {
+      throw new Error('Wrong mnemonic, plz check seed the db metadata');
+    }
+
+    const record = await this.prismaService.follower.findUnique({
+      where: { address },
+    });
+
+    if (!record) {
+      throw new Error('Wrong address');
+    }
+
+    const account = mnemonicToAccount(mnemonic, {
+      accountIndex: record.accountIndex,
+    });
+
+    return `0x${Array.from(account.getHdKey().privateKey!)
+      .map((byte) => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
+      .join('')}`;
+  }
+
   async generateNewFollower(): Promise<Follower> {
     const mnemonicMetadata = await this.prismaService.metadata.findUnique({
       where: {
@@ -44,9 +74,9 @@ export class FollowerService {
           await this.usersService.addUser(account.address);
         }
 
-        return this.prismaService.follower.create({
+        return await this.prismaService.follower.create({
           data: {
-            address: account.address,
+            address: account.address.toLowerCase(),
             publicKey: account.publicKey,
             accountIndex,
           },
@@ -55,14 +85,14 @@ export class FollowerService {
     }
   }
 
-  async getAllFollowers() {
+  getAllFollowers() {
     return this.prismaService.follower.findMany();
   }
 
-  async getFollowerByAddress(address: string) {
+  getFollowerByAddress(address: string) {
     return this.prismaService.follower.findUnique({
       where: {
-        address,
+        address: address.toLowerCase(),
       },
     });
   }
