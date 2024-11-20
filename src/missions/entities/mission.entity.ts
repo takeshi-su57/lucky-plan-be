@@ -28,10 +28,16 @@ export class Mission {
 }
 
 @ObjectType()
-export class MissionDetails extends Mission {
-  @Field(() => BotDetails)
-  bot: BotDetails;
+export class MissionShallowDetails extends Mission {
+  @Field(() => Position)
+  targetPosition: Position;
 
   @Field(() => Position, { nullable: true })
   achievePosition: Position | null;
+}
+
+@ObjectType()
+export class MissionDetails extends MissionShallowDetails {
+  @Field(() => BotDetails)
+  bot: BotDetails;
 }

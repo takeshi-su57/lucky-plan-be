@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MissionStatus } from '@prisma/client';
 import {
+  getOrderIdFromMissionAction,
   isCloseMissionAction,
   isOpenMissionAction,
   missionEventNames,
@@ -19,17 +20,18 @@ import {
   TradeEventContext,
   MissionContext,
 } from 'src/types';
-import { Mission } from './entities/mission.entity';
+import { MissionShallowDetails } from './entities/mission.entity';
 import {
   MissionAttachAchievePositionInput,
   MissionCloseInput,
   MissionCreateInput,
   MissionUpdateInput,
 } from './dto/mission.input';
+import { Address, isAddressEqual } from 'viem';
 
 @Injectable()
 export class MissionsService {
-  private missionsByBotMap = new Map<number, Mission[]>();
+  private missionsByBotMap = new Map<number, MissionShallowDetails[]>();
 
   constructor(
     private prismaService: PrismaService,
@@ -45,6 +47,11 @@ export class MissionsService {
         ...input,
         status: MissionStatus.Opened,
       })),
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
+      },
     });
 
     newMissions.forEach((mission) => {
@@ -59,19 +66,26 @@ export class MissionsService {
   }
 
   async updateMany(inputs: MissionUpdateInput[]) {
-    return this.prismaService.$transaction(
+    return await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.mission.update({
           where: {
             id: input.id,
           },
           data: input,
+          include: {
+            targetPosition: true,
+            achievePosition: true,
+            bot: true,
+          },
         });
       }),
     );
   }
 
   async attachAchievePositionMany(inputs: MissionAttachAchievePositionInput[]) {
+    console.log('Attach achieve positions ===>', inputs);
+
     const updatedMissions = await this.updateMany(inputs);
 
     updatedMissions.forEach((item) => {
@@ -87,6 +101,8 @@ export class MissionsService {
   }
 
   async closeMany(inputs: MissionCloseInput[]) {
+    console.log('close missions ===>', inputs);
+
     const closedMissions = await this.updateMany(
       inputs.map((item) => ({ ...item, status: MissionStatus.Closed })),
     );
@@ -107,6 +123,11 @@ export class MissionsService {
     const missions = await this.prismaService.mission.findMany({
       where: {
         status: MissionStatus.Opened,
+      },
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
       },
     });
 
@@ -164,7 +185,9 @@ export class MissionsService {
       Array.from(eventsMap.keys()),
     );
 
-    this.attachAchievePositionMany(
+    // fill achievePositionId with orderId for temporaily
+
+    await this.attachAchievePositionMany(
       tasks
         .map((task) => {
           const mission = task.mission;
@@ -196,7 +219,12 @@ export class MissionsService {
       }))
       .filter((item) => isOpenMissionAction(item.action));
 
-    this.createMany(
+    console.log(
+      'find mission leader actions and create mission object',
+      openEvents,
+    );
+
+    await this.createMany(
       openEvents.map((item) => ({
         botId: item.context.bot.id,
         targetPositionId: item.action.positionId,
@@ -204,32 +232,44 @@ export class MissionsService {
     );
   }
 
-  async handleMissionFollowerActions(actions: ActionContext<MissionContext>[]) {
-    const openEvents = actions
-      .map((item) => ({
-        action: item.action,
-        context: item.context,
-      }))
-      .filter((item) => isCloseMissionAction(item.action));
-
-    this.closeMany(
-      openEvents.map((item) => ({
-        id: item.context.mission.id,
-      })),
-    );
-  }
-
   getMissionActions(
     actions: ActionContext<BotContext>[],
-    field: 'targetPositionId' | 'achievePositionId',
+    field: 'targetPosition' | 'achievePosition',
   ): ActionContext<MissionContext>[] {
     return actions
       .map((actionItem) => {
         const missions =
           this.missionsByBotMap.get(actionItem.context.bot.id) || [];
 
+        let actionPosition = {
+          address: actionItem.action.position.address,
+          index: actionItem.action.position.index,
+        };
+
+        if (
+          field === 'achievePosition' &&
+          isOpenMissionAction(actionItem.action)
+        ) {
+          const orderId = getOrderIdFromMissionAction(actionItem.action);
+
+          if (!orderId) {
+            return null;
+          }
+
+          actionPosition = {
+            address: orderId.user,
+            index: orderId.index,
+          };
+        }
+
         const mission = missions.filter(
-          (missionItem) => missionItem[field] === actionItem.action.positionId,
+          (missionItem) =>
+            !!missionItem[field] &&
+            isAddressEqual(
+              missionItem[field].address as Address,
+              actionPosition.address as Address,
+            ) &&
+            missionItem[field].index === actionPosition.index,
         );
 
         if (mission.length === 0) {
@@ -248,6 +288,8 @@ export class MissionsService {
   }
 
   async handleFollowerActions(followerActions: ActionContext<BotContext>[]) {
+    console.log('handleFollowerActions =>', followerActions);
+
     await this.handleMarketOrderInitiatedActions(
       followerActions.filter(
         (item) =>
@@ -255,23 +297,38 @@ export class MissionsService {
       ),
     );
 
-    await this.handleMissionFollowerActions(
-      this.getMissionActions(
-        followerActions.filter((item) =>
-          missionEventNames.includes(item.action.name),
-        ),
-        'achievePositionId',
-      ),
-    );
-
     const missionActions = this.getMissionActions(
       followerActions,
-      'achievePositionId',
+      'achievePosition',
+    );
+
+    // handle open mission follower actions
+    await this.attachAchievePositionMany(
+      missionActions
+        .filter((item) => isOpenMissionAction(item.action))
+        .map((item) => ({
+          id: item.context.mission.id,
+          achievePositionId: item.action.positionId,
+        })),
     );
 
     if (missionActions.length > 0) {
-      this.tasksService.handleFollowerActions(missionActions);
+      console.log(
+        'handle follower actions in mission service ===>',
+        JSON.stringify(missionActions, null, 2),
+      );
+
+      await this.tasksService.handleFollowerActions(missionActions);
     }
+
+    // handle close mission follower actions
+    await this.closeMany(
+      missionActions
+        .filter((item) => isCloseMissionAction(item.action))
+        .map((item) => ({
+          id: item.context.mission.id,
+        })),
+    );
   }
 
   async handleLeaderActions(leaderActions: ActionContext<BotContext>[]) {
@@ -283,11 +340,18 @@ export class MissionsService {
 
     const missionActions = this.getMissionActions(
       leaderActions,
-      'targetPositionId',
+      'targetPosition',
     );
 
+    console.log('missionActions ==>', missionActions);
+
     if (missionActions.length > 0) {
-      this.tasksService.handleLeaderActions(missionActions);
+      console.log(
+        'handle leader actions in mission service ===>',
+        missionActions.length,
+      );
+
+      await this.tasksService.handleLeaderActions(missionActions);
     }
   }
 }
