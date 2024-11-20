@@ -2,10 +2,13 @@
 CREATE TYPE "UserRole" AS ENUM ('Leader', 'User');
 
 -- CreateEnum
-CREATE TYPE "BotStatus" AS ENUM ('Live', 'Finish', 'Dead');
+CREATE TYPE "BotStatus" AS ENUM ('Created', 'Live', 'Finish', 'Dead');
 
 -- CreateEnum
-CREATE TYPE "TaskStatus" AS ENUM ('Created', 'Await', 'Failed', 'Completed');
+CREATE TYPE "MissionStatus" AS ENUM ('Opened', 'Closed');
+
+-- CreateEnum
+CREATE TYPE "TaskStatus" AS ENUM ('Created', 'Await', 'Initiated', 'Failed', 'Completed');
 
 -- CreateTable
 CREATE TABLE "Metadata" (
@@ -58,6 +61,8 @@ CREATE TABLE "Contract" (
     "id" SERIAL NOT NULL,
     "chainId" INTEGER NOT NULL,
     "address" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "lastBlockNumber" INTEGER NOT NULL,
 
     CONSTRAINT "Contract_pkey" PRIMARY KEY ("id")
 );
@@ -69,9 +74,9 @@ CREATE TABLE "Bot" (
     "followerAddress" VARCHAR(255) NOT NULL,
     "strategyId" INTEGER NOT NULL,
     "contractId" INTEGER NOT NULL,
-    "startedBlock" INTEGER NOT NULL,
-    "pausedBlock" INTEGER NOT NULL,
-    "endedBlock" INTEGER NOT NULL,
+    "startedBlock" INTEGER,
+    "pausedBlock" INTEGER,
+    "endedBlock" INTEGER,
     "status" "BotStatus" NOT NULL,
 
     CONSTRAINT "Bot_pkey" PRIMARY KEY ("id")
@@ -94,6 +99,7 @@ CREATE TABLE "Mission" (
     "achievePositionId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "status" "MissionStatus" NOT NULL,
 
     CONSTRAINT "Mission_pkey" PRIMARY KEY ("id")
 );
@@ -104,8 +110,8 @@ CREATE TABLE "Task" (
     "missionId" INTEGER NOT NULL,
     "actionId" INTEGER NOT NULL,
     "status" "TaskStatus" NOT NULL,
+    "logs" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
 );
@@ -114,10 +120,22 @@ CREATE TABLE "Task" (
 CREATE TABLE "Action" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "positionId" INTEGER NOT NULL,
     "args" TEXT NOT NULL,
+    "blockNumber" INTEGER NOT NULL,
+    "orderInBlock" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Action_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "FollowerAction" (
+    "id" SERIAL NOT NULL,
+    "actionId" INTEGER NOT NULL,
+    "taskId" INTEGER NOT NULL,
+
+    CONSTRAINT "FollowerAction_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -136,10 +154,22 @@ CREATE UNIQUE INDEX "Strategy_strategyKey_params_key" ON "Strategy"("strategyKey
 CREATE UNIQUE INDEX "Contract_chainId_address_key" ON "Contract"("chainId", "address");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Bot_leaderAddress_followerAddress_strategyId_contractId_sta_key" ON "Bot"("leaderAddress", "followerAddress", "strategyId", "contractId", "startedBlock");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Position_address_index_key" ON "Position"("address", "index");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Mission_botId_targetPositionId_key" ON "Mission"("botId", "targetPositionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Task_missionId_actionId_key" ON "Task"("missionId", "actionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FollowerAction_actionId_key" ON "FollowerAction"("actionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FollowerAction_actionId_taskId_key" ON "FollowerAction"("actionId", "taskId");
 
 -- AddForeignKey
 ALTER TABLE "Follower" ADD CONSTRAINT "Follower_address_fkey" FOREIGN KEY ("address") REFERENCES "User"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -173,3 +203,12 @@ ALTER TABLE "Task" ADD CONSTRAINT "Task_actionId_fkey" FOREIGN KEY ("actionId") 
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_missionId_fkey" FOREIGN KEY ("missionId") REFERENCES "Mission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Action" ADD CONSTRAINT "Action_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FollowerAction" ADD CONSTRAINT "FollowerAction_actionId_fkey" FOREIGN KEY ("actionId") REFERENCES "Action"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FollowerAction" ADD CONSTRAINT "FollowerAction_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

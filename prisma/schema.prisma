@@ -71,10 +71,11 @@ model Strategy {
 }
 
 model Contract {
-  id          Int     @id @default(autoincrement())
-  chainId     Int
-  address     String
-  description String?
+  id              Int    @id @default(autoincrement())
+  chainId         Int
+  address         String
+  description     String
+  lastBlockNumber Int
 
   bots Bot[]
 

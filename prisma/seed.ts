@@ -16,7 +16,8 @@ async function main() {
     update: {},
     create: {
       key: 'mnemonic',
-      value: '',
+      value:
+        'begin source snow usual coin lamp hello tissue route better spread easy',
     },
   });
   const availableChainIds = await prisma.metadata.upsert({
