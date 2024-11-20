@@ -11,16 +11,14 @@ export class SystemService {
   ) {}
 
   @Cron(CronExpression.EVERY_SECOND)
-  contractMonitorCron() {
-    if (this.contractMonitorService.status === 'ready') {
-      // this.contractMonitorService.checkContract(1);
-    }
-  }
+  async executeCron() {
+    if (
+      this.tasksService.status === 'ready' &&
+      this.contractMonitorService.status === 'ready'
+    ) {
+      await this.contractMonitorService.checkContract(1);
 
-  @Cron(CronExpression.EVERY_SECOND)
-  taskExecuteCron() {
-    if (this.contractMonitorService.status === 'ready') {
-      // this.contractMonitorService.checkContract(1);
+      await this.tasksService.performAvailableTasks();
     }
   }
 }

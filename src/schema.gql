@@ -71,7 +71,7 @@ input CreateBotInput {
 input CreateContractInput {
   address: String!
   chainId: Int!
-  description: String
+  description: String!
 }
 
 input CreateStrategyInput {
@@ -149,6 +149,7 @@ type MissionDetails {
   createdAt: DateTime!
   id: Int!
   status: String!
+  targetPosition: Position!
   targetPositionId: Int!
   updatedAt: DateTime!
 }
