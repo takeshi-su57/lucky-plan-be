@@ -14,7 +14,8 @@ export class CreateContractInput {
   @Field()
   address: string;
 
+  @IsNotEmpty()
   @IsString()
-  @Field(() => String, { nullable: true })
-  description: string | null;
+  @Field()
+  description: string;
 }

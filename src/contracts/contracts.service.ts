@@ -3,32 +3,38 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/global/prisma.service';
 import { CreateContractInput } from './dto/contract.input';
 import { ChainsService } from '../global/chains.service';
-import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     private chainsService: ChainsService,
-  ) {
-    const publicClient = chainsService.publicClient(42161);
+  ) {}
 
-    publicClient
-      .readContract({
-        address: '0xFF162c694eAA571f685030649814282eA457f169',
-        abi: gnsMultiCollatDiamondAbi,
-        functionName: 'getCollaterals',
-      })
-      .then((data) => console.log(data));
-  }
-
-  create(input: CreateContractInput) {
+  async create(input: CreateContractInput) {
     if (!this.chainsService.isValidChainId(input.chainId)) {
       throw new Error('Invalid chain Id');
     }
 
-    return this.prismaService.contract.create({
-      data: input,
+    const publicClient = this.chainsService.publicClient(input.chainId);
+
+    const blockNumber = await publicClient.getBlockNumber();
+
+    return await this.prismaService.contract.create({
+      data: {
+        ...input,
+        address: input.address.toLowerCase(),
+        lastBlockNumber: Number(blockNumber),
+      },
+    });
+  }
+
+  updateLastBlockNumber(id: number, lastBlockNumber: number) {
+    return this.prismaService.contract.update({
+      where: { id },
+      data: {
+        lastBlockNumber,
+      },
     });
   }
 

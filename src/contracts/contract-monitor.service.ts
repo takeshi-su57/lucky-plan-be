@@ -7,7 +7,6 @@ import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { ChainsService } from 'src/global/chains.service';
 import { BotsService } from '../bots/bots.service';
 import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
-import { RegisteredEventType } from 'src/types';
 import { ContractsService } from './contracts.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
@@ -18,10 +17,10 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 
 @Injectable()
 export class ContractMonitorService implements OnModuleDestroy {
-  private lastBlockNumberByChainId: Record<number, bigint>;
-  status: 'initialize' | 'ready';
+  status: 'process' | 'ready';
 
   readonly registeredEventNames: string[] = [];
+  static BATCH_SIZE = 1000n;
 
   constructor(
     private readonly logger: Logger,
@@ -29,32 +28,15 @@ export class ContractMonitorService implements OnModuleDestroy {
     private botsService: BotsService,
     private contractsService: ContractsService,
   ) {
-    this.status = 'initialize';
-
-    this.lastBlockNumberByChainId = {};
-
-    this.loadLastBlockNumberByChainId();
-
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
+    this.status = 'ready';
   }
 
   onModuleDestroy() {}
 
-  async loadLastBlockNumberByChainId() {
-    const promises = this.chainsService.availableChains.map(async (chain) => {
-      const publicClient = this.chainsService.publicClient(chain.id);
-
-      const blockNumber = await publicClient.getBlockNumber();
-
-      this.lastBlockNumberByChainId[chain.id] = blockNumber;
-    });
-
-    await Promise.all(promises);
-
-    this.status = 'ready';
-  }
-
   async checkContract(id: number) {
+    this.status = 'process';
+
     try {
       const contract = await this.contractsService.findOne(id);
 
@@ -62,45 +44,54 @@ export class ContractMonitorService implements OnModuleDestroy {
         .publicClient(contract.chainId)
         .getBlockNumber();
 
-      for (
-        let i = this.lastBlockNumberByChainId[contract.chainId] + 1n;
-        i <= currentBlockNumber;
-        i += 1n
-      ) {
-        this.logger.log(
-          `Start CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(i)}`,
+      let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
+
+      while (fromBlock <= currentBlockNumber) {
+        const toBlock =
+          fromBlock + ContractMonitorService.BATCH_SIZE < currentBlockNumber
+            ? fromBlock + ContractMonitorService.BATCH_SIZE
+            : currentBlockNumber;
+
+        const actionItems = await this.getLogs(
+          fromBlock,
+          toBlock,
+          contract.chainId,
         );
 
-        const eventLogs = await this.getLogs(i, contract.chainId);
+        this.logger.log(
+          `Start CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        );
 
-        if (eventLogs.length > 0) {
-          await this.botsService.handleActionItems(
-            contract,
-            Number(i),
-            eventLogs.map((item) =>
-              eventToActionParser(item as RegisteredEventType),
-            ),
-          );
+        if (actionItems.length > 0) {
+          console.log(`find contract actions ==> ${actionItems.length}`);
+
+          await this.botsService.handleActionItems(contract, actionItems);
+
+          console.log('finished');
         }
 
-        this.lastBlockNumberByChainId[421614] = currentBlockNumber;
+        await this.contractsService.updateLastBlockNumber(id, Number(toBlock));
 
         this.logger.log(
-          `End CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(i)}`,
+          `End CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         );
+
+        fromBlock = toBlock + 1n;
       }
     } catch (err) {
       this.logger.log(`Failed CheckContract: ${id}`, err);
     }
+
+    this.status = 'ready';
   }
 
-  async getLogs(blockNumber: bigint, chainId: number) {
+  async getLogs(fromBlock: bigint, toBlock: bigint, chainId: number) {
     return (
       await this.chainsService.publicClient(chainId).getLogs<AbiEvent>({
         address: addresses[chainId.toString() as keyof typeof addresses].global
           .gnsMultiCollatDiamond as Address,
-        fromBlock: blockNumber,
-        toBlock: blockNumber,
+        fromBlock,
+        toBlock,
       })
     )
       .filter(
@@ -110,12 +101,15 @@ export class ContractMonitorService implements OnModuleDestroy {
             expectedEventSignatures[log.topics[0] as string],
           ),
       )
-      .map((log) =>
-        decodeEventLog({
-          abi: gnsMultiCollatDiamondAbi,
-          data: log.data,
-          topics: log.topics,
-        }),
-      );
+      .map((log) => ({
+        item: eventToActionParser(
+          decodeEventLog({
+            abi: gnsMultiCollatDiamondAbi,
+            data: log.data,
+            topics: log.topics,
+          }),
+        ),
+        blockNumber: Number(log.blockNumber),
+      }));
   }
 }
