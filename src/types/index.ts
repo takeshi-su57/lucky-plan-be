@@ -2,7 +2,6 @@ import { Address } from 'viem';
 
 import { MarketExecutedEvent } from 'src/actions/eventParsers/market-executed.parser';
 import { LimitExecutedEvent } from 'src/actions/eventParsers/limit-executed.parser';
-import { TradeCollateralUpdatedEvent } from 'src/actions/eventParsers/trade-collateral-updated.parser';
 import { TradeSlUpdatedEvent } from 'src/actions/eventParsers/trade-sl-updated.parser';
 import { TradeTpUpdatedEvent } from 'src/actions/eventParsers/trade-tp-updated.parser';
 import { TradeMaxClosingSlippagePUpdatedEvent } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
@@ -10,14 +9,14 @@ import { LeverageUpdateExecutedEvent } from 'src/actions/eventParsers/leverage-u
 import { PositionSizeDecreaseExecutedEvent } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { PositionSizeIncreaseExecutedEvent } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { MarketOrderInitiatedEvent } from 'src/actions/eventParsers/market-order-initiated.parser';
-import { LeverageUpdateInitiatedEvent } from 'src/actions/eventParsers/leverage-update-initiated.parser';
-import { PositionSizeUpdateInitiatedEvent } from 'src/actions/eventParsers/position-size-update-initiated.parser';
+
 import { MarketOpenCanceledEvent } from 'src/actions/eventParsers/market-open-canceled';
 
 import { ActionDetails } from 'src/actions/entities/action.entity';
 import { BotDetails } from 'src/bots/entities/bot.entity';
-import { Mission } from 'src/missions/entities/mission.entity';
+import { MissionShallowDetails } from 'src/missions/entities/mission.entity';
 import { TaskDetails } from 'src/tasks/entities/task.entity';
+import { MarketCloseCanceledEvent } from 'src/actions/eventParsers/market-close-canceled';
 
 export enum TradeType {
   TRADE,
@@ -94,7 +93,6 @@ export type MissionEventType =
   | LimitExecutedEvent
   | MarketOrderInitiatedEvent;
 export type TaskEventType =
-  | TradeCollateralUpdatedEvent
   | TradeSlUpdatedEvent
   | TradeTpUpdatedEvent
   | TradeMaxClosingSlippagePUpdatedEvent
@@ -103,9 +101,8 @@ export type TaskEventType =
   | PositionSizeIncreaseExecutedEvent;
 export type TrackEventType =
   | MarketOrderInitiatedEvent
-  | LeverageUpdateInitiatedEvent
-  | PositionSizeUpdateInitiatedEvent
-  | MarketOpenCanceledEvent;
+  | MarketOpenCanceledEvent
+  | MarketCloseCanceledEvent;
 
 export type RegisteredEventType =
   | MissionEventType
@@ -117,7 +114,7 @@ export type BotContext = {
 };
 
 export type MissionContext = BotContext & {
-  mission: Mission;
+  mission: MissionShallowDetails;
 };
 
 export type TaskContext = MissionContext & {

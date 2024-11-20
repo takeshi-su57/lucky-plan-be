@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 
@@ -7,21 +7,21 @@ import { PrismaService } from 'src/global/prisma.service';
 export class UsersService {
   constructor(private prismaService: PrismaService) {}
 
-  async addUser(address: string): Promise<User> {
+  addUser(address: string) {
     return this.prismaService.user.upsert({
       where: { address },
       update: {},
       create: {
-        address,
+        address: address.toLowerCase(),
         role: UserRole.User,
       },
     });
   }
 
-  async changeRole(address: string, role: UserRole): Promise<User> {
+  changeRole(address: string, role: UserRole) {
     return this.prismaService.user.update({
       where: {
-        address,
+        address: address.toLowerCase(),
       },
       data: {
         role,
@@ -29,15 +29,15 @@ export class UsersService {
     });
   }
 
-  async getUserByAddress(address: string): Promise<User | null> {
+  getUserByAddress(address: string) {
     return this.prismaService.user.findUnique({
       where: {
-        address,
+        address: address.toLowerCase(),
       },
     });
   }
 
-  async getAllLeaders() {
+  getAllLeaders() {
     return this.prismaService.user.findMany({
       where: {
         role: UserRole.Leader,

@@ -22,3 +22,13 @@ export function actionToEvent<T>(action: Action): TradeEvent<T> {
     args: JSON.parse(action.args) as T,
   };
 }
+
+export function getReadableError(error: unknown) {
+  if (error instanceof Error) {
+    return error.message; // Standard error object
+  }
+  if (typeof error === 'object') {
+    return JSON.stringify(error); // Non-standard object
+  }
+  return String(error); // Other types (e.g., string, number)
+}
