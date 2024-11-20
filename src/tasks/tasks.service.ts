@@ -15,7 +15,7 @@ import {
 import { PrismaService } from 'src/global/prisma.service';
 
 import { ActionContext, MissionContext, TradeType } from 'src/types';
-import { TaskDetails } from './entities/task.entity';
+import { TaskDetails, TaskShallowDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
 import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
@@ -35,11 +35,13 @@ import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParser
 
 import { USDCCollateralIndex } from 'src/utils/constants';
 import { PriceService } from 'src/global/price.service';
+import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class TasksService {
   // Map<botId, Map<missionId, TaskDetails[]>>
-  private tasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+  private tasksByBotMap = new Map<number, Map<number, TaskShallowDetails[]>>();
+  status: 'process' | 'ready';
 
   constructor(
     private prismaService: PrismaService,
@@ -48,7 +50,10 @@ export class TasksService {
     private pricesService: PriceService,
     private followerActionsService: FollowerActionsService,
     private readonly logger: Logger,
-  ) {}
+  ) {
+    this.status = 'ready';
+    this.loadTasks();
+  }
 
   async performTask(
     task: TaskDetails,
@@ -180,6 +185,8 @@ export class TasksService {
             const { t, collateralPriceUsd } = event.args;
             const usdcPrice = await this.pricesService.getUSDCPrice();
 
+            console.log(t.collateralAmount, collateralPriceUsd, usdcPrice);
+
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
                 walletClient,
@@ -248,27 +255,37 @@ export class TasksService {
         throw new Error('Error at waiting for transaction receipt');
       }
     } catch (err) {
+      console.log(err);
       return {
         success: false,
-        message: Object.entries(err as Error)
-          .map((item) => item.join(' : '))
-          .join('\n'),
+        message: getReadableError(err),
       };
     }
   }
 
-  async performTaskById(botId: number, missionId: number, taskId: number) {
-    const tasksByMissionMap = this.tasksByBotMap.get(botId);
-
-    if (!tasksByMissionMap) {
-      throw new Error(
-        'Invalid bot id!, there is no such task which has give bot id',
-      );
-    }
-
-    const tasks = tasksByMissionMap.get(missionId) || [];
-
-    const task = tasks.find((item) => (item.id = taskId));
+  async performTaskById(taskId: number) {
+    const task = await this.prismaService.task.findUnique({
+      where: {
+        id: taskId,
+      },
+      include: {
+        action: true,
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                leader: true,
+                strategy: true,
+                contract: true,
+              },
+            },
+            achievePosition: true,
+            targetPosition: true,
+          },
+        },
+      },
+    });
 
     if (!task) {
       throw new Error(
@@ -278,7 +295,7 @@ export class TasksService {
 
     const { success, message } = await this.performTask(task);
 
-    this.updateMany([
+    await this.updateMany([
       {
         id: task.id,
         status: success ? TaskStatus.Await : TaskStatus.Failed,
@@ -294,101 +311,9 @@ export class TasksService {
   }
 
   async performAvailableTasks() {
-    const botTasks: TaskDetails[] = [];
+    this.status = 'process';
 
-    for (const tasksByMissionMap of this.tasksByBotMap.values()) {
-      const openMissionTasks: {
-        created: TaskDetails[];
-        await: TaskDetails[];
-      } = { created: [], await: [] };
-
-      for (const tasks of tasksByMissionMap.values()) {
-        if (tasks.length === 0) {
-          continue;
-        }
-
-        const sortedTasks = tasks.sort((a, b) => {
-          if (a.action.blockNumber !== b.action.blockNumber) {
-            return a.action.blockNumber - b.action.blockNumber;
-          }
-
-          return a.action.orderInBlock - b.action.orderInBlock;
-        });
-
-        // find first create task and put it to queue
-        for (let i = 0; i < sortedTasks.length; i++) {
-          const task = sortedTasks[i];
-
-          if (task.status === TaskStatus.Completed) {
-            continue;
-          }
-
-          if (task.status === TaskStatus.Await) {
-            if (isOpenMissionAction(task.action)) {
-              openMissionTasks.await.push(sortedTasks[0]);
-            }
-
-            break;
-          }
-
-          if (task.status === TaskStatus.Created) {
-            if (isOpenMissionAction(task.action)) {
-              openMissionTasks.created.push(sortedTasks[0]);
-            } else {
-              botTasks.push(task);
-            }
-          }
-
-          break;
-        }
-      }
-
-      // there is a pending opening mission task. need to wait more
-      if (openMissionTasks.await.length > 0) {
-        continue;
-      }
-
-      if (openMissionTasks.created.length > 0) {
-        botTasks.push(
-          openMissionTasks.created.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          )[0],
-        );
-      }
-    }
-
-    const promises = botTasks.map(async (task) => {
-      const { success, message } = await this.performTask(task);
-
-      return {
-        ...task,
-        status: success ? TaskStatus.Await : TaskStatus.Failed,
-        logs: [
-          ...task.logs,
-          JSON.stringify({
-            timestamp: Date.now(),
-            message,
-          }),
-        ],
-      };
-    });
-
-    const updatedTasks = await Promise.allSettled(promises);
-
-    this.updateMany(
-      updatedTasks
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) => ({
-          id: result.value.id,
-          status: result.value.status,
-          logs: result.value.logs,
-        })),
-    );
-  }
-
-  async loadTasks() {
-    const tasks = await this.prismaService.task.findMany({
+    const allTasks = await this.prismaService.task.findMany({
       where: {
         status: {
           not: TaskStatus.Completed,
@@ -407,8 +332,143 @@ export class TasksService {
               },
             },
             achievePosition: true,
+            targetPosition: true,
           },
         },
+      },
+    });
+
+    const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+
+    allTasks.forEach((task) => {
+      const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
+
+      if (tasksByMissionMap) {
+        const arr = tasksByMissionMap.get(task.missionId);
+
+        if (arr) {
+          arr.push(task);
+        } else {
+          tasksByMissionMap.set(task.missionId, [task]);
+        }
+      } else {
+        const tempMap = new Map<number, TaskDetails[]>();
+        tempMap.set(task.missionId, [task]);
+        allTasksByBotMap.set(task.mission.botId, tempMap);
+      }
+    });
+
+    try {
+      const botTasks: TaskDetails[] = [];
+
+      for (const tasksByMissionMap of allTasksByBotMap.values()) {
+        const openMissionTasks: {
+          created: TaskDetails[];
+          await: TaskDetails[];
+        } = { created: [], await: [] };
+
+        for (const tasks of tasksByMissionMap.values()) {
+          if (tasks.length === 0) {
+            continue;
+          }
+
+          const sortedTasks = tasks.sort((a, b) => {
+            if (a.action.blockNumber !== b.action.blockNumber) {
+              return a.action.blockNumber - b.action.blockNumber;
+            }
+
+            return a.action.orderInBlock - b.action.orderInBlock;
+          });
+
+          // find first create task and put it to queue
+          for (let i = 0; i < sortedTasks.length; i++) {
+            const task = sortedTasks[i];
+
+            if (task.status === TaskStatus.Completed) {
+              continue;
+            }
+
+            if (
+              task.status === TaskStatus.Await &&
+              isOpenMissionAction(task.action)
+            ) {
+              openMissionTasks.await.push(sortedTasks[0]);
+            }
+
+            if (task.status === TaskStatus.Created) {
+              if (isOpenMissionAction(task.action)) {
+                openMissionTasks.created.push(sortedTasks[0]);
+              } else {
+                botTasks.push(task);
+              }
+            }
+
+            break;
+          }
+        }
+
+        // there is a pending opening mission task. need to wait more
+        if (openMissionTasks.await.length > 0) {
+          continue;
+        }
+
+        if (openMissionTasks.created.length > 0) {
+          botTasks.push(
+            openMissionTasks.created.sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            )[0],
+          );
+        }
+      }
+
+      console.log('botTasks', botTasks);
+
+      const promises = botTasks.map(async (task) => {
+        const { success, message } = await this.performTask(task);
+
+        return {
+          ...task,
+          status: success ? TaskStatus.Await : TaskStatus.Failed,
+          logs: [
+            ...task.logs,
+            JSON.stringify({
+              timestamp: Date.now(),
+              message,
+            }),
+          ],
+        };
+      });
+
+      const updatedTasks = await Promise.allSettled(promises);
+
+      await this.updateMany(
+        updatedTasks
+          .filter((result) => result.status === 'fulfilled')
+          .map((result) => ({
+            id: result.value.id,
+            status: result.value.status,
+            logs: result.value.logs,
+          })),
+      );
+    } catch (err) {
+      this.logger.error('Error at task perform', err);
+    }
+
+    this.status = 'ready';
+  }
+
+  async loadTasks() {
+    const tasks = await this.prismaService.task.findMany({
+      where: {
+        status: {
+          not: TaskStatus.Completed,
+        },
+      },
+      include: {
+        action: true,
+        mission: true,
       },
     });
 
@@ -424,7 +484,7 @@ export class TasksService {
           tasksByMissionMap.set(task.missionId, [task]);
         }
       } else {
-        const tempMap = new Map<number, TaskDetails[]>();
+        const tempMap = new Map<number, TaskShallowDetails[]>();
         tempMap.set(task.missionId, [task]);
         this.tasksByBotMap.set(task.mission.botId, tempMap);
       }
@@ -436,19 +496,7 @@ export class TasksService {
       data: inputs,
       include: {
         action: true,
-        mission: {
-          include: {
-            bot: {
-              include: {
-                follower: true,
-                leader: true,
-                strategy: true,
-                contract: true,
-              },
-            },
-            achievePosition: true,
-          },
-        },
+        mission: true,
       },
     });
 
@@ -464,7 +512,7 @@ export class TasksService {
           tasksByMissionMap.set(task.missionId, [task]);
         }
       } else {
-        const tempMap = new Map<number, TaskDetails[]>();
+        const tempMap = new Map<number, TaskShallowDetails[]>();
         tempMap.set(task.missionId, [task]);
         this.tasksByBotMap.set(task.mission.botId, tempMap);
       }
@@ -481,19 +529,7 @@ export class TasksService {
           data: input,
           include: {
             action: true,
-            mission: {
-              include: {
-                bot: {
-                  include: {
-                    follower: true,
-                    leader: true,
-                    strategy: true,
-                    contract: true,
-                  },
-                },
-                achievePosition: true,
-              },
-            },
+            mission: true,
           },
         });
       }),
@@ -545,12 +581,12 @@ export class TasksService {
         );
 
         return tasks
+          .filter((task) => isOpenMissionAction(task.action))
           .filter(
             (task) =>
               task.status === TaskStatus.Await &&
               task.mission.achievePositionId === null,
-          )
-          .filter((task) => isOpenMissionAction(task.action));
+          );
       })
       .reduce((acc, item) => [...acc, ...item], []);
   }
@@ -583,7 +619,9 @@ export class TasksService {
         missionEventNames.includes(item.action.name),
     );
 
-    this.createMany(
+    console.log('handle Leader actions in task service ===>', filteredActions);
+
+    await this.createMany(
       filteredActions.map((item) => ({
         missionId: item.context.mission.id,
         actionId: item.action.id,
@@ -602,7 +640,7 @@ export class TasksService {
     botId: number,
     missionId: number,
     filter: (action: Action) => boolean,
-  ): TaskDetails | null {
+  ): TaskShallowDetails | null {
     const tasks = this.filterTasks(botId, missionId).filter((task) =>
       filter(task.action),
     );
@@ -615,6 +653,12 @@ export class TasksService {
   }
 
   async handleFollowerActions(actions: ActionContext<MissionContext>[]) {
+    console.log(
+      'handle follower actions ===>',
+      actions,
+      actions.map((action) => action.context.mission),
+    );
+
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
 
