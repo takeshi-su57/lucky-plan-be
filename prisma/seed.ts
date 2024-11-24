@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import 'dotenv';
 
 const prisma = new PrismaClient();
 
@@ -11,15 +12,19 @@ async function main() {
       value: 'init',
     },
   });
-  const mnemonic = await prisma.metadata.upsert({
-    where: { key: 'mnemonic' },
-    update: {},
-    create: {
-      key: 'mnemonic',
-      value:
-        'begin source snow usual coin lamp hello tissue route better spread easy',
-    },
-  });
+
+  if (process.env.MNEMONIC) {
+    const mnemonic = await prisma.metadata.upsert({
+      where: { key: 'mnemonic' },
+      update: {},
+      create: {
+        key: 'mnemonic',
+        value: process.env.MNEMONIC,
+      },
+    });
+
+    console.log('mnemonic metadata: ', mnemonic);
+  }
   const availableChainIds = await prisma.metadata.upsert({
     where: { key: 'availableChainIds' },
     update: {},
@@ -30,7 +35,7 @@ async function main() {
   });
 
   console.log('password metadata: ', password);
-  console.log('mnemonic metadata: ', mnemonic);
+
   console.log('availableChainIds metadata: ', availableChainIds);
 }
 main()
