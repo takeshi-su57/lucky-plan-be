@@ -38,12 +38,4 @@ export class StrategyMetadataService {
       },
     });
   }
-
-  remove(key: string) {
-    return this.prismaService.strategyMetadata.delete({
-      where: {
-        key,
-      },
-    });
-  }
 }

@@ -2,7 +2,7 @@ import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { StrategyService } from './strategy.service';
 import { Strategy } from './entities/strategy.entity';
 
-import { CreateStrategyInput, UpdateStrategyInput } from './dto/strategy.input';
+import { CreateStrategyInput } from './dto/strategy.input';
 
 @Resolver(() => Strategy)
 export class StrategyResolver {
@@ -14,7 +14,7 @@ export class StrategyResolver {
   }
 
   @Query(() => [Strategy])
-  findAllStrategy() {
+  getAllStrategy() {
     return this.strategyService.findAll();
   }
 
@@ -23,15 +23,7 @@ export class StrategyResolver {
     return this.strategyService.findOne(id);
   }
 
-  @Mutation(() => Strategy, { nullable: true })
-  updateStrategy(
-    @Args('id', { type: () => Int }) id: number,
-    @Args('input') input: UpdateStrategyInput,
-  ) {
-    return this.strategyService.update(id, input);
-  }
-
-  @Mutation(() => Strategy, { nullable: true })
+  @Mutation(() => Strategy)
   removeStrategy(@Args('id', { type: () => Int }) id: number) {
     return this.strategyService.remove(id);
   }
