@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Follower } from '@prisma/client';
 import { validateMnemonic } from '@scure/bip39';
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { english, mnemonicToAccount } from 'viem/accounts';
+
+import { Follower } from './entities/follower.entity';
 
 @Injectable()
 export class FollowerService {
@@ -62,7 +63,7 @@ export class FollowerService {
 
       const followerRecord = await this.prismaService.follower.findUnique({
         where: {
-          address: account.address,
+          address: account.address.toLowerCase(),
         },
       });
 
@@ -87,15 +88,21 @@ export class FollowerService {
     }
   }
 
-  getAllFollowers() {
-    return this.prismaService.follower.findMany();
+  async getAllFollowers(): Promise<Follower[]> {
+    return await this.prismaService.follower.findMany();
   }
 
-  getFollowerByAddress(address: string) {
-    return this.prismaService.follower.findUnique({
+  async getFollowerByAddress(address: string): Promise<Follower> {
+    const follower = await this.prismaService.follower.findUnique({
       where: {
         address: address.toLowerCase(),
       },
     });
+
+    if (!follower) {
+      throw new Error('wrong follower address');
+    }
+
+    return follower;
   }
 }

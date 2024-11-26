@@ -12,9 +12,14 @@ export class FollowerResolver {
     return this.followerService.generateNewFollower();
   }
 
-  @Query(() => Follower, { nullable: true })
+  @Query(() => Follower)
   getFollowerByAddress(@Args('input') input: GetFollowerByAddressInput) {
     return this.followerService.getFollowerByAddress(input.address);
+  }
+
+  @Query(() => String)
+  getFollowerPrivateKey(@Args('input') input: GetFollowerByAddressInput) {
+    return this.followerService.getPrivateKey(input.address);
   }
 
   @Query(() => [Follower])

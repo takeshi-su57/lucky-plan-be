@@ -45,6 +45,8 @@ model Follower {
   address      String @id @db.VarChar(255)
   publicKey    String @unique
   accountIndex Int    @unique
+  ethBalance   String @default("0")
+  usdcBalance  String @default("0")
 
   user User  @relation(fields: [address], references: [address])
   bots Bot[]
@@ -59,16 +61,16 @@ model StrategyMetadata {
 }
 
 model Strategy {
-  id            Int      @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   strategyKey   String
   params        String
-  ratio         Int?     @default(100)
-  minCollateral Decimal? @default(5000000)
-  maxCollateral Decimal? @default(1000000000000)
-  maxGas        Decimal? @default(100000000000000000)
-  minGas        Decimal? @default(100000000000000000)
-  maxLeverage   Int?     @default(20000)
-  minLeverage   Int?     @default(1100)
+  ratio         Int?   @default(100)
+  minCollateral String @default("5000000")
+  maxCollateral String @default("1000000000000")
+  maxGas        String @default("100000000000000000")
+  minGas        String @default("100000000000000000")
+  maxLeverage   Int?   @default(200000)
+  minLeverage   Int?   @default(1100)
 
   strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
 
