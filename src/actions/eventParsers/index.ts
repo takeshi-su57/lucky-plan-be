@@ -7,11 +7,9 @@ import { marketOpenCanceledEventParser } from 'src/actions/eventParsers/market-o
 import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
-// import { positionSizeUpdateInitiatedEventParser } from 'src/actions/eventParsers/position-size-update-initiated.parser';
 
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
-import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
+
 import { PendingOrderType, RegisteredEventType } from 'src/types';
 import { Action, ActionItem } from '../entities/action.entity';
 
@@ -25,8 +23,6 @@ export const missionEventNames = missionEventParsers.map(
 );
 
 export const updateEventParsers = [
-  tradeSLUpdatedEventParser,
-  tradeTPUpdatedEventParser,
   tradeMaxClosingSlippagePUpdatedEventParser,
   leverageUpdateExecutedEventParser,
   positionSizeDecreaseExecutedEventParser,

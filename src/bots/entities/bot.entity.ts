@@ -1,10 +1,14 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
+
+registerEnumType(BotStatus, {
+  name: 'BotStatus',
+});
 
 @ObjectType()
 export class Bot {
@@ -32,7 +36,7 @@ export class Bot {
   @Field(() => Int, { nullable: true })
   endedBlock: number | null;
 
-  @Field()
+  @Field(() => BotStatus)
   status: BotStatus;
 }
 

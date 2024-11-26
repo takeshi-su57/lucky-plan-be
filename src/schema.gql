@@ -24,7 +24,7 @@ type Bot {
   leaderAddress: String!
   pausedBlock: Int
   startedBlock: Int
-  status: String!
+  status: BotStatus!
   strategyId: Int!
 }
 
@@ -39,9 +39,16 @@ type BotDetails {
   leaderAddress: String!
   pausedBlock: Int
   startedBlock: Int
-  status: String!
+  status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
+}
+
+enum BotStatus {
+  Created
+  Dead
+  Finish
+  Live
 }
 
 input ChangePasswordInput {
@@ -136,7 +143,7 @@ type Mission {
   botId: Int!
   createdAt: DateTime!
   id: Int!
-  status: String!
+  status: MissionStatus!
   targetPositionId: Int!
   updatedAt: DateTime!
 }
@@ -148,16 +155,21 @@ type MissionDetails {
   botId: Int!
   createdAt: DateTime!
   id: Int!
-  status: String!
+  status: MissionStatus!
   targetPosition: Position!
   targetPositionId: Int!
   updatedAt: DateTime!
 }
 
+enum MissionStatus {
+  Closed
+  Opened
+}
+
 type Mutation {
   addUser(input: AddUserInput!): User!
   changePassword(input: ChangePasswordInput!): Boolean!
-  changeRole(input: ChangeUserRoleInput!): User!
+  changeUserRole(input: ChangeUserRoleInput!): User!
   createBot(input: CreateBotInput!): Bot!
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
@@ -206,6 +218,7 @@ type Query {
   findTasksByMission(missionId: Int!): [Task!]!
   getAllFollowers: [Follower!]!
   getAllLeaders: [User!]!
+  getAllUsers: [User!]!
   getFollowerByAddress(input: GetFollowerByAddressInput!): Follower
   getUserByAddress(input: GetUserByAddressInput!): User
 }
@@ -228,7 +241,15 @@ type Task {
   id: Int!
   logs: [String!]!
   missionId: Int!
-  status: String!
+  status: TaskStatus!
+}
+
+enum TaskStatus {
+  Await
+  Completed
+  Created
+  Failed
+  Initiated
 }
 
 input UpdateStrategyInput {
@@ -243,5 +264,10 @@ input UpdateStrategyMetadataInput {
 
 type User {
   address: String!
-  role: String!
+  role: UserRole!
+}
+
+enum UserRole {
+  Leader
+  User
 }

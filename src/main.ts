@@ -8,6 +8,7 @@ import * as winston from 'winston';
 import 'winston-daily-rotate-file';
 
 import { AppModule } from './app.module';
+import 'dotenv';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -35,7 +36,8 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe());
+  app.enableCors();
 
-  await app.listen(3000);
+  await app.listen(process.env.PORT || 3000);
 }
 bootstrap();

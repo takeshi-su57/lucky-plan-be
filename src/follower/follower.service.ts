@@ -68,10 +68,12 @@ export class FollowerService {
 
       // find new account
       if (!followerRecord) {
-        const user = await this.usersService.getUserByAddress(account.address);
+        const user = await this.usersService.getUserByAddress(
+          account.address.toLowerCase(),
+        );
 
         if (!user) {
-          await this.usersService.addUser(account.address);
+          await this.usersService.addUser(account.address.toLowerCase());
         }
 
         return await this.prismaService.follower.create({

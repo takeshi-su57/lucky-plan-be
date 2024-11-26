@@ -27,8 +27,6 @@ import { FollowerActionsService } from 'src/follower-actions/follower-actions.se
 import { ChainsService } from 'src/global/chains.service';
 import { TradeService } from 'src/global/trade.service';
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
-import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
@@ -94,36 +92,6 @@ export class TasksService {
 
           break;
         }
-        case tradeTPUpdatedEventParser.eventName: {
-          const { args } = tradeTPUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateTp(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newTp: args.newTp,
-            },
-          );
-
-          break;
-        }
-        case tradeSLUpdatedEventParser.eventName: {
-          const { args } = tradeSLUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateSl(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newSl: args.newSl,
-            },
-          );
-
-          break;
-        }
         case leverageUpdateExecutedEventParser.eventName: {
           const { args } =
             leverageUpdateExecutedEventParser.actionParser(action);
@@ -184,8 +152,6 @@ export class TasksService {
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
             const usdcPrice = await this.pricesService.getUSDCPrice();
-
-            console.log(t.collateralAmount, collateralPriceUsd, usdcPrice);
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(

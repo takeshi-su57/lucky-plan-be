@@ -9,7 +9,7 @@ export class UsersService {
 
   addUser(address: string) {
     return this.prismaService.user.upsert({
-      where: { address },
+      where: { address: address.toLowerCase() },
       update: {},
       create: {
         address: address.toLowerCase(),
@@ -35,6 +35,10 @@ export class UsersService {
         address: address.toLowerCase(),
       },
     });
+  }
+
+  getAllUsers() {
+    return this.prismaService.user.findMany();
   }
 
   getAllLeaders() {
