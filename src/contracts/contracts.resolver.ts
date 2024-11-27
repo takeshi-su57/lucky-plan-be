@@ -2,7 +2,10 @@ import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 
 import { ContractsService } from './contracts.service';
 import { Contract } from './entities/contract.entity';
-import { CreateContractInput } from './dto/contract.input';
+import {
+  CreateContractInput,
+  ChangeContractStatusInput,
+} from './dto/contract.input';
 
 @Resolver(() => Contract)
 export class ContractsResolver {
@@ -13,8 +16,13 @@ export class ContractsResolver {
     return this.contractsService.create(input);
   }
 
+  @Mutation(() => Contract)
+  changeContractStatus(@Args('input') input: ChangeContractStatusInput) {
+    return this.contractsService.changeStatus(input);
+  }
+
   @Query(() => [Contract])
-  findAllContracts() {
+  getAllContracts() {
     return this.contractsService.findAll();
   }
 

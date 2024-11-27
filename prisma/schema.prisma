@@ -78,12 +78,18 @@ model Strategy {
   bots Bot[]
 }
 
+enum ContractStatus {
+  Live
+  Dead
+}
+
 model Contract {
-  id              Int    @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   chainId         Int
   address         String
   description     String
   lastBlockNumber Int
+  status          ContractStatus @default(Live)
 
   bots Bot[]
 
