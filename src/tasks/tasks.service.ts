@@ -32,7 +32,7 @@ import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParser
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
 import { USDCCollateralIndex } from 'src/utils/constants';
-import { PriceService } from 'src/global/price.service';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 import { getReadableError } from 'src/utils';
 
 @Injectable()
@@ -45,7 +45,7 @@ export class TasksService {
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private tradeService: TradeService,
-    private pricesService: PriceService,
+    private tradingVariableService: TradingVariableService,
     private followerActionsService: FollowerActionsService,
     private readonly logger: Logger,
   ) {
@@ -151,7 +151,8 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
-            const usdcPrice = await this.pricesService.getUSDCPrice();
+            const usdcCollateral =
+              this.tradingVariableService.getCollateral(USDCCollateralIndex);
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
@@ -171,7 +172,7 @@ export class TasksService {
                     collateralAmount:
                       (BigInt(t.collateralAmount) *
                         BigInt(collateralPriceUsd)) /
-                      usdcPrice,
+                      usdcCollateral.usdPrice,
                     openPrice: BigInt(t.openPrice),
                     tp: BigInt(t.tp),
                     sl: BigInt(t.sl),
@@ -388,8 +389,6 @@ export class TasksService {
           );
         }
       }
-
-      console.log('botTasks', botTasks);
 
       const promises = botTasks.map(async (task) => {
         const { success, message } = await this.performTask(task);

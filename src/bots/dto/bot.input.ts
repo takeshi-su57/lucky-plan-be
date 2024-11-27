@@ -34,12 +34,9 @@ export class BotUpdateInput {
   startedBlock?: number;
 
   @IsNumber()
-  pausedBlock?: number;
-
-  @IsNumber()
   endedBlock?: number;
 
   @IsString()
-  @IsIn([BotStatus.Created, BotStatus.Live, BotStatus.Finish, BotStatus.Dead])
+  @IsIn([BotStatus.Created, BotStatus.Live, BotStatus.Stop, BotStatus.Dead])
   status?: BotStatus;
 }

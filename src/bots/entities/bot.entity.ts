@@ -31,9 +31,6 @@ export class Bot {
   startedBlock: number | null;
 
   @Field(() => Int, { nullable: true })
-  pausedBlock: number | null;
-
-  @Field(() => Int, { nullable: true })
   endedBlock: number | null;
 
   @Field(() => BotStatus)

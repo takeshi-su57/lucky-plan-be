@@ -76,6 +76,8 @@ export class BotsService {
         updatedBot as BotDetails,
       ]);
     }
+
+    return updatedBot;
   }
 
   findAll() {
@@ -123,7 +125,7 @@ export class BotsService {
     const liveOrFinishBots = await this.prismaService.bot.findMany({
       where: {
         status: {
-          in: [BotStatus.Live, BotStatus.Finish],
+          in: [BotStatus.Live, BotStatus.Stop],
         },
         followerAddress: bot.followerAddress,
       },
@@ -145,7 +147,7 @@ export class BotsService {
     });
   }
 
-  async finish(id: number) {
+  async stop(id: number) {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -162,32 +164,32 @@ export class BotsService {
 
     return await this.update({
       id,
-      pausedBlock: Number(blockNumber),
-      status: BotStatus.Finish,
-    });
-  }
-
-  async kill(id: number) {
-    const bot = await this.findOne(id);
-
-    if (!bot) {
-      throw new Error('Invalid bot id');
-    }
-
-    if (bot.status !== BotStatus.Finish) {
-      throw new Error('Invalid bot status');
-    }
-
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
-      .getBlockNumber();
-
-    return await this.update({
-      id,
       endedBlock: Number(blockNumber),
-      status: BotStatus.Dead,
+      status: BotStatus.Stop,
     });
   }
+
+  // async kill(id: number) {
+  // const bot = await this.findOne(id);
+
+  // if (!bot) {
+  //   throw new Error('Invalid bot id');
+  // }
+
+  // if (BotStatus.Live !== bot.status && BotStatus.SoftStop !== bot.status) {
+  //   throw new Error('Invalid bot status');
+  // }
+
+  // const blockNumber = await this.chainsService
+  //   .publicClient(bot.contract.chainId)
+  //   .getBlockNumber();
+
+  // return await this.update({
+  //   id,
+  //   endedBlock: Number(blockNumber),
+  //   status: BotStatus.HardStop,
+  // });
+  // }
 
   async loadBots() {
     const bots = await this.findAll();
@@ -207,13 +209,12 @@ export class BotsService {
     const bots = this.botsByContractMap.get(contractId) || [];
 
     const filtered = bots.filter((bot) => {
-      // not started or started later current block number
-      if (!bot.startedBlock || bot.startedBlock > blockNumber) {
-        return false;
+      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+        return;
       }
 
-      // stopped bot
-      if (bot.endedBlock !== null && bot.endedBlock < blockNumber) {
+      // not started or started later current block number
+      if (!bot.startedBlock || bot.startedBlock > blockNumber) {
         return false;
       }
 
@@ -327,14 +328,10 @@ export class BotsService {
     }
 
     if (followerActions.length > 0) {
-      console.log('find follower actions ===>', followerActions.length);
-
       await this.missionsService.handleFollowerActions(followerActions);
     }
 
     if (leaderActions.length > 0) {
-      console.log('find leader actions ===>', leaderActions.length);
-
       await this.missionsService.handleLeaderActions(leaderActions);
     }
   }

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MissionStatus } from '@prisma/client';
+import { BotStatus, MissionStatus } from '@prisma/client';
 import {
   getOrderIdFromMissionAction,
   isCloseMissionAction,
@@ -84,8 +84,6 @@ export class MissionsService {
   }
 
   async attachAchievePositionMany(inputs: MissionAttachAchievePositionInput[]) {
-    console.log('Attach achieve positions ===>', inputs);
-
     const updatedMissions = await this.updateMany(inputs);
 
     updatedMissions.forEach((item) => {
@@ -101,8 +99,6 @@ export class MissionsService {
   }
 
   async closeMany(inputs: MissionCloseInput[]) {
-    console.log('close missions ===>', inputs);
-
     const closedMissions = await this.updateMany(
       inputs.map((item) => ({ ...item, status: MissionStatus.Closed })),
     );
@@ -217,12 +213,11 @@ export class MissionsService {
         action: item.action,
         context: item.context,
       }))
-      .filter((item) => isOpenMissionAction(item.action));
-
-    console.log(
-      'find mission leader actions and create mission object',
-      openEvents,
-    );
+      .filter(
+        (item) =>
+          isOpenMissionAction(item.action) &&
+          item.context.bot.status !== BotStatus.Stop,
+      );
 
     await this.createMany(
       openEvents.map((item) => ({
@@ -288,8 +283,6 @@ export class MissionsService {
   }
 
   async handleFollowerActions(followerActions: ActionContext<BotContext>[]) {
-    console.log('handleFollowerActions =>', followerActions);
-
     await this.handleMarketOrderInitiatedActions(
       followerActions.filter(
         (item) =>
@@ -313,11 +306,6 @@ export class MissionsService {
     );
 
     if (missionActions.length > 0) {
-      console.log(
-        'handle follower actions in mission service ===>',
-        JSON.stringify(missionActions, null, 2),
-      );
-
       await this.tasksService.handleFollowerActions(missionActions);
     }
 
@@ -343,14 +331,7 @@ export class MissionsService {
       'targetPosition',
     );
 
-    console.log('missionActions ==>', missionActions);
-
     if (missionActions.length > 0) {
-      console.log(
-        'handle leader actions in mission service ===>',
-        missionActions.length,
-      );
-
       await this.tasksService.handleLeaderActions(missionActions);
     }
   }
