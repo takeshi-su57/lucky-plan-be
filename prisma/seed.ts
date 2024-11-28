@@ -35,8 +35,33 @@ async function main() {
   });
 
   console.log('password metadata: ', password);
-
   console.log('availableChainIds metadata: ', availableChainIds);
+
+  const strategyMetadata = [
+    {
+      key: 'equalCopy',
+      title: 'Equal Copy',
+      description: 'This strategy copys exactly same amount with leaders.',
+    },
+    {
+      key: 'ratioCopy',
+      title: 'Ratio Copy',
+      description:
+        'This strategy copys exactly same ratio with leaders. If you select 1 ratio then it can be a equal copy',
+    },
+  ];
+
+  for (const data of strategyMetadata) {
+    const result = await prisma.strategyMetadata.upsert({
+      where: {
+        key: data.key,
+      },
+      update: {},
+      create: data,
+    });
+
+    console.log('Strategy Metadata:', result);
+  }
 }
 main()
   .then(async () => {

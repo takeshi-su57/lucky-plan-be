@@ -1,10 +1,14 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
+
+registerEnumType(BotStatus, {
+  name: 'BotStatus',
+});
 
 @ObjectType()
 export class Bot {
@@ -21,18 +25,24 @@ export class Bot {
   strategyId: number;
 
   @Field(() => Int)
-  contractId: number;
+  leaderContractId: number;
+
+  @Field(() => Int)
+  followerContractId: number;
 
   @Field(() => Int, { nullable: true })
-  startedBlock: number | null;
+  leaderStartedBlock: number | null;
 
   @Field(() => Int, { nullable: true })
-  pausedBlock: number | null;
+  leaderEndedBlock: number | null;
 
   @Field(() => Int, { nullable: true })
-  endedBlock: number | null;
+  followerStartedBlock: number | null;
 
-  @Field()
+  @Field(() => Int, { nullable: true })
+  followerEndedBlock: number | null;
+
+  @Field(() => BotStatus)
   status: BotStatus;
 }
 
@@ -48,5 +58,8 @@ export class BotDetails extends Bot {
   strategy: Strategy;
 
   @Field(() => Contract)
-  contract: Contract;
+  leaderContract: Contract;
+
+  @Field(() => Contract)
+  followerContract: Contract;
 }

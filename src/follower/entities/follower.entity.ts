@@ -10,4 +10,10 @@ export class Follower {
 
   @Field(() => Int)
   accountIndex: number;
+
+  @Field()
+  ethBalance: string;
+
+  @Field()
+  usdcBalance: string;
 }

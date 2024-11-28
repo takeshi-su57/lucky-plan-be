@@ -29,7 +29,7 @@ enum UserRole {
 enum BotStatus {
   Created
   Live
-  Finish
+  Stop
   Dead
 }
 
@@ -45,6 +45,8 @@ model Follower {
   address      String @id @db.VarChar(255)
   publicKey    String @unique
   accountIndex Int    @unique
+  ethBalance   String @default("0")
+  usdcBalance  String @default("0")
 
   user User  @relation(fields: [address], references: [address])
   bots Bot[]
@@ -59,48 +61,62 @@ model StrategyMetadata {
 }
 
 model Strategy {
-  id          Int    @id @default(autoincrement())
-  strategyKey String
-  params      String
+  id            Int    @id @default(autoincrement())
+  strategyKey   String
+  params        String
+  ratio         Int    @default(100)
+  lifeTime      String @default("31536000000") // 1year
+  minCollateral String @default("5000000")
+  maxCollateral String @default("1000000000000")
+  maxGas        String @default("100000000000000000")
+  minGas        String @default("1000000000000000")
+  maxLeverage   Int    @default(200000)
+  minLeverage   Int    @default(1100)
 
   strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
 
   bots Bot[]
+}
 
-  @@unique([strategyKey, params])
+enum ContractStatus {
+  Live
+  Dead
 }
 
 model Contract {
-  id              Int    @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   chainId         Int
   address         String
   description     String
   lastBlockNumber Int
+  status          ContractStatus @default(Live)
 
-  bots Bot[]
+  leaderBots   Bot[] @relation("leaderBots")
+  followerBots Bot[] @relation("followerBots")
 
   @@unique([chainId, address])
 }
 
 model Bot {
-  id              Int       @id @default(autoincrement())
-  leaderAddress   String    @db.VarChar(255)
-  followerAddress String    @db.VarChar(255)
-  strategyId      Int
-  contractId      Int
-  startedBlock    Int?
-  pausedBlock     Int?
-  endedBlock      Int?
-  status          BotStatus
+  id                   Int       @id @default(autoincrement())
+  leaderAddress        String    @db.VarChar(255)
+  followerAddress      String    @db.VarChar(255)
+  strategyId           Int
+  leaderContractId     Int
+  leaderStartedBlock   Int?
+  leaderEndedBlock     Int?
+  followerContractId   Int
+  followerStartedBlock Int?
+  followerEndedBlock   Int?
+  status               BotStatus @default(Created)
 
-  follower Follower @relation(fields: [followerAddress], references: [address])
-  leader   User     @relation(fields: [leaderAddress], references: [address])
-  strategy Strategy @relation(fields: [strategyId], references: [id])
-  contract Contract @relation(fields: [contractId], references: [id])
+  follower         Follower @relation(fields: [followerAddress], references: [address])
+  leader           User     @relation(fields: [leaderAddress], references: [address])
+  strategy         Strategy @relation(fields: [strategyId], references: [id])
+  leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
+  followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
 
   missions Mission[]
-
-  @@unique([leaderAddress, followerAddress, strategyId, contractId, startedBlock])
 }
 
 model Position {

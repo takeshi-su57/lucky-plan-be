@@ -17,7 +17,7 @@ import { Address, isAddressEqual } from 'viem';
 
 @Injectable()
 export class BotsService {
-  private botsByContractMap = new Map<number, BotDetails[]>();
+  private bots: BotDetails[] = [];
 
   constructor(
     private prismaService: PrismaService,
@@ -44,16 +44,18 @@ export class BotsService {
         followerAddress: input.followerAddress.toLowerCase(),
         status: BotStatus.Created,
       },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
-    const arr = this.botsByContractMap.get(newBot.contractId);
+    this.bots.push(newBot);
 
-    if (arr) {
-      arr.push(newBot as BotDetails);
-    } else {
-      this.botsByContractMap.set(newBot.contractId, [newBot as BotDetails]);
-    }
+    return newBot;
   }
 
   async update(input: BotUpdateInput) {
@@ -62,39 +64,61 @@ export class BotsService {
         id: input.id,
       },
       data: input,
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
-    const arr = this.botsByContractMap.get(updatedBot.contractId);
+    const index = this.bots.findIndex((bot) => bot.id === updatedBot.id);
 
-    if (arr) {
-      const index = arr.findIndex((bot) => bot.id === updatedBot.id);
-
-      arr[index] = updatedBot as BotDetails;
+    if (index !== -1) {
+      this.bots[index] = updatedBot as BotDetails;
     } else {
-      this.botsByContractMap.set(updatedBot.contractId, [
-        updatedBot as BotDetails,
-      ]);
+      this.bots.push(updatedBot);
     }
+
+    return updatedBot;
   }
 
   findAll() {
     return this.prismaService.bot.findMany({
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
   }
 
   find(status: BotStatus) {
     return this.prismaService.bot.findMany({
       where: { status },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
   }
 
   async findOne(id: number) {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
     if (!bot) {
@@ -123,7 +147,7 @@ export class BotsService {
     const liveOrFinishBots = await this.prismaService.bot.findMany({
       where: {
         status: {
-          in: [BotStatus.Live, BotStatus.Finish],
+          in: [BotStatus.Live, BotStatus.Stop],
         },
         followerAddress: bot.followerAddress,
       },
@@ -134,18 +158,23 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
+    const leaderBlockNumber = await this.chainsService
+      .publicClient(bot.leaderContract.chainId)
+      .getBlockNumber();
+
+    const followerBlockNumber = await this.chainsService
+      .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
     return await this.update({
       id,
-      startedBlock: Number(blockNumber),
+      leaderStartedBlock: Number(leaderBlockNumber),
+      followerStartedBlock: Number(followerBlockNumber),
       status: BotStatus.Live,
     });
   }
 
-  async finish(id: number) {
+  async stop(id: number) {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -156,83 +185,91 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
+    const leaderBlockNumber = await this.chainsService
+      .publicClient(bot.leaderContract.chainId)
+      .getBlockNumber();
+
+    const followerBlockNumber = await this.chainsService
+      .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
     return await this.update({
       id,
-      pausedBlock: Number(blockNumber),
-      status: BotStatus.Finish,
+      leaderEndedBlock: Number(leaderBlockNumber),
+      followerEndedBlock: Number(followerBlockNumber),
+      status: BotStatus.Stop,
     });
   }
 
-  async kill(id: number) {
-    const bot = await this.findOne(id);
+  // async kill(id: number) {
+  // const bot = await this.findOne(id);
 
-    if (!bot) {
-      throw new Error('Invalid bot id');
-    }
+  // if (!bot) {
+  //   throw new Error('Invalid bot id');
+  // }
 
-    if (bot.status !== BotStatus.Finish) {
-      throw new Error('Invalid bot status');
-    }
+  // if (BotStatus.Live !== bot.status && BotStatus.SoftStop !== bot.status) {
+  //   throw new Error('Invalid bot status');
+  // }
 
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
-      .getBlockNumber();
+  // const blockNumber = await this.chainsService
+  //   .publicClient(bot.contract.chainId)
+  //   .getBlockNumber();
 
-    return await this.update({
-      id,
-      endedBlock: Number(blockNumber),
-      status: BotStatus.Dead,
-    });
-  }
+  // return await this.update({
+  //   id,
+  //   endedBlock: Number(blockNumber),
+  //   status: BotStatus.HardStop,
+  // });
+  // }
 
   async loadBots() {
-    const bots = await this.findAll();
-
-    bots.forEach((bot) => {
-      const arr = this.botsByContractMap.get(bot.contractId);
-
-      if (arr) {
-        arr.push(bot);
-      } else {
-        this.botsByContractMap.set(bot.contractId, [bot]);
-      }
-    });
+    this.bots = await this.findAll();
   }
 
   filterBots(contractId: number, blockNumber: number) {
-    const bots = this.botsByContractMap.get(contractId) || [];
-
-    const filtered = bots.filter((bot) => {
-      // not started or started later current block number
-      if (!bot.startedBlock || bot.startedBlock > blockNumber) {
-        return false;
-      }
-
-      // stopped bot
-      if (bot.endedBlock !== null && bot.endedBlock < blockNumber) {
-        return false;
-      }
-
-      return true;
-    });
-
+    const leaderBots: BotDetails[] = [];
+    const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];
 
-    filtered.forEach((item) =>
-      totalAddresses.push(
-        ...[
-          item.leaderAddress.toLowerCase(),
-          item.followerAddress.toLowerCase(),
-        ],
-      ),
-    );
+    this.bots.forEach((bot) => {
+      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+        return;
+      }
+
+      let included = false;
+
+      if (
+        bot.leaderContractId === contractId &&
+        bot.leaderStartedBlock &&
+        bot.leaderStartedBlock < blockNumber
+      ) {
+        leaderBots.push(bot);
+        included = true;
+      }
+
+      if (
+        bot.followerContractId === contractId &&
+        bot.followerStartedBlock &&
+        bot.followerStartedBlock < blockNumber
+      ) {
+        followerBots.push(bot);
+        included = true;
+      }
+
+      if (included) {
+        totalAddresses.push(
+          ...[
+            bot.leaderAddress.toLowerCase(),
+            bot.followerAddress.toLowerCase(),
+          ],
+        );
+      }
+    });
 
     return {
-      bots: filtered,
+      leaderBots,
+      followerBots,
       botAddressSet: new Set(totalAddresses),
     };
   }
@@ -288,13 +325,16 @@ export class BotsService {
     const followerActions: ActionContext<BotContext>[] = [];
 
     for (let i = 0; i < actions.length; ) {
-      const { bots } = this.filterBots(contract.id, actions[i].blockNumber);
+      const { leaderBots, followerBots } = this.filterBots(
+        contract.id,
+        actions[i].blockNumber,
+      );
 
       let j = i;
 
       for (; j < actions.length; j++) {
         if (actions[i].blockNumber === actions[j].blockNumber) {
-          const botActions = bots.map((bot) => ({
+          const leaderBotActions = leaderBots.map((bot) => ({
             action: actions[j],
             context: {
               bot,
@@ -302,7 +342,7 @@ export class BotsService {
           }));
 
           leaderActions.push(
-            ...botActions.filter((action) =>
+            ...leaderBotActions.filter((action) =>
               isAddressEqual(
                 action.action.position.address as Address,
                 action.context.bot.leaderAddress as Address,
@@ -310,8 +350,15 @@ export class BotsService {
             ),
           );
 
+          const followerBotActions = followerBots.map((bot) => ({
+            action: actions[j],
+            context: {
+              bot,
+            },
+          }));
+
           followerActions.push(
-            ...botActions.filter((action) =>
+            ...followerBotActions.filter((action) =>
               isAddressEqual(
                 action.action.position.address as Address,
                 action.context.bot.followerAddress as Address,
@@ -327,14 +374,10 @@ export class BotsService {
     }
 
     if (followerActions.length > 0) {
-      console.log('find follower actions ===>', followerActions.length);
-
       await this.missionsService.handleFollowerActions(followerActions);
     }
 
     if (leaderActions.length > 0) {
-      console.log('find leader actions ===>', leaderActions.length);
-
       await this.missionsService.handleLeaderActions(leaderActions);
     }
   }

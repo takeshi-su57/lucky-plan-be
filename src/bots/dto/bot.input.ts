@@ -22,7 +22,11 @@ export class CreateBotInput {
 
   @IsNotEmpty()
   @Field(() => Int)
-  contractId: number;
+  leaderContractId: number;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  followerContractId: number;
 }
 
 export class BotUpdateInput {
@@ -31,15 +35,18 @@ export class BotUpdateInput {
   id: number;
 
   @IsNumber()
-  startedBlock?: number;
+  leaderStartedBlock?: number;
 
   @IsNumber()
-  pausedBlock?: number;
+  leaderEndedBlock?: number;
 
   @IsNumber()
-  endedBlock?: number;
+  followerStartedBlock?: number;
+
+  @IsNumber()
+  followerEndedBlock?: number;
 
   @IsString()
-  @IsIn([BotStatus.Created, BotStatus.Live, BotStatus.Finish, BotStatus.Dead])
+  @IsIn([BotStatus.Created, BotStatus.Live, BotStatus.Stop, BotStatus.Dead])
   status?: BotStatus;
 }

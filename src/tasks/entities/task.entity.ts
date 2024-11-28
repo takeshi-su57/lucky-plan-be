@@ -1,7 +1,11 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { TaskStatus } from '@prisma/client';
 import { Action } from 'src/actions/entities/action.entity';
 import { Mission, MissionDetails } from 'src/missions/entities/mission.entity';
+
+registerEnumType(TaskStatus, {
+  name: 'TaskStatus',
+});
 
 @ObjectType()
 export class Task {
@@ -14,7 +18,7 @@ export class Task {
   @Field(() => Int)
   actionId: number;
 
-  @Field()
+  @Field(() => TaskStatus)
   status: TaskStatus;
 
   @Field(() => [String])

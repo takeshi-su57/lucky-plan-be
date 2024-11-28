@@ -17,7 +17,7 @@ export class UsersResolver {
   }
 
   @Mutation(() => User)
-  changeRole(@Args('input') input: ChangeUserRoleInput) {
+  changeUserRole(@Args('input') input: ChangeUserRoleInput) {
     return this.usersService.changeRole(input.address, input.role);
   }
 
@@ -29,5 +29,10 @@ export class UsersResolver {
   @Query(() => [User])
   getAllLeaders() {
     return this.usersService.getAllLeaders();
+  }
+
+  @Query(() => [User])
+  getAllUsers() {
+    return this.usersService.getAllUsers();
   }
 }

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateContractInput } from './dto/contract.input';
+import {
+  CreateContractInput,
+  ChangeContractStatusInput,
+} from './dto/contract.input';
 import { ChainsService } from '../global/chains.service';
 
 @Injectable()
@@ -25,6 +28,15 @@ export class ContractsService {
         ...input,
         address: input.address.toLowerCase(),
         lastBlockNumber: Number(blockNumber),
+      },
+    });
+  }
+
+  async changeStatus(input: ChangeContractStatusInput) {
+    return this.prismaService.contract.update({
+      where: { id: input.id },
+      data: {
+        status: input.status,
       },
     });
   }

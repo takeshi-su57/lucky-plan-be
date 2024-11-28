@@ -27,14 +27,12 @@ import { FollowerActionsService } from 'src/follower-actions/follower-actions.se
 import { ChainsService } from 'src/global/chains.service';
 import { TradeService } from 'src/global/trade.service';
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
-import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
 import { USDCCollateralIndex } from 'src/utils/constants';
-import { PriceService } from 'src/global/price.service';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 import { getReadableError } from 'src/utils';
 
 @Injectable()
@@ -47,7 +45,7 @@ export class TasksService {
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private tradeService: TradeService,
-    private pricesService: PriceService,
+    private tradingVariableService: TradingVariableService,
     private followerActionsService: FollowerActionsService,
     private readonly logger: Logger,
   ) {
@@ -61,7 +59,7 @@ export class TasksService {
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
-      const { follower, contract } = bot;
+      const { follower, followerContract } = bot;
 
       if (!isOpenMissionAction(action) && !achievePosition) {
         throw new Error(
@@ -70,10 +68,12 @@ export class TasksService {
       }
 
       const walletClient = this.chainsService.walletClient(
-        contract.chainId,
+        followerContract.chainId,
         follower,
       );
-      const publicClient = this.chainsService.publicClient(contract.chainId);
+      const publicClient = this.chainsService.publicClient(
+        followerContract.chainId,
+      );
 
       let tx: `0x${string}` | null = null;
 
@@ -85,40 +85,10 @@ export class TasksService {
           tx = await this.tradeService.updateMaxClosingSlippageP(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               maxSlippageP: args.maxClosingSlippageP,
-            },
-          );
-
-          break;
-        }
-        case tradeTPUpdatedEventParser.eventName: {
-          const { args } = tradeTPUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateTp(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newTp: args.newTp,
-            },
-          );
-
-          break;
-        }
-        case tradeSLUpdatedEventParser.eventName: {
-          const { args } = tradeSLUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateSl(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newSl: args.newSl,
             },
           );
 
@@ -131,7 +101,7 @@ export class TasksService {
           tx = await this.tradeService.updateLeverage(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               newLeverage: Number(args.values.newLeverage),
@@ -147,7 +117,7 @@ export class TasksService {
           tx = await this.tradeService.increasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               collateralDelta: BigInt(args.collateralDelta),
@@ -166,7 +136,7 @@ export class TasksService {
           tx = await this.tradeService.decreasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               collateralDelta: BigInt(args.collateralDelta),
@@ -183,15 +153,14 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
-            const usdcPrice = await this.pricesService.getUSDCPrice();
-
-            console.log(t.collateralAmount, collateralPriceUsd, usdcPrice);
+            const usdcCollateral =
+              this.tradingVariableService.getCollateral(USDCCollateralIndex);
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   trade: {
                     user: follower.address as Address,
@@ -205,7 +174,7 @@ export class TasksService {
                     collateralAmount:
                       (BigInt(t.collateralAmount) *
                         BigInt(collateralPriceUsd)) /
-                      usdcPrice,
+                      usdcCollateral.usdPrice,
                     openPrice: BigInt(t.openPrice),
                     tp: BigInt(t.tp),
                     sl: BigInt(t.sl),
@@ -220,7 +189,7 @@ export class TasksService {
               tx = await this.tradeService.closeTradeMarket(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   index: achievePosition!.index,
                   expectedPrice: BigInt(t.openPrice),
@@ -277,7 +246,8 @@ export class TasksService {
                 follower: true,
                 leader: true,
                 strategy: true,
-                contract: true,
+                followerContract: true,
+                leaderContract: true,
               },
             },
             achievePosition: true,
@@ -328,7 +298,8 @@ export class TasksService {
                 follower: true,
                 leader: true,
                 strategy: true,
-                contract: true,
+                followerContract: true,
+                leaderContract: true,
               },
             },
             achievePosition: true,
@@ -422,8 +393,6 @@ export class TasksService {
           );
         }
       }
-
-      console.log('botTasks', botTasks);
 
       const promises = botTasks.map(async (task) => {
         const { success, message } = await this.performTask(task);
