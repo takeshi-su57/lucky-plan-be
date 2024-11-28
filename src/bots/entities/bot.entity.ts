@@ -25,13 +25,22 @@ export class Bot {
   strategyId: number;
 
   @Field(() => Int)
-  contractId: number;
+  leaderContractId: number;
+
+  @Field(() => Int)
+  followerContractId: number;
 
   @Field(() => Int, { nullable: true })
-  startedBlock: number | null;
+  leaderStartedBlock: number | null;
 
   @Field(() => Int, { nullable: true })
-  endedBlock: number | null;
+  leaderEndedBlock: number | null;
+
+  @Field(() => Int, { nullable: true })
+  followerStartedBlock: number | null;
+
+  @Field(() => Int, { nullable: true })
+  followerEndedBlock: number | null;
 
   @Field(() => BotStatus)
   status: BotStatus;
@@ -49,5 +58,8 @@ export class BotDetails extends Bot {
   strategy: Strategy;
 
   @Field(() => Contract)
-  contract: Contract;
+  leaderContract: Contract;
+
+  @Field(() => Contract)
+  followerContract: Contract;
 }

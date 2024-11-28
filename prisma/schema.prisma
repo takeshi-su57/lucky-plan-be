@@ -91,29 +91,32 @@ model Contract {
   lastBlockNumber Int
   status          ContractStatus @default(Live)
 
-  bots Bot[]
+  leaderBots   Bot[] @relation("leaderBots")
+  followerBots Bot[] @relation("followerBots")
 
   @@unique([chainId, address])
 }
 
 model Bot {
-  id              Int       @id @default(autoincrement())
-  leaderAddress   String    @db.VarChar(255)
-  followerAddress String    @db.VarChar(255)
-  strategyId      Int
-  contractId      Int
-  startedBlock    Int?
-  endedBlock      Int?
-  status          BotStatus @default(Created)
+  id                   Int       @id @default(autoincrement())
+  leaderAddress        String    @db.VarChar(255)
+  followerAddress      String    @db.VarChar(255)
+  strategyId           Int
+  leaderContractId     Int
+  leaderStartedBlock   Int?
+  leaderEndedBlock     Int?
+  followerContractId   Int
+  followerStartedBlock Int?
+  followerEndedBlock   Int?
+  status               BotStatus @default(Created)
 
-  follower Follower @relation(fields: [followerAddress], references: [address])
-  leader   User     @relation(fields: [leaderAddress], references: [address])
-  strategy Strategy @relation(fields: [strategyId], references: [id])
-  contract Contract @relation(fields: [contractId], references: [id])
+  follower         Follower @relation(fields: [followerAddress], references: [address])
+  leader           User     @relation(fields: [leaderAddress], references: [address])
+  strategy         Strategy @relation(fields: [strategyId], references: [id])
+  leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
+  followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
 
   missions Mission[]
-
-  @@unique([leaderAddress, followerAddress, strategyId, contractId, startedBlock])
 }
 
 model Position {

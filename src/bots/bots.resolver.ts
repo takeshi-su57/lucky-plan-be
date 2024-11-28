@@ -23,7 +23,7 @@ export class BotsResolver {
   }
 
   @Query(() => [BotDetails])
-  findAllBots() {
+  getAllBots() {
     return this.botsService.findAll();
   }
 

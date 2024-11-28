@@ -59,7 +59,7 @@ export class TasksService {
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
-      const { follower, contract } = bot;
+      const { follower, followerContract } = bot;
 
       if (!isOpenMissionAction(action) && !achievePosition) {
         throw new Error(
@@ -68,10 +68,12 @@ export class TasksService {
       }
 
       const walletClient = this.chainsService.walletClient(
-        contract.chainId,
+        followerContract.chainId,
         follower,
       );
-      const publicClient = this.chainsService.publicClient(contract.chainId);
+      const publicClient = this.chainsService.publicClient(
+        followerContract.chainId,
+      );
 
       let tx: `0x${string}` | null = null;
 
@@ -83,7 +85,7 @@ export class TasksService {
           tx = await this.tradeService.updateMaxClosingSlippageP(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               maxSlippageP: args.maxClosingSlippageP,
@@ -99,7 +101,7 @@ export class TasksService {
           tx = await this.tradeService.updateLeverage(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               newLeverage: Number(args.values.newLeverage),
@@ -115,7 +117,7 @@ export class TasksService {
           tx = await this.tradeService.increasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               collateralDelta: BigInt(args.collateralDelta),
@@ -134,7 +136,7 @@ export class TasksService {
           tx = await this.tradeService.decreasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               collateralDelta: BigInt(args.collateralDelta),
@@ -158,7 +160,7 @@ export class TasksService {
               tx = await this.tradeService.openTrade(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   trade: {
                     user: follower.address as Address,
@@ -187,7 +189,7 @@ export class TasksService {
               tx = await this.tradeService.closeTradeMarket(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   index: achievePosition!.index,
                   expectedPrice: BigInt(t.openPrice),
@@ -244,7 +246,8 @@ export class TasksService {
                 follower: true,
                 leader: true,
                 strategy: true,
-                contract: true,
+                followerContract: true,
+                leaderContract: true,
               },
             },
             achievePosition: true,
@@ -295,7 +298,8 @@ export class TasksService {
                 follower: true,
                 leader: true,
                 strategy: true,
-                contract: true,
+                followerContract: true,
+                leaderContract: true,
               },
             },
             achievePosition: true,
