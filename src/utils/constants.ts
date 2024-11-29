@@ -7,4 +7,5 @@ export const SUBSCRIPTION_TOKEN = {
   taskAdded: 'taskAdded',
   taskUpdated: 'taskUpdated',
   actionAdded: 'actionAdded',
+  followerActionAdded: 'followerActionAdded',
 };

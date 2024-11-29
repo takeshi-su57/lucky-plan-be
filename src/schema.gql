@@ -238,7 +238,6 @@ type PositionInfo {
 type Query {
   findAction(id: Int!): Action
   findActionsByPosition(positionId: Float!): [Action!]!
-  findAllFollowerActions: [FollowerAction!]!
   findAllPositions: [Position!]!
   findBot(id: Int!): BotDetails!
   findContract(id: Int!): Contract!
@@ -252,6 +251,7 @@ type Query {
   getAllActions: [Action!]!
   getAllBots: [BotDetails!]!
   getAllContracts: [Contract!]!
+  getAllFollowerActions: [FollowerAction!]!
   getAllFollowers: [Follower!]!
   getAllLeaders: [User!]!
   getAllMissions: [MissionShallowDetails!]!
@@ -286,6 +286,7 @@ type StrategyMetadata {
 
 type Subscription {
   actionAdded: [Action!]!
+  followerActionAdded: [FollowerAction!]!
   missionAdded: [MissionShallowDetails!]!
   missionUpdated: [MissionShallowDetails!]!
   taskAdded: [TaskShallowDetails!]!
