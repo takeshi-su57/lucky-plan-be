@@ -17,6 +17,7 @@ export class TaskCreateInput {
     TaskStatus.Await,
     TaskStatus.Initiated,
     TaskStatus.Failed,
+    TaskStatus.Stopped,
     TaskStatus.Completed,
   ])
   status: TaskStatus;
@@ -38,6 +39,7 @@ export class TaskUpdateInput {
     TaskStatus.Await,
     TaskStatus.Initiated,
     TaskStatus.Failed,
+    TaskStatus.Stopped,
     TaskStatus.Completed,
   ])
   status: TaskStatus;

@@ -19,19 +19,16 @@ export class MissionUpdateInput {
   @IsNumber()
   achievePositionId?: number;
 
+  @IsNotEmpty()
   @IsString()
-  @IsIn([MissionStatus.Opened, MissionStatus.Closed])
-  status?: MissionStatus;
-}
-
-export class MissionAttachAchievePositionInput {
-  @IsNotEmpty()
-  @IsNumber()
-  id: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  achievePositionId: number;
+  @IsIn([
+    MissionStatus.Created,
+    MissionStatus.Opening,
+    MissionStatus.Opened,
+    MissionStatus.Closing,
+    MissionStatus.Closed,
+  ])
+  status: MissionStatus;
 }
 
 export class MissionCloseInput {
