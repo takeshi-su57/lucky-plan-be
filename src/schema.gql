@@ -284,6 +284,7 @@ type StrategyMetadata {
 }
 
 type Subscription {
+  missionAdded: MissionShallowDetails!
   missionUpdated: MissionShallowDetails!
 }
 
