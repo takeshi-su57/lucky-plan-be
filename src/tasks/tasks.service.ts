@@ -635,10 +635,10 @@ export class TasksService {
         tempMap.set(task.missionId, [task]);
         this.tasksByBotMap.set(task.mission.botId, tempMap);
       }
+    });
 
-      this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
-        [SUBSCRIPTION_TOKEN.taskAdded]: task,
-      });
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
+      [SUBSCRIPTION_TOKEN.taskAdded]: newTasks,
     });
   }
 
@@ -676,10 +676,10 @@ export class TasksService {
           }
         }
       }
+    });
 
-      this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
-        [SUBSCRIPTION_TOKEN.taskUpdated]: task,
-      });
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
+      [SUBSCRIPTION_TOKEN.taskUpdated]: updatedTasks,
     });
   }
 

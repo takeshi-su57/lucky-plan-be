@@ -1,22 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { PositionsService } from 'src/positions/positions.service';
 import { Position, PositionInfo } from 'src/positions/entities/position.entity';
+import { PUB_SUB } from 'src/global/global.module';
 
 import { CreateActionInput } from './dto/action.input';
-import { ActionDetails } from './entities/action.entity';
-import { CloseMissionAction } from 'src/utils/constants';
+import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Injectable()
 export class ActionsService {
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private positionsService: PositionsService,
   ) {}
 
-  createCloseMissionAction(positionId: number, expectedPrice: string) {
-    return this.prismaService.action.create({
+  async createCloseMissionAction(positionId: number, expectedPrice: string) {
+    const action = await this.prismaService.action.create({
       data: {
         name: CloseMissionAction,
         positionId,
@@ -27,6 +29,12 @@ export class ActionsService {
         orderInBlock: 0,
       },
     });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.actionAdded, {
+      [SUBSCRIPTION_TOKEN.actionAdded]: [action],
+    });
+
+    return action;
   }
 
   async createMany(contractId: number, inputs: CreateActionInput[]) {
@@ -52,7 +60,7 @@ export class ActionsService {
         ),
     );
 
-    return (await this.prismaService.action.createManyAndReturn({
+    const actions = await this.prismaService.action.createManyAndReturn({
       data: inputs.map((input) => ({
         name: input.name,
         positionId: positionsMap.get(
@@ -65,7 +73,13 @@ export class ActionsService {
       include: {
         position: true,
       },
-    })) as ActionDetails[];
+    });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.actionAdded, {
+      [SUBSCRIPTION_TOKEN.actionAdded]: actions,
+    });
+
+    return actions;
   }
 
   findAll() {
