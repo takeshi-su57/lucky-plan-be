@@ -32,14 +32,14 @@ export class MissionsResolver {
     return this.missionsService.findAll();
   }
 
-  @Subscription(() => MissionShallowDetails, {
+  @Subscription(() => [MissionShallowDetails], {
     name: SUBSCRIPTION_TOKEN.missionAdded,
   })
   subscribeToMissionAdded() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionAdded);
   }
 
-  @Subscription(() => MissionShallowDetails, {
+  @Subscription(() => [MissionShallowDetails], {
     name: SUBSCRIPTION_TOKEN.missionUpdated,
   })
   subscribeToMissionUpdated() {

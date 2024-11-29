@@ -66,10 +66,10 @@ export class MissionsService {
       } else {
         this.missionsByBotMap.set(mission.botId, [mission]);
       }
+    });
 
-      this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
-        [SUBSCRIPTION_TOKEN.missionAdded]: mission,
-      });
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
+      [SUBSCRIPTION_TOKEN.missionAdded]: newMissions,
     });
   }
 
@@ -90,10 +90,8 @@ export class MissionsService {
       }),
     );
 
-    updatedMissions.forEach((mission) => {
-      this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
-        [SUBSCRIPTION_TOKEN.missionUpdated]: mission,
-      });
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
+      [SUBSCRIPTION_TOKEN.missionUpdated]: updatedMissions,
     });
 
     return updatedMissions;

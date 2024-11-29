@@ -44,14 +44,14 @@ export class TasksResolver {
     return this.tasksService.findByMission(missionId);
   }
 
-  @Subscription(() => TaskShallowDetails, {
+  @Subscription(() => [TaskShallowDetails], {
     name: SUBSCRIPTION_TOKEN.taskAdded,
   })
   subscribeToTaskAdded() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskAdded);
   }
 
-  @Subscription(() => TaskShallowDetails, {
+  @Subscription(() => [TaskShallowDetails], {
     name: SUBSCRIPTION_TOKEN.taskUpdated,
   })
   subscribeToTaskUpdated() {
