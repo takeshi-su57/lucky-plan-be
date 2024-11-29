@@ -33,6 +33,13 @@ export class MissionsResolver {
   }
 
   @Subscription(() => MissionShallowDetails, {
+    name: SUBSCRIPTION_TOKEN.missionAdded,
+  })
+  subscribeToMissionAdded() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionAdded);
+  }
+
+  @Subscription(() => MissionShallowDetails, {
     name: SUBSCRIPTION_TOKEN.missionUpdated,
   })
   subscribeToMissionUpdated() {

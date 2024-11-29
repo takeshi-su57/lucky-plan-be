@@ -4,4 +4,6 @@ export const CloseMissionAction = 'CloseMissionAction';
 export const SUBSCRIPTION_TOKEN = {
   missionAdded: 'missionAdded',
   missionUpdated: 'missionUpdated',
+  taskAdded: 'taskAdded',
+  taskUpdated: 'taskUpdated',
 };
