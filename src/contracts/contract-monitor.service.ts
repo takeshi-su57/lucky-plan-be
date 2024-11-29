@@ -8,6 +8,7 @@ import { ChainsService } from 'src/global/chains.service';
 import { BotsService } from '../bots/bots.service';
 import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
 import { ContractsService } from './contracts.service';
+import { Contract } from '@prisma/client';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -52,11 +53,7 @@ export class ContractMonitorService implements OnModuleDestroy {
             ? fromBlock + ContractMonitorService.BATCH_SIZE
             : currentBlockNumber;
 
-        const actionItems = await this.getLogs(
-          fromBlock,
-          toBlock,
-          contract.chainId,
-        );
+        const actionItems = await this.getLogs(fromBlock, toBlock, contract);
 
         this.logger.log(
           `Start CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
@@ -85,14 +82,17 @@ export class ContractMonitorService implements OnModuleDestroy {
     this.status = 'ready';
   }
 
-  async getLogs(fromBlock: bigint, toBlock: bigint, chainId: number) {
+  async getLogs(fromBlock: bigint, toBlock: bigint, contract: Contract) {
     return (
-      await this.chainsService.publicClient(chainId).getLogs<AbiEvent>({
-        address: addresses[chainId.toString() as keyof typeof addresses].global
-          .gnsMultiCollatDiamond as Address,
-        fromBlock,
-        toBlock,
-      })
+      await this.chainsService
+        .publicClient(contract.chainId)
+        .getLogs<AbiEvent>({
+          address: addresses[
+            contract.chainId.toString() as keyof typeof addresses
+          ].global.gnsMultiCollatDiamond as Address,
+          fromBlock,
+          toBlock,
+        })
     )
       .filter(
         (log) =>
@@ -103,6 +103,7 @@ export class ContractMonitorService implements OnModuleDestroy {
       )
       .map((log) => ({
         item: eventToActionParser(
+          contract.id,
           decodeEventLog({
             abi: gnsMultiCollatDiamondAbi,
             data: log.data,

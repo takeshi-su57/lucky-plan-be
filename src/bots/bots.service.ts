@@ -311,6 +311,7 @@ export class BotsService {
     }
 
     const actions = await this.actionsService.createMany(
+      contract.id,
       filteredActionItems.map(({ item, blockNumber }, index) => ({
         name: item.name,
         positionAddress: item.position.address,

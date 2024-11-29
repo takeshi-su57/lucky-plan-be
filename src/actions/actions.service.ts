@@ -6,6 +6,7 @@ import { Position, PositionInfo } from 'src/positions/entities/position.entity';
 
 import { CreateActionInput } from './dto/action.input';
 import { ActionDetails } from './entities/action.entity';
+import { CloseMissionAction } from 'src/utils/constants';
 
 @Injectable()
 export class ActionsService {
@@ -14,11 +15,26 @@ export class ActionsService {
     private positionsService: PositionsService,
   ) {}
 
-  async createMany(inputs: CreateActionInput[]) {
+  createCloseMissionAction(positionId: number, expectedPrice: string) {
+    return this.prismaService.action.create({
+      data: {
+        name: CloseMissionAction,
+        positionId,
+        args: JSON.stringify({
+          expectedPrice,
+        }),
+        blockNumber: 0,
+        orderInBlock: 0,
+      },
+    });
+  }
+
+  async createMany(contractId: number, inputs: CreateActionInput[]) {
     const positionInputs = Array.from(
       new Set(
         inputs.map((input) =>
           JSON.stringify({
+            contractId,
             address: input.positionAddress.toLowerCase(),
             index: input.positionIndex,
           }),
@@ -31,7 +47,7 @@ export class ActionsService {
     (await this.positionsService.upsertMany(positionInputs)).forEach(
       (position) =>
         positionsMap.set(
-          `${position.address.toLowerCase()}-${position.index}`,
+          `${contractId}-${position.address.toLowerCase()}-${position.index}`,
           position as Position,
         ),
     );
@@ -40,7 +56,7 @@ export class ActionsService {
       data: inputs.map((input) => ({
         name: input.name,
         positionId: positionsMap.get(
-          `${input.positionAddress.toLowerCase()}-${input.positionIndex}`,
+          `${contractId}-${input.positionAddress.toLowerCase()}-${input.positionIndex}`,
         )!.id,
         args: input.args,
         blockNumber: input.blockNumber,

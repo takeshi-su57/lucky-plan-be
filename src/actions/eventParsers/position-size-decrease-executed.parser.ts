@@ -17,11 +17,13 @@ export type PositionSizeDecreaseExecutedEventArgs =
   PositionSizeDecreaseExecutedEvent['args'];
 
 export function parsePositionSizeDecreaseExecutedEvent(
+  contractId: number,
   event: PositionSizeDecreaseExecutedEvent,
 ) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.trader,
       index: Number(event.args.index),
     },

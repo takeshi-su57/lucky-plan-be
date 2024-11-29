@@ -15,10 +15,14 @@ export type MarketCloseCanceledEvent = DecodeEventLogReturnType<
 >;
 export type MarketCloseCanceledEventArgs = MarketCloseCanceledEvent['args'];
 
-export function parseMarketCloseCanceledEvent(event: MarketCloseCanceledEvent) {
+export function parseMarketCloseCanceledEvent(
+  contractId: number,
+  event: MarketCloseCanceledEvent,
+) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.trader,
       index: Number(event.args.index),
     },
