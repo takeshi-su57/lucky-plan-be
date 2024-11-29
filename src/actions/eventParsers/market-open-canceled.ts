@@ -15,10 +15,14 @@ export type MarketOpenCanceledEvent = DecodeEventLogReturnType<
 >;
 export type MarketOpenCanceledEventArgs = MarketOpenCanceledEvent['args'];
 
-export function parseMarketOpenCanceledEvent(event: MarketOpenCanceledEvent) {
+export function parseMarketOpenCanceledEvent(
+  contractId: number,
+  event: MarketOpenCanceledEvent,
+) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.orderId.user,
       index: event.args.orderId.index,
     },

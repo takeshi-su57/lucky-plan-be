@@ -15,10 +15,14 @@ export type MarketExecutedEvent = DecodeEventLogReturnType<
 >;
 export type MarketExecutedEventArgs = MarketExecutedEvent['args'];
 
-export function parseMarketExecutedEvent(event: MarketExecutedEvent) {
+export function parseMarketExecutedEvent(
+  contractId: number,
+  event: MarketExecutedEvent,
+) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.t.user,
       index: event.args.t.index,
     },

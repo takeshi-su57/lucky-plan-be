@@ -91,8 +91,9 @@ model Contract {
   lastBlockNumber Int
   status          ContractStatus @default(Live)
 
-  leaderBots   Bot[] @relation("leaderBots")
-  followerBots Bot[] @relation("followerBots")
+  leaderBots   Bot[]      @relation("leaderBots")
+  followerBots Bot[]      @relation("followerBots")
+  positions    Position[]
 
   @@unique([chainId, address])
 }
@@ -120,19 +121,24 @@ model Bot {
 }
 
 model Position {
-  id      Int    @id @default(autoincrement())
-  address String @db.VarChar(255)
-  index   Int
+  id         Int    @id @default(autoincrement())
+  contractId Int
+  address    String @db.VarChar(255)
+  index      Int
 
+  contract        Contract  @relation(fields: [contractId], references: [id])
   targetMissions  Mission[] @relation("targetMissions")
   achieveMissions Mission[] @relation("achieveMissions")
   actions         Action[]
 
-  @@unique([address, index])
+  @@unique([contractId, address, index])
 }
 
 enum MissionStatus {
+  Created
+  Opening
   Opened
+  Closing
   Closed
 }
 
@@ -158,6 +164,7 @@ enum TaskStatus {
   Await
   Initiated
   Failed
+  Stopped
   Completed
 }
 

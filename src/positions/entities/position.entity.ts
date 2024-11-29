@@ -5,6 +5,9 @@ export class Position {
   @Field(() => Int)
   id: number;
 
+  @Field(() => Int)
+  contractId: number;
+
   @Field()
   address: string;
 

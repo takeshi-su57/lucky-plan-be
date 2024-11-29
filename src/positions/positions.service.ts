@@ -12,13 +12,15 @@ export class PositionsService {
       positions.map((position) =>
         this.prismaService.position.upsert({
           where: {
-            address_index: {
+            contractId_address_index: {
+              contractId: position.contractId,
               address: position.address.toLowerCase(),
               index: position.index,
             },
           },
           update: {},
           create: {
+            contractId: position.contractId,
             address: position.address.toLowerCase(),
             index: position.index,
           },

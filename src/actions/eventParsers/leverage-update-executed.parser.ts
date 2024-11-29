@@ -17,11 +17,13 @@ export type LeverageUpdateExecutedEventArgs =
   LeverageUpdateExecutedEvent['args'];
 
 export function parseLeverageUpdateExecutedEvent(
+  contractId: number,
   event: LeverageUpdateExecutedEvent,
 ) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.trader,
       index: Number(event.args.index),
     },

@@ -22,7 +22,6 @@ import {
 } from 'src/types';
 import { MissionShallowDetails } from './entities/mission.entity';
 import {
-  MissionAttachAchievePositionInput,
   MissionCloseInput,
   MissionCreateInput,
   MissionUpdateInput,
@@ -45,7 +44,7 @@ export class MissionsService {
     const newMissions = await this.prismaService.mission.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,
-        status: MissionStatus.Opened,
+        status: MissionStatus.Created,
       })),
       include: {
         targetPosition: true,
@@ -83,7 +82,7 @@ export class MissionsService {
     );
   }
 
-  async attachAchievePositionMany(inputs: MissionAttachAchievePositionInput[]) {
+  async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
     const updatedMissions = await this.updateMany(inputs);
 
     updatedMissions.forEach((item) => {
@@ -118,7 +117,9 @@ export class MissionsService {
   async loadMissions() {
     const missions = await this.prismaService.mission.findMany({
       where: {
-        status: MissionStatus.Opened,
+        status: {
+          not: MissionStatus.Closed,
+        },
       },
       include: {
         targetPosition: true,
@@ -138,8 +139,65 @@ export class MissionsService {
     });
   }
 
+  async closeMission(id: number) {
+    const mission = await this.prismaService.mission.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
+      },
+    });
+
+    if (!mission) {
+      throw new Error('Invalid mission id!');
+    }
+
+    if (mission.status !== MissionStatus.Opened) {
+      throw new Error('Invalid mission status!');
+    }
+
+    const isClosed = await this.tasksService.closeMissionTasks(mission);
+
+    if (!isClosed) {
+      throw new Error('There is something wrong while closing mission tasks!');
+    }
+
+    const closingMissions = await this.updateMany([
+      {
+        id: mission.id,
+        status: MissionStatus.Closing,
+      },
+    ]);
+
+    if (closingMissions.length !== 1) {
+      throw new Error('There is something wrong while closing mission tasks!');
+    }
+
+    const closingMission = closingMissions[0];
+
+    const arr = this.missionsByBotMap.get(closingMission.botId);
+
+    if (arr) {
+      const index = arr.findIndex((bot) => bot.id === closingMission.id);
+      arr[index] = closingMission;
+    } else {
+      this.missionsByBotMap.set(closingMission.botId, [closingMission]);
+    }
+
+    return closingMission;
+  }
+
   findAll() {
-    return this.prismaService.mission.findMany();
+    return this.prismaService.mission.findMany({
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
+      },
+    });
   }
 
   findOne(id: number) {
@@ -201,6 +259,7 @@ export class MissionsService {
           return {
             id: mission.id,
             achievePositionId: eventContext.action.positionId,
+            status: MissionStatus.Opening,
           };
         })
         .filter((item) => !!item),
@@ -302,6 +361,7 @@ export class MissionsService {
         .map((item) => ({
           id: item.context.mission.id,
           achievePositionId: item.action.positionId,
+          status: MissionStatus.Opened,
         })),
     );
 
@@ -332,7 +392,13 @@ export class MissionsService {
     );
 
     if (missionActions.length > 0) {
-      await this.tasksService.handleLeaderActions(missionActions);
+      await this.tasksService.handleLeaderActions(
+        missionActions.filter(
+          (item) =>
+            item.context.mission.status !== MissionStatus.Closing &&
+            item.context.mission.status !== MissionStatus.Closed,
+        ),
+      );
     }
   }
 }

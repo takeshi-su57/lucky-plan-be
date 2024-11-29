@@ -14,7 +14,12 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 
-import { ActionContext, MissionContext, TradeType } from 'src/types';
+import {
+  ActionContext,
+  CloseMissionActionArgs,
+  MissionContext,
+  TradeType,
+} from 'src/types';
 import { TaskDetails, TaskShallowDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
@@ -31,9 +36,11 @@ import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leve
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
-import { USDCCollateralIndex } from 'src/utils/constants';
+import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { getReadableError } from 'src/utils';
+import { ActionsService } from 'src/actions/actions.service';
+import { Mission } from 'src/missions/entities/mission.entity';
 
 @Injectable()
 export class TasksService {
@@ -47,6 +54,7 @@ export class TasksService {
     private tradeService: TradeService,
     private tradingVariableService: TradingVariableService,
     private followerActionsService: FollowerActionsService,
+    private actionsService: ActionsService,
     private readonly logger: Logger,
   ) {
     this.status = 'ready';
@@ -60,6 +68,13 @@ export class TasksService {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
       const { follower, followerContract } = bot;
+
+      if (
+        task.status !== TaskStatus.Created &&
+        task.status !== TaskStatus.Failed
+      ) {
+        throw new Error('Invalid task status');
+      }
 
       if (!isOpenMissionAction(action) && !achievePosition) {
         throw new Error(
@@ -142,6 +157,21 @@ export class TasksService {
               collateralDelta: BigInt(args.collateralDelta),
               leverageDelta: Number(args.leverageDelta),
               expectedPrice: BigInt(args.oraclePrice),
+            },
+          );
+
+          break;
+        }
+        case CloseMissionAction: {
+          const args = JSON.parse(action.args) as CloseMissionActionArgs;
+
+          tx = await this.tradeService.closeTradeMarket(
+            walletClient,
+            publicClient,
+            followerContract.chainId,
+            {
+              index: achievePosition!.index,
+              expectedPrice: BigInt(args.expectedPrice),
             },
           );
 
@@ -286,7 +316,7 @@ export class TasksService {
     const allTasks = await this.prismaService.task.findMany({
       where: {
         status: {
-          not: TaskStatus.Completed,
+          notIn: [TaskStatus.Stopped, TaskStatus.Completed],
         },
       },
       include: {
@@ -384,13 +414,7 @@ export class TasksService {
         }
 
         if (openMissionTasks.created.length > 0) {
-          botTasks.push(
-            openMissionTasks.created.sort(
-              (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
-            )[0],
-          );
+          botTasks.push(...openMissionTasks.created);
         }
       }
 
@@ -426,6 +450,118 @@ export class TasksService {
     }
 
     this.status = 'ready';
+  }
+
+  async closeMissionTasks(mission: Mission): Promise<boolean> {
+    const allMissionTasks = await this.prismaService.task.findMany({
+      where: {
+        missionId: mission.id,
+      },
+      include: {
+        action: true,
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                leader: true,
+                strategy: true,
+                followerContract: true,
+                leaderContract: true,
+              },
+            },
+            achievePosition: true,
+            targetPosition: true,
+          },
+        },
+      },
+    });
+
+    if (allMissionTasks.length === 0) {
+      return false;
+    }
+
+    const sortedMissionTasks = allMissionTasks.sort((a, b) => {
+      if (a.action.blockNumber !== b.action.blockNumber) {
+        return a.action.blockNumber - b.action.blockNumber;
+      }
+
+      return a.action.orderInBlock - b.action.orderInBlock;
+    });
+
+    let openTask: TaskDetails | null = null;
+    const awaitingTasks: TaskDetails[] = [];
+    const createdTasks: TaskDetails[] = [];
+
+    // find first create task and put it to queue
+    for (let i = 0; i < sortedMissionTasks.length; i++) {
+      const task = sortedMissionTasks[i];
+
+      if (isOpenMissionAction(task.action)) {
+        openTask = task;
+      }
+
+      if (
+        task.status === TaskStatus.Created ||
+        task.status === TaskStatus.Failed
+      ) {
+        createdTasks.push(task);
+      }
+
+      if (
+        task.status === TaskStatus.Await ||
+        task.status === TaskStatus.Initiated
+      ) {
+        awaitingTasks.push(task);
+      }
+    }
+
+    if (awaitingTasks.length > 0 || !openTask) {
+      return false;
+    }
+
+    await this.updateMany(
+      createdTasks.map((task) => ({
+        id: task.id,
+        status: TaskStatus.Stopped,
+        logs: [
+          ...task.logs,
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Stopped by mission close action`,
+          }),
+        ],
+      })),
+    );
+
+    const openEvent = missionEventParsers
+      .find((parser) => parser.eventName === openTask.action.name)!
+      .actionParser(openTask.action);
+
+    const currentPrice = await this.tradingVariableService.getPair(
+      openEvent.args.t.pairIndex,
+    );
+
+    const newAction = await this.actionsService.createCloseMissionAction(
+      mission.targetPositionId,
+      currentPrice.price.toString(),
+    );
+
+    await this.createMany([
+      {
+        missionId: mission.id,
+        actionId: newAction.id,
+        status: TaskStatus.Created,
+        logs: [
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Task created`,
+          }),
+        ],
+      },
+    ]);
+
+    return true;
   }
 
   async loadTasks() {
@@ -588,8 +724,6 @@ export class TasksService {
         missionEventNames.includes(item.action.name),
     );
 
-    console.log('handle Leader actions in task service ===>', filteredActions);
-
     await this.createMany(
       filteredActions.map((item) => ({
         missionId: item.context.mission.id,
@@ -622,12 +756,6 @@ export class TasksService {
   }
 
   async handleFollowerActions(actions: ActionContext<MissionContext>[]) {
-    console.log(
-      'handle follower actions ===>',
-      actions,
-      actions.map((action) => action.context.mission),
-    );
-
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
 

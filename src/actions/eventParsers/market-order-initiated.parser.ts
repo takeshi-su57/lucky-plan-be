@@ -16,11 +16,13 @@ export type MarketOrderInitiatedEvent = DecodeEventLogReturnType<
 export type MarketOrderInitiatedEventArgs = MarketOrderInitiatedEvent['args'];
 
 export function parseMarketOrderInitiatedEvent(
+  contractId: number,
   event: MarketOrderInitiatedEvent,
 ) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.orderId.user,
       index: event.args.orderId.index,
     },

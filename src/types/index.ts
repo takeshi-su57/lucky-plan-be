@@ -127,3 +127,7 @@ export type TradeEventContext<TEventArgs, TContext> = {
   event: TradeEvent<TEventArgs>;
   context: TContext;
 };
+
+export type CloseMissionActionArgs = {
+  expectedPrice: string;
+};
