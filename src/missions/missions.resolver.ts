@@ -1,28 +1,41 @@
-import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Int,
+  Mutation,
+  Subscription,
+} from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+
 import { MissionsService } from './missions.service';
-import { Mission } from './entities/mission.entity';
+import { MissionShallowDetails } from './entities/mission.entity';
 
-@Resolver(() => Mission)
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+
+@Resolver(() => MissionShallowDetails)
 export class MissionsResolver {
-  constructor(private readonly missionsService: MissionsService) {}
+  constructor(
+    private readonly missionsService: MissionsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
-  @Mutation(() => Mission)
+  @Mutation(() => MissionShallowDetails)
   closeMission(@Args('id', { type: () => Int }) id: number) {
     return this.missionsService.closeMission(id);
   }
 
-  @Query(() => [Mission])
-  findAllMissions() {
+  @Query(() => [MissionShallowDetails])
+  getAllMissions() {
     return this.missionsService.findAll();
   }
 
-  @Query(() => Mission, { nullable: true })
-  findMission(@Args('id', { type: () => Int }) id: number) {
-    return this.missionsService.findOne(id);
-  }
-
-  @Query(() => [Mission])
-  findMissionByBot(@Args('botId', { type: () => Int }) botId: number) {
-    return this.missionsService.findByBot(botId);
+  @Subscription(() => MissionShallowDetails, {
+    name: SUBSCRIPTION_TOKEN.missionUpdated,
+  })
+  subscribeToMissionUpdated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionUpdated);
   }
 }

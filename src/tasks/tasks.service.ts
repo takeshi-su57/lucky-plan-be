@@ -534,6 +534,11 @@ export class TasksService {
       })),
     );
 
+    // no need to proceed
+    if (openTask.status === 'Created') {
+      return true;
+    }
+
     const openEvent = missionEventParsers
       .find((parser) => parser.eventName === openTask.action.name)!
       .actionParser(openTask.action);

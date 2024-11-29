@@ -1,9 +1,12 @@
 import { Module, Global, Logger } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 
 import { PrismaService } from './prisma.service';
 import { TradeService } from './trade.service';
 import { ChainsService } from './chains.service';
 import { TradingVariableService } from './trading-variable.service';
+
+export const PUB_SUB = Symbol('PUB_SUB');
 
 @Global()
 @Module({
@@ -13,6 +16,10 @@ import { TradingVariableService } from './trading-variable.service';
     Logger,
     ChainsService,
     TradingVariableService,
+    {
+      provide: PUB_SUB,
+      useValue: new PubSub(),
+    },
   ],
   exports: [
     PrismaService,
@@ -20,6 +27,7 @@ import { TradingVariableService } from './trading-variable.service';
     Logger,
     ChainsService,
     TradingVariableService,
+    PUB_SUB,
   ],
 })
 export class GlobalModule {}
