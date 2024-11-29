@@ -1,25 +1,60 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import {
+  Resolver,
+  Query,
+  Args,
+  Int,
+  Subscription,
+  Mutation,
+} from '@nestjs/graphql';
+import { PubSub } from 'graphql-subscriptions';
+
 import { TasksService } from './tasks.service';
-import { Task } from './entities/task.entity';
+import { TaskShallowDetails } from './entities/task.entity';
 
-@Resolver(() => Task)
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+
+@Resolver(() => TaskShallowDetails)
 export class TasksResolver {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
-  @Query(() => [Task])
-  findAllTasks() {
+  @Mutation(() => TaskShallowDetails)
+  performTask(@Args('id', { type: () => Int }) id: number) {
+    return this.tasksService.performTaskById(id);
+  }
+
+  @Query(() => [TaskShallowDetails])
+  getAllTasks() {
     return this.tasksService.findAll();
   }
 
-  @Query(() => Task, { nullable: true })
+  @Query(() => TaskShallowDetails)
   findTask(@Args('id', { type: () => Int }) id: number) {
     return this.tasksService.findOne(id);
   }
 
-  @Query(() => [Task])
+  @Query(() => [TaskShallowDetails])
   findTasksByMission(
     @Args('missionId', { type: () => Int }) missionId: number,
   ) {
     return this.tasksService.findByMission(missionId);
+  }
+
+  @Subscription(() => TaskShallowDetails, {
+    name: SUBSCRIPTION_TOKEN.taskAdded,
+  })
+  subscribeToTaskAdded() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskAdded);
+  }
+
+  @Subscription(() => TaskShallowDetails, {
+    name: SUBSCRIPTION_TOKEN.taskUpdated,
+  })
+  subscribeToTaskUpdated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskUpdated);
   }
 }

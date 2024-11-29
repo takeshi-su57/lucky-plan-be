@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { Address } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
 
 import {
   missionEventNames,
@@ -36,11 +37,16 @@ import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leve
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
-import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
+import {
+  CloseMissionAction,
+  SUBSCRIPTION_TOKEN,
+  USDCCollateralIndex,
+} from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { getReadableError } from 'src/utils';
 import { ActionsService } from 'src/actions/actions.service';
 import { Mission } from 'src/missions/entities/mission.entity';
+import { PUB_SUB } from 'src/global/global.module';
 
 @Injectable()
 export class TasksService {
@@ -49,6 +55,7 @@ export class TasksService {
   status: 'process' | 'ready';
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private tradeService: TradeService,
@@ -61,7 +68,7 @@ export class TasksService {
     this.loadTasks();
   }
 
-  async performTask(
+  private async performTask(
     task: TaskDetails,
   ): Promise<{ success: boolean; message: string }> {
     try {
@@ -308,6 +315,8 @@ export class TasksService {
         ],
       },
     ]);
+
+    return task;
   }
 
   async performAvailableTasks() {
@@ -626,6 +635,10 @@ export class TasksService {
         tempMap.set(task.missionId, [task]);
         this.tasksByBotMap.set(task.mission.botId, tempMap);
       }
+
+      this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
+        [SUBSCRIPTION_TOKEN.taskAdded]: task,
+      });
     });
   }
 
@@ -663,6 +676,10 @@ export class TasksService {
           }
         }
       }
+
+      this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
+        [SUBSCRIPTION_TOKEN.taskUpdated]: task,
+      });
     });
   }
 
@@ -711,15 +728,6 @@ export class TasksService {
 
   findByMission(missionId: number) {
     return this.prismaService.task.findMany({ where: { missionId } });
-  }
-
-  updateStatus(id: number, status: TaskStatus) {
-    return this.prismaService.task.update({
-      where: { id },
-      data: {
-        status,
-      },
-    });
   }
 
   async handleLeaderActions(actions: ActionContext<MissionContext>[]) {
