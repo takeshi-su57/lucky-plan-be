@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BotStatus, MissionStatus } from '@prisma/client';
+import { Address, isAddressEqual } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
+
 import {
   getOrderIdFromMissionAction,
   isCloseMissionAction,
@@ -11,6 +14,7 @@ import {
   MarketOrderInitiatedEventArgs,
   marketOrderInitiatedEventParser,
 } from 'src/actions/eventParsers/market-order-initiated.parser';
+import { PUB_SUB } from 'src/global/global.module';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/tasks/tasks.service';
@@ -26,13 +30,14 @@ import {
   MissionCreateInput,
   MissionUpdateInput,
 } from './dto/mission.input';
-import { Address, isAddressEqual } from 'viem';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Injectable()
 export class MissionsService {
   private missionsByBotMap = new Map<number, MissionShallowDetails[]>();
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private readonly logger: Logger,
@@ -61,11 +66,15 @@ export class MissionsService {
       } else {
         this.missionsByBotMap.set(mission.botId, [mission]);
       }
+
+      this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
+        [SUBSCRIPTION_TOKEN.missionAdded]: mission,
+      });
     });
   }
 
   async updateMany(inputs: MissionUpdateInput[]) {
-    return await this.prismaService.$transaction(
+    const updatedMissions = await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.mission.update({
           where: {
@@ -80,6 +89,14 @@ export class MissionsService {
         });
       }),
     );
+
+    updatedMissions.forEach((mission) => {
+      this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
+        [SUBSCRIPTION_TOKEN.missionUpdated]: mission,
+      });
+    });
+
+    return updatedMissions;
   }
 
   async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
@@ -155,7 +172,10 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    if (mission.status !== MissionStatus.Opened) {
+    if (
+      mission.status !== MissionStatus.Opened &&
+      mission.status !== MissionStatus.Created
+    ) {
       throw new Error('Invalid mission status!');
     }
 
@@ -198,14 +218,6 @@ export class MissionsService {
         bot: true,
       },
     });
-  }
-
-  findOne(id: number) {
-    return this.prismaService.mission.findUnique({ where: { id } });
-  }
-
-  findByBot(botId: number) {
-    return this.prismaService.mission.findMany({ where: { botId } });
   }
 
   async handleMarketOrderInitiatedActions(

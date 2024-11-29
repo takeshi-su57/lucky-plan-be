@@ -29,6 +29,9 @@ import { FollowerActionsModule } from './follower-actions/follower-actions.modul
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      subscriptions: {
+        'graphql-ws': true,
+      },
       sortSchema: true,
     }),
     ScheduleModule.forRoot(),
