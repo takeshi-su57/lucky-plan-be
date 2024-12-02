@@ -44,9 +44,7 @@ model User {
 model Follower {
   address      String @id @db.VarChar(255)
   publicKey    String @unique
-  accountIndex Int    @unique
-  ethBalance   String @default("0")
-  usdcBalance  String @default("0")
+  accountIndex Int    @unique // this is master follower
 
   user User  @relation(fields: [address], references: [address])
   bots Bot[]
@@ -63,15 +61,15 @@ model StrategyMetadata {
 model Strategy {
   id            Int    @id @default(autoincrement())
   strategyKey   String
-  params        String
   ratio         Int    @default(100)
-  lifeTime      String @default("31536000000") // 1year
-  minCollateral String @default("5000000")
-  maxCollateral String @default("1000000000000")
-  maxGas        String @default("100000000000000000")
-  minGas        String @default("1000000000000000")
+  lifeTime      Int // unit is min
+  minCapacity   Int // usdc
+  maxCapacity   Int // usdc
+  minCollateral Int // usdc
+  maxCollateral Int // usdc
   maxLeverage   Int    @default(200000)
   minLeverage   Int    @default(1100)
+  params        String
 
   strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
 
@@ -109,6 +107,8 @@ model Bot {
   followerContractId   Int
   followerStartedBlock Int?
   followerEndedBlock   Int?
+  startedAt            DateTime?
+  endedAt              DateTime?
   status               BotStatus @default(Created)
 
   follower         Follower @relation(fields: [followerAddress], references: [address])

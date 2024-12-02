@@ -1,20 +1,23 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { FollowerService } from './follower.service';
-import { Follower } from './entities/follower.entity';
-import { GetFollowerByAddressInput } from './dto/follower.input';
+import { FollowerDetail } from './entities/follower.entity';
+import {
+  GetFollowerByAddressInput,
+  WithdrawAllInput,
+} from './dto/follower.input';
 
-@Resolver(() => Follower)
+@Resolver(() => FollowerDetail)
 export class FollowerResolver {
   constructor(private readonly followerService: FollowerService) {}
 
-  @Mutation(() => Follower)
+  @Mutation(() => FollowerDetail)
   generateNewFollower() {
     return this.followerService.generateNewFollower();
   }
 
-  @Query(() => Follower)
-  getFollowerByAddress(@Args('input') input: GetFollowerByAddressInput) {
-    return this.followerService.getFollowerByAddress(input.address);
+  @Mutation(() => Boolean)
+  withdrawAll(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAll(input.address, input.contractId);
   }
 
   @Query(() => String)
@@ -22,8 +25,8 @@ export class FollowerResolver {
     return this.followerService.getPrivateKey(input.address);
   }
 
-  @Query(() => [Follower])
-  getAllFollowers() {
-    return this.followerService.getAllFollowers();
+  @Query(() => [FollowerDetail])
+  getAllFollowers(@Args('contractId', { type: () => Int }) contractId: number) {
+    return this.followerService.findAll(contractId);
   }
 }
