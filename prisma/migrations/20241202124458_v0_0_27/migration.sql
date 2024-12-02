@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Bot" ALTER COLUMN "endedAt" DROP NOT NULL,
+ALTER COLUMN "startedAt" DROP NOT NULL;

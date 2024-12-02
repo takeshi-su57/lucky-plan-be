@@ -7,6 +7,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 
 import { SystemService } from './system.service';
+import { ContractMonitorService } from './contract-monitor.service';
 
 import { GlobalModule } from './global/global.module';
 import { UsersModule } from './users/users.module';
@@ -49,6 +50,6 @@ import { FollowerActionsModule } from './follower-actions/follower-actions.modul
     FollowerActionsModule,
   ],
   controllers: [],
-  providers: [SystemService],
+  providers: [SystemService, ContractMonitorService],
 })
 export class AppModule {}

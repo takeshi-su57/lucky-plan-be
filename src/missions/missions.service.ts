@@ -97,6 +97,10 @@ export class MissionsService {
     return updatedMissions;
   }
 
+  getMissionsByBotId(botId: number) {
+    return this.missionsByBotMap.get(botId) || [];
+  }
+
   async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
     const updatedMissions = await this.updateMany(inputs);
 

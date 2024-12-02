@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ContractMonitorService } from './contracts/contract-monitor.service';
+import { ContractMonitorService } from './contract-monitor.service';
 import { TasksService } from './tasks/tasks.service';
 import { TradingVariableService } from './global/trading-variable.service';
 

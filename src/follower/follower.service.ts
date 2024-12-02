@@ -1,17 +1,175 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
+import { Address, english, mnemonicToAccount } from 'viem/accounts';
+import { erc20Abi } from 'viem';
+
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { english, mnemonicToAccount } from 'viem/accounts';
+import { ContractsService } from 'src/contracts/contracts.service';
+import { getReadableError } from 'src/utils';
+import { FollowerDetail } from './entities/follower.entity';
 
-import { Follower } from './entities/follower.entity';
+import { ChainsService } from 'src/global/chains.service';
+import { Contract } from 'src/contracts/entities/contract.entity';
+import { TradingVariableService } from 'src/global/trading-variable.service';
+import { USDCCollateralIndex } from 'src/utils/constants';
 
 @Injectable()
 export class FollowerService {
   constructor(
     private prismaService: PrismaService,
     private usersService: UsersService,
+    private contractService: ContractsService,
+    private chainsService: ChainsService,
+    private tradingVariableServcie: TradingVariableService,
+    private logger: Logger,
   ) {}
+
+  async moveAsset({
+    address,
+    contract,
+    amount,
+    kind,
+  }: {
+    address: string;
+    contract: Contract;
+    amount: bigint;
+    kind: 'usdcDeposit' | 'usdcWithdraw' | 'ethDeposit' | 'ethWithdraw';
+  }) {
+    try {
+      const masterFollower = await this.prismaService.follower.findUnique({
+        where: {
+          accountIndex: 1,
+        },
+      });
+
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address,
+        },
+      });
+
+      if (!follower || !masterFollower) {
+        throw new Error('Wrong address');
+      }
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo =
+        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+
+      const followerWallet = this.chainsService.walletClient(
+        contract.chainId,
+        follower,
+      );
+
+      const masterWallet = this.chainsService.walletClient(
+        contract.chainId,
+        masterFollower,
+      );
+
+      switch (kind) {
+        case 'usdcWithdraw': {
+          this.logger.log(
+            `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
+          );
+
+          const { request } = await publicClient.simulateContract({
+            account: followerWallet.account,
+            address: collateralInfo.collateral,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [masterFollower.address as Address, amount],
+          });
+
+          return await followerWallet.writeContract(request);
+        }
+        case 'usdcDeposit': {
+          this.logger.log(
+            `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
+          );
+
+          const { request } = await publicClient.simulateContract({
+            account: masterWallet.account,
+            address: collateralInfo.collateral,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [follower.address as Address, amount],
+          });
+
+          return await masterWallet.writeContract(request);
+        }
+        case 'ethWithdraw': {
+          this.logger.log(
+            `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
+          );
+
+          return await followerWallet.sendTransaction({
+            account: followerWallet.account!,
+            to: masterFollower.address as Address,
+            value: amount,
+            chain: followerWallet.chain,
+          });
+        }
+        case 'ethDeposit': {
+          this.logger.log(
+            `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
+          );
+
+          return await masterWallet.sendTransaction({
+            account: masterWallet.account!,
+            to: follower.address as Address,
+            value: amount,
+            chain: masterWallet.chain,
+          });
+        }
+      }
+    } catch (err) {
+      this.logger.error(getReadableError(err));
+    }
+  }
+
+  async withdrawAll(address: string, contractId: number): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo =
+        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+
+      const usdcBalance = await publicClient.readContract({
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address as Address],
+      });
+
+      await this.moveAsset({
+        address,
+        contract: contract,
+        amount: usdcBalance,
+        kind: 'usdcWithdraw',
+      });
+
+      const ethBalance = await publicClient.getBalance({
+        address: address as Address,
+      });
+
+      await this.moveAsset({
+        address,
+        contract: contract,
+        amount: ethBalance,
+        kind: 'ethWithdraw',
+      });
+
+      return true;
+    } catch (err) {
+      this.logger.error(getReadableError(err));
+    }
+
+    return false;
+  }
 
   async getPrivateKey(address: string) {
     const mnemonicMetadata = await this.prismaService.metadata.findUnique({
@@ -43,7 +201,7 @@ export class FollowerService {
       .join('')}`;
   }
 
-  async generateNewFollower(): Promise<Follower> {
+  async generateNewFollower(): Promise<FollowerDetail> {
     const mnemonicMetadata = await this.prismaService.metadata.findUnique({
       where: {
         key: this.prismaService.metadataKeys.mnemonic.key,
@@ -77,32 +235,74 @@ export class FollowerService {
           await this.usersService.addUser(account.address.toLowerCase());
         }
 
-        return await this.prismaService.follower.create({
+        const record = await this.prismaService.follower.create({
           data: {
             address: account.address.toLowerCase(),
             publicKey: account.publicKey,
             accountIndex,
           },
         });
+
+        return {
+          ...record,
+          ethBalance: null,
+          usdcBalance: null,
+        };
       }
     }
   }
 
-  async getAllFollowers(): Promise<Follower[]> {
-    return await this.prismaService.follower.findMany();
-  }
+  async loadFollowers(contractId: number) {
+    try {
+      const contract = await this.contractService.findOne(contractId);
 
-  async getFollowerByAddress(address: string): Promise<Follower> {
-    const follower = await this.prismaService.follower.findUnique({
-      where: {
-        address: address.toLowerCase(),
-      },
-    });
+      const publicClient = this.chainsService.publicClient(contract.chainId);
 
-    if (!follower) {
-      throw new Error('wrong follower address');
+      const collateralInfo =
+        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+
+      const botEntities = await this.prismaService.follower.findMany();
+
+      const usdcMap: Record<string, bigint> = {};
+
+      const usdcPromises = botEntities.map(async (entity) => {
+        const balance = await publicClient.readContract({
+          address: collateralInfo.collateral,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [entity.address as Address],
+        });
+
+        usdcMap[entity.address] = balance;
+      });
+
+      await Promise.allSettled(usdcPromises);
+
+      const ethMap: Record<string, bigint> = {};
+
+      const ethPromises = botEntities.map(async (entity) => {
+        const balance = await publicClient.getBalance({
+          address: entity.address as Address,
+        });
+
+        ethMap[entity.address] = balance;
+      });
+
+      await Promise.allSettled(ethPromises);
+
+      return botEntities.map((entity) => ({
+        ...entity,
+        ethBalance: ethMap[entity.address].toString() || null,
+        usdcBalance: usdcMap[entity.address].toString() || null,
+      }));
+    } catch (err) {
+      this.logger.error(getReadableError(err));
     }
 
-    return follower;
+    return [];
+  }
+
+  async findAll(contractId: number): Promise<FollowerDetail[]> {
+    return this.loadFollowers(contractId);
   }
 }

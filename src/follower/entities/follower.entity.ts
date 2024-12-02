@@ -10,10 +10,13 @@ export class Follower {
 
   @Field(() => Int)
   accountIndex: number;
+}
 
-  @Field()
-  ethBalance: string;
+@ObjectType()
+export class FollowerDetail extends Follower {
+  @Field(() => String, { nullable: true })
+  ethBalance: string | null;
 
-  @Field()
-  usdcBalance: string;
+  @Field(() => String, { nullable: true })
+  usdcBalance: string | null;
 }
