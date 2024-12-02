@@ -63,8 +63,6 @@ export class ContractMonitorService implements OnModuleDestroy {
           console.log(`find contract actions ==> ${actionItems.length}`);
 
           await this.botsService.handleActionItems(contract, actionItems);
-
-          console.log('finished');
         }
 
         await this.contractsService.updateLastBlockNumber(id, Number(toBlock));

@@ -321,54 +321,53 @@ export class TasksService {
 
   async performAvailableTasks() {
     this.status = 'process';
-
-    const allTasks = await this.prismaService.task.findMany({
-      where: {
-        status: {
-          notIn: [TaskStatus.Stopped, TaskStatus.Completed],
-        },
-      },
-      include: {
-        action: true,
-        mission: {
-          include: {
-            bot: {
-              include: {
-                follower: true,
-                leader: true,
-                strategy: true,
-                followerContract: true,
-                leaderContract: true,
-              },
-            },
-            achievePosition: true,
-            targetPosition: true,
+    try {
+      const allTasks = await this.prismaService.task.findMany({
+        where: {
+          status: {
+            notIn: [TaskStatus.Stopped, TaskStatus.Completed],
           },
         },
-      },
-    });
+        include: {
+          action: true,
+          mission: {
+            include: {
+              bot: {
+                include: {
+                  follower: true,
+                  leader: true,
+                  strategy: true,
+                  followerContract: true,
+                  leaderContract: true,
+                },
+              },
+              achievePosition: true,
+              targetPosition: true,
+            },
+          },
+        },
+      });
 
-    const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+      const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
 
-    allTasks.forEach((task) => {
-      const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
+      allTasks.forEach((task) => {
+        const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
 
-      if (tasksByMissionMap) {
-        const arr = tasksByMissionMap.get(task.missionId);
+        if (tasksByMissionMap) {
+          const arr = tasksByMissionMap.get(task.missionId);
 
-        if (arr) {
-          arr.push(task);
+          if (arr) {
+            arr.push(task);
+          } else {
+            tasksByMissionMap.set(task.missionId, [task]);
+          }
         } else {
-          tasksByMissionMap.set(task.missionId, [task]);
+          const tempMap = new Map<number, TaskDetails[]>();
+          tempMap.set(task.missionId, [task]);
+          allTasksByBotMap.set(task.mission.botId, tempMap);
         }
-      } else {
-        const tempMap = new Map<number, TaskDetails[]>();
-        tempMap.set(task.missionId, [task]);
-        allTasksByBotMap.set(task.mission.botId, tempMap);
-      }
-    });
+      });
 
-    try {
       const botTasks: TaskDetails[] = [];
 
       for (const tasksByMissionMap of allTasksByBotMap.values()) {
