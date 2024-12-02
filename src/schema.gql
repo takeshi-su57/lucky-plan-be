@@ -99,12 +99,12 @@ input CreateContractInput {
 }
 
 input CreateStrategyInput {
-  lifeTime: String!
-  maxCollateral: String!
-  maxGas: String!
+  lifeTime: Float!
+  maxCapacity: Float!
+  maxCollateral: Float!
   maxLeverage: Int!
-  minCollateral: String!
-  minGas: String!
+  minCapacity: Float!
+  minCollateral: Float!
   minLeverage: Int!
   params: String!
   ratio: Int!
@@ -125,9 +125,7 @@ input FindPositionInput {
 type Follower {
   accountIndex: Int!
   address: String!
-  ethBalance: String!
   publicKey: String!
-  usdcBalance: String!
 }
 
 type FollowerAction {
@@ -142,6 +140,14 @@ type FollowerActionDetails {
   id: Int!
   task: Task!
   taskId: Int!
+}
+
+type FollowerDetail {
+  accountIndex: Int!
+  address: String!
+  ethBalance: String
+  publicKey: String!
+  usdcBalance: String
 }
 
 input GetFollowerByAddressInput {
@@ -213,13 +219,14 @@ type Mutation {
   createBot(input: CreateBotInput!): BotDetails!
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
-  generateNewFollower: Follower!
+  generateNewFollower: FollowerDetail!
   getToken(input: GetTokenInput!): GetTokenResponse!
   liveBot(id: Int!): BotDetails!
   performTask(id: Int!): TaskShallowDetails!
   removeStrategy(id: Int!): Strategy!
   stopBot(id: Int!): BotDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
+  withdrawAll(input: WithdrawAllInput!): Boolean!
 }
 
 type Position {
@@ -252,26 +259,25 @@ type Query {
   getAllBots: [BotDetails!]!
   getAllContracts: [Contract!]!
   getAllFollowerActions: [FollowerAction!]!
-  getAllFollowers: [Follower!]!
+  getAllFollowers(contractId: Int!): [FollowerDetail!]!
   getAllLeaders: [User!]!
   getAllMissions: [MissionShallowDetails!]!
   getAllStrategy: [Strategy!]!
   getAllStrategyMetadata: [StrategyMetadata!]!
   getAllTasks: [TaskShallowDetails!]!
   getAllUsers: [User!]!
-  getFollowerByAddress(input: GetFollowerByAddressInput!): Follower!
   getFollowerPrivateKey(input: GetFollowerByAddressInput!): String!
   getUserByAddress(input: GetUserByAddressInput!): User
 }
 
 type Strategy {
   id: Int!
-  lifeTime: String!
-  maxCollateral: String!
-  maxGas: String!
+  lifeTime: Int!
+  maxCapacity: Int!
+  maxCollateral: Int!
   maxLeverage: Int!
-  minCollateral: String!
-  minGas: String!
+  minCapacity: Int!
+  minCollateral: Int!
   minLeverage: Int!
   params: String!
   ratio: Int!
@@ -335,4 +341,9 @@ type User {
 enum UserRole {
   Leader
   User
+}
+
+input WithdrawAllInput {
+  address: String!
+  contractId: Int!
 }

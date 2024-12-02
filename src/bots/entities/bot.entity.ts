@@ -42,6 +42,12 @@ export class Bot {
   @Field(() => Int, { nullable: true })
   followerEndedBlock: number | null;
 
+  @Field(() => Date, { nullable: true })
+  startedAt: Date | null;
+
+  @Field(() => Date, { nullable: true })
+  endedAt: Date | null;
+
   @Field(() => BotStatus)
   status: BotStatus;
 }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotStatus, Contract } from '@prisma/client';
+import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
@@ -10,10 +11,14 @@ import { BotUpdateInput, CreateBotInput } from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
 import { BotDetails } from './entities/bot.entity';
-import { ActionItem } from 'src/actions/entities/action.entity';
 
+import { ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
-import { Address, isAddressEqual } from 'viem';
+import { FollowerService } from 'src/follower/follower.service';
+import { MAX_GAS, MIN_GAS, USDCCollateralIndex } from 'src/utils/constants';
+import { TradingVariableService } from 'src/global/trading-variable.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class BotsService {
@@ -24,7 +29,9 @@ export class BotsService {
     private usersService: UsersService,
     private chainsService: ChainsService,
     private missionsService: MissionsService,
+    private followersService: FollowerService,
     private actionsService: ActionsService,
+    private tradingVariableService: TradingVariableService,
     private logger: Logger,
   ) {
     this.loadBots();
@@ -56,6 +63,91 @@ export class BotsService {
     this.bots.push(newBot);
 
     return newBot;
+  }
+
+  async reBalanceAsset(bot: BotDetails) {
+    try {
+      const { followerContract, follower, strategy } = bot;
+
+      const publicClient = this.chainsService.publicClient(
+        followerContract.chainId,
+      );
+
+      const collateralInfo =
+        this.tradingVariableService.getCollateral(USDCCollateralIndex);
+
+      const usdcBalance = await publicClient.readContract({
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [follower.address as Address],
+      });
+
+      const { minCapacity, maxCapacity } = strategy;
+
+      if (usdcBalance < BigInt(minCapacity * 1e6)) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: BigInt(maxCapacity * 1e6) - usdcBalance,
+          kind: 'usdcDeposit',
+        });
+      } else if (usdcBalance > BigInt(2 * maxCapacity * 1e6)) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: usdcBalance - BigInt(maxCapacity * 1e6),
+          kind: 'usdcWithdraw',
+        });
+      }
+
+      const ethBalance = await publicClient.getBalance({
+        address: follower.address as Address,
+      });
+
+      if (ethBalance < MIN_GAS) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: MAX_GAS - ethBalance,
+          kind: 'ethDeposit',
+        });
+      }
+    } catch (err) {
+      this.logger.error(getReadableError(err));
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  checkAndUpdateAllBots() {
+    this.logger.log('Rebalancing Bots');
+
+    this.bots.forEach((bot) => {
+      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+        return;
+      }
+
+      if (bot.status === BotStatus.Live && bot.startedAt) {
+        const startedTimestamp = new Date(bot.startedAt).getTime();
+        const currentTimestamp = Date.now();
+
+        if (
+          currentTimestamp - startedTimestamp >
+          bot.strategy.lifeTime * 60 * 1000
+        ) {
+          this._stop(bot);
+        }
+      }
+
+      if (
+        bot.status === BotStatus.Stop &&
+        this.missionsService.getMissionsByBotId(bot.id).length === 0
+      ) {
+        this._kill(bot);
+      }
+
+      this.reBalanceAsset(bot);
+    });
   }
 
   async update(input: BotUpdateInput) {
@@ -158,6 +250,31 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
+    await this.reBalanceAsset(bot);
+
+    const { followerContract, follower } = bot;
+
+    const publicClient = this.chainsService.publicClient(
+      followerContract.chainId,
+    );
+    const walletClient = this.chainsService.walletClient(
+      followerContract.chainId,
+      follower,
+    );
+
+    const collateralInfo =
+      this.tradingVariableService.getCollateral(USDCCollateralIndex);
+
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: collateralInfo.collateral,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [followerContract.address as Address, maxInt256],
+    });
+
+    await walletClient.writeContract(request);
+
     const leaderBlockNumber = await this.chainsService
       .publicClient(bot.leaderContract.chainId)
       .getBlockNumber();
@@ -174,13 +291,7 @@ export class BotsService {
     });
   }
 
-  async stop(id: number) {
-    const bot = await this.findOne(id);
-
-    if (!bot) {
-      throw new Error('Invalid bot id');
-    }
-
+  private async _stop(bot: BotDetails) {
     if (bot.status !== BotStatus.Live) {
       throw new Error('Invalid bot status');
     }
@@ -194,34 +305,43 @@ export class BotsService {
       .getBlockNumber();
 
     return await this.update({
-      id,
+      id: bot.id,
       leaderEndedBlock: Number(leaderBlockNumber),
       followerEndedBlock: Number(followerBlockNumber),
       status: BotStatus.Stop,
     });
   }
 
-  // async kill(id: number) {
-  // const bot = await this.findOne(id);
+  async stop(id: number) {
+    const bot = await this.findOne(id);
 
-  // if (!bot) {
-  //   throw new Error('Invalid bot id');
-  // }
+    if (!bot) {
+      throw new Error('Invalid bot id');
+    }
 
-  // if (BotStatus.Live !== bot.status && BotStatus.SoftStop !== bot.status) {
-  //   throw new Error('Invalid bot status');
-  // }
+    return this._stop(bot);
+  }
 
-  // const blockNumber = await this.chainsService
-  //   .publicClient(bot.contract.chainId)
-  //   .getBlockNumber();
+  private async _kill(bot: BotDetails) {
+    if (BotStatus.Live !== bot.status && BotStatus.Stop !== bot.status) {
+      throw new Error('Invalid bot status');
+    }
 
-  // return await this.update({
-  //   id,
-  //   endedBlock: Number(blockNumber),
-  //   status: BotStatus.HardStop,
-  // });
-  // }
+    return await this.update({
+      id: bot.id,
+      status: BotStatus.Dead,
+    });
+  }
+
+  async kill(id: number) {
+    const bot = await this.findOne(id);
+
+    if (!bot) {
+      throw new Error('Invalid bot id');
+    }
+
+    return this._kill(bot);
+  }
 
   async loadBots() {
     this.bots = await this.findAll();

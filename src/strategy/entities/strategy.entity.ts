@@ -14,20 +14,20 @@ export class Strategy {
   @Field(() => Int)
   ratio: number;
 
-  @Field()
-  lifeTime: string;
+  @Field(() => Int)
+  lifeTime: number;
 
-  @Field()
-  minCollateral: string;
+  @Field(() => Int)
+  minCapacity: number;
 
-  @Field()
-  maxCollateral: string;
+  @Field(() => Int)
+  maxCapacity: number;
 
-  @Field()
-  maxGas: string;
+  @Field(() => Int)
+  minCollateral: number;
 
-  @Field()
-  minGas: string;
+  @Field(() => Int)
+  maxCollateral: number;
 
   @Field(() => Int)
   maxLeverage: number;

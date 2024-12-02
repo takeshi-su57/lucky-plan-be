@@ -1,14 +1,14 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Address, AbiEvent, decodeEventLog } from 'viem';
+import { Contract } from '@prisma/client';
 
 import { addresses } from 'src/utils/addresses';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
-
 import { ChainsService } from 'src/global/chains.service';
-import { BotsService } from '../bots/bots.service';
 import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
-import { ContractsService } from './contracts.service';
-import { Contract } from '@prisma/client';
+
+import { BotsService } from './bots/bots.service';
+import { ContractsService } from './contracts/contracts.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -17,23 +17,21 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 );
 
 @Injectable()
-export class ContractMonitorService implements OnModuleDestroy {
+export class ContractMonitorService {
   status: 'process' | 'ready';
 
   readonly registeredEventNames: string[] = [];
   static BATCH_SIZE = 1000n;
 
   constructor(
-    private readonly logger: Logger,
     private chainsService: ChainsService,
     private botsService: BotsService,
     private contractsService: ContractsService,
+    private readonly logger: Logger,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = 'ready';
   }
-
-  onModuleDestroy() {}
 
   async checkContract(id: number) {
     this.status = 'process';

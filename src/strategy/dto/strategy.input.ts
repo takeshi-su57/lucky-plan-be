@@ -1,5 +1,5 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsJSON, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsJSON, IsNumber } from 'class-validator';
 
 @InputType()
 export class CreateStrategyInput {
@@ -18,29 +18,29 @@ export class CreateStrategyInput {
   ratio: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Field()
-  lifeTime: string;
+  lifeTime: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Field()
-  minCollateral: string;
+  minCapacity: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Field()
-  maxCollateral: string;
+  maxCapacity: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Field()
-  maxGas: string;
+  minCollateral: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Field()
-  minGas: string;
+  maxCollateral: number;
 
   @IsNotEmpty()
   @IsNumber()

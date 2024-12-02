@@ -39,11 +39,6 @@ async function main() {
 
   const strategyMetadata = [
     {
-      key: 'equalCopy',
-      title: 'Equal Copy',
-      description: 'This strategy copys exactly same amount with leaders.',
-    },
-    {
       key: 'ratioCopy',
       title: 'Ratio Copy',
       description:

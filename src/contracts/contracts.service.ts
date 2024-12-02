@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
+
 import {
   CreateContractInput,
   ChangeContractStatusInput,
@@ -12,6 +13,7 @@ export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     private chainsService: ChainsService,
+    private logger: Logger,
   ) {}
 
   async create(input: CreateContractInput) {
