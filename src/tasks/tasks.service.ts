@@ -17,6 +17,7 @@ import { PrismaService } from 'src/global/prisma.service';
 
 import {
   ActionContext,
+  CancelReason,
   CloseMissionActionArgs,
   MissionContext,
   TradeType,
@@ -47,6 +48,12 @@ import { getReadableError } from 'src/utils';
 import { ActionsService } from 'src/actions/actions.service';
 import { Mission } from 'src/missions/entities/mission.entity';
 import { PUB_SUB } from 'src/global/global.module';
+import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
+import {
+  getOpenMissionParams,
+  getPositionDecreaseParams,
+  getPositionIncreaseParams,
+} from 'src/strategy/strategy-library';
 
 @Injectable()
 export class TasksService {
@@ -74,7 +81,7 @@ export class TasksService {
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
-      const { follower, followerContract } = bot;
+      const { follower, followerContract, strategy } = bot;
 
       if (
         task.status !== TaskStatus.Created &&
@@ -120,6 +127,10 @@ export class TasksService {
           const { args } =
             leverageUpdateExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error('Leverage Update Executed Event has canceled');
+          }
+
           tx = await this.tradeService.updateLeverage(
             walletClient,
             publicClient,
@@ -136,15 +147,26 @@ export class TasksService {
           const { args } =
             positionSizeIncreaseExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error(
+              'Position Size Increase Executed Event has canceled',
+            );
+          }
+
+          const followerTradeData = await publicClient.readContract({
+            address: followerContract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getTrade',
+            args: [follower.address as Address, achievePosition!.index],
+          });
+
           tx = await this.tradeService.increasePositionSize(
             walletClient,
             publicClient,
             followerContract.chainId,
             {
+              ...getPositionIncreaseParams(strategy, args, followerTradeData),
               index: achievePosition!.index,
-              collateralDelta: BigInt(args.collateralDelta),
-              leverageDelta: Number(args.leverageDelta),
-              expectedPrice: BigInt(args.values.newOpenPrice),
               maxSlippageP: 1000,
             },
           );
@@ -155,15 +177,26 @@ export class TasksService {
           const { args } =
             positionSizeDecreaseExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error(
+              'Position Size Decrease Executed Event has canceled',
+            );
+          }
+
+          const followerTradeData = await publicClient.readContract({
+            address: followerContract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getTrade',
+            args: [follower.address as Address, achievePosition!.index],
+          });
+
           tx = await this.tradeService.decreasePositionSize(
             walletClient,
             publicClient,
             followerContract.chainId,
             {
+              ...getPositionDecreaseParams(strategy, args, followerTradeData),
               index: achievePosition!.index,
-              collateralDelta: BigInt(args.collateralDelta),
-              leverageDelta: Number(args.leverageDelta),
-              expectedPrice: BigInt(args.oraclePrice),
             },
           );
 
@@ -200,21 +233,25 @@ export class TasksService {
                 followerContract.chainId,
                 {
                   trade: {
+                    ...getOpenMissionParams(
+                      strategy,
+                      {
+                        leverage: t.leverage,
+                        collateralAmount: BigInt(t.collateralAmount),
+                        collateralPriceUsd: BigInt(collateralPriceUsd),
+                      },
+                      usdcCollateral.usdPrice,
+                    ),
                     user: follower.address as Address,
                     index: 0,
                     pairIndex: t.pairIndex,
-                    leverage: t.leverage,
                     long: t.long,
                     isOpen: true,
                     collateralIndex: USDCCollateralIndex,
                     tradeType: TradeType.TRADE,
-                    collateralAmount:
-                      (BigInt(t.collateralAmount) *
-                        BigInt(collateralPriceUsd)) /
-                      usdcCollateral.usdPrice,
                     openPrice: BigInt(t.openPrice),
-                    tp: BigInt(t.tp),
-                    sl: BigInt(t.sl),
+                    tp: 0n,
+                    sl: 0n,
                     __placeholder: BigInt(t.__placeholder),
                   },
                   maxSlippageP: 1000,

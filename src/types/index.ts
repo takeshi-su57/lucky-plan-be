@@ -35,6 +35,22 @@ export enum PendingOrderType {
   MARKET_PARTIAL_CLOSE,
 }
 
+export enum CancelReason {
+  NONE,
+  PAUSED, // deprecated
+  MARKET_CLOSED,
+  SLIPPAGE,
+  TP_REACHED,
+  SL_REACHED,
+  EXPOSURE_LIMITS,
+  PRICE_IMPACT,
+  MAX_LEVERAGE,
+  NO_TRADE,
+  WRONG_TRADE, // deprecated
+  NOT_HIT,
+  LIQ_REACHED,
+}
+
 export enum ContractsVersion {
   BEFORE_V9_2,
   V9_2,
