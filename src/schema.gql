@@ -17,20 +17,24 @@ input AddUserInput {
 }
 
 type Bot {
+  endedAt: DateTime
   followerAddress: String!
   followerContractId: Int!
   followerEndedBlock: Int
   followerStartedBlock: Int
   id: Int!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  startedAt: DateTime
   status: BotStatus!
   strategyId: Int!
 }
 
 type BotDetails {
+  endedAt: DateTime
   follower: Follower!
   followerAddress: String!
   followerContract: Contract!
@@ -40,10 +44,12 @@ type BotDetails {
   id: Int!
   leader: User!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContract: Contract!
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  startedAt: DateTime
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
@@ -88,6 +94,7 @@ input CreateBotInput {
   followerAddress: String!
   followerContractId: Int!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContractId: Int!
   strategyId: Int!
 }
@@ -99,6 +106,7 @@ input CreateContractInput {
 }
 
 input CreateStrategyInput {
+  collateralBaseline: Int!
   lifeTime: Float!
   maxCapacity: Float!
   maxCollateral: Float!
@@ -145,6 +153,7 @@ type FollowerActionDetails {
 type FollowerDetail {
   accountIndex: Int!
   address: String!
+  contractId: Int!
   ethBalance: String
   publicKey: String!
   usdcBalance: String
@@ -219,7 +228,7 @@ type Mutation {
   createBot(input: CreateBotInput!): BotDetails!
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
-  generateNewFollower: FollowerDetail!
+  generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
   liveBot(id: Int!): BotDetails!
   performTask(id: Int!): TaskShallowDetails!
@@ -259,7 +268,8 @@ type Query {
   getAllBots: [BotDetails!]!
   getAllContracts: [Contract!]!
   getAllFollowerActions: [FollowerAction!]!
-  getAllFollowers(contractId: Int!): [FollowerDetail!]!
+  getAllFollowerDetails(contractId: Int!): [FollowerDetail!]!
+  getAllFollowers: [Follower!]!
   getAllLeaders: [User!]!
   getAllMissions: [MissionShallowDetails!]!
   getAllStrategy: [Strategy!]!
@@ -271,6 +281,7 @@ type Query {
 }
 
 type Strategy {
+  collateralBaseline: Int!
   id: Int!
   lifeTime: Int!
   maxCapacity: Int!
@@ -293,6 +304,7 @@ type StrategyMetadata {
 type Subscription {
   actionAdded: [Action!]!
   followerActionAdded: [FollowerAction!]!
+  followerDetailsUpdated(contractId: Int!): [FollowerDetail!]!
   missionAdded: [MissionShallowDetails!]!
   missionUpdated: [MissionShallowDetails!]!
   taskAdded: [TaskShallowDetails!]!

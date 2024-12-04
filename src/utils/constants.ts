@@ -10,6 +10,7 @@ export const SUBSCRIPTION_TOKEN = {
   taskUpdated: 'taskUpdated',
   actionAdded: 'actionAdded',
   followerActionAdded: 'followerActionAdded',
+  followerDetailsUpdated: 'followerDetailsUpdated',
 };
 
 export const MIN_GAS = BigInt(0.003 * Math.pow(10, etherUnits.wei));
