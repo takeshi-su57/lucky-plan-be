@@ -19,4 +19,7 @@ export class FollowerDetail extends Follower {
 
   @Field(() => String, { nullable: true })
   usdcBalance: string | null;
+
+  @Field(() => Int)
+  contractId: number;
 }

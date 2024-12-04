@@ -30,6 +30,9 @@ export class Strategy {
   maxCollateral: number;
 
   @Field(() => Int)
+  collateralBaseline: number;
+
+  @Field(() => Int)
   maxLeverage: number;
 
   @Field(() => Int)

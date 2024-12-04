@@ -59,17 +59,18 @@ model StrategyMetadata {
 }
 
 model Strategy {
-  id            Int    @id @default(autoincrement())
-  strategyKey   String
-  ratio         Int    @default(100)
-  lifeTime      Int // unit is min
-  minCapacity   Int // usdc
-  maxCapacity   Int // usdc
-  minCollateral Int // usdc
-  maxCollateral Int // usdc
-  maxLeverage   Int    @default(200000)
-  minLeverage   Int    @default(1100)
-  params        String
+  id                 Int    @id @default(autoincrement())
+  strategyKey        String
+  ratio              Int    @default(100)
+  lifeTime           Int // unit is min
+  minCapacity        Int // usdc
+  maxCapacity        Int // usdc
+  minCollateral      Int // usdc
+  maxCollateral      Int // usdc
+  collateralBaseline Int // usdc
+  maxLeverage        Int    @default(200000)
+  minLeverage        Int    @default(1100)
+  params             String
 
   strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
 
@@ -97,19 +98,20 @@ model Contract {
 }
 
 model Bot {
-  id                   Int       @id @default(autoincrement())
-  leaderAddress        String    @db.VarChar(255)
-  followerAddress      String    @db.VarChar(255)
-  strategyId           Int
-  leaderContractId     Int
-  leaderStartedBlock   Int?
-  leaderEndedBlock     Int?
-  followerContractId   Int
-  followerStartedBlock Int?
-  followerEndedBlock   Int?
-  startedAt            DateTime?
-  endedAt              DateTime?
-  status               BotStatus @default(Created)
+  id                       Int       @id @default(autoincrement())
+  leaderAddress            String    @db.VarChar(255)
+  followerAddress          String    @db.VarChar(255)
+  strategyId               Int
+  leaderContractId         Int
+  leaderCollateralBaseline Int
+  leaderStartedBlock       Int?
+  leaderEndedBlock         Int?
+  followerContractId       Int
+  followerStartedBlock     Int?
+  followerEndedBlock       Int?
+  startedAt                DateTime?
+  endedAt                  DateTime?
+  status                   BotStatus @default(Created)
 
   follower         Follower @relation(fields: [followerAddress], references: [address])
   leader           User     @relation(fields: [leaderAddress], references: [address])
