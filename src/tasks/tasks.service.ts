@@ -240,6 +240,7 @@ export class TasksService {
                         collateralAmount: BigInt(t.collateralAmount),
                         collateralPriceUsd: BigInt(collateralPriceUsd),
                       },
+                      bot.leaderCollateralBaseline,
                       usdcCollateral.usdPrice,
                     ),
                     user: follower.address as Address,
