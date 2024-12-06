@@ -13,17 +13,21 @@ import {
   missionEventNames,
   missionEventParsers,
 } from 'src/actions/eventParsers';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 
 @Injectable()
 export class TradeHistoriesService {
   constructor(
     private prismaService: PrismaService,
+    private tradingVariableServcie: TradingVariableService,
     private logger: Logger,
   ) {}
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
     return await this.prismaService.tradeHistory.createManyAndReturn({
-      data: inputs,
+      data: inputs.map((input) => ({
+        ...input,
+      })),
     });
   }
 
@@ -51,10 +55,18 @@ export class TradeHistoriesService {
               return null;
             }
 
-            usdOut = Number(
-              (BigInt(args.collateralDelta) * BigInt(args.collateralPriceUsd)) /
-                1000000n,
+            const collateral = this.tradingVariableServcie.getCollateral(
+              contractId,
+              args.collateralIndex,
             );
+
+            const realCollateralDelta = Number(
+              BigInt(args.collateralDelta) / collateral.precision,
+            );
+            const realCollateralPriceUsd =
+              Number(args.collateralPriceUsd) / 100000000;
+
+            usdOut = Number(realCollateralDelta * realCollateralPriceUsd);
 
             break;
           }
@@ -66,11 +78,18 @@ export class TradeHistoriesService {
               return null;
             }
 
-            usdIn = Number(
-              (BigInt(args.collateralDelta) * BigInt(args.collateralPriceUsd)) /
-                1000000n,
+            const collateral = this.tradingVariableServcie.getCollateral(
+              contractId,
+              args.collateralIndex,
             );
 
+            const realCollateralDelta = Number(
+              BigInt(args.collateralDelta) / collateral.precision,
+            );
+            const realCollateralPriceUsd =
+              Number(args.collateralPriceUsd) / 100000000;
+
+            usdIn = Number(realCollateralDelta * realCollateralPriceUsd);
             break;
           }
           default: {
@@ -80,23 +99,27 @@ export class TradeHistoriesService {
                 .actionParser(action.item);
               const { t, collateralPriceUsd, amountSentToTrader } = event.args;
 
+              const collateral = this.tradingVariableServcie.getCollateral(
+                contractId,
+                t.collateralIndex,
+              );
+
+              const realCollateralAmount = Number(
+                BigInt(t.collateralAmount) / collateral.precision,
+              );
+              const realCollateralPriceUsd =
+                Number(collateralPriceUsd) / 100000000;
+              const realAmountSentToTrader = Number(
+                BigInt(amountSentToTrader) / collateral.precision,
+              );
+
               if (isOpenMissionAction(action.item)) {
-                usdOut = Number(
-                  (BigInt(t.collateralAmount) * BigInt(collateralPriceUsd)) /
-                    1000000n,
-                );
+                usdOut = Number(realCollateralAmount * realCollateralPriceUsd);
               } else if (isCloseMissionAction(action.item)) {
-                usdIn = Number(
-                  (BigInt(amountSentToTrader) * BigInt(collateralPriceUsd)) /
-                    1000000n,
-                );
+                usdIn = Number(realAmountSentToTrader * realCollateralPriceUsd);
 
                 usdPnl =
-                  usdIn -
-                  Number(
-                    (BigInt(t.collateralAmount) * BigInt(collateralPriceUsd)) /
-                      1000000n,
-                  );
+                  usdIn - Number(realCollateralAmount * realCollateralPriceUsd);
               } else {
                 return null;
               }

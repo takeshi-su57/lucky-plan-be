@@ -123,8 +123,10 @@ export class PnlSnapshotsService {
   async initialBuild() {
     this.status = 'initializing';
 
+    await this.prismaService.pnlSnapshot.deleteMany({});
+
     try {
-      const BATCH_SIZE = 1000;
+      const BATCH_SIZE = 10000;
       const currentDate = new Date();
 
       let cursorId: number | null = null;
@@ -135,7 +137,7 @@ export class PnlSnapshotsService {
               skip: 1,
               take: BATCH_SIZE,
               cursor: {
-                id: 1,
+                id: cursorId,
               },
               orderBy: {
                 timestamp: 'asc',
@@ -188,24 +190,42 @@ export class PnlSnapshotsService {
           },
         });
 
-        const updateInputs = pnlRecords.map((record) => {
+        const pnlRecordsMap = new Map<string, number>();
+
+        pnlRecords.forEach((record) => {
           const key = getKeyFromSnapshot(record);
 
+          pnlRecordsMap.set(key, record.accUSDPnl);
+        });
+
+        const upsertInputs = pnlSnapshotKeys.map((key) => {
           const accValue = pnlSnapshotMap.get(key) || 0;
+          const prevValue = pnlRecordsMap.get(key) || 0;
+
+          const { address, contractId, kind } = parseKey(key);
 
           return {
-            id: record.id,
-            accUSDPnl: record.accUSDPnl + accValue,
+            address,
+            contractId,
+            kind,
+            accUSDPnl: prevValue + accValue,
           };
         });
 
         await this.prismaService.$transaction(
-          updateInputs.map((input) => {
-            return this.prismaService.pnlSnapshot.update({
+          upsertInputs.map((input) => {
+            return this.prismaService.pnlSnapshot.upsert({
               where: {
-                id: input.id,
+                address_contractId_kind: {
+                  address: input.address,
+                  contractId: input.contractId,
+                  kind: input.kind,
+                },
               },
-              data: input,
+              update: {
+                accUSDPnl: input.accUSDPnl,
+              },
+              create: input,
             });
           }),
         );
@@ -226,10 +246,14 @@ export class PnlSnapshotsService {
         },
       });
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(
+        `PnlSnapshotsService>intialBuild>: ${getReadableError(err)}`,
+      );
     }
 
     this.status = 'ready';
+
+    console.timeLog('InitStarted');
   }
 
   async dayUpdate() {
@@ -339,25 +363,47 @@ export class PnlSnapshotsService {
         },
       });
 
-      const updateInputs = pnlRecords.map((record) => {
+      const pnlRecordsMap = new Map<string, number>();
+
+      pnlRecords.forEach((record) => {
         const key = getKeyFromSnapshot(record);
 
+        pnlRecordsMap.set(key, record.accUSDPnl);
+      });
+
+      const upsertInputs = pnlSnapshotKeys.map((key) => {
+        const plusValue = plusPnlSnapshotMap.get(key) || 0;
+        const minusValue = minusPnlSnapshotMap.get(key) || 0;
+
+        const prevValue = pnlRecordsMap.get(key);
+
+        const { address, contractId, kind } = parseKey(key);
+
         return {
-          id: record.id,
+          address,
+          contractId,
+          kind,
           accUSDPnl:
-            record.accUSDPnl +
-            (plusPnlSnapshotMap.get(key) || 0) -
-            (minusPnlSnapshotMap.get(key) || 0),
+            prevValue !== undefined
+              ? prevValue + plusValue - minusValue
+              : plusValue,
         };
       });
 
       await this.prismaService.$transaction(
-        updateInputs.map((input) => {
-          return this.prismaService.pnlSnapshot.update({
+        upsertInputs.map((input) => {
+          return this.prismaService.pnlSnapshot.upsert({
             where: {
-              id: input.id,
+              address_contractId_kind: {
+                address: input.address,
+                contractId: input.contractId,
+                kind: input.kind,
+              },
             },
-            data: input,
+            update: {
+              accUSDPnl: input.accUSDPnl,
+            },
+            create: input,
           });
         }),
       );
@@ -375,7 +421,9 @@ export class PnlSnapshotsService {
         },
       });
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(
+        `PnlSnapshotsService>dayUpdate>: ${getReadableError(err)}`,
+      );
     }
 
     this.status = 'ready';
