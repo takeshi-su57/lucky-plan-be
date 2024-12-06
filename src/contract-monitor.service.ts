@@ -10,6 +10,7 @@ import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
 import { BotsService } from './bots/bots.service';
 import { ContractsService } from './contracts/contracts.service';
 import { TradeHistoriesService } from './trade-histories/trade-histories.service';
+import { getReadableError } from './utils';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -22,7 +23,7 @@ export class ContractMonitorService {
   status: 'process' | 'ready';
 
   readonly registeredEventNames: string[] = [];
-  static BATCH_SIZE = 1000n;
+  static BATCH_SIZE = 5000n;
 
   constructor(
     private chainsService: ChainsService,
@@ -35,12 +36,29 @@ export class ContractMonitorService {
     this.status = 'ready';
   }
 
-  async checkContract(id: number) {
+  async checkContracts() {
     this.status = 'process';
 
     try {
-      const contract = await this.contractsService.findOne(id);
+      const contracts = await this.contractsService.findAll();
 
+      for (const contract of contracts) {
+        console.time('CheckContract');
+        await this.checkContract(contract);
+        console.timeLog('CheckContract');
+        console.timeEnd('CheckContract');
+      }
+    } catch (err) {
+      this.logger.error(
+        `contract-monitor.service.ts> ${getReadableError(err)}`,
+      );
+    }
+
+    this.status = 'ready';
+  }
+
+  async checkContract(contract: Contract) {
+    try {
       const currentBlockNumber = await this.chainsService
         .publicClient(contract.chainId)
         .getBlockNumber();
@@ -59,7 +77,7 @@ export class ContractMonitorService {
           .getBlock({ blockNumber: fromBlock });
 
         this.logger.log(
-          `Start CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+          `src/contract-monitor.service.ts: Start CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         );
 
         if (actionItems.length > 0) {
@@ -67,26 +85,30 @@ export class ContractMonitorService {
 
           await this.tradeHistoriesService.handleActionItems(
             contract.id,
-            new Date(Number(block.timestamp)),
+            new Date(Number(block.timestamp) * 1000),
             actionItems,
           );
 
           await this.botsService.handleActionItems(contract, actionItems);
         }
 
-        await this.contractsService.updateLastBlockNumber(id, Number(toBlock));
+        await this.contractsService.updateLastBlockNumber(
+          contract.id,
+          Number(toBlock),
+        );
 
         this.logger.log(
-          `End CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+          `src/contract-monitor.service.ts: End CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         );
 
         fromBlock = toBlock + 1n;
       }
     } catch (err) {
-      this.logger.log(`Failed CheckContract: ${id}`, err);
+      this.logger.log(
+        `src/contract-monitor.service.ts: Failed CheckContract: ${contract.id}`,
+        err,
+      );
     }
-
-    this.status = 'ready';
   }
 
   async getLogs(fromBlock: bigint, toBlock: bigint, contract: Contract) {

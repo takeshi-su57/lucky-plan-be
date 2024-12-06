@@ -1,6 +1,11 @@
 import { etherUnits } from 'viem';
 
-export const USDCCollateralIndex = 3;
+export const USDCCollateralIndex = {
+  137: 3,
+  8453: 1,
+  42161: 3,
+  421614: 3,
+};
 export const CloseMissionAction = 'CloseMissionAction';
 
 export const SUBSCRIPTION_TOKEN = {

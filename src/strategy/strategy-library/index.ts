@@ -49,7 +49,8 @@ export function getPositionDecreaseParams(
   return {
     collateralDelta: BigInt(
       Math.floor(
-        Number(deltaCollL / decreaseEventArgs.values.newCollateralAmount) *
+        (Number(deltaCollL) /
+          Number(decreaseEventArgs.values.newCollateralAmount)) *
           Number(trade.collateralAmount),
       ),
     ),

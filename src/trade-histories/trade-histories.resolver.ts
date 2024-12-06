@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { TradeHistoriesService } from './trade-histories.service';
 import {
   PnlSnapshotDetailsConnection,
@@ -13,6 +13,11 @@ export class TradeHistoriesResolver {
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
   ) {}
+
+  @Mutation(() => Boolean)
+  initalizePnlSnapshot() {
+    return this.pnlSnapshotsService.initialBuild();
+  }
 
   @Query(() => [TradeHistory])
   getTradeHistories(

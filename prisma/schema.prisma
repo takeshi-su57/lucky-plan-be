@@ -37,9 +37,8 @@ model User {
   address String   @id @db.VarChar(255)
   role    UserRole
 
-  follower       Follower?
-  bots           Bot[]
-  tradeHistories TradeHistory[]
+  follower Follower?
+  bots     Bot[]
 }
 
 model Follower {
@@ -91,10 +90,9 @@ model Contract {
   lastBlockNumber Int
   status          ContractStatus @default(Live)
 
-  leaderBots     Bot[]          @relation("leaderBots")
-  followerBots   Bot[]          @relation("followerBots")
-  positions      Position[]
-  tradeHistories TradeHistory[]
+  leaderBots   Bot[]      @relation("leaderBots")
+  followerBots Bot[]      @relation("followerBots")
+  positions    Position[]
 
   @@unique([chainId, address])
 }
@@ -223,10 +221,6 @@ model TradeHistory {
   blockNumber Int
   timestamp   DateTime
 
-  user     User     @relation(fields: [address], references: [address])
-  contract Contract @relation(fields: [contractId], references: [id])
-
-  @@unique([address, contractId])
   @@index([address, contractId, blockNumber(sort: Asc)])
   @@index([address, contractId, timestamp(sort: Asc)])
 }

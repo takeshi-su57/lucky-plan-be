@@ -17,12 +17,13 @@ import { ActionsService } from 'src/actions/actions.service';
 import { FollowerService } from 'src/follower/follower.service';
 import { MAX_GAS, MIN_GAS, USDCCollateralIndex } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+
 import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class BotsService {
   private bots: BotDetails[] = [];
+  status: 'ready' | 'progress' = 'ready';
 
   constructor(
     private prismaService: PrismaService,
@@ -73,8 +74,12 @@ export class BotsService {
         followerContract.chainId,
       );
 
-      const collateralInfo =
-        this.tradingVariableService.getCollateral(USDCCollateralIndex);
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        bot.followerContractId,
+        USDCCollateralIndex[
+          followerContract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
 
       const usdcBalance = await publicClient.readContract({
         address: collateralInfo.collateral,
@@ -114,40 +119,50 @@ export class BotsService {
         });
       }
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error('BotsService>reBalanceAsset> ', getReadableError(err));
     }
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  checkAndUpdateAllBots() {
-    this.logger.log('Rebalancing Bots');
+  async checkAndUpdateAllBots() {
+    this.status = 'progress';
+    try {
+      this.logger.log('BotsService>: Rebalancing Bots');
 
-    this.bots.forEach((bot) => {
-      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
-        return;
-      }
+      const promises = this.bots.map(async (bot) => {
+        if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+          return;
+        }
 
-      if (bot.status === BotStatus.Live && bot.startedAt) {
-        const startedTimestamp = new Date(bot.startedAt).getTime();
-        const currentTimestamp = Date.now();
+        if (bot.status === BotStatus.Live && bot.startedAt) {
+          const startedTimestamp = new Date(bot.startedAt).getTime();
+          const currentTimestamp = Date.now();
+
+          if (
+            currentTimestamp - startedTimestamp >
+            bot.strategy.lifeTime * 60 * 1000
+          ) {
+            await this._stop(bot);
+          }
+        }
 
         if (
-          currentTimestamp - startedTimestamp >
-          bot.strategy.lifeTime * 60 * 1000
+          bot.status === BotStatus.Stop &&
+          this.missionsService.getMissionsByBotId(bot.id).length === 0
         ) {
-          this._stop(bot);
+          await this._kill(bot);
         }
-      }
 
-      if (
-        bot.status === BotStatus.Stop &&
-        this.missionsService.getMissionsByBotId(bot.id).length === 0
-      ) {
-        this._kill(bot);
-      }
+        await this.reBalanceAsset(bot);
+      });
 
-      this.reBalanceAsset(bot);
-    });
+      await Promise.all(promises);
+    } catch (err) {
+      this.logger.error(
+        `BotsService>checkAndUpdateAllBots> ${getReadableError(err)}`,
+      );
+    }
+
+    this.status = 'ready';
   }
 
   async update(input: BotUpdateInput) {
@@ -262,8 +277,12 @@ export class BotsService {
       follower,
     );
 
-    const collateralInfo =
-      this.tradingVariableService.getCollateral(USDCCollateralIndex);
+    const collateralInfo = this.tradingVariableService.getCollateral(
+      bot.followerContractId,
+      USDCCollateralIndex[
+        followerContract.chainId as keyof typeof USDCCollateralIndex
+      ],
+    );
 
     const { request } = await publicClient.simulateContract({
       account: walletClient.account,
