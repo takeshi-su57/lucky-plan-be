@@ -62,7 +62,7 @@ export function eventToActionParser(
   return eventParsersMap[event.eventName].logParser(contractId, event as any);
 }
 
-export function isOpenMissionAction(action: Action) {
+export function isOpenMissionAction(action: Action | ActionItem) {
   if (!missionEventNames.includes(action.name)) {
     return false;
   }
@@ -76,7 +76,7 @@ export function isOpenMissionAction(action: Action) {
   }
 }
 
-export function isCloseMissionAction(action: Action) {
+export function isCloseMissionAction(action: Action | ActionItem) {
   if (!missionEventNames.includes(action.name)) {
     return false;
   }

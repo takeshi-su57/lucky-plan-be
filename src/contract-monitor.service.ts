@@ -9,6 +9,7 @@ import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
 
 import { BotsService } from './bots/bots.service';
 import { ContractsService } from './contracts/contracts.service';
+import { TradeHistoriesService } from './trade-histories/trade-histories.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -27,6 +28,7 @@ export class ContractMonitorService {
     private chainsService: ChainsService,
     private botsService: BotsService,
     private contractsService: ContractsService,
+    private tradeHistoriesService: TradeHistoriesService,
     private readonly logger: Logger,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
@@ -52,6 +54,9 @@ export class ContractMonitorService {
             : currentBlockNumber;
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);
+        const block = await this.chainsService
+          .publicClient(contract.chainId)
+          .getBlock({ blockNumber: fromBlock });
 
         this.logger.log(
           `Start CheckContract: contract:${id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
@@ -59,6 +64,12 @@ export class ContractMonitorService {
 
         if (actionItems.length > 0) {
           console.log(`find contract actions ==> ${actionItems.length}`);
+
+          await this.tradeHistoriesService.handleActionItems(
+            contract.id,
+            new Date(Number(block.timestamp)),
+            actionItems,
+          );
 
           await this.botsService.handleActionItems(contract, actionItems);
         }
