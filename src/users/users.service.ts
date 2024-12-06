@@ -18,6 +18,21 @@ export class UsersService {
     });
   }
 
+  upsertMany(addresses: string[]) {
+    return this.prismaService.$transaction(
+      addresses.map((address) =>
+        this.prismaService.user.upsert({
+          where: { address: address.toLowerCase() },
+          update: {},
+          create: {
+            address: address.toLowerCase(),
+            role: UserRole.User,
+          },
+        }),
+      ),
+    );
+  }
+
   changeRole(address: string, role: UserRole) {
     return this.prismaService.user.update({
       where: {
