@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { ContractStatus, PrismaClient } from '@prisma/client';
 import 'dotenv';
 
 const prisma = new PrismaClient();
@@ -74,6 +74,53 @@ async function main() {
     });
 
     console.log('Strategy Metadata:', result);
+  }
+
+  const contractData = [
+    {
+      chainId: 137,
+      address: '0x209a9a01980377916851af2ca075c2b170452018',
+      description: 'This is a gains polygon chain gnsDiamondContract address',
+      lastBlockNumber: 51941480,
+      status: ContractStatus.Live,
+    },
+    {
+      chainId: 8453,
+      address: '0x6cd5ac19a07518a8092eeffda4f1174c72704eeb',
+      description: 'This is a gains base chain gnsDiamondContract address',
+      lastBlockNumber: 23360108,
+      status: ContractStatus.Live,
+    },
+    {
+      chainId: 42161,
+      address: '0xff162c694eaa571f685030649814282ea457f169',
+      description: 'This is a gains arbitrum chain gnsDiamondContract address',
+      lastBlockNumber: 167122054,
+      status: ContractStatus.Live,
+    },
+    {
+      chainId: 421614,
+      address: '0xd659a15812064c79e189fd950a189b15c75d3186',
+      description:
+        'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
+      lastBlockNumber: 33946165,
+      status: ContractStatus.Live,
+    },
+  ];
+
+  for (const data of contractData) {
+    const result = await prisma.contract.upsert({
+      where: {
+        chainId_address: {
+          chainId: data.chainId,
+          address: data.address,
+        },
+      },
+      update: {},
+      create: data,
+    });
+
+    console.log('contract data:', result);
   }
 }
 main()
