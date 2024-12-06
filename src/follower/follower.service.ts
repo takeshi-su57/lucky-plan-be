@@ -58,8 +58,12 @@ export class FollowerService {
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo =
-        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+      const collateralInfo = this.tradingVariableServcie.getCollateral(
+        contract.chainId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
 
       const followerWallet = this.chainsService.walletClient(
         contract.chainId,
@@ -74,7 +78,7 @@ export class FollowerService {
       switch (kind) {
         case 'usdcWithdraw': {
           this.logger.log(
-            `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
+            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
           );
 
           const { request } = await publicClient.simulateContract({
@@ -89,7 +93,7 @@ export class FollowerService {
         }
         case 'usdcDeposit': {
           this.logger.log(
-            `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
+            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
           );
 
           const { request } = await publicClient.simulateContract({
@@ -104,7 +108,7 @@ export class FollowerService {
         }
         case 'ethWithdraw': {
           this.logger.log(
-            `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
+            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
           );
 
           return await followerWallet.sendTransaction({
@@ -116,7 +120,7 @@ export class FollowerService {
         }
         case 'ethDeposit': {
           this.logger.log(
-            `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
+            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
           );
 
           return await masterWallet.sendTransaction({
@@ -128,7 +132,7 @@ export class FollowerService {
         }
       }
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(`FollowerService>moveAsset>: ${getReadableError(err)}`);
     }
   }
 
@@ -138,8 +142,12 @@ export class FollowerService {
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo =
-        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+      const collateralInfo = this.tradingVariableServcie.getCollateral(
+        contractId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
 
       const usdcBalance = await publicClient.readContract({
         address: collateralInfo.collateral,
@@ -168,7 +176,9 @@ export class FollowerService {
 
       return true;
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(
+        `FollowerService>withdrawAll>: ${getReadableError(err)}`,
+      );
     }
 
     return false;
@@ -262,7 +272,9 @@ export class FollowerService {
         });
       }
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(
+        `FollowerService>followerAssetBalanceUpdateCron>: ${getReadableError(err)}`,
+      );
     }
   }
 
@@ -272,8 +284,12 @@ export class FollowerService {
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo =
-        this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
+      const collateralInfo = this.tradingVariableServcie.getCollateral(
+        contractId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
 
       const followerEntities = await this.prismaService.follower.findMany();
 
@@ -307,11 +323,13 @@ export class FollowerService {
       return followerEntities.map((entity) => ({
         ...entity,
         contractId,
-        ethBalance: ethMap[entity.address].toString() || null,
-        usdcBalance: usdcMap[entity.address].toString() || null,
+        ethBalance: ethMap[entity.address]?.toString() || null,
+        usdcBalance: usdcMap[entity.address]?.toString() || null,
       }));
     } catch (err) {
-      this.logger.error(getReadableError(err));
+      this.logger.error(
+        `FollowerService>loadFollowers>: ${getReadableError(err)}`,
+      );
     }
 
     return [];

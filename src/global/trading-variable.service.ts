@@ -5,6 +5,8 @@ import { Address } from 'viem';
 import { ChainsService } from './chains.service';
 import { aggregatorV3InterfaceAbi } from 'src/abi/AggregatorV3Interface';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
+import { PrismaService } from './prisma.service';
+import { Contract } from '@prisma/client';
 
 export type Pair = {
   from: string;
@@ -35,98 +37,107 @@ export type TradingVariable = {
   collaterals: Collateral[];
 };
 
-const gnsMultiCollatDiamond = '0xFF162c694eAA571f685030649814282eA457f169';
-
 @Injectable()
 export class TradingVariableService {
-  private tradingVariable: TradingVariable;
-  public status: 'ready' | 'process';
+  private tradingVariable: Record<string, TradingVariable> = {};
+  public status: 'ready' | 'process' = 'process';
+  contracts: Contract[] = [];
 
   constructor(
     private chainsService: ChainsService,
+    private prismaService: PrismaService,
     private logger: Logger,
   ) {
-    this.status = 'process';
     this.loadTradingVariables();
   }
 
   async loadTradingVariables() {
-    const publicClient = this.chainsService.publicClient(42161);
+    this.status = 'process';
 
-    const refData = await publicClient.multicall({
-      contracts: [
-        {
-          address: gnsMultiCollatDiamond,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'pairsCount',
-          args: [],
-        },
-        {
-          address: gnsMultiCollatDiamond,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'getCollaterals',
-          args: [],
-        },
-      ],
-    });
+    this.contracts = await this.prismaService.contract.findMany();
 
-    if (refData[0].status === 'failure' || refData[1].status === 'failure') {
-      throw new Error('Failed at getting trading variable');
-    }
+    for (const contract of this.contracts) {
+      const publicClient = this.chainsService.publicClient(contract.chainId);
 
-    const pairsData = await publicClient.multicall({
-      contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
-        (item) =>
-          ({
-            address: gnsMultiCollatDiamond,
+      const refData = await publicClient.multicall({
+        contracts: [
+          {
+            address: contract.address as Address,
             abi: gnsMultiCollatDiamondAbi,
-            functionName: 'pairs',
-            args: [BigInt(item + 1)],
-          }) as {
-            abi: typeof gnsMultiCollatDiamondAbi; // Assuming Abi is correctly defined
-            functionName: 'pairs';
-            args: [bigint];
-            address: Address;
+            functionName: 'pairsCount',
+            args: [],
           },
-      ),
-    });
+          {
+            address: contract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getCollaterals',
+            args: [],
+          },
+        ],
+      });
 
-    const failedPair = pairsData.find((pair) => pair.status === 'failure');
+      if (refData[0].status === 'failure' || refData[1].status === 'failure') {
+        throw new Error('Failed at getting trading variable');
+      }
 
-    if (failedPair) {
-      throw new Error('Failed at getting trading variable');
+      const pairsData = await publicClient.multicall({
+        contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
+          (item) =>
+            ({
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'pairs',
+              args: [BigInt(item + 1)],
+            }) as {
+              abi: typeof gnsMultiCollatDiamondAbi; // Assuming Abi is correctly defined
+              functionName: 'pairs';
+              args: [bigint];
+              address: Address;
+            },
+        ),
+      });
+
+      const failedPair = pairsData.find((pair) => pair.status === 'failure');
+
+      if (failedPair) {
+        throw new Error('Failed at getting trading variable');
+      }
+
+      this.tradingVariable[contract.id] = {
+        pairs: pairsData.map((item) => ({
+          ...item.result!,
+          price: 100_000_000n,
+        })),
+        collaterals: refData[1].result.map((item) => ({
+          ...item,
+          usdPrice: 100_000_000n,
+        })),
+      };
+
+      await this.loadPrice(contract);
     }
-
-    this.tradingVariable = {
-      pairs: pairsData.map((item) => ({
-        ...item.result!,
-        price: 100_000_000n,
-      })),
-      collaterals: refData[1].result.map((item) => ({
-        ...item,
-        usdPrice: 100_000_000n,
-      })),
-    };
-
-    await this.loadPrice();
 
     this.status = 'ready';
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async refetchPrices() {
     if (this.status === 'ready') {
-      this.loadPrice();
+      for (const contract of this.contracts) {
+        this.loadPrice(contract);
+      }
     }
   }
 
-  async loadPrice() {
+  async loadPrice(contract: Contract) {
+    this.status = 'process';
+
     try {
-      const publicClient = this.chainsService.publicClient(42161);
+      const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const feedPriceMap: Record<Address, bigint> = {};
 
-      this.tradingVariable.pairs.forEach((pair) => {
+      this.tradingVariable[contract.id].pairs.forEach((pair) => {
         feedPriceMap[pair.feed.feed1] = 100_000_000n;
         feedPriceMap[pair.feed.feed2] = 100_000_000n;
       });
@@ -148,10 +159,10 @@ export class TradingVariableService {
         }
       });
 
-      for (let i = 0; i < this.tradingVariable.pairs.length; i++) {
-        const pair = this.tradingVariable.pairs[i];
+      for (let i = 0; i < this.tradingVariable[contract.id].pairs.length; i++) {
+        const pair = this.tradingVariable[contract.id].pairs[i];
 
-        this.tradingVariable.pairs[i] = {
+        this.tradingVariable[contract.id].pairs[i] = {
           ...pair,
           price:
             (feedPriceMap[pair.feed.feed1] * 100_000_000n) /
@@ -160,10 +171,10 @@ export class TradingVariableService {
       }
 
       const collateralFeedData = await publicClient.multicall({
-        contracts: this.tradingVariable.collaterals.map(
+        contracts: this.tradingVariable[contract.id].collaterals.map(
           (_, index) =>
             ({
-              address: gnsMultiCollatDiamond,
+              address: contract.address as Address,
               abi: gnsMultiCollatDiamondAbi,
               functionName: 'getCollateralPriceUsd',
               args: [BigInt(index + 1)],
@@ -176,12 +187,16 @@ export class TradingVariableService {
         ),
       });
 
-      for (let i = 0; i < this.tradingVariable.collaterals.length; i++) {
-        const collateral = this.tradingVariable.collaterals[i];
+      for (
+        let i = 0;
+        i < this.tradingVariable[contract.id].collaterals.length;
+        i++
+      ) {
+        const collateral = this.tradingVariable[contract.id].collaterals[i];
         const feed = collateralFeedData[i];
 
         if (feed.status === 'success') {
-          this.tradingVariable.collaterals[i] = {
+          this.tradingVariable[contract.id].collaterals[i] = {
             ...collateral,
             usdPrice: feed.result,
           };
@@ -190,32 +205,41 @@ export class TradingVariableService {
     } catch (error) {
       this.logger.error('Failed to fetch price data:', error);
     }
+
+    this.status = 'process';
   }
 
-  getPair(pairIndex: number) {
-    if (!this.tradingVariable) {
-      throw new Error('Failed at getting trading variable');
-    }
-
-    if (this.tradingVariable.pairs.length < pairIndex || pairIndex === 0) {
-      throw new Error('Invalid pair index');
-    }
-
-    return this.tradingVariable.pairs[pairIndex - 1];
-  }
-
-  getCollateral(collateralIndex: number) {
-    if (!this.tradingVariable) {
+  getPair(contractId: number, pairIndex: number) {
+    if (!this.tradingVariable[contractId]) {
       throw new Error('Failed at getting trading variable');
     }
 
     if (
-      this.tradingVariable.collaterals.length < collateralIndex ||
+      this.tradingVariable[contractId].pairs.length < pairIndex ||
+      pairIndex === 0
+    ) {
+      throw new Error('Invalid pair index');
+    }
+
+    return this.tradingVariable[contractId].pairs[pairIndex - 1];
+  }
+
+  getCollateral(contractId: number, collateralIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    if (
+      this.tradingVariable[contractId].collaterals.length < collateralIndex ||
       collateralIndex === 0
     ) {
+      console.log(
+        collateralIndex,
+        this.tradingVariable[contractId].collaterals.length,
+      );
       throw new Error('Invalid collateral index');
     }
 
-    return this.tradingVariable.collaterals[collateralIndex - 1];
+    return this.tradingVariable[contractId].collaterals[collateralIndex - 1];
   }
 }

@@ -223,8 +223,12 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
-            const usdcCollateral =
-              this.tradingVariableService.getCollateral(USDCCollateralIndex);
+            const usdcCollateral = this.tradingVariableService.getCollateral(
+              followerContract.id,
+              USDCCollateralIndex[
+                followerContract.chainId as keyof typeof USDCCollateralIndex
+              ],
+            );
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
@@ -248,7 +252,10 @@ export class TasksService {
                     pairIndex: t.pairIndex,
                     long: t.long,
                     isOpen: true,
-                    collateralIndex: USDCCollateralIndex,
+                    collateralIndex:
+                      USDCCollateralIndex[
+                        followerContract.chainId as keyof typeof USDCCollateralIndex
+                      ],
                     tradeType: TradeType.TRADE,
                     openPrice: BigInt(t.openPrice),
                     tp: 0n,
@@ -590,6 +597,7 @@ export class TasksService {
       .actionParser(openTask.action);
 
     const currentPrice = await this.tradingVariableService.getPair(
+      openTask.mission.bot.leaderContract.id,
       openEvent.args.t.pairIndex,
     );
 
