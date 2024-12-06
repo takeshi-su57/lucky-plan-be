@@ -26,6 +26,10 @@ export class CreateBotInput {
 
   @IsNotEmpty()
   @Field(() => Int)
+  leaderCollateralBaseline: number;
+
+  @IsNotEmpty()
+  @Field(() => Int)
   followerContractId: number;
 }
 

@@ -17,20 +17,24 @@ input AddUserInput {
 }
 
 type Bot {
+  endedAt: DateTime
   followerAddress: String!
   followerContractId: Int!
   followerEndedBlock: Int
   followerStartedBlock: Int
   id: Int!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  startedAt: DateTime
   status: BotStatus!
   strategyId: Int!
 }
 
 type BotDetails {
+  endedAt: DateTime
   follower: Follower!
   followerAddress: String!
   followerContract: Contract!
@@ -40,10 +44,12 @@ type BotDetails {
   id: Int!
   leader: User!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContract: Contract!
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  startedAt: DateTime
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
@@ -88,6 +94,7 @@ input CreateBotInput {
   followerAddress: String!
   followerContractId: Int!
   leaderAddress: String!
+  leaderCollateralBaseline: Int!
   leaderContractId: Int!
   strategyId: Int!
 }
@@ -96,9 +103,11 @@ input CreateContractInput {
   address: String!
   chainId: Int!
   description: String!
+  lastBlockNumber: Int!
 }
 
 input CreateStrategyInput {
+  collateralBaseline: Int!
   lifeTime: Float!
   maxCapacity: Float!
   maxCollateral: Float!
@@ -145,6 +154,7 @@ type FollowerActionDetails {
 type FollowerDetail {
   accountIndex: Int!
   address: String!
+  contractId: Int!
   ethBalance: String
   publicKey: String!
   usdcBalance: String
@@ -219,7 +229,7 @@ type Mutation {
   createBot(input: CreateBotInput!): BotDetails!
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
-  generateNewFollower: FollowerDetail!
+  generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
   liveBot(id: Int!): BotDetails!
   performTask(id: Int!): TaskShallowDetails!
@@ -227,6 +237,43 @@ type Mutation {
   stopBot(id: Int!): BotDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
   withdrawAll(input: WithdrawAllInput!): Boolean!
+}
+
+type PageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
+}
+
+type PnlSnapshotDetails {
+  accUSDPnl: Int!
+  address: String!
+  contractId: Int!
+  histories: [TradeHistory!]!
+  id: Int!
+  kind: PnlSnapshotKind!
+}
+
+type PnlSnapshotDetailsConnection {
+  edges: [PnlSnapshotDetailsEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PnlSnapshotDetailsEdge {
+  cursor: Int!
+  node: PnlSnapshotDetails!
+}
+
+enum PnlSnapshotKind {
+  ALL_TIME
+  DAY
+  HALF_YEAR
+  MONTH
+  THREE_MONTH
+  TWO_MONTH
+  TWO_WEEK
+  TWO_YEAR
+  WEEK
+  YEAR
 }
 
 type Position {
@@ -259,7 +306,8 @@ type Query {
   getAllBots: [BotDetails!]!
   getAllContracts: [Contract!]!
   getAllFollowerActions: [FollowerAction!]!
-  getAllFollowers(contractId: Int!): [FollowerDetail!]!
+  getAllFollowerDetails(contractId: Int!): [FollowerDetail!]!
+  getAllFollowers: [Follower!]!
   getAllLeaders: [User!]!
   getAllMissions: [MissionShallowDetails!]!
   getAllStrategy: [Strategy!]!
@@ -267,10 +315,13 @@ type Query {
   getAllTasks: [TaskShallowDetails!]!
   getAllUsers: [User!]!
   getFollowerPrivateKey(input: GetFollowerByAddressInput!): String!
+  getPnlSnapshots(after: Int, contractId: Int!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
+  getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getUserByAddress(input: GetUserByAddressInput!): User
 }
 
 type Strategy {
+  collateralBaseline: Int!
   id: Int!
   lifeTime: Int!
   maxCapacity: Int!
@@ -293,6 +344,7 @@ type StrategyMetadata {
 type Subscription {
   actionAdded: [Action!]!
   followerActionAdded: [FollowerAction!]!
+  followerDetailsUpdated(contractId: Int!): [FollowerDetail!]!
   missionAdded: [MissionShallowDetails!]!
   missionUpdated: [MissionShallowDetails!]!
   taskAdded: [TaskShallowDetails!]!
@@ -326,6 +378,18 @@ enum TaskStatus {
   Failed
   Initiated
   Stopped
+}
+
+type TradeHistory {
+  address: String!
+  blockNumber: Int!
+  contractId: Int!
+  eventName: String!
+  id: Int!
+  in: Int!
+  out: Int!
+  pnl: Int!
+  timestamp: DateTime!
 }
 
 input UpdateStrategyMetadataInput {

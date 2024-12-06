@@ -16,7 +16,7 @@ export function eventToAction(
   };
 }
 
-export function actionToEvent<T>(action: Action): TradeEvent<T> {
+export function actionToEvent<T>(action: Action | ActionItem): TradeEvent<T> {
   return {
     eventName: action.name,
     args: JSON.parse(action.args) as T,

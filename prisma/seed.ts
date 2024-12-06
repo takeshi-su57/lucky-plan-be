@@ -34,8 +34,21 @@ async function main() {
     },
   });
 
+  const lastPnlSnapshotUpdatedTimestamp = await prisma.metadata.upsert({
+    where: { key: 'lastPnlSnapshotUpdatedTimestamp' },
+    update: {},
+    create: {
+      key: 'lastPnlSnapshotUpdatedTimestamp',
+      value: '0',
+    },
+  });
+
   console.log('password metadata: ', password);
   console.log('availableChainIds metadata: ', availableChainIds);
+  console.log(
+    'lastPnlSnapshotUpdatedTimestamp: ',
+    lastPnlSnapshotUpdatedTimestamp,
+  );
 
   const strategyMetadata = [
     {
@@ -43,6 +56,11 @@ async function main() {
       title: 'Ratio Copy',
       description:
         'This strategy copys exactly same ratio with leaders. If you select 1 ratio then it can be a equal copy',
+    },
+    {
+      key: 'scaleCopy',
+      title: 'Scale Copy',
+      description: 'This strategy copys exactly same scale with leaders.',
     },
   ];
 

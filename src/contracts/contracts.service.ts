@@ -21,15 +21,10 @@ export class ContractsService {
       throw new Error('Invalid chain Id');
     }
 
-    const publicClient = this.chainsService.publicClient(input.chainId);
-
-    const blockNumber = await publicClient.getBlockNumber();
-
     return await this.prismaService.contract.create({
       data: {
         ...input,
         address: input.address.toLowerCase(),
-        lastBlockNumber: Number(blockNumber),
       },
     });
   }

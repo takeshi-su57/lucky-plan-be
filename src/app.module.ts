@@ -21,6 +21,7 @@ import { MissionsModule } from './missions/missions.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ActionsModule } from './actions/actions.module';
 import { FollowerActionsModule } from './follower-actions/follower-actions.module';
+import { TradeHistoriesModule } from './trade-histories/trade-histories.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { FollowerActionsModule } from './follower-actions/follower-actions.modul
     TasksModule,
     ActionsModule,
     FollowerActionsModule,
+    TradeHistoriesModule,
   ],
   controllers: [],
   providers: [SystemService, ContractMonitorService],

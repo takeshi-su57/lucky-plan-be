@@ -1,22 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
 
+import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { ContractsService } from 'src/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
-import { FollowerDetail } from './entities/follower.entity';
 
 import { ChainsService } from 'src/global/chains.service';
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
-import { USDCCollateralIndex } from 'src/utils/constants';
+import { SUBSCRIPTION_TOKEN, USDCCollateralIndex } from 'src/utils/constants';
 
 @Injectable()
 export class FollowerService {
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private usersService: UsersService,
     private contractService: ContractsService,
@@ -201,7 +204,7 @@ export class FollowerService {
       .join('')}`;
   }
 
-  async generateNewFollower(): Promise<FollowerDetail> {
+  async generateNewFollower() {
     const mnemonicMetadata = await this.prismaService.metadata.findUnique({
       where: {
         key: this.prismaService.metadataKeys.mnemonic.key,
@@ -235,20 +238,31 @@ export class FollowerService {
           await this.usersService.addUser(account.address.toLowerCase());
         }
 
-        const record = await this.prismaService.follower.create({
+        return await this.prismaService.follower.create({
           data: {
             address: account.address.toLowerCase(),
             publicKey: account.publicKey,
             accountIndex,
           },
         });
-
-        return {
-          ...record,
-          ethBalance: null,
-          usdcBalance: null,
-        };
       }
+    }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async followerAssetBalanceUpdateCron() {
+    try {
+      const contracts = await this.contractService.findAll();
+
+      for (const contract of contracts) {
+        const updatedFollowers = await this.loadFollowers(contract.id);
+
+        this.pubSub.publish(SUBSCRIPTION_TOKEN.followerDetailsUpdated, {
+          [SUBSCRIPTION_TOKEN.followerDetailsUpdated]: updatedFollowers,
+        });
+      }
+    } catch (err) {
+      this.logger.error(getReadableError(err));
     }
   }
 
@@ -261,11 +275,11 @@ export class FollowerService {
       const collateralInfo =
         this.tradingVariableServcie.getCollateral(USDCCollateralIndex);
 
-      const botEntities = await this.prismaService.follower.findMany();
+      const followerEntities = await this.prismaService.follower.findMany();
 
       const usdcMap: Record<string, bigint> = {};
 
-      const usdcPromises = botEntities.map(async (entity) => {
+      const usdcPromises = followerEntities.map(async (entity) => {
         const balance = await publicClient.readContract({
           address: collateralInfo.collateral,
           abi: erc20Abi,
@@ -280,7 +294,7 @@ export class FollowerService {
 
       const ethMap: Record<string, bigint> = {};
 
-      const ethPromises = botEntities.map(async (entity) => {
+      const ethPromises = followerEntities.map(async (entity) => {
         const balance = await publicClient.getBalance({
           address: entity.address as Address,
         });
@@ -290,8 +304,9 @@ export class FollowerService {
 
       await Promise.allSettled(ethPromises);
 
-      return botEntities.map((entity) => ({
+      return followerEntities.map((entity) => ({
         ...entity,
+        contractId,
         ethBalance: ethMap[entity.address].toString() || null,
         usdcBalance: usdcMap[entity.address].toString() || null,
       }));
@@ -302,7 +317,11 @@ export class FollowerService {
     return [];
   }
 
-  async findAll(contractId: number): Promise<FollowerDetail[]> {
+  findAllDetails(contractId: number) {
     return this.loadFollowers(contractId);
+  }
+
+  findAll() {
+    return this.prismaService.follower.findMany();
   }
 }

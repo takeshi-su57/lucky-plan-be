@@ -1,6 +1,19 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { PUB_SUB } from 'src/global/global.module';
+
 import { FollowerService } from './follower.service';
-import { FollowerDetail } from './entities/follower.entity';
+import { Follower, FollowerDetail } from './entities/follower.entity';
 import {
   GetFollowerByAddressInput,
   WithdrawAllInput,
@@ -8,9 +21,12 @@ import {
 
 @Resolver(() => FollowerDetail)
 export class FollowerResolver {
-  constructor(private readonly followerService: FollowerService) {}
+  constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly followerService: FollowerService,
+  ) {}
 
-  @Mutation(() => FollowerDetail)
+  @Mutation(() => Follower)
   generateNewFollower() {
     return this.followerService.generateNewFollower();
   }
@@ -25,8 +41,28 @@ export class FollowerResolver {
     return this.followerService.getPrivateKey(input.address);
   }
 
+  @Query(() => [Follower])
+  getAllFollowers() {
+    return this.followerService.findAll();
+  }
+
   @Query(() => [FollowerDetail])
-  getAllFollowers(@Args('contractId', { type: () => Int }) contractId: number) {
-    return this.followerService.findAll(contractId);
+  getAllFollowerDetails(
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.followerService.findAllDetails(contractId);
+  }
+
+  @Subscription(() => [FollowerDetail], {
+    name: SUBSCRIPTION_TOKEN.followerDetailsUpdated,
+    filter: (payload, variables) =>
+      payload.followerDetailsUpdated.contractId === variables.contractId,
+  })
+  subscribeToMissionUpdated(
+    @Args('contractId', { type: () => Int }) _contractId: number,
+  ) {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.followerDetailsUpdated,
+    );
   }
 }

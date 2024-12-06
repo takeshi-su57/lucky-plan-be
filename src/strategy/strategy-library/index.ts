@@ -65,16 +65,45 @@ export function getOpenMissionParams(
     collateralAmount: bigint;
     collateralPriceUsd: bigint;
   },
+  leaderCollateralBaseline: number,
   usdcPrice: bigint,
 ) {
-  const usdcCollateralAmount =
+  const collateralUSDCAmount =
     (args.collateralAmount * args.collateralPriceUsd) / usdcPrice;
+
+  let ratioAmount = collateralUSDCAmount;
+
+  if (strategy.strategyKey === 'ratioCopy') {
+    const deltaCollateral =
+      Number(collateralUSDCAmount / 1000000n) - leaderCollateralBaseline;
+
+    const deltaFollower = (deltaCollateral * strategy.ratio) / 100;
+
+    ratioAmount = BigInt(
+      Math.floor((strategy.collateralBaseline + deltaFollower) * 1e6),
+    );
+  }
+
+  if (strategy.strategyKey === 'scaleCopy') {
+    const collateralRatio =
+      Number(collateralUSDCAmount / 1000000n) / leaderCollateralBaseline;
+
+    ratioAmount = BigInt(
+      Math.floor(strategy.collateralBaseline * collateralRatio * 1e6),
+    );
+  }
+
+  const maxCollateral = BigInt(strategy.maxCollateral * 1e6);
+  const minCollateral = BigInt(strategy.minCollateral * 1e6);
+
+  ratioAmount = ratioAmount < maxCollateral ? ratioAmount : maxCollateral;
+  ratioAmount = ratioAmount > minCollateral ? ratioAmount : minCollateral;
 
   return {
     leverage: Math.max(
       Math.min(args.leverage, strategy.maxLeverage),
       strategy.minLeverage,
     ),
-    collateralAmount: (usdcCollateralAmount * BigInt(strategy.ratio)) / 100n,
+    collateralAmount: ratioAmount,
   };
 }

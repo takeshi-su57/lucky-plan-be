@@ -37,8 +37,9 @@ model User {
   address String   @id @db.VarChar(255)
   role    UserRole
 
-  follower Follower?
-  bots     Bot[]
+  follower       Follower?
+  bots           Bot[]
+  tradeHistories TradeHistory[]
 }
 
 model Follower {
@@ -59,17 +60,18 @@ model StrategyMetadata {
 }
 
 model Strategy {
-  id            Int    @id @default(autoincrement())
-  strategyKey   String
-  ratio         Int    @default(100)
-  lifeTime      Int // unit is min
-  minCapacity   Int // usdc
-  maxCapacity   Int // usdc
-  minCollateral Int // usdc
-  maxCollateral Int // usdc
-  maxLeverage   Int    @default(200000)
-  minLeverage   Int    @default(1100)
-  params        String
+  id                 Int    @id @default(autoincrement())
+  strategyKey        String
+  ratio              Int    @default(100)
+  lifeTime           Int // unit is min
+  minCapacity        Int // usdc
+  maxCapacity        Int // usdc
+  minCollateral      Int // usdc
+  maxCollateral      Int // usdc
+  collateralBaseline Int // usdc
+  maxLeverage        Int    @default(200000)
+  minLeverage        Int    @default(1100)
+  params             String
 
   strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
 
@@ -89,27 +91,29 @@ model Contract {
   lastBlockNumber Int
   status          ContractStatus @default(Live)
 
-  leaderBots   Bot[]      @relation("leaderBots")
-  followerBots Bot[]      @relation("followerBots")
-  positions    Position[]
+  leaderBots     Bot[]          @relation("leaderBots")
+  followerBots   Bot[]          @relation("followerBots")
+  positions      Position[]
+  tradeHistories TradeHistory[]
 
   @@unique([chainId, address])
 }
 
 model Bot {
-  id                   Int       @id @default(autoincrement())
-  leaderAddress        String    @db.VarChar(255)
-  followerAddress      String    @db.VarChar(255)
-  strategyId           Int
-  leaderContractId     Int
-  leaderStartedBlock   Int?
-  leaderEndedBlock     Int?
-  followerContractId   Int
-  followerStartedBlock Int?
-  followerEndedBlock   Int?
-  startedAt            DateTime?
-  endedAt              DateTime?
-  status               BotStatus @default(Created)
+  id                       Int       @id @default(autoincrement())
+  leaderAddress            String    @db.VarChar(255)
+  followerAddress          String    @db.VarChar(255)
+  strategyId               Int
+  leaderContractId         Int
+  leaderCollateralBaseline Int
+  leaderStartedBlock       Int?
+  leaderEndedBlock         Int?
+  followerContractId       Int
+  followerStartedBlock     Int?
+  followerEndedBlock       Int?
+  startedAt                DateTime?
+  endedAt                  DateTime?
+  status                   BotStatus @default(Created)
 
   follower         Follower @relation(fields: [followerAddress], references: [address])
   leader           User     @relation(fields: [leaderAddress], references: [address])
@@ -206,4 +210,47 @@ model FollowerAction {
   task   Task   @relation(fields: [taskId], references: [id])
 
   @@unique([actionId, taskId])
+}
+
+model TradeHistory {
+  id          Int      @id @default(autoincrement())
+  address     String
+  eventName   String
+  contractId  Int
+  in          Int
+  out         Int
+  pnl         Int
+  blockNumber Int
+  timestamp   DateTime
+
+  user     User     @relation(fields: [address], references: [address])
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([address, contractId])
+  @@index([address, contractId, blockNumber(sort: Asc)])
+  @@index([address, contractId, timestamp(sort: Asc)])
+}
+
+enum PnlSnapshotKind {
+  DAY
+  WEEK
+  TWO_WEEK
+  MONTH
+  TWO_MONTH
+  THREE_MONTH
+  HALF_YEAR
+  YEAR
+  TWO_YEAR
+  ALL_TIME
+}
+
+model PnlSnapshot {
+  id         Int             @id @default(autoincrement())
+  address    String
+  contractId Int
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
+
+  @@unique([address, contractId, kind])
+  @@index([address, contractId, kind, accUSDPnl(sort: Desc)])
 }

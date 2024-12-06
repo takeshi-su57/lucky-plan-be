@@ -19,6 +19,10 @@ export class CreateContractInput {
   @IsString()
   @Field()
   description: string;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  lastBlockNumber: number;
 }
 
 @InputType()
