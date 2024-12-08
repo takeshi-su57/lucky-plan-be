@@ -61,7 +61,7 @@ export class PnlSnapshotsService {
   ): Promise<PnlSnapshotDetailsConnection> {
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
-        skip: 1,
+        skip: after ? 1 : undefined,
         take: first,
         cursor: after
           ? {
@@ -77,12 +77,18 @@ export class PnlSnapshotsService {
         },
       });
 
+    const timestampGap = timestampGapByPnlSnapshotKind[kind];
+    const startDate = new Date(Date.now() - timestampGap);
+
     const historyRecords = await this.prismaService.tradeHistory.findMany({
       where: {
         OR: [
           ...pnlRecords.map((item) => ({
             address: item.address,
             contractId,
+            timestamp: {
+              gt: startDate,
+            },
           })),
         ],
       },
@@ -249,11 +255,15 @@ export class PnlSnapshotsService {
       this.logger.error(
         `PnlSnapshotsService>intialBuild>: ${getReadableError(err)}`,
       );
+
+      return false;
     }
 
     this.status = 'ready';
 
     console.timeLog('InitStarted');
+
+    return true;
   }
 
   async dayUpdate() {

@@ -31,8 +31,13 @@ export class TradeHistoriesService {
     });
   }
 
-  getTradeHistories(_address: string, _contractId: number) {
-    return this.prismaService.tradeHistory.findMany();
+  getTradeHistories(address: string, contractId: number) {
+    return this.prismaService.tradeHistory.findMany({
+      where: {
+        address,
+        contractId,
+      },
+    });
   }
 
   async handleActionItems(
