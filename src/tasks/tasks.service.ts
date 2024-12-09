@@ -223,12 +223,13 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
-            const usdcCollateral = this.tradingVariableService.getCollateral(
-              followerContract.id,
-              USDCCollateralIndex[
-                followerContract.chainId as keyof typeof USDCCollateralIndex
-              ],
-            );
+            const usdcPrice =
+              await this.tradingVariableService.getCollateralPrice(
+                followerContract,
+                USDCCollateralIndex[
+                  followerContract.chainId as keyof typeof USDCCollateralIndex
+                ],
+              );
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
@@ -245,7 +246,7 @@ export class TasksService {
                         collateralPriceUsd: BigInt(collateralPriceUsd),
                       },
                       bot.leaderCollateralBaseline,
-                      usdcCollateral.usdPrice,
+                      usdcPrice,
                     ),
                     user: follower.address as Address,
                     index: 0,
@@ -366,6 +367,7 @@ export class TasksService {
 
   async performAvailableTasks() {
     this.status = 'process';
+
     try {
       const allTasks = await this.prismaService.task.findMany({
         where: {
@@ -596,14 +598,13 @@ export class TasksService {
       .find((parser) => parser.eventName === openTask.action.name)!
       .actionParser(openTask.action);
 
-    const currentPrice = await this.tradingVariableService.getPair(
-      openTask.mission.bot.leaderContract.id,
+    const currentPrice = await this.tradingVariableService.getPairPrice(
       openEvent.args.t.pairIndex,
     );
 
     const newAction = await this.actionsService.createCloseMissionAction(
       mission.targetPositionId,
-      currentPrice.price.toString(),
+      currentPrice.toString(),
     );
 
     await this.createMany([
@@ -764,7 +765,12 @@ export class TasksService {
   }
 
   findAll() {
-    return this.prismaService.task.findMany();
+    return this.prismaService.task.findMany({
+      include: {
+        action: true,
+        mission: true,
+      },
+    });
   }
 
   findOne(id: number) {
