@@ -66,6 +66,32 @@ export class BotsService {
     return newBot;
   }
 
+  async delete(id: number) {
+    const bot = await this.prismaService.bot.findUnique({
+      where: { id },
+    });
+
+    if (!bot) {
+      throw new Error('Cannot find a bot, please check the id');
+    }
+
+    if (bot.status !== BotStatus.Created) {
+      throw new Error('This bot is in usage, cannot delete it');
+    }
+
+    const deletedBot = await this.prismaService.bot.delete({
+      where: { id },
+    });
+
+    if (!deletedBot) {
+      throw new Error('Cannot delete a bot');
+    }
+
+    this.bots = this.bots.filter((item) => item.id !== id);
+
+    return id;
+  }
+
   async reBalanceAsset(bot: BotDetails) {
     try {
       const { followerContract, follower, strategy } = bot;
@@ -125,6 +151,7 @@ export class BotsService {
 
   async checkAndUpdateAllBots() {
     this.status = 'progress';
+
     try {
       this.logger.log('BotsService>: Rebalancing Bots');
 

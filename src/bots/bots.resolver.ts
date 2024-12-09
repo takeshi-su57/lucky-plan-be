@@ -12,6 +12,11 @@ export class BotsResolver {
     return this.botsService.create(input);
   }
 
+  @Mutation(() => Int)
+  deleteBot(@Args('id', { type: () => Int }) id: number) {
+    return this.botsService.delete(id);
+  }
+
   @Mutation(() => BotDetails)
   liveBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.live(id);
