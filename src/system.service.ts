@@ -18,6 +18,12 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_SECOND)
   async executeCron() {
+    // console.log({
+    //   taskStatus: this.tasksService.status,
+    //   contractMonitorStatus: this.contractMonitorService.status,
+    //   variableStatus: this.tradingVariableService.status,
+    // });
+
     if (
       this.tasksService.status === 'ready' &&
       this.contractMonitorService.status === 'ready' &&
@@ -30,6 +36,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForBots() {
+    // console.log({
+    //   variableStatus: this.tradingVariableService.status,
+    //   botStatus: this.botsService.status,
+    // });
     if (
       this.tradingVariableService.status === 'ready' &&
       this.botsService.status === 'ready'
@@ -40,6 +50,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForSnapshot() {
+    // console.log({
+    //   pnlServiceStatus: this.pnlSnapshotService.status,
+    // });
+
     if (this.pnlSnapshotService.status === 'ready') {
       await this.pnlSnapshotService.dayUpdate();
     }

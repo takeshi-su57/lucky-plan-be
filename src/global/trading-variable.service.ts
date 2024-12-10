@@ -4,17 +4,9 @@ import { Address } from 'viem';
 import { ChainsService } from './chains.service';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { PrismaService } from './prisma.service';
+import { Collateral } from 'src/types';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
-
-export type Collateral = {
-  collateral: Address;
-  isActive: boolean;
-  __placeholder: bigint;
-  precision: bigint;
-  precisionDelta: bigint;
-  usdPrice: bigint;
-};
 
 export type TradingVariable = {
   collaterals: Collateral[];
@@ -22,7 +14,7 @@ export type TradingVariable = {
 
 @Injectable()
 export class TradingVariableService {
-  private tradingVariable: Record<string, TradingVariable> = {};
+  private tradingVariable: Record<number, TradingVariable> = {};
   public status: 'ready' | 'process' = 'process';
   contracts: Contract[] = [];
 
@@ -95,10 +87,6 @@ export class TradingVariableService {
       this.tradingVariable[contractId].collaterals.length < collateralIndex ||
       collateralIndex === 0
     ) {
-      console.log(
-        collateralIndex,
-        this.tradingVariable[contractId].collaterals.length,
-      );
       throw new Error('Invalid collateral index');
     }
 

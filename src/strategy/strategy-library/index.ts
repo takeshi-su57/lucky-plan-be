@@ -1,6 +1,6 @@
 import { PositionSizeDecreaseExecutedEventArgs } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { PositionSizeIncreaseExecutedEventArgs } from 'src/actions/eventParsers/position-size-increase-executed.parser';
-import { Trade } from 'src/types';
+import { Collateral, Trade } from 'src/types';
 import { Strategy } from '../entities/strategy.entity';
 
 export function getPositionIncreaseParams(
@@ -23,9 +23,11 @@ export function getPositionIncreaseParams(
 
   return {
     collateralDelta: BigInt(
-      Math.floor((Number(trade.collateralAmount) * levF) / levL),
+      Math.floor(
+        Number(trade.collateralAmount) * ((levF - levL) / (levL - 1100)),
+      ),
     ),
-    leverageDelta: 0,
+    leverageDelta: 1100,
     expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
   };
 }
@@ -36,7 +38,12 @@ export function getPositionDecreaseParams(
   trade: Trade,
 ) {
   const deltaLevL = Number(decreaseEventArgs.leverageDelta);
-  const deltaCollL = BigInt(decreaseEventArgs.collateralDelta);
+  const oldPositionSizeCollateral = BigInt(
+    decreaseEventArgs.values.existingPositionSizeCollateral,
+  );
+  const positionSizeDeltaCollateral = BigInt(
+    decreaseEventArgs.values.positionSizeCollateralDelta,
+  );
 
   if (deltaLevL > 0) {
     return {
@@ -49,8 +56,8 @@ export function getPositionDecreaseParams(
   return {
     collateralDelta: BigInt(
       Math.floor(
-        (Number(deltaCollL) /
-          Number(decreaseEventArgs.values.newCollateralAmount)) *
+        (Number(positionSizeDeltaCollateral) /
+          Number(oldPositionSizeCollateral)) *
           Number(trade.collateralAmount),
       ),
     ),
@@ -65,18 +72,20 @@ export function getOpenMissionParams(
     leverage: number;
     collateralAmount: bigint;
     collateralPriceUsd: bigint;
+    collateral: Collateral;
   },
   leaderCollateralBaseline: number,
   usdcPrice: bigint,
 ) {
-  const collateralUSDCAmount =
-    (args.collateralAmount * args.collateralPriceUsd) / usdcPrice;
+  const collateralUSDCAmount = Math.floor(
+    (Number(args.collateralAmount) / Number(args.collateral.precision)) *
+      (Number(args.collateralPriceUsd) / Number(usdcPrice)),
+  );
 
-  let ratioAmount = collateralUSDCAmount;
+  let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
 
   if (strategy.strategyKey === 'ratioCopy') {
-    const deltaCollateral =
-      Number(collateralUSDCAmount / 1000000n) - leaderCollateralBaseline;
+    const deltaCollateral = collateralUSDCAmount - leaderCollateralBaseline;
 
     const deltaFollower = (deltaCollateral * strategy.ratio) / 100;
 
@@ -87,7 +96,9 @@ export function getOpenMissionParams(
 
   if (strategy.strategyKey === 'scaleCopy') {
     const collateralRatio =
-      Number(collateralUSDCAmount / 1000000n) / leaderCollateralBaseline;
+      leaderCollateralBaseline > 0
+        ? collateralUSDCAmount / leaderCollateralBaseline
+        : collateralUSDCAmount;
 
     ratioAmount = BigInt(
       Math.floor(strategy.collateralBaseline * collateralRatio * 1e6),

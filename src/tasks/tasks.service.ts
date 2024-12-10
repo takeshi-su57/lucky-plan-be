@@ -81,7 +81,7 @@ export class TasksService {
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
-      const { follower, followerContract, strategy } = bot;
+      const { follower, followerContract, leaderContractId, strategy } = bot;
 
       if (
         task.status !== TaskStatus.Created &&
@@ -223,6 +223,10 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
+            const collateral = this.tradingVariableService.getCollateral(
+              leaderContractId,
+              t.collateralIndex,
+            );
             const usdcPrice =
               await this.tradingVariableService.getCollateralPrice(
                 followerContract,
@@ -244,6 +248,7 @@ export class TasksService {
                         leverage: t.leverage,
                         collateralAmount: BigInt(t.collateralAmount),
                         collateralPriceUsd: BigInt(collateralPriceUsd),
+                        collateral,
                       },
                       bot.leaderCollateralBaseline,
                       usdcPrice,
