@@ -59,7 +59,7 @@ export class FollowerService {
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const collateralInfo = this.tradingVariableServcie.getCollateral(
-        contract.chainId,
+        contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
@@ -111,10 +111,18 @@ export class FollowerService {
             `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
           );
 
+          const gas = await publicClient.estimateGas({
+            account: followerWallet.account?.address,
+            to: masterFollower.address as Address,
+            value: amount,
+          });
+
+          const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
+
           return await followerWallet.sendTransaction({
             account: followerWallet.account!,
             to: masterFollower.address as Address,
-            value: amount,
+            value: amount - gas * maxFeePerGas,
             chain: followerWallet.chain,
           });
         }
