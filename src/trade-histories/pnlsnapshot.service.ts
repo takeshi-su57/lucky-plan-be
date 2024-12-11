@@ -291,7 +291,9 @@ export class PnlSnapshotsService {
         lastPnlSnapshotUpdatedTimestamp + dayGap,
       );
 
-      const ranges: { startDate: Date; endDate: Date }[] = [];
+      const ranges: { startDate: Date; endDate: Date }[] = [
+        { startDate: lastUpdatedDate, endDate: newLastUpdatedDate },
+      ];
 
       for (const kind of Object.values(PnlSnapshotKind)) {
         const timestampGap = timestampGapByPnlSnapshotKind[kind];
