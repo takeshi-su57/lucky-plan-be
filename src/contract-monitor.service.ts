@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Address, AbiEvent, decodeEventLog } from 'viem';
 import { Contract } from '@prisma/client';
 
-import { addresses } from 'src/utils/addresses';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { ChainsService } from 'src/global/chains.service';
 import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
@@ -116,9 +115,7 @@ export class ContractMonitorService {
       await this.chainsService
         .publicClient(contract.chainId)
         .getLogs<AbiEvent>({
-          address: addresses[
-            contract.chainId.toString() as keyof typeof addresses
-          ].global.gnsMultiCollatDiamond as Address,
+          address: contract.address as Address,
           fromBlock,
           toBlock,
         })
@@ -130,16 +127,29 @@ export class ContractMonitorService {
             expectedEventSignatures[log.topics[0] as string],
           ),
       )
-      .map((log) => ({
-        item: eventToActionParser(
-          contract.id,
-          decodeEventLog({
-            abi: gnsMultiCollatDiamondAbi,
-            data: log.data,
-            topics: log.topics,
-          }),
-        ),
-        blockNumber: Number(log.blockNumber),
-      }));
+      .map((log) => {
+        try {
+          const parsed = eventToActionParser(
+            contract.id,
+            decodeEventLog({
+              abi: gnsMultiCollatDiamondAbi,
+              data: log.data,
+              topics: log.topics,
+            }),
+          );
+
+          return {
+            item: parsed,
+            blockNumber: Number(log.blockNumber),
+          };
+        } catch (err) {
+          this.logger.error(
+            `contract-monitor.service.ts > parseEventLog ${getReadableError(err)}`,
+          );
+        }
+
+        return null;
+      })
+      .filter((item) => !!item);
   }
 }
