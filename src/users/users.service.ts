@@ -23,6 +23,17 @@ export class UsersService {
     });
   }
 
+  addLeader(address: string) {
+    return this.prismaService.user.upsert({
+      where: { address: address.toLowerCase() },
+      update: {},
+      create: {
+        address: address.toLowerCase(),
+        role: UserRole.Leader,
+      },
+    });
+  }
+
   upsertMany(addresses: string[]) {
     return this.prismaService.$transaction(
       addresses.map((address) =>
@@ -72,8 +83,6 @@ export class UsersService {
       leaders.map((item) => item.address.toLowerCase()),
       contractId,
     );
-
-    console.log('histories ==>', histories.length);
 
     const historiesMap = new Map<string, TradeHistory[]>();
 
