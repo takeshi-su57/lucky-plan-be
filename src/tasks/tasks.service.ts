@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { Address } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
 
 import {
   missionEventNames,
@@ -14,7 +15,13 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 
-import { ActionContext, MissionContext, TradeType } from 'src/types';
+import {
+  ActionContext,
+  CancelReason,
+  CloseMissionActionArgs,
+  MissionContext,
+  TradeType,
+} from 'src/types';
 import { TaskDetails, TaskShallowDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
@@ -27,15 +34,26 @@ import { FollowerActionsService } from 'src/follower-actions/follower-actions.se
 import { ChainsService } from 'src/global/chains.service';
 import { TradeService } from 'src/global/trade.service';
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
-import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
-import { USDCCollateralIndex } from 'src/utils/constants';
-import { PriceService } from 'src/global/price.service';
+import {
+  CloseMissionAction,
+  SUBSCRIPTION_TOKEN,
+  USDCCollateralIndex,
+} from 'src/utils/constants';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 import { getReadableError } from 'src/utils';
+import { ActionsService } from 'src/actions/actions.service';
+import { Mission } from 'src/missions/entities/mission.entity';
+import { PUB_SUB } from 'src/global/global.module';
+import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
+import {
+  getOpenMissionParams,
+  getPositionDecreaseParams,
+  getPositionIncreaseParams,
+} from 'src/strategy/strategy-library';
 
 @Injectable()
 export class TasksService {
@@ -44,24 +62,33 @@ export class TasksService {
   status: 'process' | 'ready';
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private tradeService: TradeService,
-    private pricesService: PriceService,
+    private tradingVariableService: TradingVariableService,
     private followerActionsService: FollowerActionsService,
+    private actionsService: ActionsService,
     private readonly logger: Logger,
   ) {
     this.status = 'ready';
     this.loadTasks();
   }
 
-  async performTask(
+  private async performTask(
     task: TaskDetails,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
-      const { follower, contract } = bot;
+      const { follower, followerContract, leaderContractId, strategy } = bot;
+
+      if (
+        task.status !== TaskStatus.Created &&
+        task.status !== TaskStatus.Failed
+      ) {
+        throw new Error('Invalid task status');
+      }
 
       if (!isOpenMissionAction(action) && !achievePosition) {
         throw new Error(
@@ -70,10 +97,12 @@ export class TasksService {
       }
 
       const walletClient = this.chainsService.walletClient(
-        contract.chainId,
+        followerContract.chainId,
         follower,
       );
-      const publicClient = this.chainsService.publicClient(contract.chainId);
+      const publicClient = this.chainsService.publicClient(
+        followerContract.chainId,
+      );
 
       let tx: `0x${string}` | null = null;
 
@@ -85,40 +114,10 @@ export class TasksService {
           tx = await this.tradeService.updateMaxClosingSlippageP(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               maxSlippageP: args.maxClosingSlippageP,
-            },
-          );
-
-          break;
-        }
-        case tradeTPUpdatedEventParser.eventName: {
-          const { args } = tradeTPUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateTp(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newTp: args.newTp,
-            },
-          );
-
-          break;
-        }
-        case tradeSLUpdatedEventParser.eventName: {
-          const { args } = tradeSLUpdatedEventParser.actionParser(action);
-
-          tx = await this.tradeService.updateSl(
-            walletClient,
-            publicClient,
-            contract.chainId,
-            {
-              index: achievePosition!.index,
-              newSl: args.newSl,
             },
           );
 
@@ -128,10 +127,14 @@ export class TasksService {
           const { args } =
             leverageUpdateExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error('Leverage Update Executed Event has canceled');
+          }
+
           tx = await this.tradeService.updateLeverage(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
               newLeverage: Number(args.values.newLeverage),
@@ -144,15 +147,26 @@ export class TasksService {
           const { args } =
             positionSizeIncreaseExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error(
+              'Position Size Increase Executed Event has canceled',
+            );
+          }
+
+          const followerTradeData = await publicClient.readContract({
+            address: followerContract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getTrade',
+            args: [follower.address as Address, achievePosition!.index],
+          });
+
           tx = await this.tradeService.increasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
             {
+              ...getPositionIncreaseParams(strategy, args, followerTradeData),
               index: achievePosition!.index,
-              collateralDelta: BigInt(args.collateralDelta),
-              leverageDelta: Number(args.leverageDelta),
-              expectedPrice: BigInt(args.values.newOpenPrice),
               maxSlippageP: 1000,
             },
           );
@@ -163,15 +177,41 @@ export class TasksService {
           const { args } =
             positionSizeDecreaseExecutedEventParser.actionParser(action);
 
+          if (args.cancelReason !== CancelReason.NONE) {
+            throw new Error(
+              'Position Size Decrease Executed Event has canceled',
+            );
+          }
+
+          const followerTradeData = await publicClient.readContract({
+            address: followerContract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getTrade',
+            args: [follower.address as Address, achievePosition!.index],
+          });
+
           tx = await this.tradeService.decreasePositionSize(
             walletClient,
             publicClient,
-            contract.chainId,
+            followerContract.chainId,
+            {
+              ...getPositionDecreaseParams(strategy, args, followerTradeData),
+              index: achievePosition!.index,
+            },
+          );
+
+          break;
+        }
+        case CloseMissionAction: {
+          const args = JSON.parse(action.args) as CloseMissionActionArgs;
+
+          tx = await this.tradeService.closeTradeMarket(
+            walletClient,
+            publicClient,
+            followerContract.chainId,
             {
               index: achievePosition!.index,
-              collateralDelta: BigInt(args.collateralDelta),
-              leverageDelta: Number(args.leverageDelta),
-              expectedPrice: BigInt(args.oraclePrice),
+              expectedPrice: BigInt(args.expectedPrice),
             },
           );
 
@@ -183,32 +223,49 @@ export class TasksService {
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
             const { t, collateralPriceUsd } = event.args;
-            const usdcPrice = await this.pricesService.getUSDCPrice();
-
-            console.log(t.collateralAmount, collateralPriceUsd, usdcPrice);
+            const collateral = this.tradingVariableService.getCollateral(
+              leaderContractId,
+              t.collateralIndex,
+            );
+            const usdcPrice =
+              await this.tradingVariableService.getCollateralPrice(
+                followerContract,
+                USDCCollateralIndex[
+                  followerContract.chainId as keyof typeof USDCCollateralIndex
+                ],
+              );
 
             if (isOpenMissionAction(action)) {
               tx = await this.tradeService.openTrade(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   trade: {
+                    ...getOpenMissionParams(
+                      strategy,
+                      {
+                        leverage: t.leverage,
+                        collateralAmount: BigInt(t.collateralAmount),
+                        collateralPriceUsd: BigInt(collateralPriceUsd),
+                        collateral,
+                      },
+                      bot.leaderCollateralBaseline,
+                      usdcPrice,
+                    ),
                     user: follower.address as Address,
                     index: 0,
                     pairIndex: t.pairIndex,
-                    leverage: t.leverage,
                     long: t.long,
                     isOpen: true,
-                    collateralIndex: USDCCollateralIndex,
+                    collateralIndex:
+                      USDCCollateralIndex[
+                        followerContract.chainId as keyof typeof USDCCollateralIndex
+                      ],
                     tradeType: TradeType.TRADE,
-                    collateralAmount:
-                      (BigInt(t.collateralAmount) *
-                        BigInt(collateralPriceUsd)) /
-                      usdcPrice,
                     openPrice: BigInt(t.openPrice),
-                    tp: BigInt(t.tp),
-                    sl: BigInt(t.sl),
+                    tp: 0n,
+                    sl: 0n,
                     __placeholder: BigInt(t.__placeholder),
                   },
                   maxSlippageP: 1000,
@@ -220,7 +277,7 @@ export class TasksService {
               tx = await this.tradeService.closeTradeMarket(
                 walletClient,
                 publicClient,
-                contract.chainId,
+                followerContract.chainId,
                 {
                   index: achievePosition!.index,
                   expectedPrice: BigInt(t.openPrice),
@@ -277,7 +334,8 @@ export class TasksService {
                 follower: true,
                 leader: true,
                 strategy: true,
-                contract: true,
+                followerContract: true,
+                leaderContract: true,
               },
             },
             achievePosition: true,
@@ -308,57 +366,60 @@ export class TasksService {
         ],
       },
     ]);
+
+    return task;
   }
 
   async performAvailableTasks() {
     this.status = 'process';
 
-    const allTasks = await this.prismaService.task.findMany({
-      where: {
-        status: {
-          not: TaskStatus.Completed,
-        },
-      },
-      include: {
-        action: true,
-        mission: {
-          include: {
-            bot: {
-              include: {
-                follower: true,
-                leader: true,
-                strategy: true,
-                contract: true,
-              },
-            },
-            achievePosition: true,
-            targetPosition: true,
+    try {
+      const allTasks = await this.prismaService.task.findMany({
+        where: {
+          status: {
+            notIn: [TaskStatus.Stopped, TaskStatus.Completed],
           },
         },
-      },
-    });
+        include: {
+          action: true,
+          mission: {
+            include: {
+              bot: {
+                include: {
+                  follower: true,
+                  leader: true,
+                  strategy: true,
+                  followerContract: true,
+                  leaderContract: true,
+                },
+              },
+              achievePosition: true,
+              targetPosition: true,
+            },
+          },
+        },
+      });
 
-    const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+      const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
 
-    allTasks.forEach((task) => {
-      const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
+      allTasks.forEach((task) => {
+        const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
 
-      if (tasksByMissionMap) {
-        const arr = tasksByMissionMap.get(task.missionId);
+        if (tasksByMissionMap) {
+          const arr = tasksByMissionMap.get(task.missionId);
 
-        if (arr) {
-          arr.push(task);
+          if (arr) {
+            arr.push(task);
+          } else {
+            tasksByMissionMap.set(task.missionId, [task]);
+          }
         } else {
-          tasksByMissionMap.set(task.missionId, [task]);
+          const tempMap = new Map<number, TaskDetails[]>();
+          tempMap.set(task.missionId, [task]);
+          allTasksByBotMap.set(task.mission.botId, tempMap);
         }
-      } else {
-        const tempMap = new Map<number, TaskDetails[]>();
-        tempMap.set(task.missionId, [task]);
-        allTasksByBotMap.set(task.mission.botId, tempMap);
-      }
-    });
+      });
 
-    try {
       const botTasks: TaskDetails[] = [];
 
       for (const tasksByMissionMap of allTasksByBotMap.values()) {
@@ -413,17 +474,9 @@ export class TasksService {
         }
 
         if (openMissionTasks.created.length > 0) {
-          botTasks.push(
-            openMissionTasks.created.sort(
-              (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
-            )[0],
-          );
+          botTasks.push(...openMissionTasks.created);
         }
       }
-
-      console.log('botTasks', botTasks);
 
       const promises = botTasks.map(async (task) => {
         const { success, message } = await this.performTask(task);
@@ -457,6 +510,123 @@ export class TasksService {
     }
 
     this.status = 'ready';
+  }
+
+  async closeMissionTasks(mission: Mission): Promise<boolean> {
+    const allMissionTasks = await this.prismaService.task.findMany({
+      where: {
+        missionId: mission.id,
+      },
+      include: {
+        action: true,
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                leader: true,
+                strategy: true,
+                followerContract: true,
+                leaderContract: true,
+              },
+            },
+            achievePosition: true,
+            targetPosition: true,
+          },
+        },
+      },
+    });
+
+    if (allMissionTasks.length === 0) {
+      return false;
+    }
+
+    const sortedMissionTasks = allMissionTasks.sort((a, b) => {
+      if (a.action.blockNumber !== b.action.blockNumber) {
+        return a.action.blockNumber - b.action.blockNumber;
+      }
+
+      return a.action.orderInBlock - b.action.orderInBlock;
+    });
+
+    let openTask: TaskDetails | null = null;
+    const awaitingTasks: TaskDetails[] = [];
+    const createdTasks: TaskDetails[] = [];
+
+    // find first create task and put it to queue
+    for (let i = 0; i < sortedMissionTasks.length; i++) {
+      const task = sortedMissionTasks[i];
+
+      if (isOpenMissionAction(task.action)) {
+        openTask = task;
+      }
+
+      if (
+        task.status === TaskStatus.Created ||
+        task.status === TaskStatus.Failed
+      ) {
+        createdTasks.push(task);
+      }
+
+      if (
+        task.status === TaskStatus.Await ||
+        task.status === TaskStatus.Initiated
+      ) {
+        awaitingTasks.push(task);
+      }
+    }
+
+    if (awaitingTasks.length > 0 || !openTask) {
+      return false;
+    }
+
+    await this.updateMany(
+      createdTasks.map((task) => ({
+        id: task.id,
+        status: TaskStatus.Stopped,
+        logs: [
+          ...task.logs,
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Stopped by mission close action`,
+          }),
+        ],
+      })),
+    );
+
+    // no need to proceed
+    if (openTask.status === 'Created') {
+      return true;
+    }
+
+    const openEvent = missionEventParsers
+      .find((parser) => parser.eventName === openTask.action.name)!
+      .actionParser(openTask.action);
+
+    const currentPrice = await this.tradingVariableService.getPairPrice(
+      openEvent.args.t.pairIndex,
+    );
+
+    const newAction = await this.actionsService.createCloseMissionAction(
+      mission.targetPositionId,
+      currentPrice.toString(),
+    );
+
+    await this.createMany([
+      {
+        missionId: mission.id,
+        actionId: newAction.id,
+        status: TaskStatus.Created,
+        logs: [
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Task created`,
+          }),
+        ],
+      },
+    ]);
+
+    return true;
   }
 
   async loadTasks() {
@@ -517,6 +687,10 @@ export class TasksService {
         this.tasksByBotMap.set(task.mission.botId, tempMap);
       }
     });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
+      [SUBSCRIPTION_TOKEN.taskAdded]: newTasks,
+    });
   }
 
   async updateMany(inputs: TaskUpdateInput[]) {
@@ -553,6 +727,10 @@ export class TasksService {
           }
         }
       }
+    });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
+      [SUBSCRIPTION_TOKEN.taskUpdated]: updatedTasks,
     });
   }
 
@@ -592,7 +770,12 @@ export class TasksService {
   }
 
   findAll() {
-    return this.prismaService.task.findMany();
+    return this.prismaService.task.findMany({
+      include: {
+        action: true,
+        mission: true,
+      },
+    });
   }
 
   findOne(id: number) {
@@ -603,23 +786,12 @@ export class TasksService {
     return this.prismaService.task.findMany({ where: { missionId } });
   }
 
-  updateStatus(id: number, status: TaskStatus) {
-    return this.prismaService.task.update({
-      where: { id },
-      data: {
-        status,
-      },
-    });
-  }
-
   async handleLeaderActions(actions: ActionContext<MissionContext>[]) {
     const filteredActions = actions.filter(
       (item) =>
         updateEventNames.includes(item.action.name) ||
         missionEventNames.includes(item.action.name),
     );
-
-    console.log('handle Leader actions in task service ===>', filteredActions);
 
     await this.createMany(
       filteredActions.map((item) => ({
@@ -653,12 +825,6 @@ export class TasksService {
   }
 
   async handleFollowerActions(actions: ActionContext<MissionContext>[]) {
-    console.log(
-      'handle follower actions ===>',
-      actions,
-      actions.map((action) => action.context.mission),
-    );
-
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
 

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotStatus, Contract } from '@prisma/client';
+import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { UsersService } from 'src/users/users.service';
@@ -10,21 +11,28 @@ import { BotUpdateInput, CreateBotInput } from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
 import { BotDetails } from './entities/bot.entity';
-import { ActionItem } from 'src/actions/entities/action.entity';
 
+import { ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
-import { Address, isAddressEqual } from 'viem';
+import { FollowerService } from 'src/follower/follower.service';
+import { MAX_GAS, MIN_GAS, USDCCollateralIndex } from 'src/utils/constants';
+import { TradingVariableService } from 'src/global/trading-variable.service';
+
+import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class BotsService {
-  private botsByContractMap = new Map<number, BotDetails[]>();
+  private bots: BotDetails[] = [];
+  status: 'ready' | 'progress' = 'ready';
 
   constructor(
     private prismaService: PrismaService,
     private usersService: UsersService,
     private chainsService: ChainsService,
     private missionsService: MissionsService,
+    private followersService: FollowerService,
     private actionsService: ActionsService,
+    private tradingVariableService: TradingVariableService,
     private logger: Logger,
   ) {
     this.loadBots();
@@ -44,16 +52,144 @@ export class BotsService {
         followerAddress: input.followerAddress.toLowerCase(),
         status: BotStatus.Created,
       },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
-    const arr = this.botsByContractMap.get(newBot.contractId);
+    this.bots.push(newBot);
 
-    if (arr) {
-      arr.push(newBot as BotDetails);
-    } else {
-      this.botsByContractMap.set(newBot.contractId, [newBot as BotDetails]);
+    return newBot;
+  }
+
+  async delete(id: number) {
+    const bot = await this.prismaService.bot.findUnique({
+      where: { id },
+    });
+
+    if (!bot) {
+      throw new Error('Cannot find a bot, please check the id');
     }
+
+    if (bot.status !== BotStatus.Created) {
+      throw new Error('This bot is in usage, cannot delete it');
+    }
+
+    const deletedBot = await this.prismaService.bot.delete({
+      where: { id },
+    });
+
+    if (!deletedBot) {
+      throw new Error('Cannot delete a bot');
+    }
+
+    this.bots = this.bots.filter((item) => item.id !== id);
+
+    return id;
+  }
+
+  async reBalanceAsset(bot: BotDetails) {
+    try {
+      const { followerContract, follower, strategy } = bot;
+
+      const publicClient = this.chainsService.publicClient(
+        followerContract.chainId,
+      );
+
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        bot.followerContractId,
+        USDCCollateralIndex[
+          followerContract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const usdcBalance = await publicClient.readContract({
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [follower.address as Address],
+      });
+
+      const { minCapacity, maxCapacity } = strategy;
+
+      if (usdcBalance < BigInt(minCapacity * 1e6)) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: BigInt(maxCapacity * 1e6) - usdcBalance,
+          kind: 'usdcDeposit',
+        });
+      } else if (usdcBalance > BigInt(2 * maxCapacity * 1e6)) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: usdcBalance - BigInt(maxCapacity * 1e6),
+          kind: 'usdcWithdraw',
+        });
+      }
+
+      const ethBalance = await publicClient.getBalance({
+        address: follower.address as Address,
+      });
+
+      if (ethBalance < MIN_GAS) {
+        await this.followersService.moveAsset({
+          address: follower.address,
+          contract: followerContract,
+          amount: MAX_GAS - ethBalance,
+          kind: 'ethDeposit',
+        });
+      }
+    } catch (err) {
+      this.logger.error('BotsService>reBalanceAsset> ', getReadableError(err));
+    }
+  }
+
+  async checkAndUpdateAllBots() {
+    this.status = 'progress';
+
+    try {
+      this.logger.log('BotsService>: Rebalancing Bots');
+
+      const promises = this.bots.map(async (bot) => {
+        if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+          return;
+        }
+
+        if (bot.status === BotStatus.Live && bot.startedAt) {
+          const startedTimestamp = new Date(bot.startedAt).getTime();
+          const currentTimestamp = Date.now();
+
+          if (
+            currentTimestamp - startedTimestamp >
+            bot.strategy.lifeTime * 60 * 1000
+          ) {
+            await this._stop(bot);
+          }
+        }
+
+        if (
+          bot.status === BotStatus.Stop &&
+          this.missionsService.getMissionsByBotId(bot.id).length === 0
+        ) {
+          await this._kill(bot);
+        }
+
+        await this.reBalanceAsset(bot);
+      });
+
+      await Promise.all(promises);
+    } catch (err) {
+      this.logger.error(
+        `BotsService>checkAndUpdateAllBots> ${getReadableError(err)}`,
+      );
+    }
+
+    this.status = 'ready';
   }
 
   async update(input: BotUpdateInput) {
@@ -62,39 +198,61 @@ export class BotsService {
         id: input.id,
       },
       data: input,
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
-    const arr = this.botsByContractMap.get(updatedBot.contractId);
+    const index = this.bots.findIndex((bot) => bot.id === updatedBot.id);
 
-    if (arr) {
-      const index = arr.findIndex((bot) => bot.id === updatedBot.id);
-
-      arr[index] = updatedBot as BotDetails;
+    if (index !== -1) {
+      this.bots[index] = updatedBot as BotDetails;
     } else {
-      this.botsByContractMap.set(updatedBot.contractId, [
-        updatedBot as BotDetails,
-      ]);
+      this.bots.push(updatedBot);
     }
+
+    return updatedBot;
   }
 
   findAll() {
     return this.prismaService.bot.findMany({
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
   }
 
   find(status: BotStatus) {
     return this.prismaService.bot.findMany({
       where: { status },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
   }
 
   async findOne(id: number) {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
-      include: { follower: true, leader: true, strategy: true, contract: true },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
     });
 
     if (!bot) {
@@ -123,7 +281,7 @@ export class BotsService {
     const liveOrFinishBots = await this.prismaService.bot.findMany({
       where: {
         status: {
-          in: [BotStatus.Live, BotStatus.Finish],
+          in: [BotStatus.Live, BotStatus.Stop],
         },
         followerAddress: bot.followerAddress,
       },
@@ -134,36 +292,90 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
+    await this.reBalanceAsset(bot);
+
+    const { followerContract, follower } = bot;
+
+    const publicClient = this.chainsService.publicClient(
+      followerContract.chainId,
+    );
+    const walletClient = this.chainsService.walletClient(
+      followerContract.chainId,
+      follower,
+    );
+
+    const collateralInfo = this.tradingVariableService.getCollateral(
+      bot.followerContractId,
+      USDCCollateralIndex[
+        followerContract.chainId as keyof typeof USDCCollateralIndex
+      ],
+    );
+
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: collateralInfo.collateral,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [followerContract.address as Address, maxInt256],
+    });
+
+    await walletClient.writeContract(request);
+
+    const leaderBlockNumber = await this.chainsService
+      .publicClient(bot.leaderContract.chainId)
+      .getBlockNumber();
+
+    const followerBlockNumber = await this.chainsService
+      .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
     return await this.update({
       id,
-      startedBlock: Number(blockNumber),
+      leaderStartedBlock: Number(leaderBlockNumber),
+      followerStartedBlock: Number(followerBlockNumber),
       status: BotStatus.Live,
     });
   }
 
-  async finish(id: number) {
+  private async _stop(bot: BotDetails) {
+    if (bot.status !== BotStatus.Live) {
+      throw new Error('Invalid bot status');
+    }
+
+    const leaderBlockNumber = await this.chainsService
+      .publicClient(bot.leaderContract.chainId)
+      .getBlockNumber();
+
+    const followerBlockNumber = await this.chainsService
+      .publicClient(bot.followerContract.chainId)
+      .getBlockNumber();
+
+    return await this.update({
+      id: bot.id,
+      leaderEndedBlock: Number(leaderBlockNumber),
+      followerEndedBlock: Number(followerBlockNumber),
+      status: BotStatus.Stop,
+    });
+  }
+
+  async stop(id: number) {
     const bot = await this.findOne(id);
 
     if (!bot) {
       throw new Error('Invalid bot id');
     }
 
-    if (bot.status !== BotStatus.Live) {
+    return this._stop(bot);
+  }
+
+  private async _kill(bot: BotDetails) {
+    if (BotStatus.Live !== bot.status && BotStatus.Stop !== bot.status) {
       throw new Error('Invalid bot status');
     }
 
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
-      .getBlockNumber();
-
     return await this.update({
-      id,
-      pausedBlock: Number(blockNumber),
-      status: BotStatus.Finish,
+      id: bot.id,
+      status: BotStatus.Dead,
     });
   }
 
@@ -174,65 +386,56 @@ export class BotsService {
       throw new Error('Invalid bot id');
     }
 
-    if (bot.status !== BotStatus.Finish) {
-      throw new Error('Invalid bot status');
-    }
-
-    const blockNumber = await this.chainsService
-      .publicClient(bot.contract.chainId)
-      .getBlockNumber();
-
-    return await this.update({
-      id,
-      endedBlock: Number(blockNumber),
-      status: BotStatus.Dead,
-    });
+    return this._kill(bot);
   }
 
   async loadBots() {
-    const bots = await this.findAll();
-
-    bots.forEach((bot) => {
-      const arr = this.botsByContractMap.get(bot.contractId);
-
-      if (arr) {
-        arr.push(bot);
-      } else {
-        this.botsByContractMap.set(bot.contractId, [bot]);
-      }
-    });
+    this.bots = await this.findAll();
   }
 
   filterBots(contractId: number, blockNumber: number) {
-    const bots = this.botsByContractMap.get(contractId) || [];
-
-    const filtered = bots.filter((bot) => {
-      // not started or started later current block number
-      if (!bot.startedBlock || bot.startedBlock > blockNumber) {
-        return false;
-      }
-
-      // stopped bot
-      if (bot.endedBlock !== null && bot.endedBlock < blockNumber) {
-        return false;
-      }
-
-      return true;
-    });
-
+    const leaderBots: BotDetails[] = [];
+    const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];
 
-    filtered.forEach((item) =>
-      totalAddresses.push(
-        ...[
-          item.leaderAddress.toLowerCase(),
-          item.followerAddress.toLowerCase(),
-        ],
-      ),
-    );
+    this.bots.forEach((bot) => {
+      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
+        return;
+      }
+
+      let included = false;
+
+      if (
+        bot.leaderContractId === contractId &&
+        bot.leaderStartedBlock &&
+        bot.leaderStartedBlock < blockNumber
+      ) {
+        leaderBots.push(bot);
+        included = true;
+      }
+
+      if (
+        bot.followerContractId === contractId &&
+        bot.followerStartedBlock &&
+        bot.followerStartedBlock < blockNumber
+      ) {
+        followerBots.push(bot);
+        included = true;
+      }
+
+      if (included) {
+        totalAddresses.push(
+          ...[
+            bot.leaderAddress.toLowerCase(),
+            bot.followerAddress.toLowerCase(),
+          ],
+        );
+      }
+    });
 
     return {
-      bots: filtered,
+      leaderBots,
+      followerBots,
       botAddressSet: new Set(totalAddresses),
     };
   }
@@ -274,6 +477,7 @@ export class BotsService {
     }
 
     const actions = await this.actionsService.createMany(
+      contract.id,
       filteredActionItems.map(({ item, blockNumber }, index) => ({
         name: item.name,
         positionAddress: item.position.address,
@@ -288,13 +492,16 @@ export class BotsService {
     const followerActions: ActionContext<BotContext>[] = [];
 
     for (let i = 0; i < actions.length; ) {
-      const { bots } = this.filterBots(contract.id, actions[i].blockNumber);
+      const { leaderBots, followerBots } = this.filterBots(
+        contract.id,
+        actions[i].blockNumber,
+      );
 
       let j = i;
 
       for (; j < actions.length; j++) {
         if (actions[i].blockNumber === actions[j].blockNumber) {
-          const botActions = bots.map((bot) => ({
+          const leaderBotActions = leaderBots.map((bot) => ({
             action: actions[j],
             context: {
               bot,
@@ -302,7 +509,7 @@ export class BotsService {
           }));
 
           leaderActions.push(
-            ...botActions.filter((action) =>
+            ...leaderBotActions.filter((action) =>
               isAddressEqual(
                 action.action.position.address as Address,
                 action.context.bot.leaderAddress as Address,
@@ -310,8 +517,15 @@ export class BotsService {
             ),
           );
 
+          const followerBotActions = followerBots.map((bot) => ({
+            action: actions[j],
+            context: {
+              bot,
+            },
+          }));
+
           followerActions.push(
-            ...botActions.filter((action) =>
+            ...followerBotActions.filter((action) =>
               isAddressEqual(
                 action.action.position.address as Address,
                 action.context.bot.followerAddress as Address,
@@ -327,14 +541,10 @@ export class BotsService {
     }
 
     if (followerActions.length > 0) {
-      console.log('find follower actions ===>', followerActions.length);
-
       await this.missionsService.handleFollowerActions(followerActions);
     }
 
     if (leaderActions.length > 0) {
-      console.log('find leader actions ===>', leaderActions.length);
-
       await this.missionsService.handleLeaderActions(leaderActions);
     }
   }

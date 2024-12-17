@@ -7,11 +7,41 @@ import {
   WalletClient,
   PublicClient,
   http,
+  fallback,
 } from 'viem';
 import { english, mnemonicToAccount } from 'viem/accounts';
 import { arbitrum, arbitrumSepolia, base, polygon, Chain } from 'viem/chains';
 import { PrismaService } from './prisma.service';
 import { validateMnemonic } from '@scure/bip39';
+
+const rpcUrls = {
+  137: [
+    'https://1rpc.io/matic',
+    'https://polygon-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://rpc.ankr.com/polygon/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    'https://polygon-mainnet.public.blastapi.io',
+  ],
+  8453: [
+    'https://1rpc.io/base',
+    'https://base-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://base-rpc.publicnode.com',
+    'https://base-mainnet.public.blastapi.io',
+  ],
+  42161: [
+    'https://1rpc.io/arb',
+    'https://arb-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://arbitrum-one-rpc.publicnode.com',
+    'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    'https://arbitrum-one.public.blastapi.io',
+  ],
+  421614: [
+    'https://arb-sepolia.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://arbitrum-sepolia-rpc.publicnode.com',
+    'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    'https://arbitrum-sepolia.public.blastapi.io',
+  ],
+};
 
 @Injectable()
 export class ChainsService {
@@ -28,7 +58,19 @@ export class ChainsService {
     this.availableChains.forEach((chain) => {
       this.publicClients[chain.id] = createPublicClient({
         chain: chain,
-        transport: http(),
+        transport: fallback(
+          [
+            http(),
+            ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
+              http(url),
+            ),
+          ],
+          {
+            rank: {
+              timeout: 100_000,
+            },
+          },
+        ),
         batch: {
           multicall: true,
         },

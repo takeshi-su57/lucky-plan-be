@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateContractInput } from './dto/contract.input';
+
+import {
+  CreateContractInput,
+  ChangeContractStatusInput,
+} from './dto/contract.input';
 import { ChainsService } from '../global/chains.service';
 
 @Injectable()
@@ -9,6 +13,7 @@ export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     private chainsService: ChainsService,
+    private logger: Logger,
   ) {}
 
   async create(input: CreateContractInput) {
@@ -16,15 +21,19 @@ export class ContractsService {
       throw new Error('Invalid chain Id');
     }
 
-    const publicClient = this.chainsService.publicClient(input.chainId);
-
-    const blockNumber = await publicClient.getBlockNumber();
-
     return await this.prismaService.contract.create({
       data: {
         ...input,
         address: input.address.toLowerCase(),
-        lastBlockNumber: Number(blockNumber),
+      },
+    });
+  }
+
+  async changeStatus(input: ChangeContractStatusInput) {
+    return this.prismaService.contract.update({
+      where: { id: input.id },
+      data: {
+        status: input.status,
       },
     });
   }

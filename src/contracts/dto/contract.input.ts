@@ -1,5 +1,6 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ContractStatus } from '@prisma/client';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
@@ -18,4 +19,20 @@ export class CreateContractInput {
   @IsString()
   @Field()
   description: string;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  lastBlockNumber: number;
+}
+
+@InputType()
+export class ChangeContractStatusInput {
+  @IsNotEmpty()
+  @Field(() => Int)
+  id: number;
+
+  @IsNotEmpty()
+  @IsIn([ContractStatus.Live, ContractStatus.Dead])
+  @Field()
+  status: ContractStatus;
 }

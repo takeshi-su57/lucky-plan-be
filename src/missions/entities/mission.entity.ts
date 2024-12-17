@@ -1,7 +1,17 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  registerEnumType,
+  OmitType,
+} from '@nestjs/graphql';
 import { MissionStatus } from '@prisma/client';
-import { BotDetails } from 'src/bots/entities/bot.entity';
+import { Bot, BotDetails } from 'src/bots/entities/bot.entity';
 import { Position } from 'src/positions/entities/position.entity';
+
+registerEnumType(MissionStatus, {
+  name: 'MissionStatus',
+});
 
 @ObjectType()
 export class Mission {
@@ -23,7 +33,7 @@ export class Mission {
   @Field(() => Date)
   updatedAt: Date;
 
-  @Field()
+  @Field(() => MissionStatus)
   status: MissionStatus;
 }
 
@@ -34,10 +44,13 @@ export class MissionShallowDetails extends Mission {
 
   @Field(() => Position, { nullable: true })
   achievePosition: Position | null;
+
+  @Field(() => Bot)
+  bot: Bot;
 }
 
 @ObjectType()
-export class MissionDetails extends MissionShallowDetails {
+export class MissionDetails extends OmitType(MissionShallowDetails, ['bot']) {
   @Field(() => BotDetails)
   bot: BotDetails;
 }

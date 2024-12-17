@@ -1,24 +1,68 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { FollowerService } from './follower.service';
-import { Follower } from './entities/follower.entity';
-import { GetFollowerByAddressInput } from './dto/follower.input';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 
-@Resolver(() => Follower)
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { PUB_SUB } from 'src/global/global.module';
+
+import { FollowerService } from './follower.service';
+import { Follower, FollowerDetail } from './entities/follower.entity';
+import {
+  GetFollowerByAddressInput,
+  WithdrawAllInput,
+} from './dto/follower.input';
+
+@Resolver(() => FollowerDetail)
 export class FollowerResolver {
-  constructor(private readonly followerService: FollowerService) {}
+  constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly followerService: FollowerService,
+  ) {}
 
   @Mutation(() => Follower)
   generateNewFollower() {
     return this.followerService.generateNewFollower();
   }
 
-  @Query(() => Follower, { nullable: true })
-  getFollowerByAddress(@Args('input') input: GetFollowerByAddressInput) {
-    return this.followerService.getFollowerByAddress(input.address);
+  @Mutation(() => Boolean)
+  withdrawAll(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAll(input.address, input.contractId);
+  }
+
+  @Query(() => String)
+  getFollowerPrivateKey(@Args('input') input: GetFollowerByAddressInput) {
+    return this.followerService.getPrivateKey(input.address);
   }
 
   @Query(() => [Follower])
   getAllFollowers() {
-    return this.followerService.getAllFollowers();
+    return this.followerService.findAll();
+  }
+
+  @Query(() => [FollowerDetail])
+  getAllFollowerDetails(
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.followerService.findAllDetails(contractId);
+  }
+
+  @Subscription(() => [FollowerDetail], {
+    name: SUBSCRIPTION_TOKEN.followerDetailsUpdated,
+    filter: (payload, variables) =>
+      payload.followerDetailsUpdated.contractId === variables.contractId,
+  })
+  subscribeToMissionUpdated(
+    @Args('contractId', { type: () => Int }) _contractId: number,
+  ) {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.followerDetailsUpdated,
+    );
   }
 }

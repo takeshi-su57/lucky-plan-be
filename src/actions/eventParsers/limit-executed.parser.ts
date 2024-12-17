@@ -15,13 +15,13 @@ export type LimitExecutedEvent = DecodeEventLogReturnType<
 >;
 export type LimitExecutedEventArgs = LimitExecutedEvent['args'];
 
-export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
+export function parseLimitExecutedEvent(
+  contractId: number,
+  event: LimitExecutedEvent,
+) {
   return eventToAction(
     event.eventName,
-    {
-      address: event.args.t.user,
-      index: event.args.t.index,
-    },
+    { contractId, address: event.args.t.user, index: event.args.t.index },
     event.args,
   );
 }

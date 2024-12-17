@@ -7,13 +7,28 @@ import { CreateBotInput } from './dto/bot.input';
 export class BotsResolver {
   constructor(private readonly botsService: BotsService) {}
 
-  @Mutation(() => Bot)
+  @Mutation(() => BotDetails)
   createBot(@Args('input') input: CreateBotInput) {
     return this.botsService.create(input);
   }
 
-  @Query(() => [Bot])
-  findAllBots() {
+  @Mutation(() => Int)
+  deleteBot(@Args('id', { type: () => Int }) id: number) {
+    return this.botsService.delete(id);
+  }
+
+  @Mutation(() => BotDetails)
+  liveBot(@Args('id', { type: () => Int }) id: number) {
+    return this.botsService.live(id);
+  }
+
+  @Mutation(() => BotDetails)
+  stopBot(@Args('id', { type: () => Int }) id: number) {
+    return this.botsService.stop(id);
+  }
+
+  @Query(() => [BotDetails])
+  getAllBots() {
     return this.botsService.findAll();
   }
 

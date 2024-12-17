@@ -7,11 +7,9 @@ import { marketOpenCanceledEventParser } from 'src/actions/eventParsers/market-o
 import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
-// import { positionSizeUpdateInitiatedEventParser } from 'src/actions/eventParsers/position-size-update-initiated.parser';
 
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { tradeSLUpdatedEventParser } from 'src/actions/eventParsers/trade-sl-updated.parser';
-import { tradeTPUpdatedEventParser } from 'src/actions/eventParsers/trade-tp-updated.parser';
+
 import { PendingOrderType, RegisteredEventType } from 'src/types';
 import { Action, ActionItem } from '../entities/action.entity';
 
@@ -25,8 +23,6 @@ export const missionEventNames = missionEventParsers.map(
 );
 
 export const updateEventParsers = [
-  tradeSLUpdatedEventParser,
-  tradeTPUpdatedEventParser,
   tradeMaxClosingSlippagePUpdatedEventParser,
   leverageUpdateExecutedEventParser,
   positionSizeDecreaseExecutedEventParser,
@@ -59,11 +55,14 @@ export const eventParsersMap = Object.fromEntries(
   eventParsers.map((parser) => [parser.eventName, parser]),
 );
 
-export function eventToActionParser(event: RegisteredEventType): ActionItem {
-  return eventParsersMap[event.eventName].logParser(event as any);
+export function eventToActionParser(
+  contractId: number,
+  event: RegisteredEventType,
+): ActionItem {
+  return eventParsersMap[event.eventName].logParser(contractId, event as any);
 }
 
-export function isOpenMissionAction(action: Action) {
+export function isOpenMissionAction(action: Action | ActionItem) {
   if (!missionEventNames.includes(action.name)) {
     return false;
   }
@@ -77,7 +76,7 @@ export function isOpenMissionAction(action: Action) {
   }
 }
 
-export function isCloseMissionAction(action: Action) {
+export function isCloseMissionAction(action: Action | ActionItem) {
   if (!missionEventNames.includes(action.name)) {
     return false;
   }

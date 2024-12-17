@@ -1,21 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 
 import { PrismaService } from 'src/global/prisma.service';
+import { PUB_SUB } from 'src/global/global.module';
 
 import { CreateFollowerActionInput } from './dto/follower-action.input';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Injectable()
 export class FollowerActionsService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private prismaService: PrismaService,
+  ) {}
 
-  createMany(inputs: CreateFollowerActionInput[]) {
-    return this.prismaService.followerAction.createManyAndReturn({
-      data: inputs,
-      include: {
-        action: true,
-        task: true,
+  async createMany(inputs: CreateFollowerActionInput[]) {
+    const actions = await this.prismaService.followerAction.createManyAndReturn(
+      {
+        data: inputs,
+        include: {
+          action: true,
+          task: true,
+        },
       },
+    );
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.followerActionAdded, {
+      [SUBSCRIPTION_TOKEN.followerActionAdded]: actions,
     });
+
+    return actions;
   }
 
   findAll() {

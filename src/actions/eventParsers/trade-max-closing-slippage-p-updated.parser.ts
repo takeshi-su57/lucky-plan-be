@@ -17,11 +17,13 @@ export type TradeMaxClosingSlippagePUpdatedEventArgs =
   TradeMaxClosingSlippagePUpdatedEvent['args'];
 
 export function parseTradeMaxClosingSlippagePUpdatedEvent(
+  contractId: number,
   event: TradeMaxClosingSlippagePUpdatedEvent,
 ) {
   return eventToAction(
     event.eventName,
     {
+      contractId,
       address: event.args.user,
       index: event.args.index,
     },

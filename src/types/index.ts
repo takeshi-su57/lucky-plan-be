@@ -2,8 +2,6 @@ import { Address } from 'viem';
 
 import { MarketExecutedEvent } from 'src/actions/eventParsers/market-executed.parser';
 import { LimitExecutedEvent } from 'src/actions/eventParsers/limit-executed.parser';
-import { TradeSlUpdatedEvent } from 'src/actions/eventParsers/trade-sl-updated.parser';
-import { TradeTpUpdatedEvent } from 'src/actions/eventParsers/trade-tp-updated.parser';
 import { TradeMaxClosingSlippagePUpdatedEvent } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
 import { LeverageUpdateExecutedEvent } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { PositionSizeDecreaseExecutedEvent } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
@@ -35,6 +33,22 @@ export enum PendingOrderType {
   UPDATE_LEVERAGE,
   MARKET_PARTIAL_OPEN,
   MARKET_PARTIAL_CLOSE,
+}
+
+export enum CancelReason {
+  NONE,
+  PAUSED, // deprecated
+  MARKET_CLOSED,
+  SLIPPAGE,
+  TP_REACHED,
+  SL_REACHED,
+  EXPOSURE_LIMITS,
+  PRICE_IMPACT,
+  MAX_LEVERAGE,
+  NO_TRADE,
+  WRONG_TRADE, // deprecated
+  NOT_HIT,
+  LIQ_REACHED,
 }
 
 export enum ContractsVersion {
@@ -93,8 +107,6 @@ export type MissionEventType =
   | LimitExecutedEvent
   | MarketOrderInitiatedEvent;
 export type TaskEventType =
-  | TradeSlUpdatedEvent
-  | TradeTpUpdatedEvent
   | TradeMaxClosingSlippagePUpdatedEvent
   | LeverageUpdateExecutedEvent
   | PositionSizeDecreaseExecutedEvent
@@ -130,4 +142,8 @@ export type TradeEventContext<TEventArgs, TContext> = {
   action: ActionDetails;
   event: TradeEvent<TEventArgs>;
   context: TContext;
+};
+
+export type CloseMissionActionArgs = {
+  expectedPrice: string;
 };

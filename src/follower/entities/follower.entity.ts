@@ -11,3 +11,15 @@ export class Follower {
   @Field(() => Int)
   accountIndex: number;
 }
+
+@ObjectType()
+export class FollowerDetail extends Follower {
+  @Field(() => String, { nullable: true })
+  ethBalance: string | null;
+
+  @Field(() => String, { nullable: true })
+  usdcBalance: string | null;
+
+  @Field(() => Int)
+  contractId: number;
+}

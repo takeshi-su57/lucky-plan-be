@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { MissionStatus } from '@prisma/client';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BotStatus, MissionStatus } from '@prisma/client';
+import { Address, isAddressEqual } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
+
 import {
   getOrderIdFromMissionAction,
   isCloseMissionAction,
@@ -11,6 +14,7 @@ import {
   MarketOrderInitiatedEventArgs,
   marketOrderInitiatedEventParser,
 } from 'src/actions/eventParsers/market-order-initiated.parser';
+import { PUB_SUB } from 'src/global/global.module';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/tasks/tasks.service';
@@ -22,18 +26,18 @@ import {
 } from 'src/types';
 import { MissionShallowDetails } from './entities/mission.entity';
 import {
-  MissionAttachAchievePositionInput,
   MissionCloseInput,
   MissionCreateInput,
   MissionUpdateInput,
 } from './dto/mission.input';
-import { Address, isAddressEqual } from 'viem';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Injectable()
 export class MissionsService {
   private missionsByBotMap = new Map<number, MissionShallowDetails[]>();
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private readonly logger: Logger,
@@ -45,7 +49,7 @@ export class MissionsService {
     const newMissions = await this.prismaService.mission.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,
-        status: MissionStatus.Opened,
+        status: MissionStatus.Created,
       })),
       include: {
         targetPosition: true,
@@ -63,10 +67,14 @@ export class MissionsService {
         this.missionsByBotMap.set(mission.botId, [mission]);
       }
     });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
+      [SUBSCRIPTION_TOKEN.missionAdded]: newMissions,
+    });
   }
 
   async updateMany(inputs: MissionUpdateInput[]) {
-    return await this.prismaService.$transaction(
+    const updatedMissions = await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.mission.update({
           where: {
@@ -81,11 +89,19 @@ export class MissionsService {
         });
       }),
     );
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
+      [SUBSCRIPTION_TOKEN.missionUpdated]: updatedMissions,
+    });
+
+    return updatedMissions;
   }
 
-  async attachAchievePositionMany(inputs: MissionAttachAchievePositionInput[]) {
-    console.log('Attach achieve positions ===>', inputs);
+  getMissionsByBotId(botId: number) {
+    return this.missionsByBotMap.get(botId) || [];
+  }
 
+  async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
     const updatedMissions = await this.updateMany(inputs);
 
     updatedMissions.forEach((item) => {
@@ -101,8 +117,6 @@ export class MissionsService {
   }
 
   async closeMany(inputs: MissionCloseInput[]) {
-    console.log('close missions ===>', inputs);
-
     const closedMissions = await this.updateMany(
       inputs.map((item) => ({ ...item, status: MissionStatus.Closed })),
     );
@@ -122,7 +136,9 @@ export class MissionsService {
   async loadMissions() {
     const missions = await this.prismaService.mission.findMany({
       where: {
-        status: MissionStatus.Opened,
+        status: {
+          not: MissionStatus.Closed,
+        },
       },
       include: {
         targetPosition: true,
@@ -142,16 +158,68 @@ export class MissionsService {
     });
   }
 
+  async closeMission(id: number) {
+    const mission = await this.prismaService.mission.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
+      },
+    });
+
+    if (!mission) {
+      throw new Error('Invalid mission id!');
+    }
+
+    if (
+      mission.status !== MissionStatus.Opened &&
+      mission.status !== MissionStatus.Created
+    ) {
+      throw new Error('Invalid mission status!');
+    }
+
+    const isClosed = await this.tasksService.closeMissionTasks(mission);
+
+    if (!isClosed) {
+      throw new Error('There is something wrong while closing mission tasks!');
+    }
+
+    const closingMissions = await this.updateMany([
+      {
+        id: mission.id,
+        status: MissionStatus.Closing,
+      },
+    ]);
+
+    if (closingMissions.length !== 1) {
+      throw new Error('There is something wrong while closing mission tasks!');
+    }
+
+    const closingMission = closingMissions[0];
+
+    const arr = this.missionsByBotMap.get(closingMission.botId);
+
+    if (arr) {
+      const index = arr.findIndex((bot) => bot.id === closingMission.id);
+      arr[index] = closingMission;
+    } else {
+      this.missionsByBotMap.set(closingMission.botId, [closingMission]);
+    }
+
+    return closingMission;
+  }
+
   findAll() {
-    return this.prismaService.mission.findMany();
-  }
-
-  findOne(id: number) {
-    return this.prismaService.mission.findUnique({ where: { id } });
-  }
-
-  findByBot(botId: number) {
-    return this.prismaService.mission.findMany({ where: { botId } });
+    return this.prismaService.mission.findMany({
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: true,
+      },
+    });
   }
 
   async handleMarketOrderInitiatedActions(
@@ -205,6 +273,7 @@ export class MissionsService {
           return {
             id: mission.id,
             achievePositionId: eventContext.action.positionId,
+            status: MissionStatus.Opening,
           };
         })
         .filter((item) => !!item),
@@ -217,12 +286,11 @@ export class MissionsService {
         action: item.action,
         context: item.context,
       }))
-      .filter((item) => isOpenMissionAction(item.action));
-
-    console.log(
-      'find mission leader actions and create mission object',
-      openEvents,
-    );
+      .filter(
+        (item) =>
+          isOpenMissionAction(item.action) &&
+          item.context.bot.status !== BotStatus.Stop,
+      );
 
     await this.createMany(
       openEvents.map((item) => ({
@@ -288,8 +356,6 @@ export class MissionsService {
   }
 
   async handleFollowerActions(followerActions: ActionContext<BotContext>[]) {
-    console.log('handleFollowerActions =>', followerActions);
-
     await this.handleMarketOrderInitiatedActions(
       followerActions.filter(
         (item) =>
@@ -309,15 +375,11 @@ export class MissionsService {
         .map((item) => ({
           id: item.context.mission.id,
           achievePositionId: item.action.positionId,
+          status: MissionStatus.Opened,
         })),
     );
 
     if (missionActions.length > 0) {
-      console.log(
-        'handle follower actions in mission service ===>',
-        JSON.stringify(missionActions, null, 2),
-      );
-
       await this.tasksService.handleFollowerActions(missionActions);
     }
 
@@ -343,15 +405,14 @@ export class MissionsService {
       'targetPosition',
     );
 
-    console.log('missionActions ==>', missionActions);
-
     if (missionActions.length > 0) {
-      console.log(
-        'handle leader actions in mission service ===>',
-        missionActions.length,
+      await this.tasksService.handleLeaderActions(
+        missionActions.filter(
+          (item) =>
+            item.context.mission.status !== MissionStatus.Closing &&
+            item.context.mission.status !== MissionStatus.Closed,
+        ),
       );
-
-      await this.tasksService.handleLeaderActions(missionActions);
     }
   }
 }

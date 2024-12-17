@@ -7,6 +7,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 
 import { SystemService } from './system.service';
+import { ContractMonitorService } from './contract-monitor.service';
 
 import { GlobalModule } from './global/global.module';
 import { UsersModule } from './users/users.module';
@@ -20,6 +21,7 @@ import { MissionsModule } from './missions/missions.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ActionsModule } from './actions/actions.module';
 import { FollowerActionsModule } from './follower-actions/follower-actions.module';
+import { TradeHistoriesModule } from './trade-histories/trade-histories.module';
 
 @Module({
   imports: [
@@ -29,6 +31,9 @@ import { FollowerActionsModule } from './follower-actions/follower-actions.modul
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      subscriptions: {
+        'graphql-ws': true,
+      },
       sortSchema: true,
     }),
     ScheduleModule.forRoot(),
@@ -44,8 +49,9 @@ import { FollowerActionsModule } from './follower-actions/follower-actions.modul
     TasksModule,
     ActionsModule,
     FollowerActionsModule,
+    TradeHistoriesModule,
   ],
   controllers: [],
-  providers: [SystemService],
+  providers: [SystemService, ContractMonitorService],
 })
 export class AppModule {}

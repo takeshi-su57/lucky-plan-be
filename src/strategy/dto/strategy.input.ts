@@ -1,5 +1,5 @@
-import { InputType, Field, PartialType } from '@nestjs/graphql';
-import { IsNotEmpty, IsJSON } from 'class-validator';
+import { InputType, Field, Int } from '@nestjs/graphql';
+import { IsNotEmpty, IsJSON, IsInt } from 'class-validator';
 
 @InputType()
 export class CreateStrategyInput {
@@ -11,7 +11,49 @@ export class CreateStrategyInput {
   @IsJSON()
   @Field()
   params: string;
-}
 
-@InputType()
-export class UpdateStrategyInput extends PartialType(CreateStrategyInput) {}
+  @IsNotEmpty()
+  @IsInt()
+  @Field(() => Int)
+  ratio: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field()
+  lifeTime: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field()
+  minCapacity: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field()
+  maxCapacity: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field()
+  minCollateral: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field()
+  maxCollateral: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field(() => Int)
+  maxLeverage: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field(() => Int)
+  collateralBaseline: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field(() => Int)
+  minLeverage: number;
+}

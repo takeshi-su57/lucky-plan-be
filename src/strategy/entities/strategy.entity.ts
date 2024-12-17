@@ -10,4 +10,31 @@ export class Strategy {
 
   @Field()
   params: string;
+
+  @Field(() => Int)
+  ratio: number;
+
+  @Field(() => Int)
+  lifeTime: number;
+
+  @Field(() => Int)
+  minCapacity: number;
+
+  @Field(() => Int)
+  maxCapacity: number;
+
+  @Field(() => Int)
+  minCollateral: number;
+
+  @Field(() => Int)
+  maxCollateral: number;
+
+  @Field(() => Int)
+  collateralBaseline: number;
+
+  @Field(() => Int)
+  maxLeverage: number;
+
+  @Field(() => Int)
+  minLeverage: number;
 }

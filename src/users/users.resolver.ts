@@ -1,6 +1,6 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import { User, UserHistory } from './entities/user.entity';
 import {
   AddUserInput,
   ChangeUserRoleInput,
@@ -17,7 +17,12 @@ export class UsersResolver {
   }
 
   @Mutation(() => User)
-  changeRole(@Args('input') input: ChangeUserRoleInput) {
+  addLeader(@Args('input') input: AddUserInput) {
+    return this.usersService.addLeader(input.address);
+  }
+
+  @Mutation(() => User)
+  changeUserRole(@Args('input') input: ChangeUserRoleInput) {
     return this.usersService.changeRole(input.address, input.role);
   }
 
@@ -29,5 +34,17 @@ export class UsersResolver {
   @Query(() => [User])
   getAllLeaders() {
     return this.usersService.getAllLeaders();
+  }
+
+  @Query(() => [UserHistory])
+  getAllLeaderHistories(
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.usersService.getAllLeaderHistories(contractId);
+  }
+
+  @Query(() => [User])
+  getAllUsers() {
+    return this.usersService.getAllUsers();
   }
 }
