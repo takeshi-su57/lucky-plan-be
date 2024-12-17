@@ -72,7 +72,15 @@ export class UsersService {
     return this.prismaService.user.findMany();
   }
 
-  async getAllLeaders(contractId: number) {
+  getAllLeaders() {
+    return this.prismaService.user.findMany({
+      where: {
+        role: UserRole.Leader,
+      },
+    });
+  }
+
+  async getAllLeaderHistories(contractId: number) {
     const leaders = await this.prismaService.user.findMany({
       where: {
         role: UserRole.Leader,
