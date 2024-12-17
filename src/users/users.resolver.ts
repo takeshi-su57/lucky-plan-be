@@ -17,6 +17,11 @@ export class UsersResolver {
   }
 
   @Mutation(() => User)
+  addLeader(@Args('input') input: AddUserInput) {
+    return this.usersService.addLeader(input.address);
+  }
+
+  @Mutation(() => User)
   changeUserRole(@Args('input') input: ChangeUserRoleInput) {
     return this.usersService.changeRole(input.address, input.role);
   }

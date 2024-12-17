@@ -221,6 +221,7 @@ enum MissionStatus {
 }
 
 type Mutation {
+  addLeader(input: AddUserInput!): User!
   addUser(input: AddUserInput!): User!
   changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changePassword(input: ChangePasswordInput!): Boolean!
