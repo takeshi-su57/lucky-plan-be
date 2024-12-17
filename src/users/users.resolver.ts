@@ -31,9 +31,16 @@ export class UsersResolver {
     return this.usersService.getUserByAddress(input.address);
   }
 
+  @Query(() => [User])
+  getAllLeaders() {
+    return this.usersService.getAllLeaders();
+  }
+
   @Query(() => [UserHistory])
-  getAllLeaders(@Args('contractId', { type: () => Int }) contractId: number) {
-    return this.usersService.getAllLeaders(contractId);
+  getAllLeaderHistories(
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.usersService.getAllLeaderHistories(contractId);
   }
 
   @Query(() => [User])
