@@ -9,7 +9,7 @@ import {
 
 function getKeyFromHistory(history: TradeHistory, kind: PnlSnapshotKind) {
   return JSON.stringify({
-    address: history.address,
+    address: history.address.toLowerCase(),
     contractId: history.contractId,
     kind,
   });
@@ -17,7 +17,7 @@ function getKeyFromHistory(history: TradeHistory, kind: PnlSnapshotKind) {
 
 function getKeyFromSnapshot(record: PnlSnapshot) {
   return JSON.stringify({
-    address: record.address,
+    address: record.address.toLowerCase(),
     contractId: record.contractId,
     kind: record.kind,
   });
@@ -187,7 +187,7 @@ export class PnlSnapshotsService {
                 const { address, contractId, kind } = parseKey(key);
 
                 return {
-                  address,
+                  address: address.toLowerCase(),
                   contractId,
                   kind,
                 };
@@ -211,7 +211,7 @@ export class PnlSnapshotsService {
           const { address, contractId, kind } = parseKey(key);
 
           return {
-            address,
+            address: address.toLowerCase(),
             contractId,
             kind,
             accUSDPnl: prevValue + accValue,
@@ -223,7 +223,7 @@ export class PnlSnapshotsService {
             return this.prismaService.pnlSnapshot.upsert({
               where: {
                 address_contractId_kind: {
-                  address: input.address,
+                  address: input.address.toLowerCase(),
                   contractId: input.contractId,
                   kind: input.kind,
                 },
@@ -366,7 +366,7 @@ export class PnlSnapshotsService {
               const { address, contractId, kind } = parseKey(key);
 
               return {
-                address,
+                address: address.toLowerCase(),
                 contractId,
                 kind,
               };
@@ -392,7 +392,7 @@ export class PnlSnapshotsService {
         const { address, contractId, kind } = parseKey(key);
 
         return {
-          address,
+          address: address.toLowerCase(),
           contractId,
           kind,
           accUSDPnl:
@@ -407,7 +407,7 @@ export class PnlSnapshotsService {
           return this.prismaService.pnlSnapshot.upsert({
             where: {
               address_contractId_kind: {
-                address: input.address,
+                address: input.address.toLowerCase(),
                 contractId: input.contractId,
                 kind: input.kind,
               },

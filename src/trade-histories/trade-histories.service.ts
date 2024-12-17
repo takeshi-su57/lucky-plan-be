@@ -31,10 +31,12 @@ export class TradeHistoriesService {
     });
   }
 
-  getTradeHistories(address: string, contractId: number) {
+  getTradeHistories(addresses: string[], contractId: number) {
     return this.prismaService.tradeHistory.findMany({
       where: {
-        address,
+        address: {
+          in: addresses,
+        },
         contractId,
       },
     });
@@ -135,7 +137,7 @@ export class TradeHistoriesService {
         }
 
         return {
-          address: action.item.position.address,
+          address: action.item.position.address.toLowerCase(),
           eventName: action.item.name,
           contractId,
           in: usdIn,

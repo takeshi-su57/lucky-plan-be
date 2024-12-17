@@ -1,6 +1,6 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import { User, UserHistory } from './entities/user.entity';
 import {
   AddUserInput,
   ChangeUserRoleInput,
@@ -26,9 +26,9 @@ export class UsersResolver {
     return this.usersService.getUserByAddress(input.address);
   }
 
-  @Query(() => [User])
-  getAllLeaders() {
-    return this.usersService.getAllLeaders();
+  @Query(() => [UserHistory])
+  getAllLeaders(@Args('contractId', { type: () => Int }) contractId: number) {
+    return this.usersService.getAllLeaders(contractId);
   }
 
   @Query(() => [User])
