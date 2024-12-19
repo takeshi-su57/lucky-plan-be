@@ -227,6 +227,8 @@ model TradeHistory {
 
 enum PnlSnapshotKind {
   DAY
+  TWO_DAY
+  THREE_DAY
   WEEK
   TWO_WEEK
   MONTH
