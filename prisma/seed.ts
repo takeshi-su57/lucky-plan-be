@@ -122,6 +122,31 @@ async function main() {
 
     console.log('contract data:', result);
   }
+
+  const tagsData = [
+    {
+      tag: 'LEADER',
+      color: '#047857',
+      description: 'This is leader.',
+    },
+    {
+      tag: 'FOLLOWER',
+      color: '#6b21a8',
+      description: 'This is follower.',
+    },
+  ];
+
+  for (const data of tagsData) {
+    const result = await prisma.tag.upsert({
+      where: {
+        tag: data.tag,
+      },
+      update: {},
+      create: data,
+    });
+
+    console.log('Tags:', result);
+  }
 }
 main()
   .then(async () => {
