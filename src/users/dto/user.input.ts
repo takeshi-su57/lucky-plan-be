@@ -1,6 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { UserRole } from '@prisma/client';
-import { IsIn, IsNotEmpty } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
@@ -13,15 +12,14 @@ export class AddUserInput {
 }
 
 @InputType()
-export class ChangeUserRoleInput {
+export class ChangeUserTagInput {
   @IsNotEmpty()
   @IsWalletAddress()
   @Field()
   address: string;
 
-  @IsIn([UserRole.Leader, UserRole.User])
   @Field()
-  role: UserRole;
+  tag: string;
 }
 
 @InputType()

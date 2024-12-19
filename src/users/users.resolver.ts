@@ -1,9 +1,9 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UsersService } from './users.service';
-import { User, UserHistory } from './entities/user.entity';
+import { User } from './entities/user.entity';
 import {
   AddUserInput,
-  ChangeUserRoleInput,
+  ChangeUserTagInput,
   GetUserByAddressInput,
 } from './dto/user.input';
 
@@ -17,30 +17,18 @@ export class UsersResolver {
   }
 
   @Mutation(() => User)
-  addLeader(@Args('input') input: AddUserInput) {
-    return this.usersService.addLeader(input.address);
+  addTagToUser(@Args('input') input: ChangeUserTagInput) {
+    return this.usersService.addTag(input);
   }
 
   @Mutation(() => User)
-  changeUserRole(@Args('input') input: ChangeUserRoleInput) {
-    return this.usersService.changeRole(input.address, input.role);
+  removeTagFromUser(@Args('input') input: ChangeUserTagInput) {
+    return this.usersService.removeTag(input);
   }
 
-  @Query(() => User, { nullable: true })
+  @Query(() => User)
   getUserByAddress(@Args('input') input: GetUserByAddressInput) {
     return this.usersService.getUserByAddress(input.address);
-  }
-
-  @Query(() => [User])
-  getAllLeaders() {
-    return this.usersService.getAllLeaders();
-  }
-
-  @Query(() => [UserHistory])
-  getAllLeaderHistories(
-    @Args('contractId', { type: () => Int }) contractId: number,
-  ) {
-    return this.usersService.getAllLeaderHistories(contractId);
   }
 
   @Query(() => [User])

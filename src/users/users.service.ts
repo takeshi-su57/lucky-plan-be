@@ -1,16 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { TradeHistory } from 'src/trade-histories/entities/trade-history.entity';
-import { TradeHistoriesService } from 'src/trade-histories/trade-histories.service';
+
+import { ChangeUserTagInput } from './dto/user.input';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private prismaService: PrismaService,
-    private tradeHistoriesService: TradeHistoriesService,
-  ) {}
+  constructor(private prismaService: PrismaService) {}
 
   addUser(address: string) {
     return this.prismaService.user.upsert({
@@ -18,44 +14,91 @@ export class UsersService {
       update: {},
       create: {
         address: address.toLowerCase(),
-        role: UserRole.User,
+      },
+      include: {
+        tags: true,
       },
     });
   }
 
-  addLeader(address: string) {
+  addFollower(address: string) {
     return this.prismaService.user.upsert({
       where: { address: address.toLowerCase() },
-      update: {},
+      update: {
+        tags: {
+          connectOrCreate: {
+            where: {
+              tag: 'FOLLOWER',
+            },
+            create: {
+              tag: 'FOLLOWER',
+              description: 'This user is a follower of app',
+              color: '#6b21a8',
+            },
+          },
+        },
+      },
       create: {
         address: address.toLowerCase(),
-        role: UserRole.Leader,
+        tags: {
+          connectOrCreate: {
+            where: {
+              tag: 'FOLLOWER',
+            },
+            create: {
+              tag: 'FOLLOWER',
+              description: 'This user is a follower of app',
+              color: '#6b21a8',
+            },
+          },
+        },
+      },
+      include: {
+        tags: true,
       },
     });
   }
 
-  upsertMany(addresses: string[]) {
-    return this.prismaService.$transaction(
-      addresses.map((address) =>
-        this.prismaService.user.upsert({
-          where: { address: address.toLowerCase() },
-          update: {},
-          create: {
-            address: address.toLowerCase(),
-            role: UserRole.User,
+  addTag(input: ChangeUserTagInput) {
+    return this.prismaService.user.upsert({
+      where: {
+        address: input.address.toLowerCase(),
+      },
+      update: {
+        tags: {
+          connect: {
+            tag: input.tag.toUpperCase(),
           },
-        }),
-      ),
-    );
+        },
+      },
+      create: {
+        address: input.address.toLowerCase(),
+        tags: {
+          connect: {
+            tag: input.tag.toUpperCase(),
+          },
+        },
+      },
+      include: {
+        tags: true,
+      },
+    });
   }
 
-  changeRole(address: string, role: UserRole) {
+  removeTag(input: ChangeUserTagInput) {
     return this.prismaService.user.update({
       where: {
-        address: address.toLowerCase(),
+        address: input.address.toLowerCase(),
       },
       data: {
-        role,
+        tags: {
+          disconnect: {
+            tag: input.tag.toUpperCase(),
+          },
+        },
+      },
+      include: {
+        tags: true,
       },
     });
   }
@@ -65,54 +108,13 @@ export class UsersService {
       where: {
         address: address.toLowerCase(),
       },
+      include: {
+        tags: true,
+      },
     });
   }
 
   getAllUsers() {
-    return this.prismaService.user.findMany();
-  }
-
-  getAllLeaders() {
-    return this.prismaService.user.findMany({
-      where: {
-        role: UserRole.Leader,
-      },
-    });
-  }
-
-  async getAllLeaderHistories(contractId: number) {
-    const leaders = await this.prismaService.user.findMany({
-      where: {
-        role: UserRole.Leader,
-      },
-    });
-
-    const histories = await this.tradeHistoriesService.getTradeHistories(
-      leaders.map((item) => item.address.toLowerCase()),
-      contractId,
-    );
-
-    const historiesMap = new Map<string, TradeHistory[]>();
-
-    histories.forEach((history) => {
-      const arr = historiesMap.get(history.address);
-
-      if (arr) {
-        arr.push(history);
-      } else {
-        historiesMap.set(history.address, [history]);
-      }
-    });
-
-    return leaders.map((item) => ({
-      ...item,
-      histories: historiesMap.get(item.address) || [],
-    }));
-  }
-
-  async isLeaderAddress(address: string): Promise<boolean> {
-    const user = await this.getUserByAddress(address);
-
-    return !!user && user.role === UserRole.Leader;
+    return this.prismaService.user.findMany({ include: { tags: true } });
   }
 }

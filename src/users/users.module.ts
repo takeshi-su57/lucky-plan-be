@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersResolver } from './users.resolver';
-import { TradeHistoriesModule } from 'src/trade-histories/trade-histories.module';
+import { TagsResolver } from './tags.resolver';
+import { TagsService } from './tags.service';
 
 @Module({
-  imports: [TradeHistoriesModule],
-  providers: [UsersResolver, UsersService],
-  exports: [UsersService],
+  providers: [UsersResolver, TagsResolver, TagsService, UsersService],
+  exports: [UsersService, TagsService],
 })
 export class UsersModule {}
