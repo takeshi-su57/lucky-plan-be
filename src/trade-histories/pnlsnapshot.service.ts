@@ -33,6 +33,8 @@ function parseKey(key: string) {
 
 const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
+  [PnlSnapshotKind.TWO_DAY]: 2 * 24 * 60 * 60 * 1000,
+  [PnlSnapshotKind.THREE_DAY]: 3 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.WEEK]: 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.TWO_WEEK]: 2 * 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
