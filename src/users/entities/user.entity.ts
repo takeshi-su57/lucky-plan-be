@@ -1,22 +1,12 @@
-import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
-import { UserRole } from '@prisma/client';
-import { TradeHistory } from 'src/trade-histories/entities/trade-history.entity';
+import { ObjectType, Field } from '@nestjs/graphql';
 
-registerEnumType(UserRole, {
-  name: 'UserRole',
-});
+import { Tag } from './tag.entity';
 
 @ObjectType()
 export class User {
   @Field()
   address: string;
 
-  @Field(() => UserRole)
-  role: UserRole;
-}
-
-@ObjectType()
-export class UserHistory extends User {
-  @Field(() => [TradeHistory])
-  histories: TradeHistory[];
+  @Field(() => [Tag])
+  tags: Tag[];
 }

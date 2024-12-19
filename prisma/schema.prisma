@@ -21,11 +21,6 @@ model Metadata {
   updatedAt DateTime @updatedAt
 }
 
-enum UserRole {
-  Leader
-  User
-}
-
 enum BotStatus {
   Created
   Live
@@ -33,9 +28,16 @@ enum BotStatus {
   Dead
 }
 
+model Tag {
+  tag         String @id @db.VarChar(255)
+  description String
+  color       String
+  users       User[]
+}
+
 model User {
-  address String   @id @db.VarChar(255)
-  role    UserRole
+  address String @id @db.VarChar(255)
+  tags    Tag[]
 
   follower Follower?
   bots     Bot[]
