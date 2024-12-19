@@ -3,7 +3,6 @@ import { BotStatus, Contract } from '@prisma/client';
 import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { UsersService } from 'src/users/users.service';
 import { ChainsService } from 'src/global/chains.service';
 import { MissionsService } from 'src/missions/missions.service';
 
@@ -27,7 +26,6 @@ export class BotsService {
 
   constructor(
     private prismaService: PrismaService,
-    private usersService: UsersService,
     private chainsService: ChainsService,
     private missionsService: MissionsService,
     private followersService: FollowerService,
@@ -39,12 +37,6 @@ export class BotsService {
   }
 
   async create(input: CreateBotInput) {
-    if (!(await this.usersService.isLeaderAddress(input.leaderAddress))) {
-      throw new Error(
-        'Invalid Params, leaderAddress is not a leader in user table',
-      );
-    }
-
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
