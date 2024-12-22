@@ -71,7 +71,7 @@ export class TradeHistoriesService {
               BigInt(args.collateralDelta) / collateral.precision,
             );
             const realCollateralPriceUsd =
-              Number(args.collateralPriceUsd) / 100000000;
+              Number(args.collateralPriceUsd) / 100000000; // chainlink precision
 
             usdOut = Number(realCollateralDelta * realCollateralPriceUsd);
 
@@ -126,7 +126,8 @@ export class TradeHistoriesService {
                 usdIn = Number(realAmountSentToTrader * realCollateralPriceUsd);
 
                 usdPnl =
-                  usdIn - Number(realCollateralAmount * realCollateralPriceUsd);
+                  (realAmountSentToTrader - realCollateralAmount) *
+                  realCollateralPriceUsd;
               } else {
                 return null;
               }

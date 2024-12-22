@@ -1,14 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
 
 import { ChainsService } from './chains.service';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { PrismaService } from './prisma.service';
-import { Collateral } from 'src/types';
+import { Collateral, Pair } from 'src/types';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 
 export type TradingVariable = {
+  pairs: (Pair | undefined)[];
   collaterals: Collateral[];
 };
 
@@ -16,43 +17,77 @@ export type TradingVariable = {
 export class TradingVariableService {
   private tradingVariable: Record<number, TradingVariable> = {};
   public status: 'ready' | 'process' = 'process';
-  contracts: Contract[] = [];
 
   constructor(
     private chainsService: ChainsService,
     private prismaService: PrismaService,
-    private logger: Logger,
   ) {
-    this.tradingVariable = {};
     this.loadTradingVariables();
   }
 
   async loadTradingVariables() {
     this.status = 'process';
 
-    try {
-      this.contracts = await this.prismaService.contract.findMany();
+    const contracts = await this.prismaService.contract.findMany();
 
-      for (const contract of this.contracts) {
-        const publicClient = this.chainsService.publicClient(contract.chainId);
+    this.tradingVariable = {};
 
-        const collateralData = await publicClient.readContract({
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'getCollaterals',
-          args: [],
-        });
+    const promises = contracts.map(async (contract) => {
+      const publicClient = this.chainsService.publicClient(contract.chainId);
 
-        this.tradingVariable[contract.id] = {
-          collaterals: collateralData.map((item) => ({
-            ...item,
-            usdPrice: 100_000_000n,
-          })),
-        };
+      const refData = await publicClient.multicall({
+        contracts: [
+          {
+            address: contract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'pairsCount',
+            args: [],
+          },
+          {
+            address: contract.address as Address,
+            abi: gnsMultiCollatDiamondAbi,
+            functionName: 'getCollaterals',
+            args: [],
+          },
+        ],
+      });
+
+      if (refData[0].status === 'failure' || refData[1].status === 'failure') {
+        throw new Error('Failed at getting trading variable');
       }
-    } catch (err) {
-      this.logger.error(err);
-    }
+
+      const pairsData = await publicClient.multicall({
+        contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
+          (item) =>
+            ({
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'pairs',
+              args: [BigInt(item)],
+            }) as {
+              abi: typeof gnsMultiCollatDiamondAbi;
+              functionName: 'pairs';
+              args: [bigint];
+              address: Address;
+            },
+        ),
+      });
+
+      const failedPair = pairsData.find((pair) => pair.status === 'failure');
+
+      if (failedPair) {
+        throw new Error('Failed at getting trading variable');
+      }
+
+      this.tradingVariable[contract.id] = {
+        pairs: pairsData.map((item) => item.result),
+        collaterals: refData[1].result.map((item) => ({
+          ...item,
+        })),
+      };
+    });
+
+    await Promise.all(promises);
 
     this.status = 'ready';
   }
@@ -76,6 +111,14 @@ export class TradingVariableService {
     ).then((res) => res.json());
 
     return BigInt(Math.floor(charts.closes[pairIndex] * 1e10));
+  }
+
+  getPair(contractId: number, pairIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].pairs[pairIndex];
   }
 
   getCollateral(contractId: number, collateralIndex: number) {

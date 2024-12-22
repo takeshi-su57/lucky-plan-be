@@ -38,20 +38,13 @@ export class ContractMonitorService {
   async checkContracts() {
     this.status = 'process';
 
-    try {
-      const contracts = await this.contractsService.findAll();
+    const contracts = await this.contractsService.findAll();
 
-      for (const contract of contracts) {
-        console.time('CheckContract');
-        await this.checkContract(contract);
-        console.timeLog('CheckContract');
-        console.timeEnd('CheckContract');
-      }
-    } catch (err) {
-      this.logger.error(
-        `contract-monitor.service.ts> ${getReadableError(err)}`,
-      );
-    }
+    const promises = contracts.map(async (contract) => {
+      return await this.checkContract(contract);
+    });
+
+    await Promise.allSettled(promises);
 
     this.status = 'ready';
   }
@@ -80,15 +73,13 @@ export class ContractMonitorService {
         );
 
         if (actionItems.length > 0) {
-          console.log(`find contract actions ==> ${actionItems.length}`);
+          await this.botsService.handleActionItems(contract, actionItems);
 
           await this.tradeHistoriesService.handleActionItems(
             contract.id,
             new Date(Number(block.timestamp) * 1000),
             actionItems,
           );
-
-          await this.botsService.handleActionItems(contract, actionItems);
         }
 
         await this.contractsService.updateLastBlockNumber(
