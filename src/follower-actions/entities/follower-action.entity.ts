@@ -1,6 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Action } from 'src/actions/entities/action.entity';
-import { Task } from 'src/tasks/entities/task.entity';
 
 @ObjectType()
 export class FollowerAction {
@@ -18,7 +17,4 @@ export class FollowerAction {
 export class FollowerActionDetails extends FollowerAction {
   @Field(() => Action)
   action: Action;
-
-  @Field(() => Task)
-  task: Task;
 }

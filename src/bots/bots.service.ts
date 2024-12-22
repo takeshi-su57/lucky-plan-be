@@ -11,7 +11,7 @@ import { BotUpdateInput, CreateBotInput } from './dto/bot.input';
 import { ActionContext, BotContext } from 'src/types';
 import { BotDetails } from './entities/bot.entity';
 
-import { ActionItem } from 'src/actions/entities/action.entity';
+import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
 import { FollowerService } from 'src/follower/follower.service';
 import { MAX_GAS, MIN_GAS, USDCCollateralIndex } from 'src/utils/constants';
@@ -210,7 +210,7 @@ export class BotsService {
     return updatedBot;
   }
 
-  findAll() {
+  async findAll(): Promise<BotDetails[]> {
     return this.prismaService.bot.findMany({
       include: {
         follower: true,
@@ -395,15 +395,12 @@ export class BotsService {
         return;
       }
 
-      let included = false;
-
       if (
         bot.leaderContractId === contractId &&
         bot.leaderStartedBlock &&
         bot.leaderStartedBlock < blockNumber
       ) {
         leaderBots.push(bot);
-        included = true;
       }
 
       if (
@@ -412,18 +409,15 @@ export class BotsService {
         bot.followerStartedBlock < blockNumber
       ) {
         followerBots.push(bot);
-        included = true;
-      }
-
-      if (included) {
-        totalAddresses.push(
-          ...[
-            bot.leaderAddress.toLowerCase(),
-            bot.followerAddress.toLowerCase(),
-          ],
-        );
       }
     });
+
+    totalAddresses.push(
+      ...[
+        ...leaderBots.map((item) => item.leaderAddress.toLowerCase()),
+        ...followerBots.map((item) => item.followerAddress.toLowerCase()),
+      ],
+    );
 
     return {
       leaderBots,
@@ -432,15 +426,15 @@ export class BotsService {
     };
   }
 
-  async handleActionItems(
-    contract: Contract,
+  private filterBotActions(
+    contractId: number,
     actionItems: { item: ActionItem; blockNumber: number }[],
   ) {
     const filteredActionItems: { item: ActionItem; blockNumber: number }[] = [];
 
     for (let i = 0; i < actionItems.length; ) {
       const { botAddressSet } = this.filterBots(
-        contract.id,
+        contractId,
         actionItems[i].blockNumber,
       );
 
@@ -463,6 +457,74 @@ export class BotsService {
       i = j;
     }
 
+    return filteredActionItems;
+  }
+
+  private getBotContextActions(contractId: number, actions: ActionDetails[]) {
+    const leaderActions: ActionContext<BotContext>[] = [];
+    const followerActions: ActionContext<BotContext>[] = [];
+
+    for (let i = 0; i < actions.length; ) {
+      const { leaderBots, followerBots } = this.filterBots(
+        contractId,
+        actions[i].blockNumber,
+      );
+
+      let j = i;
+
+      for (; j < actions.length; j++) {
+        if (actions[i].blockNumber === actions[j].blockNumber) {
+          leaderActions.push(
+            ...leaderBots
+              .filter((bot) =>
+                isAddressEqual(
+                  actions[j].position.address as Address,
+                  bot.leaderAddress as Address,
+                ),
+              )
+              .map((bot) => ({
+                action: actions[j],
+                context: {
+                  bot,
+                },
+              })),
+          );
+
+          followerActions.push(
+            ...followerBots
+              .filter((bot) =>
+                isAddressEqual(
+                  actions[j].position.address as Address,
+                  bot.followerAddress as Address,
+                ),
+              )
+              .map((bot) => ({
+                action: actions[j],
+                context: {
+                  bot,
+                },
+              })),
+          );
+        } else {
+          break;
+        }
+      }
+
+      i = j;
+    }
+
+    return {
+      leaderActions,
+      followerActions,
+    };
+  }
+
+  async handleActionItems(
+    contract: Contract,
+    actionItems: { item: ActionItem; blockNumber: number }[],
+  ) {
+    const filteredActionItems = this.filterBotActions(contract.id, actionItems);
+
     // no need to proceed further steps
     if (filteredActionItems.length === 0) {
       return;
@@ -480,57 +542,10 @@ export class BotsService {
       })),
     );
 
-    const leaderActions: ActionContext<BotContext>[] = [];
-    const followerActions: ActionContext<BotContext>[] = [];
-
-    for (let i = 0; i < actions.length; ) {
-      const { leaderBots, followerBots } = this.filterBots(
-        contract.id,
-        actions[i].blockNumber,
-      );
-
-      let j = i;
-
-      for (; j < actions.length; j++) {
-        if (actions[i].blockNumber === actions[j].blockNumber) {
-          const leaderBotActions = leaderBots.map((bot) => ({
-            action: actions[j],
-            context: {
-              bot,
-            },
-          }));
-
-          leaderActions.push(
-            ...leaderBotActions.filter((action) =>
-              isAddressEqual(
-                action.action.position.address as Address,
-                action.context.bot.leaderAddress as Address,
-              ),
-            ),
-          );
-
-          const followerBotActions = followerBots.map((bot) => ({
-            action: actions[j],
-            context: {
-              bot,
-            },
-          }));
-
-          followerActions.push(
-            ...followerBotActions.filter((action) =>
-              isAddressEqual(
-                action.action.position.address as Address,
-                action.context.bot.followerAddress as Address,
-              ),
-            ),
-          );
-        } else {
-          break;
-        }
-      }
-
-      i = j;
-    }
+    const { leaderActions, followerActions } = this.getBotContextActions(
+      contract.id,
+      actions,
+    );
 
     if (followerActions.length > 0) {
       await this.missionsService.handleFollowerActions(followerActions);

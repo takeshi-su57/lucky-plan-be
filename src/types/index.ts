@@ -56,6 +56,20 @@ export enum ContractsVersion {
   V9_2,
 }
 
+export type Pair = {
+  from: string;
+  to: string;
+  feed: {
+    feed1: Address;
+    feed2: Address;
+    feedCalculation: number;
+    maxDeviationP: bigint;
+  };
+  spreadP: bigint;
+  groupIndex: bigint;
+  feeIndex: bigint;
+};
+
 export type Collateral = {
   collateral: Address;
   isActive: boolean;
