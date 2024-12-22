@@ -268,7 +268,7 @@ export class PnlSnapshotsService {
     return true;
   }
 
-  async dayUpdate() {
+  async updatePnlSnapshot() {
     this.status = 'updating';
 
     try {
@@ -287,11 +287,10 @@ export class PnlSnapshotsService {
         lastPnlSnapshotUpdatedTimestampRecord.value,
       ) as number;
 
-      const dayGap = 24 * 3600 * 1000;
       const lastUpdatedDate = new Date(lastPnlSnapshotUpdatedTimestamp);
-      const newLastUpdatedDate = new Date(
-        lastPnlSnapshotUpdatedTimestamp + dayGap,
-      );
+      const newLastUpdatedDate = new Date();
+      const gap =
+        newLastUpdatedDate.getTime() - lastPnlSnapshotUpdatedTimestamp;
 
       const ranges: { startDate: Date; endDate: Date }[] = [
         { startDate: lastUpdatedDate, endDate: newLastUpdatedDate },
@@ -303,7 +302,9 @@ export class PnlSnapshotsService {
         const endDate = new Date(
           lastPnlSnapshotUpdatedTimestamp - timestampGap,
         );
-        const startDate = new Date(endDate.getTime() - dayGap);
+        const startDate = new Date(
+          lastPnlSnapshotUpdatedTimestamp - timestampGap - gap,
+        );
 
         ranges.push({ startDate, endDate });
       }
@@ -335,7 +336,9 @@ export class PnlSnapshotsService {
           const endDate = new Date(
             lastPnlSnapshotUpdatedTimestamp - timestampGap,
           );
-          const startDate = new Date(endDate.getTime() - dayGap);
+          const startDate = new Date(
+            lastPnlSnapshotUpdatedTimestamp - timestampGap - gap,
+          );
 
           if (
             record.timestamp <= newLastUpdatedDate &&

@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ContractMonitorService } from './contract-monitor.service';
-import { TasksService } from './tasks/tasks.service';
 import { TradingVariableService } from './global/trading-variable.service';
 import { BotsService } from './bots/bots.service';
 import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
+import { TaskExecutorService } from './task-executor/task-executor.service';
 
 @Injectable()
 export class SystemService {
   constructor(
     private contractMonitorService: ContractMonitorService,
-    private tasksService: TasksService,
+    private taskExecutorService: TaskExecutorService,
     private pnlSnapshotService: PnlSnapshotsService,
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
@@ -19,12 +19,20 @@ export class SystemService {
   @Cron(CronExpression.EVERY_SECOND)
   async executeCron() {
     if (
-      this.tasksService.status === 'ready' &&
       this.contractMonitorService.status === 'ready' &&
       this.tradingVariableService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContracts();
-      await this.tasksService.performAvailableTasks();
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  async executeTaskCron() {
+    if (
+      this.taskExecutorService.status === 'ready' &&
+      this.tradingVariableService.status === 'ready'
+    ) {
+      await this.taskExecutorService.performAvailableTasks();
     }
   }
 
@@ -38,10 +46,10 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async executeCronForSnapshot() {
     if (this.pnlSnapshotService.status === 'ready') {
-      await this.pnlSnapshotService.dayUpdate();
+      await this.pnlSnapshotService.updatePnlSnapshot();
     }
   }
 }
