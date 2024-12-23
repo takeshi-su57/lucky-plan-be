@@ -8,6 +8,7 @@ import {
 import { MissionStatus } from '@prisma/client';
 import { Bot, BotDetails } from 'src/bots/entities/bot.entity';
 import { Position } from 'src/positions/entities/position.entity';
+import { TaskShallowDetails } from 'src/tasks/entities/task.entity';
 
 registerEnumType(MissionStatus, {
   name: 'MissionStatus',
@@ -53,4 +54,10 @@ export class MissionShallowDetails extends Mission {
 export class MissionDetails extends OmitType(MissionShallowDetails, ['bot']) {
   @Field(() => BotDetails)
   bot: BotDetails;
+}
+
+@ObjectType()
+export class MissionWithTasks extends Mission {
+  @Field(() => [TaskShallowDetails])
+  tasks: TaskShallowDetails[];
 }
