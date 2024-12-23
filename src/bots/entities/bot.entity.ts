@@ -3,7 +3,7 @@ import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
-import { User } from 'src/users/entities/user.entity';
+import { Mission } from 'src/missions/entities/mission.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
 
 registerEnumType(BotStatus, {
@@ -57,9 +57,6 @@ export class Bot {
 
 @ObjectType()
 export class BotDetails extends Bot {
-  @Field(() => User)
-  leader: User;
-
   @Field(() => Follower)
   follower: Follower;
 
@@ -71,4 +68,10 @@ export class BotDetails extends Bot {
 
   @Field(() => Contract)
   followerContract: Contract;
+}
+
+@ObjectType()
+export class BotWithMissions extends Bot {
+  @Field(() => [Mission])
+  missions: Mission[];
 }

@@ -10,7 +10,10 @@ import { Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 
 import { MissionsService } from './missions.service';
-import { MissionShallowDetails } from './entities/mission.entity';
+import {
+  MissionShallowDetails,
+  MissionWithTasks,
+} from './entities/mission.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -30,6 +33,11 @@ export class MissionsResolver {
   @Query(() => [MissionShallowDetails])
   getAllMissions() {
     return this.missionsService.findAll();
+  }
+
+  @Query(() => MissionWithTasks, { nullable: true })
+  findMission(@Args('id', { type: () => Int }) id: number) {
+    return this.missionsService.findOne(id);
   }
 
   @Subscription(() => [MissionShallowDetails], {

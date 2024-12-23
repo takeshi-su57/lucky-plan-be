@@ -24,7 +24,10 @@ import {
   TradeEventContext,
   MissionContext,
 } from 'src/types';
-import { MissionShallowDetails } from './entities/mission.entity';
+import {
+  MissionShallowDetails,
+  MissionWithTasks,
+} from './entities/mission.entity';
 import {
   MissionCloseInput,
   MissionCreateInput,
@@ -222,6 +225,20 @@ export class MissionsService {
     });
   }
 
+  findOne(id: number): Promise<MissionWithTasks | null> {
+    return this.prismaService.mission.findUnique({
+      where: { id },
+      include: {
+        tasks: {
+          include: {
+            action: true,
+            mission: true,
+          },
+        },
+      },
+    });
+  }
+
   async handleMarketOrderInitiatedActions(
     followerActions: ActionContext<BotContext>[],
   ) {
@@ -254,7 +271,6 @@ export class MissionsService {
     );
 
     // fill achievePositionId with orderId for temporaily
-
     await this.attachAchievePositionMany(
       tasks
         .map((task) => {
@@ -281,16 +297,11 @@ export class MissionsService {
   }
 
   async handleMissionLeaderActions(actions: ActionContext<BotContext>[]) {
-    const openEvents = actions
-      .map((item) => ({
-        action: item.action,
-        context: item.context,
-      }))
-      .filter(
-        (item) =>
-          isOpenMissionAction(item.action) &&
-          item.context.bot.status !== BotStatus.Stop,
-      );
+    const openEvents = actions.filter(
+      (item) =>
+        isOpenMissionAction(item.action) &&
+        item.context.bot.status !== BotStatus.Stop,
+    );
 
     await this.createMany(
       openEvents.map((item) => ({
@@ -330,7 +341,7 @@ export class MissionsService {
           };
         }
 
-        const mission = missions.filter(
+        const mission = missions.find(
           (missionItem) =>
             !!missionItem[field] &&
             isAddressEqual(
@@ -340,7 +351,7 @@ export class MissionsService {
             missionItem[field].index === actionPosition.index,
         );
 
-        if (mission.length === 0) {
+        if (!mission) {
           return null;
         }
 
@@ -348,7 +359,7 @@ export class MissionsService {
           ...actionItem,
           context: {
             ...actionItem.context,
-            mission: mission[0],
+            mission,
           },
         };
       })

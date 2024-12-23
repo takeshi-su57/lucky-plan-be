@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { TaskStatus } from '@prisma/client';
 import { Action } from 'src/actions/entities/action.entity';
+import { FollowerActionDetails } from 'src/follower-actions/entities/follower-action.entity';
 import { Mission, MissionDetails } from 'src/missions/entities/mission.entity';
 
 registerEnumType(TaskStatus, {
@@ -44,4 +45,13 @@ export class TaskDetails extends Task {
 
   @Field(() => Action)
   action: Action;
+}
+
+@ObjectType()
+export class TaskWithActions extends Task {
+  @Field(() => Action)
+  action: Action;
+
+  @Field(() => [FollowerActionDetails])
+  followerActions: FollowerActionDetails[];
 }

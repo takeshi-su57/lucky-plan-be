@@ -253,7 +253,7 @@ export class FollowerService {
         );
 
         if (!user) {
-          await this.usersService.addUser(account.address.toLowerCase());
+          await this.usersService.addFollower(account.address.toLowerCase());
         }
 
         return await this.prismaService.follower.create({
