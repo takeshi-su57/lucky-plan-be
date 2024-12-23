@@ -1,6 +1,6 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 
-import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsDate, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 import { BotStatus } from '@prisma/client';
 
@@ -49,6 +49,12 @@ export class BotUpdateInput {
 
   @IsNumber()
   followerEndedBlock?: number;
+
+  @IsDate()
+  startedAt?: Date;
+
+  @IsDate()
+  endedAt?: Date;
 
   @IsString()
   @IsIn([BotStatus.Created, BotStatus.Live, BotStatus.Stop, BotStatus.Dead])

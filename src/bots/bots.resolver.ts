@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { BotsService } from './bots.service';
-import { Bot, BotDetails } from './entities/bot.entity';
+import { Bot, BotDetails, BotWithMissions } from './entities/bot.entity';
 import { CreateBotInput } from './dto/bot.input';
 
 @Resolver(() => Bot)
@@ -32,8 +32,8 @@ export class BotsResolver {
     return this.botsService.findAll();
   }
 
-  @Query(() => BotDetails)
+  @Query(() => BotWithMissions, { nullable: true })
   findBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.findOne(id);
+    return this.botsService.findBotWithMissions(id);
   }
 }
