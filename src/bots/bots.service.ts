@@ -9,7 +9,7 @@ import { MissionsService } from 'src/missions/missions.service';
 import { BotUpdateInput, CreateBotInput } from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
-import { BotDetails } from './entities/bot.entity';
+import { BotDetails, BotWithMissions } from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
@@ -235,6 +235,15 @@ export class BotsService {
     });
   }
 
+  findBotWithMissions(id: number): Promise<BotWithMissions | null> {
+    return this.prismaService.bot.findUnique({
+      where: { id },
+      include: {
+        missions: true,
+      },
+    });
+  }
+
   async findOne(id: number) {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
@@ -325,6 +334,7 @@ export class BotsService {
       id,
       leaderStartedBlock: Number(leaderBlockNumber),
       followerStartedBlock: Number(followerBlockNumber),
+      startedAt: new Date(),
       status: BotStatus.Live,
     });
   }
@@ -346,6 +356,7 @@ export class BotsService {
       id: bot.id,
       leaderEndedBlock: Number(leaderBlockNumber),
       followerEndedBlock: Number(followerBlockNumber),
+      endedAt: new Date(),
       status: BotStatus.Stop,
     });
   }

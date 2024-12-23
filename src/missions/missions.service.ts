@@ -24,7 +24,10 @@ import {
   TradeEventContext,
   MissionContext,
 } from 'src/types';
-import { MissionShallowDetails } from './entities/mission.entity';
+import {
+  MissionShallowDetails,
+  MissionWithTasks,
+} from './entities/mission.entity';
 import {
   MissionCloseInput,
   MissionCreateInput,
@@ -218,6 +221,20 @@ export class MissionsService {
         targetPosition: true,
         achievePosition: true,
         bot: true,
+      },
+    });
+  }
+
+  findOne(id: number): Promise<MissionWithTasks | null> {
+    return this.prismaService.mission.findUnique({
+      where: { id },
+      include: {
+        tasks: {
+          include: {
+            action: true,
+            mission: true,
+          },
+        },
       },
     });
   }
