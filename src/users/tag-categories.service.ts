@@ -36,6 +36,6 @@ export class TagCategoriesService {
   }
 
   findAll() {
-    return this.prismaService.tag.findMany();
+    return this.prismaService.tagCategory.findMany();
   }
 }
