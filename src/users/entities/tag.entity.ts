@@ -1,4 +1,4 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 
 @ObjectType()
 export class Tag {
@@ -10,4 +10,7 @@ export class Tag {
 
   @Field()
   color: string;
+
+  @Field(() => Int, { nullable: true })
+  categoryId: number | null;
 }

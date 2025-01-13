@@ -31,6 +31,15 @@ export class TagsService {
     });
   }
 
+  async removeCategory(categoryId: number) {
+    await this.prismaService.tag.updateMany({
+      where: { categoryId },
+      data: {
+        categoryId: null,
+      },
+    });
+  }
+
   findAll() {
     return this.prismaService.tag.findMany();
   }
