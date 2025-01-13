@@ -257,7 +257,7 @@ type Mutation {
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
   deleteBot(id: Int!): Int!
-  deleteTag(tag: String!): Tag!
+  deleteTag(id: Int!): TagCategory!
   generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
   initalizePnlSnapshot: Boolean!
@@ -267,7 +267,7 @@ type Mutation {
   removeTagFromUser(input: ChangeUserTagInput!): User!
   stopBot(id: Int!): BotDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
-  upsertTag(input: TagInput!): Tag!
+  upsertTag(input: TagCategoryInput!): TagCategory!
   withdrawAll(input: WithdrawAllInput!): Boolean!
 }
 
@@ -338,6 +338,7 @@ type Query {
   findTask(id: Int!): TaskWithActions
   getAllActions: [Action!]!
   getAllBots: [BotDetails!]!
+  getAllCategories: [TagCategory!]!
   getAllContracts: [Contract!]!
   getAllFollowerActions: [FollowerAction!]!
   getAllFollowerDetails(contractId: Int!): [FollowerDetail!]!
@@ -386,15 +387,21 @@ type Subscription {
 }
 
 type Tag {
+  categoryId: Int
   color: String!
   description: String!
   tag: String!
 }
 
-input TagInput {
-  color: String!
+type TagCategory {
+  category: String!
   description: String!
-  tag: String!
+  id: Int!
+}
+
+input TagCategoryInput {
+  category: String!
+  description: String!
 }
 
 type TaskShallowDetails {

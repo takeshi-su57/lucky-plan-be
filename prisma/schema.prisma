@@ -28,11 +28,22 @@ enum BotStatus {
   Dead
 }
 
+model TagCategory {
+  id          Int    @id @default(autoincrement())
+  category    String @unique()
+  description String
+
+  Tag Tag[]
+}
+
 model Tag {
   tag         String @id @db.VarChar(255)
   description String
   color       String
-  users       User[]
+  categoryId  Int?
+
+  category TagCategory? @relation(fields: [categoryId], references: [id])
+  users    User[]
 }
 
 model User {
