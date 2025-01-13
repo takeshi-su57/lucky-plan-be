@@ -14,11 +14,13 @@ export class TagsService {
       update: {
         description: tagInput.description,
         color: tagInput.color,
+        categoryId: tagInput.categoryId,
       },
       create: {
         tag: tagInput.tag.toUpperCase(),
         description: tagInput.description,
         color: tagInput.color,
+        categoryId: tagInput.categoryId,
       },
     });
   }
