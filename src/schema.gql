@@ -257,7 +257,8 @@ type Mutation {
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
   deleteBot(id: Int!): Int!
-  deleteTag(id: Int!): TagCategory!
+  deleteCategory(id: Int!): TagCategory!
+  deleteTag(tag: String!): Tag!
   generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
   initalizePnlSnapshot: Boolean!
@@ -267,7 +268,8 @@ type Mutation {
   removeTagFromUser(input: ChangeUserTagInput!): User!
   stopBot(id: Int!): BotDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
-  upsertTag(input: TagCategoryInput!): TagCategory!
+  upsertCategory(input: TagCategoryInput!): TagCategory!
+  upsertTag(input: TagInput!): Tag!
   withdrawAll(input: WithdrawAllInput!): Boolean!
 }
 
@@ -402,6 +404,13 @@ type TagCategory {
 input TagCategoryInput {
   category: String!
   description: String!
+}
+
+input TagInput {
+  categoryId: Int
+  color: String!
+  description: String!
+  tag: String!
 }
 
 type TaskShallowDetails {
