@@ -29,7 +29,7 @@ import { Action } from 'src/actions/entities/action.entity';
 import { CreateFollowerActionInput } from 'src/follower-actions/dto/follower-action.input';
 import { FollowerActionsService } from 'src/follower-actions/follower-actions.service';
 
-import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { ActionsService } from 'src/actions/actions.service';
@@ -447,9 +447,13 @@ export class TasksService {
     missionId: number,
     filter: (action: Action) => boolean,
   ): TaskShallowDetails | null {
-    const tasks = this.filterTasks(botId, missionId).filter((task) =>
-      filter(task.action),
-    );
+    const tasks = this.filterTasks(botId, missionId)
+      .filter(
+        (task) =>
+          task.status !== TaskStatus.Completed &&
+          task.status !== TaskStatus.Stopped,
+      )
+      .filter((task) => filter(task.action));
 
     if (tasks.length !== 1) {
       return null;
@@ -470,7 +474,9 @@ export class TasksService {
         filter =
           action.name === marketOpenCanceledEventParser.eventName
             ? isOpenMissionAction
-            : isCloseMissionAction;
+            : (action: Action) =>
+                action.name === CloseMissionAction ||
+                isCloseMissionAction(action);
 
         status = TaskStatus.Failed;
       }
@@ -478,7 +484,11 @@ export class TasksService {
       if (action.name === marketOrderInitiatedEventParser.eventName) {
         const event = marketOrderInitiatedEventParser.actionParser(action);
 
-        filter = event.args.open ? isOpenMissionAction : isCloseMissionAction;
+        filter = event.args.open
+          ? isOpenMissionAction
+          : (action: Action) =>
+              action.name === CloseMissionAction ||
+              isCloseMissionAction(action);
 
         status = TaskStatus.Initiated;
       }
@@ -486,7 +496,9 @@ export class TasksService {
       if (missionEventNames.includes(action.name)) {
         filter = isOpenMissionAction(action)
           ? isOpenMissionAction
-          : isCloseMissionAction;
+          : (action: Action) =>
+              action.name === CloseMissionAction ||
+              isCloseMissionAction(action);
 
         status = TaskStatus.Completed;
       }

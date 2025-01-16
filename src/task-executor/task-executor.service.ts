@@ -430,7 +430,10 @@ export class TaskExecutorService {
           for (let i = 0; i < sortedTasks.length; i++) {
             const task = sortedTasks[i];
 
-            if (task.status === TaskStatus.Completed) {
+            if (
+              task.status === TaskStatus.Completed ||
+              task.status === TaskStatus.Stopped
+            ) {
               continue;
             }
 
