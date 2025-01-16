@@ -177,10 +177,7 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    if (
-      mission.status !== MissionStatus.Opened &&
-      mission.status !== MissionStatus.Created
-    ) {
+    if (mission.status === MissionStatus.Closed) {
       throw new Error('Invalid mission status!');
     }
 
