@@ -320,8 +320,20 @@ export class TaskExecutorService {
 
     if (!task) {
       throw new Error(
-        'Invalid bot id!, there is no such task which has give bot id',
+        'Invalid taskId!, there is no such task which has give taskId',
       );
+    }
+
+    if (task.status === TaskStatus.Await) {
+      throw new Error('Invalid task status, current Task is in progress');
+    }
+
+    if (task.status === TaskStatus.Stopped) {
+      throw new Error('This task is stopped');
+    }
+
+    if (task.status === TaskStatus.Completed) {
+      throw new Error('This task is completed');
     }
 
     const { success, message } = await this.performTask(task);
