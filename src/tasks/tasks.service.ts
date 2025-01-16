@@ -56,7 +56,9 @@ export class TasksService {
     this.loadTasks();
   }
 
-  async closeMissionTasks(mission: Mission): Promise<boolean> {
+  async closeMissionTasks(
+    mission: Mission,
+  ): Promise<'closed' | 'closing' | 'awaiting'> {
     const allMissionTasks = await this.prismaService.task.findMany({
       where: {
         missionId: mission.id,
@@ -82,7 +84,7 @@ export class TasksService {
     });
 
     if (allMissionTasks.length === 0) {
-      return false;
+      return 'closed';
     }
 
     const sortedMissionTasks = allMissionTasks.sort((a, b) => {
@@ -120,8 +122,12 @@ export class TasksService {
       }
     }
 
-    if (awaitingTasks.length > 0 || !openTask) {
-      return false;
+    if (!openTask) {
+      return 'closed';
+    }
+
+    if (awaitingTasks.length > 0) {
+      return 'awaiting';
     }
 
     await this.updateMany(
@@ -140,7 +146,7 @@ export class TasksService {
 
     // no need to proceed
     if (openTask.status !== TaskStatus.Completed) {
-      return true;
+      return 'closed';
     }
 
     const openEvent = missionEventParsers
@@ -170,7 +176,7 @@ export class TasksService {
       },
     ]);
 
-    return true;
+    return 'closing';
   }
 
   async loadTasks() {
