@@ -408,12 +408,13 @@ export class TaskExecutorService {
       const botTasks: TaskDetails[] = [];
 
       for (const tasksByMissionMap of allTasksByBotMap.values()) {
-        const openMissionTasks: {
-          created: TaskDetails[];
-          await: TaskDetails[];
-        } = { created: [], await: [] };
+        let botTask: TaskDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
+          if (botTask) {
+            break;
+          }
+
           if (tasks.length === 0) {
             continue;
           }
@@ -430,39 +431,16 @@ export class TaskExecutorService {
           for (let i = 0; i < sortedTasks.length; i++) {
             const task = sortedTasks[i];
 
-            if (
-              task.status === TaskStatus.Completed ||
-              task.status === TaskStatus.Stopped
-            ) {
-              continue;
-            }
-
-            if (
-              task.status === TaskStatus.Await &&
-              isOpenMissionAction(task.action)
-            ) {
-              openMissionTasks.await.push(sortedTasks[0]);
-            }
-
             if (task.status === TaskStatus.Created) {
-              if (isOpenMissionAction(task.action)) {
-                openMissionTasks.created.push(sortedTasks[0]);
-              } else {
-                botTasks.push(task);
-              }
+              botTask = task;
             }
 
             break;
           }
         }
 
-        // there is a pending opening mission task. need to wait more
-        if (openMissionTasks.await.length > 0) {
-          continue;
-        }
-
-        if (openMissionTasks.created.length > 0) {
-          botTasks.push(...openMissionTasks.created);
+        if (botTask) {
+          botTasks.push(botTask);
         }
       }
 
