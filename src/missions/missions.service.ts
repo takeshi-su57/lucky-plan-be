@@ -189,11 +189,19 @@ export class MissionsService {
       );
     }
 
+    if (isClosed === 'closed') {
+      await this.closeMany([{ id: mission.id }]);
+
+      return {
+        ...mission,
+        status: MissionStatus.Closed,
+      };
+    }
+
     const closingMissions = await this.updateMany([
       {
         id: mission.id,
-        status:
-          isClosed === 'closing' ? MissionStatus.Closing : MissionStatus.Closed,
+        status: MissionStatus.Closing,
       },
     ]);
 
