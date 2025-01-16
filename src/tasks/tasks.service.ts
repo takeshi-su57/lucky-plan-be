@@ -332,6 +332,18 @@ export class TasksService {
     });
   }
 
+  findByStatus(status: TaskStatus) {
+    return this.prismaService.task.findMany({
+      where: {
+        status,
+      },
+      include: {
+        action: true,
+        mission: true,
+      },
+    });
+  }
+
   findOne(id: number): Promise<TaskWithActions | null> {
     return this.prismaService.task.findUnique({
       where: { id },

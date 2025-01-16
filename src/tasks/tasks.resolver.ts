@@ -7,6 +7,7 @@ import { TaskWithActions, TaskShallowDetails } from './entities/task.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { TaskStatus } from '@prisma/client';
 
 @Resolver(() => TaskShallowDetails)
 export class TasksResolver {
@@ -18,6 +19,13 @@ export class TasksResolver {
   @Query(() => [TaskShallowDetails])
   getAllTasks() {
     return this.tasksService.findAll();
+  }
+
+  @Query(() => [TaskShallowDetails])
+  getTasksByStatus(
+    @Args('status', { type: () => TaskStatus }) status: TaskStatus,
+  ) {
+    return this.tasksService.findByStatus(status);
   }
 
   @Query(() => TaskWithActions, { nullable: true })
