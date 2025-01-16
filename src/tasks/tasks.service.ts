@@ -139,7 +139,7 @@ export class TasksService {
     );
 
     // no need to proceed
-    if (openTask.status === 'Created') {
+    if (openTask.status !== TaskStatus.Completed) {
       return true;
     }
 
