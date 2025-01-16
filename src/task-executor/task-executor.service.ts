@@ -37,7 +37,7 @@ import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class TaskExecutorService {
-  status: 'process' | 'ready' = 'process';
+  status: 'process' | 'ready' = 'ready';
 
   constructor(
     private prismaService: PrismaService,
