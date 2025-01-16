@@ -183,14 +183,17 @@ export class MissionsService {
 
     const isClosed = await this.tasksService.closeMissionTasks(mission);
 
-    if (!isClosed) {
-      throw new Error('There is something wrong while closing mission tasks!');
+    if (isClosed === 'awaiting') {
+      throw new Error(
+        'This mission cannot stop because there are pending transaction',
+      );
     }
 
     const closingMissions = await this.updateMany([
       {
         id: mission.id,
-        status: MissionStatus.Closing,
+        status:
+          isClosed === 'closing' ? MissionStatus.Closing : MissionStatus.Closed,
       },
     ]);
 
