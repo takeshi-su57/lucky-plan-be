@@ -75,6 +75,8 @@ export class FollowerService {
         masterFollower,
       );
 
+      let tx: string;
+
       switch (kind) {
         case 'usdcWithdraw': {
           this.logger.log(
@@ -89,7 +91,9 @@ export class FollowerService {
             args: [masterFollower.address as Address, amount],
           });
 
-          return await followerWallet.writeContract(request);
+          tx = await followerWallet.writeContract(request);
+
+          break;
         }
         case 'usdcDeposit': {
           this.logger.log(
@@ -104,7 +108,9 @@ export class FollowerService {
             args: [follower.address as Address, amount],
           });
 
-          return await masterWallet.writeContract(request);
+          tx = await masterWallet.writeContract(request);
+
+          break;
         }
         case 'ethWithdraw': {
           this.logger.log(
@@ -119,29 +125,82 @@ export class FollowerService {
 
           const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
 
-          return await followerWallet.sendTransaction({
+          tx = await followerWallet.sendTransaction({
             account: followerWallet.account!,
             to: masterFollower.address as Address,
             value: amount - gas * maxFeePerGas,
             chain: followerWallet.chain,
           });
+
+          break;
         }
         case 'ethDeposit': {
           this.logger.log(
             `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
           );
 
-          return await masterWallet.sendTransaction({
+          tx = await masterWallet.sendTransaction({
             account: masterWallet.account!,
             to: follower.address as Address,
             value: amount,
             chain: masterWallet.chain,
           });
+
+          break;
         }
+      }
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        return transaction.status === 'success';
+      } else {
+        return false;
       }
     } catch (err) {
       this.logger.error(`FollowerService>moveAsset>: ${getReadableError(err)}`);
     }
+
+    return false;
+  }
+
+  async withdrawAllUSDC(address: string, contractId: number): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo = this.tradingVariableServcie.getCollateral(
+        contractId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const usdcBalance = await publicClient.readContract({
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address as Address],
+      });
+
+      await this.moveAsset({
+        address,
+        contract: contract,
+        amount: usdcBalance,
+        kind: 'usdcWithdraw',
+      });
+
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `FollowerService>withdrawAllUSDC>: ${getReadableError(err)}`,
+      );
+    }
+
+    return false;
   }
 
   async withdrawAll(address: string, contractId: number): Promise<boolean> {

@@ -86,43 +86,11 @@ export class BotsService {
 
   async reBalanceAsset(bot: BotDetails) {
     try {
-      const { followerContract, follower, strategy } = bot;
+      const { followerContract, follower } = bot;
 
       const publicClient = this.chainsService.publicClient(
         followerContract.chainId,
       );
-
-      const collateralInfo = this.tradingVariableService.getCollateral(
-        bot.followerContractId,
-        USDCCollateralIndex[
-          followerContract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      const usdcBalance = await publicClient.readContract({
-        address: collateralInfo.collateral,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [follower.address as Address],
-      });
-
-      const { minCapacity, maxCapacity } = strategy;
-
-      if (usdcBalance < BigInt(minCapacity * 1e6)) {
-        await this.followersService.moveAsset({
-          address: follower.address,
-          contract: followerContract,
-          amount: BigInt(maxCapacity * 1e6) - usdcBalance,
-          kind: 'usdcDeposit',
-        });
-      } else if (usdcBalance > BigInt(2 * maxCapacity * 1e6)) {
-        await this.followersService.moveAsset({
-          address: follower.address,
-          contract: followerContract,
-          amount: usdcBalance - BigInt(maxCapacity * 1e6),
-          kind: 'usdcWithdraw',
-        });
-      }
 
       const ethBalance = await publicClient.getBalance({
         address: follower.address as Address,

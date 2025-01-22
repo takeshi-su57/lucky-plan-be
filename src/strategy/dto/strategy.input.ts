@@ -25,16 +25,6 @@ export class CreateStrategyInput {
   @IsNotEmpty()
   @IsInt()
   @Field()
-  minCapacity: number;
-
-  @IsNotEmpty()
-  @IsInt()
-  @Field()
-  maxCapacity: number;
-
-  @IsNotEmpty()
-  @IsInt()
-  @Field()
   minCollateral: number;
 
   @IsNotEmpty()
