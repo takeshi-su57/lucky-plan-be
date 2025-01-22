@@ -513,7 +513,7 @@ export class BotsService {
       contract.id,
       filteredActionItems.map(({ item, blockNumber }, index) => ({
         name: item.name,
-        positionAddress: item.position.address,
+        positionAddress: item.position.address.toLowerCase(),
         positionIndex: item.position.index,
         args: item.args,
         blockNumber,
