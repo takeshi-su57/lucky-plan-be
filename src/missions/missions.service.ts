@@ -347,7 +347,7 @@ export class MissionsService {
           this.missionsByBotMap.get(actionItem.context.bot.id) || [];
 
         let actionPosition = {
-          address: actionItem.action.position.address,
+          address: actionItem.action.position.address.toLowerCase(),
           index: actionItem.action.position.index,
         };
 
@@ -362,7 +362,7 @@ export class MissionsService {
           }
 
           actionPosition = {
-            address: orderId.user,
+            address: orderId.user.toLowerCase(),
             index: orderId.index,
           };
         }
