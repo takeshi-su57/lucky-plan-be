@@ -8,6 +8,7 @@ import {
   isCloseMissionAction,
   isOpenMissionAction,
   missionEventNames,
+  missionEventParsers,
 } from 'src/actions/eventParsers';
 
 import {
@@ -34,6 +35,7 @@ import {
   MissionUpdateInput,
 } from './dto/mission.input';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 
 @Injectable()
 export class MissionsService {
@@ -43,6 +45,7 @@ export class MissionsService {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private tasksService: TasksService,
+    private tradingVariableService: TradingVariableService,
     private readonly logger: Logger,
   ) {
     this.loadMissions();
@@ -305,11 +308,26 @@ export class MissionsService {
   }
 
   async handleMissionLeaderActions(actions: ActionContext<BotContext>[]) {
-    const openEvents = actions.filter(
-      (item) =>
-        isOpenMissionAction(item.action) &&
-        item.context.bot.status !== BotStatus.Stop,
-    );
+    const openEvents = actions
+      .filter(
+        (item) =>
+          isOpenMissionAction(item.action) &&
+          item.context.bot.status !== BotStatus.Stop,
+      )
+      // block leader action register if there is no pair ready
+      .filter((item) => {
+        const event = missionEventParsers
+          .find((parser) => parser.eventName === item.action.name)!
+          .actionParser(item.action);
+        const { t } = event.args;
+
+        const pair = this.tradingVariableService.getPair(
+          item.context.bot.followerContractId,
+          t.pairIndex,
+        );
+
+        return !!pair;
+      });
 
     await this.createMany(
       openEvents.map((item) => ({

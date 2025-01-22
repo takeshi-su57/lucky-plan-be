@@ -76,8 +76,6 @@ model Strategy {
   strategyKey        String
   ratio              Int    @default(100)
   lifeTime           Int // unit is min
-  minCapacity        Int // usdc
-  maxCapacity        Int // usdc
   minCollateral      Int // usdc
   maxCollateral      Int // usdc
   collateralBaseline Int // usdc

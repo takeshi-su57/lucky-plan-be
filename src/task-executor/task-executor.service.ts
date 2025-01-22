@@ -34,6 +34,7 @@ import { TaskDetails } from 'src/tasks/entities/task.entity';
 import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
+import { FollowerService } from 'src/follower/follower.service';
 
 @Injectable()
 export class TaskExecutorService {
@@ -42,6 +43,7 @@ export class TaskExecutorService {
   constructor(
     private prismaService: PrismaService,
     private chainsService: ChainsService,
+    private followerService: FollowerService,
     private tradeService: TradeService,
     private tradingVariableService: TradingVariableService,
     private missionsService: MissionsService,
@@ -124,12 +126,34 @@ export class TaskExecutorService {
             args: [follower.address as Address, achievePosition!.index],
           });
 
+          const increaseParams = getPositionIncreaseParams(
+            strategy,
+            args,
+            followerTradeData,
+          );
+
+          if (increaseParams.collateralDelta > 0n) {
+            const result = await this.followerService.moveAsset({
+              address: follower.address,
+              contract: followerContract,
+              amount: increaseParams.collateralDelta,
+              kind: 'usdcDeposit',
+            });
+
+            if (!result) {
+              return {
+                success: false,
+                message: `Failed at borrowing usdc from vault`,
+              };
+            }
+          }
+
           tx = await this.tradeService.increasePositionSize(
             walletClient,
             publicClient,
             followerContract.chainId,
             {
-              ...getPositionIncreaseParams(strategy, args, followerTradeData),
+              ...increaseParams,
               index: achievePosition!.index,
               maxSlippageP: 1000,
             },
@@ -158,6 +182,31 @@ export class TaskExecutorService {
             },
           );
 
+          if (tx) {
+            const transaction = await publicClient.waitForTransactionReceipt({
+              hash: tx as `0x${string}`,
+            });
+
+            if (transaction.status === 'success') {
+              await this.followerService.withdrawAllUSDC(
+                follower.address,
+                followerContract.id,
+              );
+
+              return {
+                success: true,
+                message: `Task achieved`,
+              };
+            } else {
+              return {
+                success: false,
+                message: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              };
+            }
+          }
+
           break;
         }
         case CloseMissionAction: {
@@ -172,6 +221,31 @@ export class TaskExecutorService {
               expectedPrice: BigInt(args.expectedPrice),
             },
           );
+
+          if (tx) {
+            const transaction = await publicClient.waitForTransactionReceipt({
+              hash: tx as `0x${string}`,
+            });
+
+            if (transaction.status === 'success') {
+              await this.followerService.withdrawAllUSDC(
+                follower.address,
+                followerContract.id,
+              );
+
+              return {
+                success: true,
+                message: `Task achieved`,
+              };
+            } else {
+              return {
+                success: false,
+                message: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              };
+            }
+          }
 
           break;
         }
@@ -208,23 +282,41 @@ export class TaskExecutorService {
               );
 
             if (isOpenMissionAction(action)) {
+              const openMissionParams = getOpenMissionParams(
+                strategy,
+                {
+                  leverage: t.leverage,
+                  collateralAmount: BigInt(t.collateralAmount),
+                  collateralPriceUsd: BigInt(collateralPriceUsd),
+                  collateral,
+                },
+                bot.leaderCollateralBaseline,
+                usdcPrice,
+              );
+
+              if (openMissionParams.collateralAmount > 0n) {
+                const result = await this.followerService.moveAsset({
+                  address: follower.address,
+                  contract: followerContract,
+                  amount: openMissionParams.collateralAmount,
+                  kind: 'usdcDeposit',
+                });
+
+                if (!result) {
+                  return {
+                    success: false,
+                    message: `Failed at borrowing usdc from vault`,
+                  };
+                }
+              }
+
               tx = await this.tradeService.openTrade(
                 walletClient,
                 publicClient,
                 followerContract.chainId,
                 {
                   trade: {
-                    ...getOpenMissionParams(
-                      strategy,
-                      {
-                        leverage: t.leverage,
-                        collateralAmount: BigInt(t.collateralAmount),
-                        collateralPriceUsd: BigInt(collateralPriceUsd),
-                        collateral,
-                      },
-                      bot.leaderCollateralBaseline,
-                      usdcPrice,
-                    ),
+                    ...openMissionParams,
                     user: follower.address as Address,
                     index: 0,
                     pairIndex: t.pairIndex,
@@ -255,6 +347,32 @@ export class TaskExecutorService {
                   expectedPrice: BigInt(t.openPrice),
                 },
               );
+
+              if (tx) {
+                const transaction =
+                  await publicClient.waitForTransactionReceipt({
+                    hash: tx as `0x${string}`,
+                  });
+
+                if (transaction.status === 'success') {
+                  await this.followerService.withdrawAllUSDC(
+                    follower.address,
+                    followerContract.id,
+                  );
+
+                  return {
+                    success: true,
+                    message: `Task achieved`,
+                  };
+                } else {
+                  return {
+                    success: false,
+                    message: JSON.stringify(transaction.logs, (_, v) =>
+                      typeof v === 'bigint' ? v.toString() : v,
+                    ),
+                  };
+                }
+              }
             }
           }
 
@@ -408,12 +526,13 @@ export class TaskExecutorService {
       const botTasks: TaskDetails[] = [];
 
       for (const tasksByMissionMap of allTasksByBotMap.values()) {
-        const openMissionTasks: {
-          created: TaskDetails[];
-          await: TaskDetails[];
-        } = { created: [], await: [] };
+        let botTask: TaskDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
+          if (botTask) {
+            break;
+          }
+
           if (tasks.length === 0) {
             continue;
           }
@@ -430,39 +549,16 @@ export class TaskExecutorService {
           for (let i = 0; i < sortedTasks.length; i++) {
             const task = sortedTasks[i];
 
-            if (
-              task.status === TaskStatus.Completed ||
-              task.status === TaskStatus.Stopped
-            ) {
-              continue;
-            }
-
-            if (
-              task.status === TaskStatus.Await &&
-              isOpenMissionAction(task.action)
-            ) {
-              openMissionTasks.await.push(sortedTasks[0]);
-            }
-
             if (task.status === TaskStatus.Created) {
-              if (isOpenMissionAction(task.action)) {
-                openMissionTasks.created.push(sortedTasks[0]);
-              } else {
-                botTasks.push(task);
-              }
+              botTask = task;
             }
 
             break;
           }
         }
 
-        // there is a pending opening mission task. need to wait more
-        if (openMissionTasks.await.length > 0) {
-          continue;
-        }
-
-        if (openMissionTasks.created.length > 0) {
-          botTasks.push(...openMissionTasks.created);
+        if (botTask) {
+          botTasks.push(botTask);
         }
       }
 
