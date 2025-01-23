@@ -403,8 +403,8 @@ export class TasksService {
     const closeActions = filteredActions.filter((item) =>
       isCloseMissionAction(item.action),
     );
-    const noneCloseActions = filteredActions.filter((item) =>
-      isCloseMissionAction(item.action),
+    const noneCloseActions = filteredActions.filter(
+      (item) => !isCloseMissionAction(item.action),
     );
 
     const createdOrFailedTasks: TaskShallowDetails[] = [];
