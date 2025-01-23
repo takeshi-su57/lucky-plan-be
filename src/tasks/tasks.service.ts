@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { TaskStatus } from '@prisma/client';
+import { MissionStatus, TaskStatus } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import {
@@ -84,6 +84,9 @@ export class TasksService {
     });
 
     if (allMissionTasks.length === 0) {
+      this.handleTasksByCloseMission([
+        { missionId: mission.id, botId: mission.botId },
+      ]);
       return 'closed';
     }
 
@@ -123,6 +126,9 @@ export class TasksService {
     }
 
     if (!openTask) {
+      this.handleTasksByCloseMission([
+        { missionId: mission.id, botId: mission.botId },
+      ]);
       return 'closed';
     }
 
@@ -146,6 +152,9 @@ export class TasksService {
 
     // no need to proceed
     if (openTask.status !== TaskStatus.Completed) {
+      this.handleTasksByCloseMission([
+        { missionId: mission.id, botId: mission.botId },
+      ]);
       return 'closed';
     }
 
@@ -184,8 +193,10 @@ export class TasksService {
 
     const tasks = await this.prismaService.task.findMany({
       where: {
-        status: {
-          not: TaskStatus.Completed,
+        mission: {
+          status: {
+            not: MissionStatus.Closed,
+          },
         },
       },
       include: {
@@ -263,28 +274,18 @@ export class TasksService {
       }),
     );
 
-    updatedTasks.forEach((task) => {
-      const tasksByMissionMap = this.tasksByBotMap.get(task.mission.botId);
-
-      if (tasksByMissionMap) {
-        const arr = tasksByMissionMap.get(task.missionId);
-
-        if (arr) {
-          if (task.status === TaskStatus.Completed) {
-            tasksByMissionMap.set(
-              task.missionId,
-              arr.filter((item) => item.id !== task.id),
-            );
-          } else {
-            const index = arr.findIndex((item) => item.id === task.id);
-            arr[index] = task;
-          }
-        }
-      }
-    });
-
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
       [SUBSCRIPTION_TOKEN.taskUpdated]: updatedTasks,
+    });
+  }
+
+  handleTasksByCloseMission(inputs: { missionId: number; botId: number }[]) {
+    inputs.forEach((input) => {
+      const tasksByMissionMap = this.tasksByBotMap.get(input.botId);
+
+      if (tasksByMissionMap) {
+        tasksByMissionMap.set(input.missionId, []);
+      }
     });
   }
 
@@ -351,11 +352,13 @@ export class TasksService {
     });
   }
 
-  async handleLeaderActions(actions: ActionContext<MissionContext>[]) {
+  async handleLeaderActions(
+    actions: ActionContext<MissionContext>[],
+    missionCloseCallback: (missionIds: number[]) => Promise<void>,
+  ) {
     const filteredActions = actions.filter((item) => {
       if (
-        !updateEventNames.includes(item.action.name) &&
-        missionEventNames.includes(item.action.name)
+        ![...updateEventNames, ...missionEventNames].includes(item.action.name)
       ) {
         return false;
       }
@@ -400,11 +403,16 @@ export class TasksService {
     const closeActions = filteredActions.filter((item) =>
       isCloseMissionAction(item.action),
     );
+    const noneCloseActions = filteredActions.filter((item) =>
+      isCloseMissionAction(item.action),
+    );
 
-    const createdTasks: TaskShallowDetails[] = [];
+    const createdOrFailedTasks: TaskShallowDetails[] = [];
+    const closeActionsStopped: ActionContext<MissionContext>[] = [];
+    const normalClosedActions: ActionContext<MissionContext>[] = [];
 
     closeActions.forEach((action) => {
-      const tasks = this.filterTasks(
+      const sortedTasks = this.filterTasks(
         action.context.bot.id,
         action.context.mission.id,
       ).sort((a, b) => {
@@ -415,18 +423,33 @@ export class TasksService {
         return a.action.orderInBlock - b.action.orderInBlock;
       });
 
-      tasks.forEach((task) => {
+      sortedTasks.forEach((task) => {
         if (
           task.status === TaskStatus.Created ||
           task.status === TaskStatus.Failed
         ) {
-          createdTasks.push(task);
+          createdOrFailedTasks.push(task);
         }
       });
+
+      const openTask = sortedTasks.find((task) =>
+        isOpenMissionAction(task.action),
+      );
+
+      if (
+        openTask &&
+        (TaskStatus.Completed === openTask.status ||
+          TaskStatus.Await == openTask.status ||
+          TaskStatus.Initiated === openTask.status)
+      ) {
+        normalClosedActions.push(action);
+      } else {
+        closeActionsStopped.push(action);
+      }
     });
 
     await this.updateMany(
-      createdTasks.map((task) => ({
+      createdOrFailedTasks.map((task) => ({
         id: task.id,
         status: TaskStatus.Stopped,
         logs: [
@@ -440,7 +463,7 @@ export class TasksService {
     );
 
     await this.createMany(
-      filteredActions.map((item) => ({
+      [...noneCloseActions, ...normalClosedActions].map((item) => ({
         missionId: item.context.mission.id,
         actionId: item.action.id,
         status: TaskStatus.Created,
@@ -451,6 +474,31 @@ export class TasksService {
           }),
         ],
       })),
+    );
+
+    await this.createMany(
+      closeActionsStopped.map((item) => ({
+        missionId: item.context.mission.id,
+        actionId: item.action.id,
+        status: TaskStatus.Stopped,
+        logs: [
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Stopped by not executed mission`,
+          }),
+        ],
+      })),
+    );
+
+    this.handleTasksByCloseMission(
+      closeActionsStopped.map((item) => ({
+        missionId: item.context.mission.id,
+        botId: item.context.bot.id,
+      })),
+    );
+
+    await missionCloseCallback(
+      closeActionsStopped.map((item) => item.context.mission.id),
     );
   }
 
@@ -474,9 +522,14 @@ export class TasksService {
     return tasks[0];
   }
 
-  async handleFollowerActions(actions: ActionContext<MissionContext>[]) {
+  async handleFollowerActions(
+    actions: ActionContext<MissionContext>[],
+    missionCloseCallback: (missionIds: number[]) => Promise<void>,
+  ) {
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
+
+    const closeActions: ActionContext<MissionContext>[] = [];
 
     for (const { action, context } of actions) {
       let status: TaskStatus = TaskStatus.Completed;
@@ -532,6 +585,10 @@ export class TasksService {
         continue;
       }
 
+      if (isCloseMissionAction(task.action)) {
+        closeActions.push({ action, context });
+      }
+
       followerActionInputs.push({
         taskId: task.id,
         actionId: action.id,
@@ -552,5 +609,16 @@ export class TasksService {
 
     await this.updateMany(taskUpateInputs);
     await this.followerActionsService.createMany(followerActionInputs);
+
+    this.handleTasksByCloseMission(
+      closeActions.map((item) => ({
+        missionId: item.context.mission.id,
+        botId: item.context.bot.id,
+      })),
+    );
+
+    await missionCloseCallback(
+      closeActions.map((item) => item.context.mission.id),
+    );
   }
 }

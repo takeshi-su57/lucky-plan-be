@@ -5,7 +5,6 @@ import { PubSub } from 'graphql-subscriptions';
 
 import {
   getOrderIdFromMissionAction,
-  isCloseMissionAction,
   isOpenMissionAction,
   missionEventNames,
   missionEventParsers,
@@ -417,17 +416,18 @@ export class MissionsService {
     );
 
     if (missionActions.length > 0) {
-      await this.tasksService.handleFollowerActions(missionActions);
+      await this.tasksService.handleFollowerActions(
+        missionActions,
+        async (missionIds) => {
+          // handle close mission follower actions
+          await this.closeMany(
+            missionIds.map((item) => ({
+              id: item,
+            })),
+          );
+        },
+      );
     }
-
-    // handle close mission follower actions
-    await this.closeMany(
-      missionActions
-        .filter((item) => isCloseMissionAction(item.action))
-        .map((item) => ({
-          id: item.context.mission.id,
-        })),
-    );
   }
 
   async handleLeaderActions(leaderActions: ActionContext<BotContext>[]) {
@@ -449,6 +449,14 @@ export class MissionsService {
             item.context.mission.status !== MissionStatus.Closing &&
             item.context.mission.status !== MissionStatus.Closed,
         ),
+        async (missionIds) => {
+          // handle close mission follower actions
+          await this.closeMany(
+            missionIds.map((item) => ({
+              id: item,
+            })),
+          );
+        },
       );
     }
   }
