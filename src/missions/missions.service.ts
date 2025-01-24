@@ -311,7 +311,7 @@ export class MissionsService {
       .filter(
         (item) =>
           isOpenMissionAction(item.action) &&
-          item.context.bot.status !== BotStatus.Stop,
+          item.context.bot.status === BotStatus.Live,
       )
       // block leader action register if there is no pair ready
       .filter((item) => {

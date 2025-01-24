@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Address } from 'viem';
-import { TaskStatus } from '@prisma/client';
+import { MissionStatus, TaskStatus } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TradeService } from 'src/global/trade.service';
@@ -482,6 +482,11 @@ export class TaskExecutorService {
           status: {
             notIn: [TaskStatus.Stopped, TaskStatus.Completed],
           },
+          mission: {
+            status: {
+              not: MissionStatus.Closed,
+            },
+          },
         },
         include: {
           action: true,
@@ -504,8 +509,13 @@ export class TaskExecutorService {
       });
 
       const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+      const awaitBotsMap = new Map<number, boolean>();
 
       allTasks.forEach((task) => {
+        if (task.status === TaskStatus.Await) {
+          awaitBotsMap.set(task.mission.botId, true);
+        }
+
         const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
 
         if (tasksByMissionMap) {
@@ -525,7 +535,11 @@ export class TaskExecutorService {
 
       const botTasks: TaskDetails[] = [];
 
-      for (const tasksByMissionMap of allTasksByBotMap.values()) {
+      for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
+        if (awaitBotsMap.get(botId)) {
+          continue;
+        }
+
         let botTask: TaskDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
