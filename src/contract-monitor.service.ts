@@ -22,7 +22,7 @@ export class ContractMonitorService {
   status: 'process' | 'ready';
 
   readonly registeredEventNames: string[] = [];
-  static BATCH_SIZE = 5000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private chainsService: ChainsService,
@@ -64,17 +64,13 @@ export class ContractMonitorService {
             : currentBlockNumber;
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);
+
         const block = await this.chainsService
           .publicClient(contract.chainId)
           .getBlock({ blockNumber: fromBlock });
 
-        this.logger.log(
-          `src/contract-monitor.service.ts: Start CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        );
-
         if (actionItems.length > 0) {
           await this.botsService.handleActionItems(contract, actionItems);
-
           await this.tradeHistoriesService.handleActionItems(
             contract.id,
             new Date(Number(block.timestamp) * 1000),
@@ -88,7 +84,7 @@ export class ContractMonitorService {
         );
 
         this.logger.log(
-          `src/contract-monitor.service.ts: End CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+          `CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         );
 
         fromBlock = toBlock + 1n;

@@ -274,6 +274,19 @@ export class TasksService {
       }),
     );
 
+    updatedTasks.forEach((task) => {
+      const tasksByMissionMap = this.tasksByBotMap.get(task.mission.botId);
+
+      if (tasksByMissionMap) {
+        const arr = tasksByMissionMap.get(task.missionId);
+
+        if (arr) {
+          const index = arr.findIndex((item) => item.id === task.id);
+          arr[index] = task;
+        }
+      }
+    });
+
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
       [SUBSCRIPTION_TOKEN.taskUpdated]: updatedTasks,
     });
@@ -313,13 +326,19 @@ export class TasksService {
           [],
         );
 
-        return tasks
-          .filter((task) => isOpenMissionAction(task.action))
-          .filter(
-            (task) =>
-              task.status === TaskStatus.Await &&
-              task.mission.achievePositionId === null,
-          );
+        const openTasks = tasks.filter((task) =>
+          isOpenMissionAction(task.action),
+        );
+
+        const awaitTasks = openTasks.filter(
+          (task) => task.status === TaskStatus.Await,
+        );
+
+        const targetTasks = awaitTasks.filter(
+          (task) => task.mission.achievePositionId === null,
+        );
+
+        return targetTasks;
       })
       .reduce((acc, item) => [...acc, ...item], []);
   }
