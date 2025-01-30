@@ -249,6 +249,8 @@ export class TasksService {
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
       [SUBSCRIPTION_TOKEN.taskAdded]: newTasks,
     });
+
+    return newTasks;
   }
 
   async updateMany(inputs: TaskUpdateInput[]) {
@@ -591,9 +593,49 @@ export class TasksService {
       const task = this.getTask(context.bot.id, context.mission.id, filter);
 
       if (!task) {
-        this.logger.error(
-          'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
-        );
+        if (
+          missionEventNames.includes(action.name) &&
+          isCloseMissionAction(action)
+        ) {
+          closeActions.push({ action, context });
+
+          const newAction = await this.actionsService.createCloseMissionAction(
+            context.mission.targetPositionId,
+            '0',
+          );
+
+          const newTasks = await this.createMany([
+            {
+              missionId: context.mission.id,
+              actionId: newAction.id,
+              status: TaskStatus.Completed,
+              logs: [
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  message: `Task created for follower close action that without having a close task`,
+                }),
+              ],
+            },
+          ]);
+
+          if (newTasks.length !== 1) {
+            this.logger.error(
+              'Unexpected app error: There are one more open mission tasks for one mission, or no open mission',
+            );
+
+            continue;
+          }
+
+          followerActionInputs.push({
+            taskId: newTasks[0].id,
+            actionId: action.id,
+          });
+        } else {
+          this.logger.error(
+            'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
+          );
+        }
+
         continue;
       }
 
