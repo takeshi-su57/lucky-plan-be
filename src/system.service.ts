@@ -8,16 +8,32 @@ import { TaskExecutorService } from './task-executor/task-executor.service';
 
 @Injectable()
 export class SystemService {
+  private isPaused = false;
+
   constructor(
     private contractMonitorService: ContractMonitorService,
     private taskExecutorService: TaskExecutorService,
     private pnlSnapshotService: PnlSnapshotsService,
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
-  ) {}
+  ) {
+    this.isPaused = false;
+  }
+
+  pauseSystem() {
+    this.isPaused = true;
+  }
+
+  resumeSystem() {
+    this.isPaused = false;
+  }
 
   @Cron(CronExpression.EVERY_SECOND)
   async executeCronForBotMonitor() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (
       this.contractMonitorService.status.bot === 'ready' &&
       this.tradingVariableService.status === 'ready'
@@ -28,6 +44,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async executeCronForLeaderboardMonitor() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (
       this.contractMonitorService.status.leaderboard === 'ready' &&
       this.tradingVariableService.status === 'ready'
@@ -38,6 +58,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async executeTaskCron() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (
       this.taskExecutorService.status === 'ready' &&
       this.tradingVariableService.status === 'ready'
@@ -48,6 +72,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_30_SECONDS)
   async executeCronForBots() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (
       this.tradingVariableService.status === 'ready' &&
       this.botsService.status === 'ready'

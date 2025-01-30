@@ -261,9 +261,11 @@ type Mutation {
   getToken(input: GetTokenInput!): GetTokenResponse!
   initalizePnlSnapshot: Boolean!
   liveBot(id: Int!): BotDetails!
+  pauseSystem: Boolean!
   performTask(id: Int!): TaskShallowDetails!
   removeStrategy(id: Int!): Strategy!
   removeTagFromUser(input: ChangeUserTagInput!): User!
+  resumeSystem: Boolean!
   stopBot(id: Int!): BotDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
   upsertCategory(input: TagCategoryInput!): TagCategory!
