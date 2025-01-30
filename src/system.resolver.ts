@@ -1,4 +1,4 @@
-import { Resolver, Mutation } from '@nestjs/graphql';
+import { Resolver, Mutation, Query } from '@nestjs/graphql';
 
 import { SystemService } from './system.service';
 
@@ -14,5 +14,10 @@ export class SystemResolver {
   @Mutation(() => Boolean)
   resumeSystem() {
     return this.systemsService.resumeSystem();
+  }
+
+  @Query(() => Boolean)
+  systemStatus() {
+    return this.systemsService.isSystemPaused();
   }
 }

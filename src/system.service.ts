@@ -22,10 +22,18 @@ export class SystemService {
 
   pauseSystem() {
     this.isPaused = true;
+
+    return true;
   }
 
   resumeSystem() {
     this.isPaused = false;
+
+    return true;
+  }
+
+  isSystemPaused() {
+    return this.isPaused;
   }
 
   @Cron(CronExpression.EVERY_SECOND)

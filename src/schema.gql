@@ -250,7 +250,7 @@ type Mutation {
   addUser(input: AddUserInput!): User!
   changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changePassword(input: ChangePasswordInput!): Boolean!
-  closeMission(id: Int!): MissionShallowDetails!
+  closeMission(id: Int!, isForce: Boolean!): MissionShallowDetails!
   createBot(input: CreateBotInput!): BotDetails!
   createContract(input: CreateContractInput!): Contract!
   createStrategy(input: CreateStrategyInput!): Strategy!
@@ -356,6 +356,7 @@ type Query {
   getTasksByStatus(status: TaskStatus!): [TaskShallowDetails!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getUserByAddress(input: GetUserByAddressInput!): User!
+  systemStatus: Boolean!
 }
 
 type Strategy {

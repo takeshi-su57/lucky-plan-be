@@ -58,6 +58,7 @@ export class TasksService {
 
   async closeMissionTasks(
     mission: Mission,
+    isForce: boolean,
   ): Promise<'closed' | 'closing' | 'awaiting'> {
     const allMissionTasks = await this.prismaService.task.findMany({
       where: {
@@ -125,14 +126,7 @@ export class TasksService {
       }
     }
 
-    if (!openTask) {
-      this.handleTasksByCloseMission([
-        { missionId: mission.id, botId: mission.botId },
-      ]);
-      return 'closed';
-    }
-
-    if (awaitingTasks.length > 0) {
+    if (!isForce && awaitingTasks.length > 0) {
       return 'awaiting';
     }
 
@@ -150,8 +144,7 @@ export class TasksService {
       })),
     );
 
-    // no need to proceed
-    if (openTask.status !== TaskStatus.Completed) {
+    if (!openTask || openTask.status !== TaskStatus.Completed) {
       this.handleTasksByCloseMission([
         { missionId: mission.id, botId: mission.botId },
       ]);
