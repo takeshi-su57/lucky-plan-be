@@ -17,12 +17,22 @@ export class SystemService {
   ) {}
 
   @Cron(CronExpression.EVERY_SECOND)
-  async executeCron() {
+  async executeCronForBotMonitor() {
     if (
-      this.contractMonitorService.status === 'ready' &&
+      this.contractMonitorService.status.bot === 'ready' &&
       this.tradingVariableService.status === 'ready'
     ) {
-      await this.contractMonitorService.checkContracts();
+      await this.contractMonitorService.checkContractsForBots();
+    }
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async executeCronForLeaderboardMonitor() {
+    if (
+      this.contractMonitorService.status.leaderboard === 'ready' &&
+      this.tradingVariableService.status === 'ready'
+    ) {
+      await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
 

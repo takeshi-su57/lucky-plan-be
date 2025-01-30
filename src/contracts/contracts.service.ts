@@ -47,6 +47,18 @@ export class ContractsService {
     });
   }
 
+  updateLastLeaderboardBlockNumber(
+    id: number,
+    lastLeaderboardBlockNumber: number,
+  ) {
+    return this.prismaService.contract.update({
+      where: { id },
+      data: {
+        lastLeaderboardBlockNumber,
+      },
+    });
+  }
+
   findAll() {
     return this.prismaService.contract.findMany();
   }
