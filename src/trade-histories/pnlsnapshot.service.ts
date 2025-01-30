@@ -128,6 +128,18 @@ export class PnlSnapshotsService {
     };
   }
 
+  async getPnlSnapshotsByAddress(
+    contractId: number,
+    address: string,
+  ): Promise<PnlSnapshot[]> {
+    return await this.prismaService.pnlSnapshot.findMany({
+      where: {
+        contractId,
+        address: address.toLowerCase(),
+      },
+    });
+  }
+
   async initialBuild() {
     this.status = 'initializing';
 

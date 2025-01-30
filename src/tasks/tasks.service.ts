@@ -58,6 +58,7 @@ export class TasksService {
 
   async closeMissionTasks(
     mission: Mission,
+    isForce: boolean,
   ): Promise<'closed' | 'closing' | 'awaiting'> {
     const allMissionTasks = await this.prismaService.task.findMany({
       where: {
@@ -125,14 +126,7 @@ export class TasksService {
       }
     }
 
-    if (!openTask) {
-      this.handleTasksByCloseMission([
-        { missionId: mission.id, botId: mission.botId },
-      ]);
-      return 'closed';
-    }
-
-    if (awaitingTasks.length > 0) {
+    if (!isForce && awaitingTasks.length > 0) {
       return 'awaiting';
     }
 
@@ -150,8 +144,7 @@ export class TasksService {
       })),
     );
 
-    // no need to proceed
-    if (openTask.status !== TaskStatus.Completed) {
+    if (!openTask || openTask.status !== TaskStatus.Completed) {
       this.handleTasksByCloseMission([
         { missionId: mission.id, botId: mission.botId },
       ]);
@@ -256,6 +249,8 @@ export class TasksService {
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
       [SUBSCRIPTION_TOKEN.taskAdded]: newTasks,
     });
+
+    return newTasks;
   }
 
   async updateMany(inputs: TaskUpdateInput[]) {
@@ -598,9 +593,49 @@ export class TasksService {
       const task = this.getTask(context.bot.id, context.mission.id, filter);
 
       if (!task) {
-        this.logger.error(
-          'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
-        );
+        if (
+          missionEventNames.includes(action.name) &&
+          isCloseMissionAction(action)
+        ) {
+          closeActions.push({ action, context });
+
+          const newAction = await this.actionsService.createCloseMissionAction(
+            context.mission.targetPositionId,
+            '0',
+          );
+
+          const newTasks = await this.createMany([
+            {
+              missionId: context.mission.id,
+              actionId: newAction.id,
+              status: TaskStatus.Completed,
+              logs: [
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  message: `Task created for follower close action that without having a close task`,
+                }),
+              ],
+            },
+          ]);
+
+          if (newTasks.length !== 1) {
+            this.logger.error(
+              'Unexpected app error: There are one more open mission tasks for one mission, or no open mission',
+            );
+
+            continue;
+          }
+
+          followerActionInputs.push({
+            taskId: newTasks[0].id,
+            actionId: action.id,
+          });
+        } else {
+          this.logger.error(
+            'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
+          );
+        }
+
         continue;
       }
 

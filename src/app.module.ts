@@ -23,6 +23,7 @@ import { ActionsModule } from './actions/actions.module';
 import { FollowerActionsModule } from './follower-actions/follower-actions.module';
 import { TradeHistoriesModule } from './trade-histories/trade-histories.module';
 import { TaskExecutorModule } from './task-executor/task-executor.module';
+import { SystemResolver } from './system.resolver';
 
 @Module({
   imports: [
@@ -54,6 +55,6 @@ import { TaskExecutorModule } from './task-executor/task-executor.module';
     TaskExecutorModule,
   ],
   controllers: [],
-  providers: [SystemService, ContractMonitorService],
+  providers: [SystemService, ContractMonitorService, SystemResolver],
 })
 export class AppModule {}

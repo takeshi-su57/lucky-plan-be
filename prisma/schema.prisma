@@ -94,12 +94,13 @@ enum ContractStatus {
 }
 
 model Contract {
-  id              Int            @id @default(autoincrement())
-  chainId         Int
-  address         String
-  description     String
-  lastBlockNumber Int
-  status          ContractStatus @default(Live)
+  id                         Int            @id @default(autoincrement())
+  chainId                    Int
+  address                    String
+  description                String
+  lastBlockNumber            Int
+  lastLeaderboardBlockNumber Int            @default(0)
+  status                     ContractStatus @default(Live)
 
   leaderBots   Bot[]      @relation("leaderBots")
   followerBots Bot[]      @relation("followerBots")

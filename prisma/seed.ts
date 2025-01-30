@@ -82,6 +82,7 @@ async function main() {
       address: '0x209a9a01980377916851af2ca075c2b170452018',
       description: 'This is a gains polygon chain gnsDiamondContract address',
       lastBlockNumber: 51941480,
+      lastLeaderboardBlockNumber: 51941480,
       status: ContractStatus.Live,
     },
     {
@@ -89,6 +90,7 @@ async function main() {
       address: '0x6cd5ac19a07518a8092eeffda4f1174c72704eeb',
       description: 'This is a gains base chain gnsDiamondContract address',
       lastBlockNumber: 23360108,
+      lastLeaderboardBlockNumber: 23360108,
       status: ContractStatus.Live,
     },
     {
@@ -96,6 +98,7 @@ async function main() {
       address: '0xff162c694eaa571f685030649814282ea457f169',
       description: 'This is a gains arbitrum chain gnsDiamondContract address',
       lastBlockNumber: 167122054,
+      lastLeaderboardBlockNumber: 167122054,
       status: ContractStatus.Live,
     },
     {
@@ -104,6 +107,7 @@ async function main() {
       description:
         'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
       lastBlockNumber: 33946165,
+      lastLeaderboardBlockNumber: 33946165,
       status: ContractStatus.Live,
     },
   ];

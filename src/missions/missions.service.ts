@@ -163,7 +163,7 @@ export class MissionsService {
     });
   }
 
-  async closeMission(id: number) {
+  async closeMission(id: number, isForce: boolean) {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
@@ -183,7 +183,10 @@ export class MissionsService {
       throw new Error('Invalid mission status!');
     }
 
-    const isClosed = await this.tasksService.closeMissionTasks(mission);
+    const isClosed = await this.tasksService.closeMissionTasks(
+      mission,
+      isForce,
+    );
 
     if (isClosed === 'awaiting') {
       throw new Error(
