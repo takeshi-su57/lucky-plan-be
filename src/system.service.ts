@@ -44,23 +44,10 @@ export class SystemService {
 
     if (
       this.contractMonitorService.status.bot === 'ready' &&
-      this.tradingVariableService.status === 'ready'
+      this.tradingVariableService.status === 'ready' &&
+      this.taskExecutorService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_10_MINUTES)
-  async executeCronForLeaderboardMonitor() {
-    if (this.isPaused) {
-      return;
-    }
-
-    if (
-      this.contractMonitorService.status.leaderboard === 'ready' &&
-      this.tradingVariableService.status === 'ready'
-    ) {
-      await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
 
@@ -75,6 +62,20 @@ export class SystemService {
       this.tradingVariableService.status === 'ready'
     ) {
       await this.taskExecutorService.performAvailableTasks();
+    }
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async executeCronForLeaderboardMonitor() {
+    if (this.isPaused) {
+      return;
+    }
+
+    if (
+      this.contractMonitorService.status.leaderboard === 'ready' &&
+      this.tradingVariableService.status === 'ready'
+    ) {
+      await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
 

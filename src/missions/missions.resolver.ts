@@ -33,6 +33,11 @@ export class MissionsResolver {
     return this.missionsService.closeMission(id, isForce);
   }
 
+  @Mutation(() => MissionShallowDetails)
+  ignoreMission(@Args('id', { type: () => Int }) id: number) {
+    return this.missionsService.ignoreMission(id);
+  }
+
   @Query(() => [MissionShallowDetails])
   getAllMissions() {
     return this.missionsService.findAll();

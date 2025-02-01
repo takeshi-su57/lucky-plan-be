@@ -27,6 +27,7 @@ export class MissionUpdateInput {
     MissionStatus.Opened,
     MissionStatus.Closing,
     MissionStatus.Closed,
+    MissionStatus.Ignored,
   ])
   status: MissionStatus;
 }

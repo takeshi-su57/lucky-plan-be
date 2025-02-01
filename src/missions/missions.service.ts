@@ -142,7 +142,7 @@ export class MissionsService {
     const missions = await this.prismaService.mission.findMany({
       where: {
         status: {
-          not: MissionStatus.Closed,
+          notIn: [MissionStatus.Closed, MissionStatus.Ignored],
         },
       },
       include: {
@@ -179,7 +179,10 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    if (mission.status === MissionStatus.Closed) {
+    if (
+      mission.status === MissionStatus.Closed ||
+      mission.status === MissionStatus.Ignored
+    ) {
       throw new Error('Invalid mission status!');
     }
 
@@ -226,6 +229,29 @@ export class MissionsService {
     }
 
     return closingMission;
+  }
+
+  async ignoreMission(id: number) {
+    const ignoredMissions = await this.updateMany([
+      { id, status: MissionStatus.Ignored },
+    ]);
+
+    if (ignoredMissions.length !== 1) {
+      throw new Error('There is something wrong while ignoring mission tasks!');
+    }
+
+    ignoredMissions.forEach((mission) => {
+      const arr = this.missionsByBotMap.get(mission.botId);
+
+      if (arr) {
+        this.missionsByBotMap.set(
+          mission.botId,
+          arr.filter((item) => item.id !== mission.id),
+        );
+      }
+    });
+
+    return ignoredMissions[0];
   }
 
   findAll() {
@@ -279,7 +305,7 @@ export class MissionsService {
     });
 
     // find missions by their setup task.
-    const tasks = this.tasksService.findMissionTasksForMOIEvent(
+    const tasks = await this.tasksService.findMissionTasksForMOIEvent(
       Array.from(eventsMap.keys()),
     );
 
@@ -450,7 +476,8 @@ export class MissionsService {
         missionActions.filter(
           (item) =>
             item.context.mission.status !== MissionStatus.Closing &&
-            item.context.mission.status !== MissionStatus.Closed,
+            item.context.mission.status !== MissionStatus.Closed &&
+            item.context.mission.status !== MissionStatus.Ignored,
         ),
         async (missionIds) => {
           // handle close mission follower actions
