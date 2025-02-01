@@ -484,7 +484,7 @@ export class TaskExecutorService {
           },
           mission: {
             status: {
-              not: MissionStatus.Closed,
+              notIn: [MissionStatus.Closed, MissionStatus.Ignored],
             },
           },
         },

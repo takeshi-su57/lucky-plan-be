@@ -154,6 +154,7 @@ enum MissionStatus {
   Opened
   Closing
   Closed
+  Ignored
 }
 
 model Mission {

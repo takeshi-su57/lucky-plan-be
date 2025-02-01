@@ -544,7 +544,7 @@ export class TasksService {
         continue;
       }
 
-      if (isCloseMissionAction(task.action)) {
+      if (isCloseMissionAction(action)) {
         closeActions.push({ action, context });
       }
 
