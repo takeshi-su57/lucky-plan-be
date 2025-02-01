@@ -279,7 +279,7 @@ export class MissionsService {
     });
 
     // find missions by their setup task.
-    const tasks = this.tasksService.findMissionTasksForMOIEvent(
+    const tasks = await this.tasksService.findMissionTasksForMOIEvent(
       Array.from(eventsMap.keys()),
     );
 
