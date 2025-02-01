@@ -203,32 +203,11 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAll(address: string, contractId: number): Promise<boolean> {
+  async withdrawAllETH(address: string, contractId: number): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
-
-      const collateralInfo = this.tradingVariableServcie.getCollateral(
-        contractId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      const usdcBalance = await publicClient.readContract({
-        address: collateralInfo.collateral,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [address as Address],
-      });
-
-      await this.moveAsset({
-        address,
-        contract: contract,
-        amount: usdcBalance,
-        kind: 'usdcWithdraw',
-      });
 
       const ethBalance = await publicClient.getBalance({
         address: address as Address,

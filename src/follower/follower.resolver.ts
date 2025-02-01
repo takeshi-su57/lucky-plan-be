@@ -32,8 +32,16 @@ export class FollowerResolver {
   }
 
   @Mutation(() => Boolean)
-  withdrawAll(@Args('input') input: WithdrawAllInput) {
-    return this.followerService.withdrawAll(input.address, input.contractId);
+  withdrawAllUSDC(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAllUSDC(
+      input.address,
+      input.contractId,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  withdrawAllETH(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAllETH(input.address, input.contractId);
   }
 
   @Query(() => String)

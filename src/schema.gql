@@ -272,7 +272,8 @@ type Mutation {
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
   upsertCategory(input: TagCategoryInput!): TagCategory!
   upsertTag(input: TagInput!): Tag!
-  withdrawAll(input: WithdrawAllInput!): Boolean!
+  withdrawAllETH(input: WithdrawAllInput!): Boolean!
+  withdrawAllUSDC(input: WithdrawAllInput!): Boolean!
 }
 
 type PageInfo {
