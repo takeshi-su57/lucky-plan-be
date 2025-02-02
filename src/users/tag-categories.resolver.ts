@@ -9,12 +9,12 @@ export class TagCategoriesResolver {
   constructor(private readonly tagCategoriesService: TagCategoriesService) {}
 
   @Mutation(() => TagCategory)
-  upsertTag(@Args('input') input: TagCategoryInput) {
+  upsertCategory(@Args('input') input: TagCategoryInput) {
     return this.tagCategoriesService.upsert(input);
   }
 
   @Mutation(() => TagCategory)
-  deleteTag(@Args('id', { type: () => Int }) id: number) {
+  deleteCategory(@Args('id', { type: () => Int }) id: number) {
     return this.tagCategoriesService.delete(id);
   }
 

@@ -26,8 +26,16 @@ export class MissionsResolver {
   ) {}
 
   @Mutation(() => MissionShallowDetails)
-  closeMission(@Args('id', { type: () => Int }) id: number) {
-    return this.missionsService.closeMission(id);
+  closeMission(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('isForce', { type: () => Boolean }) isForce: boolean,
+  ) {
+    return this.missionsService.closeMission(id, isForce);
+  }
+
+  @Mutation(() => MissionShallowDetails)
+  ignoreMission(@Args('id', { type: () => Int }) id: number) {
+    return this.missionsService.ignoreMission(id);
   }
 
   @Query(() => [MissionShallowDetails])

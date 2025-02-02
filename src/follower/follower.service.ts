@@ -15,6 +15,18 @@ import { ChainsService } from 'src/global/chains.service';
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { SUBSCRIPTION_TOKEN, USDCCollateralIndex } from 'src/utils/constants';
+import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
+import { Mission } from 'src/missions/entities/mission.entity';
+import {
+  ContractExecutionResult,
+  FollowerPendingOrder,
+  FollowerTrade,
+} from './entities/follower.entity';
+import { TradeService } from 'src/global/trade.service';
+import {
+  CancelOrderAfterTimeoutInput,
+  CloseTradeInput,
+} from './dto/follower.input';
 
 @Injectable()
 export class FollowerService {
@@ -24,7 +36,8 @@ export class FollowerService {
     private usersService: UsersService,
     private contractService: ContractsService,
     private chainsService: ChainsService,
-    private tradingVariableServcie: TradingVariableService,
+    private tradingVariableService: TradingVariableService,
+    private tradeService: TradeService,
     private logger: Logger,
   ) {}
 
@@ -58,7 +71,7 @@ export class FollowerService {
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo = this.tradingVariableServcie.getCollateral(
+      const collateralInfo = this.tradingVariableService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -75,6 +88,8 @@ export class FollowerService {
         masterFollower,
       );
 
+      let tx: string;
+
       switch (kind) {
         case 'usdcWithdraw': {
           this.logger.log(
@@ -89,7 +104,9 @@ export class FollowerService {
             args: [masterFollower.address as Address, amount],
           });
 
-          return await followerWallet.writeContract(request);
+          tx = await followerWallet.writeContract(request);
+
+          break;
         }
         case 'usdcDeposit': {
           this.logger.log(
@@ -104,7 +121,9 @@ export class FollowerService {
             args: [follower.address as Address, amount],
           });
 
-          return await masterWallet.writeContract(request);
+          tx = await masterWallet.writeContract(request);
+
+          break;
         }
         case 'ethWithdraw': {
           this.logger.log(
@@ -119,38 +138,54 @@ export class FollowerService {
 
           const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
 
-          return await followerWallet.sendTransaction({
+          tx = await followerWallet.sendTransaction({
             account: followerWallet.account!,
             to: masterFollower.address as Address,
             value: amount - gas * maxFeePerGas,
             chain: followerWallet.chain,
           });
+
+          break;
         }
         case 'ethDeposit': {
           this.logger.log(
             `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
           );
 
-          return await masterWallet.sendTransaction({
+          tx = await masterWallet.sendTransaction({
             account: masterWallet.account!,
             to: follower.address as Address,
             value: amount,
             chain: masterWallet.chain,
           });
+
+          break;
         }
+      }
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        return transaction.status === 'success';
+      } else {
+        return false;
       }
     } catch (err) {
       this.logger.error(`FollowerService>moveAsset>: ${getReadableError(err)}`);
     }
+
+    return false;
   }
 
-  async withdrawAll(address: string, contractId: number): Promise<boolean> {
+  async withdrawAllUSDC(address: string, contractId: number): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo = this.tradingVariableServcie.getCollateral(
+      const collateralInfo = this.tradingVariableService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -170,6 +205,22 @@ export class FollowerService {
         amount: usdcBalance,
         kind: 'usdcWithdraw',
       });
+
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `FollowerService>withdrawAllUSDC>: ${getReadableError(err)}`,
+      );
+    }
+
+    return false;
+  }
+
+  async withdrawAllETH(address: string, contractId: number): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const ethBalance = await publicClient.getBalance({
         address: address as Address,
@@ -286,13 +337,286 @@ export class FollowerService {
     }
   }
 
+  async getPendingOrders(
+    address: string,
+    contractId: number,
+  ): Promise<FollowerPendingOrder[]> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const pendingOrders = await publicClient.readContract({
+        address: contract.address as Address,
+        abi: gnsMultiCollatDiamondAbi,
+        functionName: 'getPendingOrders',
+        args: [address as Address],
+      });
+
+      return pendingOrders.map((order) => ({
+        address: order.user.toLowerCase(),
+        index: order.index,
+        params: JSON.stringify(order, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        ),
+      }));
+    } catch (err) {
+      console.log(err);
+    }
+
+    return [];
+  }
+
+  async getTrades(
+    address: string,
+    contractId: number,
+  ): Promise<FollowerTrade[]> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const trades = await publicClient.readContract({
+        address: contract.address as Address,
+        abi: gnsMultiCollatDiamondAbi,
+        functionName: 'getTrades',
+        args: [address as Address],
+      });
+
+      const tradeIds = trades.map((trade) => ({
+        contractId,
+        address: trade.user.toLowerCase(),
+        index: trade.index,
+      }));
+
+      const achievePositions = await this.prismaService.position.findMany({
+        where: {
+          contractId,
+          address: {
+            in: tradeIds.map((trade) => trade.address),
+          },
+          index: {
+            in: tradeIds.map((trade) => trade.index),
+          },
+        },
+      });
+
+      const achievePositionIdsMap = new Map<
+        number,
+        { address: string; index: number }
+      >();
+
+      achievePositions.forEach((position) => {
+        achievePositionIdsMap.set(position.id, {
+          address: position.address,
+          index: position.index,
+        });
+      });
+
+      const missions = await this.prismaService.mission.findMany({
+        where: {
+          achievePositionId: {
+            in: achievePositions.map((position) => position.id),
+          },
+        },
+      });
+
+      const missionMaps = new Map<string, Mission>();
+
+      missions.forEach((mission) => {
+        if (!mission.achievePositionId) {
+          return;
+        }
+
+        const tradeId = achievePositionIdsMap.get(mission.achievePositionId);
+
+        if (!tradeId) {
+          return;
+        }
+
+        missionMaps.set(`${tradeId.address}-${tradeId.index}`, mission);
+      });
+
+      return trades.map((trade) => ({
+        address: trade.user.toLowerCase(),
+        index: trade.index,
+        mission:
+          missionMaps.get(`${trade.user.toLowerCase()}-${trade.index}`) || null,
+        params: JSON.stringify(trade, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        ),
+      }));
+    } catch (err) {
+      console.log(err);
+    }
+
+    return [];
+  }
+
+  async closeTradeMarket(
+    input: CloseTradeInput,
+  ): Promise<ContractExecutionResult> {
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address,
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      const walletClient = this.chainsService.walletClient(
+        contract.chainId,
+        follower,
+      );
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const currentPrice = await this.tradingVariableService.getPairPrice(
+        input.pairIndex,
+      );
+
+      const tx = await this.tradeService.closeTradeMarket(
+        walletClient,
+        publicClient,
+        contract.chainId,
+        {
+          index: input.index,
+          expectedPrice: currentPrice,
+        },
+      );
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade closed`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          return {
+            success: false,
+            message: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: 'Transaction not found',
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        ),
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async cancelOrderAfterTimeout(
+    input: CancelOrderAfterTimeoutInput,
+  ): Promise<ContractExecutionResult> {
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address,
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      const walletClient = this.chainsService.walletClient(
+        contract.chainId,
+        follower,
+      );
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const tx = await this.tradeService.cancelOrderAfterTimeout(
+        walletClient,
+        publicClient,
+        contract.chainId,
+        {
+          index: input.index,
+        },
+      );
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Order canceled`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          return {
+            success: false,
+            message: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: 'Transaction not found',
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        ),
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
   async loadFollowers(contractId: number) {
     try {
       const contract = await this.contractService.findOne(contractId);
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const collateralInfo = this.tradingVariableServcie.getCollateral(
+      const collateralInfo = this.tradingVariableService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex

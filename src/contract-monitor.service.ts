@@ -17,12 +17,14 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
     .map((item) => [item.signature, item.name]),
 );
 
+export type ServiceStatus = 'process' | 'ready';
+
 @Injectable()
 export class ContractMonitorService {
-  status: 'process' | 'ready';
+  status: { leaderboard: ServiceStatus; bot: ServiceStatus };
 
   readonly registeredEventNames: string[] = [];
-  static BATCH_SIZE = 5000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private chainsService: ChainsService,
@@ -32,24 +34,24 @@ export class ContractMonitorService {
     private readonly logger: Logger,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
-    this.status = 'ready';
+    this.status = { leaderboard: 'ready', bot: 'ready' };
   }
 
-  async checkContracts() {
-    this.status = 'process';
+  async checkContractsForBots() {
+    this.status.bot = 'process';
 
     const contracts = await this.contractsService.findAll();
 
     const promises = contracts.map(async (contract) => {
-      return await this.checkContract(contract);
+      return await this.checkContractForBots(contract);
     });
 
     await Promise.allSettled(promises);
 
-    this.status = 'ready';
+    this.status.bot = 'ready';
   }
 
-  async checkContract(contract: Contract) {
+  async checkContractForBots(contract: Contract) {
     try {
       const currentBlockNumber = await this.chainsService
         .publicClient(contract.chainId)
@@ -64,22 +66,9 @@ export class ContractMonitorService {
             : currentBlockNumber;
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);
-        const block = await this.chainsService
-          .publicClient(contract.chainId)
-          .getBlock({ blockNumber: fromBlock });
-
-        this.logger.log(
-          `src/contract-monitor.service.ts: Start CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        );
 
         if (actionItems.length > 0) {
           await this.botsService.handleActionItems(contract, actionItems);
-
-          await this.tradeHistoriesService.handleActionItems(
-            contract.id,
-            new Date(Number(block.timestamp) * 1000),
-            actionItems,
-          );
         }
 
         await this.contractsService.updateLastBlockNumber(
@@ -88,14 +77,75 @@ export class ContractMonitorService {
         );
 
         this.logger.log(
-          `src/contract-monitor.service.ts: End CheckContract: contract:${contract.id} chain:${contract.chainId} address:${contract.address} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+          `Check Contract For Bots: chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         );
 
         fromBlock = toBlock + 1n;
       }
     } catch (err) {
       this.logger.log(
-        `src/contract-monitor.service.ts: Failed CheckContract: ${contract.id}`,
+        `src/contract-monitor.service.ts: Failed CheckContractForBots: ${contract.id}`,
+        err,
+      );
+    }
+  }
+
+  async checkContractsForLeaderboard() {
+    this.status.leaderboard = 'process';
+
+    const contracts = await this.contractsService.findAll();
+
+    const promises = contracts.map(async (contract) => {
+      return await this.checkContractForLeaderboard(contract);
+    });
+
+    await Promise.allSettled(promises);
+
+    this.status.leaderboard = 'ready';
+  }
+
+  async checkContractForLeaderboard(contract: Contract) {
+    try {
+      const currentBlockNumber = await this.chainsService
+        .publicClient(contract.chainId)
+        .getBlockNumber();
+
+      let fromBlock = BigInt(contract.lastLeaderboardBlockNumber) + 1n;
+
+      while (fromBlock <= currentBlockNumber) {
+        const toBlock =
+          fromBlock + ContractMonitorService.BATCH_SIZE < currentBlockNumber
+            ? fromBlock + ContractMonitorService.BATCH_SIZE
+            : currentBlockNumber;
+
+        const actionItems = await this.getLogs(fromBlock, toBlock, contract);
+
+        const block = await this.chainsService
+          .publicClient(contract.chainId)
+          .getBlock({ blockNumber: fromBlock });
+
+        if (actionItems.length > 0) {
+          await this.tradeHistoriesService.handleActionItems(
+            contract.id,
+            new Date(Number(block.timestamp) * 1000),
+            actionItems,
+          );
+        }
+
+        await this.contractsService.updateLastLeaderboardBlockNumber(
+          contract.id,
+          Number(toBlock),
+        );
+
+        this.logger.log(
+          `Check Contract For Leaderboard: chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        );
+
+        fromBlock = toBlock + 1n;
+      }
+    } catch (err) {
+      this.logger.log(
+        `src/contract-monitor.service.ts: Failed CheckContractForLeaderboard: ${contract.id}`,
         err,
       );
     }

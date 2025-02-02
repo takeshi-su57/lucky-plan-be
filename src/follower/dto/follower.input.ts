@@ -23,3 +23,44 @@ export class WithdrawAllInput {
   @Field(() => Int)
   contractId: number;
 }
+
+@InputType()
+export class CloseTradeInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  pairIndex: number;
+}
+
+@InputType()
+export class CancelOrderAfterTimeoutInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+}

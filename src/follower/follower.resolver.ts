@@ -13,8 +13,16 @@ import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { PUB_SUB } from 'src/global/global.module';
 
 import { FollowerService } from './follower.service';
-import { Follower, FollowerDetail } from './entities/follower.entity';
 import {
+  ContractExecutionResult,
+  Follower,
+  FollowerDetail,
+  FollowerPendingOrder,
+  FollowerTrade,
+} from './entities/follower.entity';
+import {
+  CloseTradeInput,
+  CancelOrderAfterTimeoutInput,
   GetFollowerByAddressInput,
   WithdrawAllInput,
 } from './dto/follower.input';
@@ -32,8 +40,42 @@ export class FollowerResolver {
   }
 
   @Mutation(() => Boolean)
-  withdrawAll(@Args('input') input: WithdrawAllInput) {
-    return this.followerService.withdrawAll(input.address, input.contractId);
+  withdrawAllUSDC(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAllUSDC(
+      input.address,
+      input.contractId,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  withdrawAllETH(@Args('input') input: WithdrawAllInput) {
+    return this.followerService.withdrawAllETH(input.address, input.contractId);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  closeTradeMarket(@Args('input') input: CloseTradeInput) {
+    return this.followerService.closeTradeMarket(input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  cancelOrderAfterTimeout(@Args('input') input: CancelOrderAfterTimeoutInput) {
+    return this.followerService.cancelOrderAfterTimeout(input);
+  }
+
+  @Query(() => [FollowerPendingOrder])
+  getPendingOrders(
+    @Args('address') address: string,
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.followerService.getPendingOrders(address, contractId);
+  }
+
+  @Query(() => [FollowerTrade])
+  getTrades(
+    @Args('address') address: string,
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.followerService.getTrades(address, contractId);
   }
 
   @Query(() => String)

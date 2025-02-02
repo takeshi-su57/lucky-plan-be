@@ -150,6 +150,6 @@ export class TradeHistoriesService {
       })
       .filter((item) => !!item);
 
-    return this.createMany(historyInputs);
+    await this.createMany(historyInputs);
   }
 }

@@ -76,8 +76,6 @@ model Strategy {
   strategyKey        String
   ratio              Int    @default(100)
   lifeTime           Int // unit is min
-  minCapacity        Int // usdc
-  maxCapacity        Int // usdc
   minCollateral      Int // usdc
   maxCollateral      Int // usdc
   collateralBaseline Int // usdc
@@ -96,12 +94,13 @@ enum ContractStatus {
 }
 
 model Contract {
-  id              Int            @id @default(autoincrement())
-  chainId         Int
-  address         String
-  description     String
-  lastBlockNumber Int
-  status          ContractStatus @default(Live)
+  id                         Int            @id @default(autoincrement())
+  chainId                    Int
+  address                    String
+  description                String
+  lastBlockNumber            Int
+  lastLeaderboardBlockNumber Int            @default(0)
+  status                     ContractStatus @default(Live)
 
   leaderBots   Bot[]      @relation("leaderBots")
   followerBots Bot[]      @relation("followerBots")
@@ -155,6 +154,7 @@ enum MissionStatus {
   Opened
   Closing
   Closed
+  Ignored
 }
 
 model Mission {

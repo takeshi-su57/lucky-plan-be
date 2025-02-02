@@ -6,7 +6,7 @@ import {
 } from './entities/trade-history.entity';
 import { PnlSnapshotKind } from '@prisma/client';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
-
+import { PnlSnapshot } from './entities/trade-history.entity';
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
@@ -25,6 +25,17 @@ export class TradeHistoriesResolver {
     @Args('contractId', { type: () => Int }) contractId: number,
   ) {
     return this.tradeHistoriesService.getTradeHistories([address], contractId);
+  }
+
+  @Query(() => [PnlSnapshot])
+  getPnlSnapshotsByAddress(
+    @Args('address') address: string,
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+      contractId,
+      address.toLowerCase(),
+    );
   }
 
   @Query(() => PnlSnapshotDetailsConnection)

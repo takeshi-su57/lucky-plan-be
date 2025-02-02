@@ -71,6 +71,26 @@ export class TradeService {
     return await wallet.writeContract(request);
   }
 
+  async cancelOrderAfterTimeout(
+    wallet: WalletClient,
+    publicClient: PublicClient,
+    chainId: number,
+    args: {
+      index: number;
+    },
+  ) {
+    const { request } = await publicClient.simulateContract({
+      account: wallet.account,
+      address: addresses[chainId.toString() as keyof typeof addresses].global
+        .gnsMultiCollatDiamond as Address,
+      abi: gnsMultiCollatDiamondAbi,
+      functionName: 'cancelOrderAfterTimeout',
+      args: [args.index],
+    });
+
+    return await wallet.writeContract(request);
+  }
+
   async updateTp(
     wallet: WalletClient,
     publicClient: PublicClient,

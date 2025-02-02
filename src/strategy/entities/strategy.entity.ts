@@ -18,12 +18,6 @@ export class Strategy {
   lifeTime: number;
 
   @Field(() => Int)
-  minCapacity: number;
-
-  @Field(() => Int)
-  maxCapacity: number;
-
-  @Field(() => Int)
   minCollateral: number;
 
   @Field(() => Int)

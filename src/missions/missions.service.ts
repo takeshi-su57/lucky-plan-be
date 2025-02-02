@@ -5,9 +5,9 @@ import { PubSub } from 'graphql-subscriptions';
 
 import {
   getOrderIdFromMissionAction,
-  isCloseMissionAction,
   isOpenMissionAction,
   missionEventNames,
+  missionEventParsers,
 } from 'src/actions/eventParsers';
 
 import {
@@ -34,6 +34,7 @@ import {
   MissionUpdateInput,
 } from './dto/mission.input';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 
 @Injectable()
 export class MissionsService {
@@ -43,6 +44,7 @@ export class MissionsService {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private tasksService: TasksService,
+    private tradingVariableService: TradingVariableService,
     private readonly logger: Logger,
   ) {
     this.loadMissions();
@@ -140,7 +142,7 @@ export class MissionsService {
     const missions = await this.prismaService.mission.findMany({
       where: {
         status: {
-          not: MissionStatus.Closed,
+          notIn: [MissionStatus.Closed, MissionStatus.Ignored],
         },
       },
       include: {
@@ -161,7 +163,7 @@ export class MissionsService {
     });
   }
 
-  async closeMission(id: number) {
+  async closeMission(id: number, isForce: boolean) {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
@@ -178,16 +180,30 @@ export class MissionsService {
     }
 
     if (
-      mission.status !== MissionStatus.Opened &&
-      mission.status !== MissionStatus.Created
+      mission.status === MissionStatus.Closed ||
+      mission.status === MissionStatus.Ignored
     ) {
       throw new Error('Invalid mission status!');
     }
 
-    const isClosed = await this.tasksService.closeMissionTasks(mission);
+    const isClosed = await this.tasksService.closeMissionTasks(
+      mission,
+      isForce,
+    );
 
-    if (!isClosed) {
-      throw new Error('There is something wrong while closing mission tasks!');
+    if (isClosed === 'awaiting') {
+      throw new Error(
+        'This mission cannot stop because there are pending transaction',
+      );
+    }
+
+    if (isClosed === 'closed') {
+      await this.closeMany([{ id: mission.id }]);
+
+      return {
+        ...mission,
+        status: MissionStatus.Closed,
+      };
     }
 
     const closingMissions = await this.updateMany([
@@ -213,6 +229,29 @@ export class MissionsService {
     }
 
     return closingMission;
+  }
+
+  async ignoreMission(id: number) {
+    const ignoredMissions = await this.updateMany([
+      { id, status: MissionStatus.Ignored },
+    ]);
+
+    if (ignoredMissions.length !== 1) {
+      throw new Error('There is something wrong while ignoring mission tasks!');
+    }
+
+    ignoredMissions.forEach((mission) => {
+      const arr = this.missionsByBotMap.get(mission.botId);
+
+      if (arr) {
+        this.missionsByBotMap.set(
+          mission.botId,
+          arr.filter((item) => item.id !== mission.id),
+        );
+      }
+    });
+
+    return ignoredMissions[0];
   }
 
   findAll() {
@@ -266,7 +305,7 @@ export class MissionsService {
     });
 
     // find missions by their setup task.
-    const tasks = this.tasksService.findMissionTasksForMOIEvent(
+    const tasks = await this.tasksService.findMissionTasksForMOIEvent(
       Array.from(eventsMap.keys()),
     );
 
@@ -297,11 +336,26 @@ export class MissionsService {
   }
 
   async handleMissionLeaderActions(actions: ActionContext<BotContext>[]) {
-    const openEvents = actions.filter(
-      (item) =>
-        isOpenMissionAction(item.action) &&
-        item.context.bot.status !== BotStatus.Stop,
-    );
+    const openEvents = actions
+      .filter(
+        (item) =>
+          isOpenMissionAction(item.action) &&
+          item.context.bot.status === BotStatus.Live,
+      )
+      // block leader action register if there is no pair ready
+      .filter((item) => {
+        const event = missionEventParsers
+          .find((parser) => parser.eventName === item.action.name)!
+          .actionParser(item.action);
+        const { t } = event.args;
+
+        const pair = this.tradingVariableService.getPair(
+          item.context.bot.followerContractId,
+          t.pairIndex,
+        );
+
+        return !!pair;
+      });
 
     await this.createMany(
       openEvents.map((item) => ({
@@ -321,7 +375,7 @@ export class MissionsService {
           this.missionsByBotMap.get(actionItem.context.bot.id) || [];
 
         let actionPosition = {
-          address: actionItem.action.position.address,
+          address: actionItem.action.position.address.toLowerCase(),
           index: actionItem.action.position.index,
         };
 
@@ -336,7 +390,7 @@ export class MissionsService {
           }
 
           actionPosition = {
-            address: orderId.user,
+            address: orderId.user.toLowerCase(),
             index: orderId.index,
           };
         }
@@ -391,17 +445,18 @@ export class MissionsService {
     );
 
     if (missionActions.length > 0) {
-      await this.tasksService.handleFollowerActions(missionActions);
+      await this.tasksService.handleFollowerActions(
+        missionActions,
+        async (missionIds) => {
+          // handle close mission follower actions
+          await this.closeMany(
+            missionIds.map((item) => ({
+              id: item,
+            })),
+          );
+        },
+      );
     }
-
-    // handle close mission follower actions
-    await this.closeMany(
-      missionActions
-        .filter((item) => isCloseMissionAction(item.action))
-        .map((item) => ({
-          id: item.context.mission.id,
-        })),
-    );
   }
 
   async handleLeaderActions(leaderActions: ActionContext<BotContext>[]) {
@@ -421,8 +476,17 @@ export class MissionsService {
         missionActions.filter(
           (item) =>
             item.context.mission.status !== MissionStatus.Closing &&
-            item.context.mission.status !== MissionStatus.Closed,
+            item.context.mission.status !== MissionStatus.Closed &&
+            item.context.mission.status !== MissionStatus.Ignored,
         ),
+        async (missionIds) => {
+          // handle close mission follower actions
+          await this.closeMany(
+            missionIds.map((item) => ({
+              id: item,
+            })),
+          );
+        },
       );
     }
   }
