@@ -1,5 +1,6 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Mission } from 'src/missions/entities/mission.entity';
+import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
 
 @ObjectType()
 export class Follower {
@@ -23,6 +24,9 @@ export class FollowerDetail extends Follower {
 
   @Field(() => Int)
   contractId: number;
+
+  @Field(() => [PnlSnapshot])
+  pnlSnapshots: PnlSnapshot[];
 }
 
 @ObjectType()
