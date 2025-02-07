@@ -10,8 +10,16 @@ import {
   fallback,
 } from 'viem';
 import { english, mnemonicToAccount } from 'viem/accounts';
-import { arbitrum, arbitrumSepolia, base, polygon, Chain } from 'viem/chains';
+import {
+  arbitrum,
+  arbitrumSepolia,
+  base,
+  polygon,
+  apeChain,
+  Chain,
+} from 'viem/chains';
 import { PrismaService } from './prisma.service';
+
 import { validateMnemonic } from '@scure/bip39';
 
 const rpcUrls = {
@@ -41,6 +49,11 @@ const rpcUrls = {
     'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-sepolia.public.blastapi.io',
   ],
+  33139: [
+    'https://rpc.apechain.com/http',
+    'https://apechain.gateway.tenderly.co/',
+    'https://33139.rpc.thirdweb.com/',
+  ],
 };
 
 @Injectable()
@@ -51,7 +64,7 @@ export class ChainsService {
   private mnemonic: string;
 
   constructor(private prismaService: PrismaService) {
-    this.availableChains = [arbitrum, polygon, base, arbitrumSepolia];
+    this.availableChains = [arbitrum, polygon, base, arbitrumSepolia, apeChain];
     this.publicClients = {};
     this.walletClients = {};
 
