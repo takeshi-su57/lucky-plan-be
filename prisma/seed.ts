@@ -30,7 +30,7 @@ async function main() {
     update: {},
     create: {
       key: 'availableChainIds',
-      value: '[137,42161,421614,8453]',
+      value: '[137,42161,421614,8453,33139]',
     },
   });
 
@@ -108,6 +108,15 @@ async function main() {
         'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
       lastBlockNumber: 33946165,
       lastLeaderboardBlockNumber: 33946165,
+      status: ContractStatus.Live,
+    },
+    {
+      chainId: 33139,
+      address: '0x2BE5D7058AdBa14Bc38E4A83E94A81f7491b0163',
+      description:
+        'This is a gains ape chain chain gnsDiamondContract address.',
+      lastBlockNumber: 4603247,
+      lastLeaderboardBlockNumber: 4603247,
       status: ContractStatus.Live,
     },
   ];
