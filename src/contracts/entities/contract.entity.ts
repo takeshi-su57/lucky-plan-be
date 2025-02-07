@@ -22,3 +22,15 @@ export class Contract {
   @Field(() => ContractStatus)
   status: ContractStatus;
 }
+
+@ObjectType()
+export class TradePair {
+  @Field(() => Int)
+  pairIndex: number;
+
+  @Field()
+  from: string;
+
+  @Field()
+  to: string;
+}

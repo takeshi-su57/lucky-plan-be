@@ -19,6 +19,9 @@ export class TradeHistory {
   @Field(() => Int)
   contractId: number;
 
+  @Field(() => Int, { nullable: true })
+  pairIndex: number | null;
+
   @Field(() => Int)
   in: number;
 

@@ -228,6 +228,7 @@ model TradeHistory {
   address     String
   eventName   String
   contractId  Int
+  pairIndex   Int?
   in          Int
   out         Int
   pnl         Int
