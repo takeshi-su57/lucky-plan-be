@@ -52,6 +52,7 @@ export class TradeHistoriesService {
         let usdIn = 0;
         let usdOut = 0;
         let usdPnl = 0;
+        let pairIndex = null;
 
         switch (action.item.name) {
           case positionSizeIncreaseExecutedEventParser.eventName: {
@@ -74,6 +75,7 @@ export class TradeHistoriesService {
               Number(args.collateralPriceUsd) / 100000000; // chainlink precision
 
             usdOut = Number(realCollateralDelta * realCollateralPriceUsd);
+            pairIndex = Number(args.pairIndex);
 
             break;
           }
@@ -97,6 +99,7 @@ export class TradeHistoriesService {
               Number(args.collateralPriceUsd) / 100000000;
 
             usdIn = Number(realCollateralDelta * realCollateralPriceUsd);
+            pairIndex = Number(args.pairIndex);
             break;
           }
           default: {
@@ -120,6 +123,8 @@ export class TradeHistoriesService {
                 BigInt(amountSentToTrader) / collateral.precision,
               );
 
+              pairIndex = Number(t.pairIndex);
+
               if (isOpenMissionAction(action.item)) {
                 usdOut = Number(realCollateralAmount * realCollateralPriceUsd);
               } else if (isCloseMissionAction(action.item)) {
@@ -141,6 +146,7 @@ export class TradeHistoriesService {
           address: action.item.position.address.toLowerCase(),
           eventName: action.item.name,
           contractId,
+          pairIndex,
           in: usdIn,
           out: usdOut,
           pnl: usdPnl,
