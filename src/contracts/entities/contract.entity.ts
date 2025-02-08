@@ -16,6 +16,9 @@ export class Contract {
   @Field()
   address: string;
 
+  @Field(() => String, { nullable: true })
+  backendUrl: string | null;
+
   @Field(() => String)
   description: string;
 
