@@ -83,6 +83,7 @@ async function main() {
       description: 'This is a gains polygon chain gnsDiamondContract address',
       lastBlockNumber: 62908499,
       lastLeaderboardBlockNumber: 62908499,
+      backendUrl: 'https://backend-polygon.gains.trade',
       status: ContractStatus.Live,
     },
     {
@@ -91,6 +92,7 @@ async function main() {
       description: 'This is a gains base chain gnsDiamondContract address',
       lastBlockNumber: 23360263,
       lastLeaderboardBlockNumber: 23360263,
+      backendUrl: 'https://backend-base.gains.trade',
       status: ContractStatus.Live,
     },
     {
@@ -99,6 +101,7 @@ async function main() {
       description: 'This is a gains arbitrum chain gnsDiamondContract address',
       lastBlockNumber: 262719377,
       lastLeaderboardBlockNumber: 262719377,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
       status: ContractStatus.Live,
     },
     {
@@ -108,6 +111,7 @@ async function main() {
         'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
       lastBlockNumber: 33946165,
       lastLeaderboardBlockNumber: 33946165,
+      backendUrl: 'https://backend-sepolia.gains.trade',
       status: ContractStatus.Live,
     },
     {
@@ -117,6 +121,7 @@ async function main() {
         'This is a gains ape chain chain gnsDiamondContract address.',
       lastBlockNumber: 4810548,
       lastLeaderboardBlockNumber: 4810548,
+      backendUrl: 'https://backend-apechain.gains.trade',
       status: ContractStatus.Live,
     },
   ];
