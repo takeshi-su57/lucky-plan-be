@@ -6,7 +6,11 @@ import { PrismaService } from 'src/global/prisma.service';
 import { ChainsService } from 'src/global/chains.service';
 import { MissionsService } from 'src/missions/missions.service';
 
-import { BotUpdateInput, CreateBotInput } from './dto/bot.input';
+import {
+  BotUpdateInput,
+  CreateBotAndStrategyInput,
+  CreateBotInput,
+} from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
 import { BotDetails, BotWithMissions } from './entities/bot.entity';
@@ -18,6 +22,7 @@ import { MAX_GAS, MIN_GAS, USDCCollateralIndex } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { getReadableError } from 'src/utils';
+import { StrategyService } from 'src/strategy/strategy.service';
 
 @Injectable()
 export class BotsService {
@@ -31,6 +36,7 @@ export class BotsService {
     private followersService: FollowerService,
     private actionsService: ActionsService,
     private tradingVariableService: TradingVariableService,
+    private strategyService: StrategyService,
     private logger: Logger,
   ) {
     this.loadBots();
@@ -56,6 +62,23 @@ export class BotsService {
     this.bots.push(newBot);
 
     return newBot;
+  }
+
+  async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
+    const promises = inputs.map(async (input) => {
+      const strategy = await this.strategyService.create(input.strategy);
+
+      return await this.create({
+        strategyId: strategy.id,
+        leaderAddress: input.leaderAddress.toLowerCase(),
+        followerAddress: input.followerAddress.toLowerCase(),
+        leaderContractId: input.leaderContractId,
+        followerContractId: input.followerContractId,
+        leaderCollateralBaseline: input.leaderCollateralBaseline,
+      });
+    });
+
+    return await Promise.all(promises);
   }
 
   async delete(id: number) {
