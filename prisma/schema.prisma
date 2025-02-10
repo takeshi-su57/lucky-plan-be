@@ -110,10 +110,30 @@ model Contract {
   @@unique([chainId, address])
 }
 
+enum PlanStatus {
+  Created
+  Started
+  Stopped
+  Finished
+}
+
+model Plan {
+  id             Int        @id @default(autoincrement())
+  title          String
+  description    String
+  startedAt      DateTime?
+  endedAt        DateTime?
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  status         PlanStatus
+  bots           Bot[]
+}
+
 model Bot {
   id                       Int       @id @default(autoincrement())
   leaderAddress            String    @db.VarChar(255)
   followerAddress          String    @db.VarChar(255)
+  planId                   Int?
   strategyId               Int
   leaderContractId         Int
   leaderCollateralBaseline Int
@@ -126,6 +146,7 @@ model Bot {
   endedAt                  DateTime?
   status                   BotStatus @default(Created)
 
+  plan             Plan?    @relation(fields: [planId], references: [id])
   follower         Follower @relation(fields: [followerAddress], references: [address])
   leader           User     @relation(fields: [leaderAddress], references: [address])
   strategy         Strategy @relation(fields: [strategyId], references: [id])

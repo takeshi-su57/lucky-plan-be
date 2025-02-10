@@ -24,6 +24,9 @@ export class Bot {
   @Field(() => Int)
   strategyId: number;
 
+  @Field(() => Int, { nullable: true })
+  planId: number | null;
+
   @Field(() => Int)
   leaderContractId: number;
 

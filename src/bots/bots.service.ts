@@ -70,6 +70,7 @@ export class BotsService {
 
       return await this.create({
         strategyId: strategy.id,
+        planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
         followerAddress: input.followerAddress.toLowerCase(),
         leaderContractId: input.leaderContractId,
