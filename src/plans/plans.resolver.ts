@@ -37,19 +37,16 @@ export class PlansResolver {
     return this.plansService.addBotToPlan(planId, botId);
   }
 
-  @Mutation(() => PlanDetails)
-  removeBotFromPlan(
-    @Args('planId', { type: () => Int }) planId: number,
-    @Args('botId', { type: () => Int }) botId: number,
-  ) {
-    return this.plansService.removeBotFromPlan(planId, botId);
-  }
-
   @Query(() => [PlanDetails])
   getPlansByStatus(
     @Args('status', { type: () => PlanStatus })
     status: PlanStatus,
   ) {
     return this.plansService.getPlansByStatus(status);
+  }
+
+  @Query(() => PlanDetails, { nullable: true })
+  getPlanById(@Args('id', { type: () => Int }) id: number) {
+    return this.plansService.getPlanById(id);
   }
 }

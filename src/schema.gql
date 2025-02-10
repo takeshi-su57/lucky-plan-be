@@ -328,7 +328,6 @@ type Mutation {
   liveBot(id: Int!): BotDetails!
   pauseSystem: Boolean!
   performTask(id: Int!): TaskShallowDetails!
-  removeBotFromPlan(botId: Int!, planId: Int!): PlanDetails!
   removeStrategy(id: Int!): Strategy!
   removeTagFromUser(input: ChangeUserTagInput!): User!
   resumeSystem: Boolean!
@@ -435,7 +434,6 @@ type Query {
   findStrategyMetadata(key: String!): StrategyMetadata!
   findTask(id: Int!): TaskWithActions
   getAllActions: [Action!]!
-  getAllBots: [BotDetails!]!
   getAllCategories: [TagCategory!]!
   getAllContracts: [Contract!]!
   getAllFollowerActions: [FollowerAction!]!
@@ -447,8 +445,10 @@ type Query {
   getAllTags: [Tag!]!
   getAllTasks: [TaskShallowDetails!]!
   getAllUsers: [User!]!
+  getBotsByStatus(status: BotStatus!): [BotDetails!]!
   getFollowerPrivateKey(input: GetFollowerByAddressInput!): String!
   getPendingOrders(address: String!, contractId: Int!): [FollowerPendingOrder!]!
+  getPlanById(id: Int!): PlanDetails
   getPlansByStatus(status: PlanStatus!): [PlanDetails!]!
   getPnlSnapshots(after: Int, contractId: Int!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
   getPnlSnapshotsByAddress(address: String!, contractId: Int!): [PnlSnapshot!]!

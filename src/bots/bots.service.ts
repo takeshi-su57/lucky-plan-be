@@ -214,6 +214,19 @@ export class BotsService {
     });
   }
 
+  async findByStatus(status: BotStatus): Promise<BotDetails[]> {
+    return this.prismaService.bot.findMany({
+      where: { status },
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
+    });
+  }
+
   find(status: BotStatus) {
     return this.prismaService.bot.findMany({
       where: { status },

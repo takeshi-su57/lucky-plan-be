@@ -57,27 +57,26 @@ export class PlansService {
   }
 
   async addBotToPlan(planId: number, botId: number): Promise<PlanDetails> {
-    return await this.prisma.plan.update({
+    const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
-      data: { bots: { connect: { id: botId } } },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            leader: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-          },
-        },
-      },
     });
-  }
 
-  async removeBotFromPlan(planId: number, botId: number): Promise<PlanDetails> {
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    if (plan.status === PlanStatus.Started) {
+      await this.botService.live(botId);
+    }
+
+    if (plan.status === PlanStatus.Stopped) {
+      await this.botService.stop(botId);
+    }
+
     return await this.prisma.plan.update({
       where: { id: planId },
-      data: { bots: { disconnect: { id: botId } } },
+
+      data: { bots: { connect: { id: botId } } },
       include: {
         bots: {
           include: {
@@ -95,6 +94,23 @@ export class PlansService {
   async getPlansByStatus(status: PlanStatus): Promise<PlanDetails[]> {
     return this.prisma.plan.findMany({
       where: { status },
+      include: {
+        bots: {
+          include: {
+            follower: true,
+            leader: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getPlanById(id: number): Promise<PlanDetails | null> {
+    return await this.prisma.plan.findUnique({
+      where: { id },
       include: {
         bots: {
           include: {
