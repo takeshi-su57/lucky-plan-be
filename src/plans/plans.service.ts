@@ -56,7 +56,7 @@ export class PlansService {
     });
   }
 
-  async addBotToPlan(planId: number, botId: number): Promise<PlanDetails> {
+  async addBotsToPlan(planId: number, botIds: number[]): Promise<PlanDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
     });
@@ -66,17 +66,25 @@ export class PlansService {
     }
 
     if (plan.status === PlanStatus.Started) {
-      await this.botService.live(botId);
+      const botsPromises = botIds.map(async (botId) => {
+        await this.botService.live(botId);
+      });
+
+      await Promise.allSettled(botsPromises);
     }
 
     if (plan.status === PlanStatus.Stopped) {
-      await this.botService.stop(botId);
+      const botsPromises = botIds.map(async (botId) => {
+        await this.botService.stop(botId);
+      });
+
+      await Promise.allSettled(botsPromises);
     }
 
     return await this.prisma.plan.update({
       where: { id: planId },
 
-      data: { bots: { connect: { id: botId } } },
+      data: { bots: { connect: botIds.map((botId) => ({ id: botId })) } },
       include: {
         bots: {
           include: {
@@ -143,7 +151,7 @@ export class PlansService {
       }
     });
 
-    await Promise.all(botsPromises);
+    await Promise.allSettled(botsPromises);
 
     return await this.prisma.plan.update({
       where: { id },
@@ -181,7 +189,7 @@ export class PlansService {
       }
     });
 
-    await Promise.all(botsPromises);
+    await Promise.allSettled(botsPromises);
 
     return await this.prisma.plan.update({
       where: { id },

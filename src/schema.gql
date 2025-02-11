@@ -304,7 +304,7 @@ type MissionWithTasks {
 }
 
 type Mutation {
-  addBotToPlan(botId: Int!, planId: Int!): PlanDetails!
+  addBotsToPlan(botIds: [Int!]!, planId: Int!): PlanDetails!
   addTagToUser(input: ChangeUserTagInput!): User!
   addUser(input: AddUserInput!): User!
   batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotDetails!]!

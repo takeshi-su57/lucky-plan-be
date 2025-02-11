@@ -30,11 +30,11 @@ export class PlansResolver {
   }
 
   @Mutation(() => PlanDetails)
-  addBotToPlan(
+  addBotsToPlan(
     @Args('planId', { type: () => Int }) planId: number,
-    @Args('botId', { type: () => Int }) botId: number,
+    @Args('botIds', { type: () => [Int] }) botIds: number[],
   ) {
-    return this.plansService.addBotToPlan(planId, botId);
+    return this.plansService.addBotsToPlan(planId, botIds);
   }
 
   @Query(() => [PlanDetails])
