@@ -2,6 +2,7 @@ import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { BotsService } from './bots.service';
 import { Bot, BotDetails, BotWithMissions } from './entities/bot.entity';
 import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
+import { BotStatus } from '@prisma/client';
 
 @Resolver(() => Bot)
 export class BotsResolver {
@@ -36,8 +37,10 @@ export class BotsResolver {
   }
 
   @Query(() => [BotDetails])
-  getAllBots() {
-    return this.botsService.findAll();
+  getBotsByStatus(
+    @Args('status', { type: () => BotStatus }) status: BotStatus,
+  ) {
+    return this.botsService.findByStatus(status);
   }
 
   @Query(() => BotWithMissions, { nullable: true })

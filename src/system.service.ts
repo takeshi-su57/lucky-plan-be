@@ -5,6 +5,7 @@ import { TradingVariableService } from './global/trading-variable.service';
 import { BotsService } from './bots/bots.service';
 import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
 import { TaskExecutorService } from './task-executor/task-executor.service';
+import { PlansService } from './plans/plans.service';
 
 @Injectable()
 export class SystemService {
@@ -16,6 +17,7 @@ export class SystemService {
     private pnlSnapshotService: PnlSnapshotsService,
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
+    private plansService: PlansService,
   ) {
     this.isPaused = false;
   }
@@ -90,6 +92,17 @@ export class SystemService {
       this.botsService.status === 'ready'
     ) {
       await this.botsService.checkAndUpdateAllBots();
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async executeCronForPlans() {
+    if (this.isPaused) {
+      return;
+    }
+
+    if (this.plansService.status === 'ready') {
+      await this.plansService.checkAndUpdateAllPlans();
     }
   }
 

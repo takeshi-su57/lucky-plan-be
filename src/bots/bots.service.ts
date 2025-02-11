@@ -70,6 +70,7 @@ export class BotsService {
 
       return await this.create({
         strategyId: strategy.id,
+        planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
         followerAddress: input.followerAddress.toLowerCase(),
         leaderContractId: input.leaderContractId,
@@ -203,6 +204,19 @@ export class BotsService {
 
   async findAll(): Promise<BotDetails[]> {
     return this.prismaService.bot.findMany({
+      include: {
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
+    });
+  }
+
+  async findByStatus(status: BotStatus): Promise<BotDetails[]> {
+    return this.prismaService.bot.findMany({
+      where: { status },
       include: {
         follower: true,
         leader: true,
