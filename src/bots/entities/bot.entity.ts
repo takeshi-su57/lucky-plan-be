@@ -74,7 +74,7 @@ export class BotDetails extends Bot {
 }
 
 @ObjectType()
-export class BotWithMissions extends Bot {
+export class BotWithMissions extends BotDetails {
   @Field(() => [Mission])
   missions: Mission[];
 }

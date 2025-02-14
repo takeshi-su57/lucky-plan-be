@@ -245,6 +245,11 @@ export class BotsService {
       where: { id },
       include: {
         missions: true,
+        follower: true,
+        leader: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
       },
     });
   }
