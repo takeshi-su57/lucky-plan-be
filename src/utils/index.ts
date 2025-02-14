@@ -32,3 +32,21 @@ export function getReadableError(error: unknown) {
   }
   return String(error); // Other types (e.g., string, number)
 }
+
+export function getStartOfDay(date: Date): Date {
+  const updatedDate = new Date(date);
+  updatedDate.setHours(0, 0, 0, 0);
+  return updatedDate;
+}
+
+export function getStartOfWeek(date: Date): Date {
+  const updatedDate = new Date(date);
+  updatedDate.setDate(updatedDate.getDate() - updatedDate.getDay());
+  return getStartOfDay(updatedDate);
+}
+
+export function getStartOfMonth(date: Date): Date {
+  const updatedDate = new Date(date);
+  updatedDate.setDate(1);
+  return getStartOfDay(updatedDate);
+}

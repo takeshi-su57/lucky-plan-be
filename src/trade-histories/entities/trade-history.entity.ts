@@ -80,3 +80,15 @@ export class PnlSnapshotDetailsConnection {
   edges: PnlSnapshotDetailsEdge[];
   @Field(() => PageInfo) pageInfo: PageInfo;
 }
+
+@ObjectType()
+export class TradeTransactionCount {
+  @Field(() => Int)
+  daily: number;
+
+  @Field(() => Int)
+  weekly: number;
+
+  @Field(() => Int)
+  monthly: number;
+}

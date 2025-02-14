@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ActionItem } from 'src/actions/entities/action.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateTradeHistoryInput } from './dto/trade-history.input';
+import {
+  CreateTradeHistoryInput,
+  GetUserTransactionCountsInput,
+} from './dto/trade-history.input';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
@@ -14,6 +17,9 @@ import {
   missionEventParsers,
 } from 'src/actions/eventParsers';
 import { TradingVariableService } from 'src/global/trading-variable.service';
+import { getStartOfMonth, getStartOfWeek } from 'src/utils';
+import { getStartOfDay } from 'src/utils';
+import { TradeTransactionCount } from './entities/trade-history.entity';
 
 @Injectable()
 export class TradeHistoriesService {
@@ -29,6 +35,153 @@ export class TradeHistoriesService {
         ...input,
       })),
     });
+  }
+
+  async getTradeTransactionCounts(
+    contractIds: number[],
+    addresses: string[],
+  ): Promise<TradeTransactionCount> {
+    const now = new Date();
+
+    const result = {
+      daily: 0,
+      weekly: 0,
+      monthly: 0,
+    };
+
+    for (const contractId of contractIds) {
+      const dailyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses,
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfDay(now),
+        },
+      };
+
+      const weeklyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses,
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfWeek(now),
+        },
+      };
+
+      const monthlyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses,
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfMonth(now),
+        },
+      };
+
+      const counts = await this.prismaService.$transaction([
+        this.prismaService.tradeHistory.count({
+          where: dailyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: weeklyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: monthlyFilter,
+        }),
+      ]);
+
+      result.daily += counts[0];
+      result.weekly += counts[1];
+      result.monthly += counts[2];
+    }
+
+    return result;
+  }
+
+  async getUserTransactionCounts(
+    inputs: GetUserTransactionCountsInput[],
+  ): Promise<TradeTransactionCount[]> {
+    const now = new Date();
+
+    const startOfDay = getStartOfDay(now);
+    const startOfWeek = getStartOfWeek(now);
+    const startOfMonth = getStartOfMonth(now);
+
+    const result: TradeTransactionCount[] = [];
+
+    for (const input of inputs) {
+      const { address, contractId, startedAt } = input;
+
+      const dailyFilter = {
+        address,
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfDay > startedAt
+              ? startOfDay
+              : startedAt
+            : startOfDay,
+        },
+      };
+
+      const weeklyFilter = {
+        address,
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfWeek > startedAt
+              ? startOfWeek
+              : startedAt
+            : startOfWeek,
+        },
+      };
+
+      const monthlyFilter = {
+        address,
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfMonth > startedAt
+              ? startOfMonth
+              : startedAt
+            : startOfMonth,
+        },
+      };
+
+      const counts = await this.prismaService.$transaction([
+        this.prismaService.tradeHistory.count({
+          where: dailyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: weeklyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: monthlyFilter,
+        }),
+      ]);
+
+      result.push({
+        daily: counts[0],
+        weekly: counts[1],
+        monthly: counts[2],
+      });
+    }
+
+    return result;
   }
 
   getTradeHistories(addresses: string[], contractId: number) {
