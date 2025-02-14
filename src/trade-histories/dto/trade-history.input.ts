@@ -45,3 +45,19 @@ export class CreateTradeHistoryInput {
   @Field(() => Date)
   timestamp: Date;
 }
+
+@InputType()
+export class GetUserTransactionCountsInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @Field(() => Date, { nullable: true })
+  startedAt: Date | null;
+}

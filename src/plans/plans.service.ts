@@ -234,7 +234,7 @@ export class PlansService {
 
           if (allBotsDead) {
             await this.update({
-              ...plan,
+              id: plan.id,
               status: PlanStatus.Finished,
             });
           }

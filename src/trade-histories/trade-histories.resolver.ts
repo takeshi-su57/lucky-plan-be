@@ -3,10 +3,12 @@ import { TradeHistoriesService } from './trade-histories.service';
 import {
   PnlSnapshotDetailsConnection,
   TradeHistory,
+  TradeTransactionCount,
 } from './entities/trade-history.entity';
 import { PnlSnapshotKind } from '@prisma/client';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { PnlSnapshot } from './entities/trade-history.entity';
+import { GetUserTransactionCountsInput } from './dto/trade-history.input';
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
@@ -17,6 +19,25 @@ export class TradeHistoriesResolver {
   @Mutation(() => Boolean)
   initalizePnlSnapshot() {
     return this.pnlSnapshotsService.initialBuild();
+  }
+
+  @Query(() => TradeTransactionCount)
+  getTradeTransactionCounts(
+    @Args('contractIds', { type: () => [Int] }) contractIds: number[],
+    @Args('addresses', { type: () => [String] }) addresses: string[],
+  ) {
+    return this.tradeHistoriesService.getTradeTransactionCounts(
+      contractIds,
+      addresses,
+    );
+  }
+
+  @Query(() => [TradeTransactionCount])
+  getUserTransactionCounts(
+    @Args('inputs', { type: () => [GetUserTransactionCountsInput] })
+    inputs: GetUserTransactionCountsInput[],
+  ) {
+    return this.tradeHistoriesService.getUserTransactionCounts(inputs);
   }
 
   @Query(() => [TradeHistory])
