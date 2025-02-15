@@ -14,27 +14,27 @@ export type CreateTradeHistoryInput = {
 
   pair: string;
 
-  price: number;
+  price: string;
 
-  collateralPriceUsd: number;
+  collateralPriceUsd: string;
 
   long: number;
 
-  size: number;
+  size: string;
 
   leverage: number;
 
-  pnl: number;
+  pnl: string;
 
   collateralIndex: number;
 
   tradeIndex: number;
 
-  collateralDelta: number | null;
+  collateralDelta: string | null;
 
   leverageDelta: number | null;
 
-  marketPrice: number | null;
+  marketPrice: string | null;
 
   tradeId: string | null;
 

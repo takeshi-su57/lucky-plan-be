@@ -571,20 +571,20 @@ type TradeHistory {
   action: TradeActionType!
   address: String!
   block: Int!
-  collateralDelta: Int
+  collateralDelta: String
   collateralIndex: Int!
-  collateralPriceUsd: Int!
+  collateralPriceUsd: String!
   contractId: Int!
   date: DateTime!
   id: Int!
   leverage: Int!
   leverageDelta: Int
   long: Int!
-  marketPrice: Int
+  marketPrice: String
   pair: String!
-  pnl: Int!
-  price: Int!
-  size: Int!
+  pnl: String!
+  price: String!
+  size: String!
   tradeId: String
   tradeIndex: Int!
 }

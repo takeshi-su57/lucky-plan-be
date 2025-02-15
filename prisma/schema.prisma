@@ -263,17 +263,17 @@ model TradeHistory {
   action             TradeActionType
   contractId         Int
   pair               String
-  price              Int
-  collateralPriceUsd Int
+  price              String
+  collateralPriceUsd String
   long               Int
-  size               Int
+  size               String
   leverage           Int
-  pnl                Int
+  pnl                String
   collateralIndex    Int
   tradeIndex         Int
-  collateralDelta    Int?
+  collateralDelta    String?
   leverageDelta      Int?
-  marketPrice        Int?
+  marketPrice        String?
   tradeId            String?
   block              Int
   date               DateTime
