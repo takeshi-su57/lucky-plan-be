@@ -1,63 +1,63 @@
-import { InputType, Int, Field } from '@nestjs/graphql';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Field } from '@nestjs/graphql';
+import { InputType } from '@nestjs/graphql';
+import { TradeActionType } from '@prisma/client';
+import { IsNotEmpty, IsNumber, IsDate } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
-@InputType()
-export class CreateTradeHistoryInput {
-  @IsNotEmpty()
-  @IsWalletAddress()
-  @Field()
+export type CreateTradeHistoryInput = {
   address: string;
 
-  @IsNotEmpty()
-  @IsString()
-  @Field()
-  eventName: string;
+  action: TradeActionType;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Int)
   contractId: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Int)
-  in: number;
+  pair: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Int)
-  out: number;
+  price: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Int)
+  collateralPriceUsd: number;
+
+  long: number;
+
+  size: number;
+
+  leverage: number;
+
   pnl: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Int)
-  blockNumber: number;
+  collateralIndex: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Field(() => Date)
-  timestamp: Date;
-}
+  tradeIndex: number;
+
+  collateralDelta: number | null;
+
+  leverageDelta: number | null;
+
+  marketPrice: number | null;
+
+  tradeId: string | null;
+
+  block: number;
+
+  date: Date;
+};
 
 @InputType()
 export class GetUserTransactionCountsInput {
   @IsNotEmpty()
   @IsWalletAddress()
-  @Field()
   address: string;
 
   @IsNotEmpty()
   @IsNumber()
-  @Field(() => Int)
   contractId: number;
 
+  @IsDate()
   @Field(() => Date, { nullable: true })
   startedAt: Date | null;
+
+  @IsDate()
+  @Field(() => Date, { nullable: true })
+  endedAt: Date | null;
 }

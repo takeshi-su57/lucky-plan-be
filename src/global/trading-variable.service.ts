@@ -121,6 +121,16 @@ export class TradingVariableService {
     return this.tradingVariable[contractId].pairs[pairIndex];
   }
 
+  getPairName(contractId: number, pairIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    const pair = this.tradingVariable[contractId].pairs[pairIndex];
+
+    return `${pair?.from}/${pair?.to}`;
+  }
+
   getTradePairs(contractId: number): TradePair[] {
     if (!this.tradingVariable[contractId]) {
       throw new Error('Failed at getting trading variable');

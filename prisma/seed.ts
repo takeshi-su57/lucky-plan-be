@@ -34,21 +34,8 @@ async function main() {
     },
   });
 
-  const lastPnlSnapshotUpdatedTimestamp = await prisma.metadata.upsert({
-    where: { key: 'lastPnlSnapshotUpdatedTimestamp' },
-    update: {},
-    create: {
-      key: 'lastPnlSnapshotUpdatedTimestamp',
-      value: '0',
-    },
-  });
-
   console.log('password metadata: ', password);
   console.log('availableChainIds metadata: ', availableChainIds);
-  console.log(
-    'lastPnlSnapshotUpdatedTimestamp: ',
-    lastPnlSnapshotUpdatedTimestamp,
-  );
 
   const strategyMetadata = [
     {

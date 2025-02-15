@@ -17,8 +17,15 @@ export class TradeHistoriesResolver {
   ) {}
 
   @Mutation(() => Boolean)
-  initalizePnlSnapshot() {
-    return this.pnlSnapshotsService.initialBuild();
+  buildPnlSnapshots(@Args('endDate', { type: () => Date }) endDate: Date) {
+    return this.pnlSnapshotsService.buildSnapshots(endDate);
+  }
+
+  @Query(() => Boolean)
+  isPnlSnapshotInitialized(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+  ) {
+    return this.pnlSnapshotsService.isPnlSnapshotInitialized(dateStr);
   }
 
   @Query(() => TradeTransactionCount)
@@ -51,22 +58,24 @@ export class TradeHistoriesResolver {
   @Query(() => [PnlSnapshot])
   getPnlSnapshotsByAddress(
     @Args('address') address: string,
-    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshotsByAddress(
-      contractId,
+      dateStr,
       address.toLowerCase(),
     );
   }
 
   @Query(() => PnlSnapshotDetailsConnection)
   getPnlSnapshots(
+    @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('contractId', { type: () => Int }) contractId: number,
     @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
+      dateStr,
       contractId,
       kind,
       first,

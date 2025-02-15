@@ -245,20 +245,40 @@ model FollowerAction {
   @@unique([actionId, taskId])
 }
 
-model TradeHistory {
-  id          Int      @id @default(autoincrement())
-  address     String
-  eventName   String
-  contractId  Int
-  pairIndex   Int?
-  in          Int
-  out         Int
-  pnl         Int
-  blockNumber Int
-  timestamp   DateTime
+enum TradeActionType {
+  TradeOpenedMarket
+  TradeOpenedLimit
+  TradeClosedMarket
+  TradeClosedLIQ
+  TradeClosedSL
+  TradeClosedTP
+  TradeLeverageUpdate
+  TradePosSizeIncrease
+  TradePosSizeDecrease
+}
 
-  @@index([address, contractId, blockNumber(sort: Asc)])
-  @@index([address, contractId, timestamp(sort: Asc)])
+model TradeHistory {
+  id                 Int             @id @default(autoincrement())
+  address            String
+  action             TradeActionType
+  contractId         Int
+  pair               String
+  price              Int
+  collateralPriceUsd Int
+  long               Int
+  size               Int
+  leverage           Int
+  pnl                Int
+  collateralIndex    Int
+  tradeIndex         Int
+  collateralDelta    Int?
+  leverageDelta      Int?
+  marketPrice        Int?
+  tradeId            String?
+  block              Int
+  date               DateTime
+
+  @@index([address, contractId, block(sort: Asc)])
 }
 
 enum PnlSnapshotKind {
@@ -268,21 +288,24 @@ enum PnlSnapshotKind {
   WEEK
   TWO_WEEK
   MONTH
-  TWO_MONTH
   THREE_MONTH
   HALF_YEAR
   YEAR
-  TWO_YEAR
   ALL_TIME
 }
 
 model PnlSnapshot {
-  id         Int             @id @default(autoincrement())
-  address    String
-  contractId Int
-  kind       PnlSnapshotKind
-  accUSDPnl  Float
+  id        Int             @id @default(autoincrement())
+  address   String
+  dateStr   String // YYYY-MM-DD
+  kind      PnlSnapshotKind
+  accUSDPnl Float
 
-  @@unique([address, contractId, kind])
-  @@index([address, contractId, kind, accUSDPnl(sort: Desc)])
+  @@unique([address, dateStr, kind])
+}
+
+model PnlSnapshotInitializedFlag {
+  id      Int     @id @default(autoincrement())
+  dateStr String  @unique // YYYY-MM-DD
+  isInit  Boolean @default(false)
 }

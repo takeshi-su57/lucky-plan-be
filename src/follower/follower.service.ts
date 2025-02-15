@@ -4,6 +4,7 @@ import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
+import dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -651,7 +652,7 @@ export class FollowerService {
 
         const pnlSnapshots =
           await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
-            contractId,
+            dayjs(new Date()).format('YYYY-MM-DD'),
             entity.address,
           );
 
