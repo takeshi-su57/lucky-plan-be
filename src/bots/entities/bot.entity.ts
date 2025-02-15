@@ -24,6 +24,9 @@ export class Bot {
   @Field(() => Int)
   strategyId: number;
 
+  @Field(() => Int, { nullable: true })
+  planId: number | null;
+
   @Field(() => Int)
   leaderContractId: number;
 
@@ -71,7 +74,7 @@ export class BotDetails extends Bot {
 }
 
 @ObjectType()
-export class BotWithMissions extends Bot {
+export class BotWithMissions extends BotDetails {
   @Field(() => [Mission])
   missions: Mission[];
 }

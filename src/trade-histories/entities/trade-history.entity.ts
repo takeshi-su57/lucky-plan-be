@@ -1,5 +1,9 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { PnlSnapshotKind } from '@prisma/client';
+import { PnlSnapshotKind, TradeActionType } from '@prisma/client';
+
+registerEnumType(TradeActionType, {
+  name: 'TradeActionType',
+});
 
 registerEnumType(PnlSnapshotKind, {
   name: 'PnlSnapshotKind',
@@ -13,26 +17,56 @@ export class TradeHistory {
   @Field()
   address: string;
 
-  @Field()
-  eventName: string;
+  @Field(() => TradeActionType)
+  action: TradeActionType;
 
   @Field(() => Int)
   contractId: number;
 
-  @Field(() => Int)
-  in: number;
+  @Field()
+  pair: string;
 
   @Field(() => Int)
-  out: number;
+  price: number;
+
+  @Field(() => Int)
+  collateralPriceUsd: number;
+
+  @Field(() => Int)
+  long: number;
+
+  @Field(() => Int)
+  size: number;
+
+  @Field(() => Int)
+  leverage: number;
 
   @Field(() => Int)
   pnl: number;
 
   @Field(() => Int)
-  blockNumber: number;
+  collateralIndex: number;
+
+  @Field(() => Int)
+  tradeIndex: number;
+
+  @Field(() => Int, { nullable: true })
+  collateralDelta: number | null;
+
+  @Field(() => Int, { nullable: true })
+  leverageDelta: number | null;
+
+  @Field(() => Int, { nullable: true })
+  marketPrice: number | null;
+
+  @Field(() => String, { nullable: true })
+  tradeId: string | null;
+
+  @Field(() => Int)
+  block: number;
 
   @Field(() => Date)
-  timestamp: Date;
+  date: Date;
 }
 
 @ObjectType()
@@ -43,8 +77,8 @@ export class PnlSnapshot {
   @Field()
   address: string;
 
-  @Field(() => Int)
-  contractId: number;
+  @Field(() => String)
+  dateStr: string;
 
   @Field(() => PnlSnapshotKind)
   kind: PnlSnapshotKind;
@@ -76,4 +110,16 @@ export class PnlSnapshotDetailsConnection {
   @Field(() => [PnlSnapshotDetailsEdge])
   edges: PnlSnapshotDetailsEdge[];
   @Field(() => PageInfo) pageInfo: PageInfo;
+}
+
+@ObjectType()
+export class TradeTransactionCount {
+  @Field(() => Int)
+  daily: number;
+
+  @Field(() => Int)
+  weekly: number;
+
+  @Field(() => Int)
+  monthly: number;
 }

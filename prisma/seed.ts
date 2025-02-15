@@ -30,25 +30,12 @@ async function main() {
     update: {},
     create: {
       key: 'availableChainIds',
-      value: '[137,42161,421614,8453]',
-    },
-  });
-
-  const lastPnlSnapshotUpdatedTimestamp = await prisma.metadata.upsert({
-    where: { key: 'lastPnlSnapshotUpdatedTimestamp' },
-    update: {},
-    create: {
-      key: 'lastPnlSnapshotUpdatedTimestamp',
-      value: '0',
+      value: '[137,42161,421614,8453,33139]',
     },
   });
 
   console.log('password metadata: ', password);
   console.log('availableChainIds metadata: ', availableChainIds);
-  console.log(
-    'lastPnlSnapshotUpdatedTimestamp: ',
-    lastPnlSnapshotUpdatedTimestamp,
-  );
 
   const strategyMetadata = [
     {
@@ -81,24 +68,27 @@ async function main() {
       chainId: 137,
       address: '0x209a9a01980377916851af2ca075c2b170452018',
       description: 'This is a gains polygon chain gnsDiamondContract address',
-      lastBlockNumber: 51941480,
-      lastLeaderboardBlockNumber: 51941480,
+      lastBlockNumber: 62908499,
+      lastLeaderboardBlockNumber: 62908499,
+      backendUrl: 'https://backend-polygon.gains.trade',
       status: ContractStatus.Live,
     },
     {
       chainId: 8453,
       address: '0x6cd5ac19a07518a8092eeffda4f1174c72704eeb',
       description: 'This is a gains base chain gnsDiamondContract address',
-      lastBlockNumber: 23360108,
-      lastLeaderboardBlockNumber: 23360108,
+      lastBlockNumber: 23360263,
+      lastLeaderboardBlockNumber: 23360263,
+      backendUrl: 'https://backend-base.gains.trade',
       status: ContractStatus.Live,
     },
     {
       chainId: 42161,
       address: '0xff162c694eaa571f685030649814282ea457f169',
       description: 'This is a gains arbitrum chain gnsDiamondContract address',
-      lastBlockNumber: 167122054,
-      lastLeaderboardBlockNumber: 167122054,
+      lastBlockNumber: 262719377,
+      lastLeaderboardBlockNumber: 262719377,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
       status: ContractStatus.Live,
     },
     {
@@ -108,6 +98,17 @@ async function main() {
         'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
       lastBlockNumber: 33946165,
       lastLeaderboardBlockNumber: 33946165,
+      backendUrl: 'https://backend-sepolia.gains.trade',
+      status: ContractStatus.Live,
+    },
+    {
+      chainId: 33139,
+      address: '0x2BE5D7058AdBa14Bc38E4A83E94A81f7491b0163',
+      description:
+        'This is a gains ape chain chain gnsDiamondContract address.',
+      lastBlockNumber: 4810548,
+      lastLeaderboardBlockNumber: 4810548,
+      backendUrl: 'https://backend-apechain.gains.trade',
       status: ContractStatus.Live,
     },
   ];

@@ -16,9 +16,24 @@ export class Contract {
   @Field()
   address: string;
 
+  @Field(() => String, { nullable: true })
+  backendUrl: string | null;
+
   @Field(() => String)
   description: string;
 
   @Field(() => ContractStatus)
   status: ContractStatus;
+}
+
+@ObjectType()
+export class TradePair {
+  @Field(() => Int)
+  pairIndex: number;
+
+  @Field()
+  from: string;
+
+  @Field()
+  to: string;
 }

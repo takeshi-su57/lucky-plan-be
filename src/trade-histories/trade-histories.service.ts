@@ -2,18 +2,24 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ActionItem } from 'src/actions/entities/action.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateTradeHistoryInput } from './dto/trade-history.input';
+import {
+  CreateTradeHistoryInput,
+  GetUserTransactionCountsInput,
+} from './dto/trade-history.input';
+
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser } from 'src/actions/eventParsers/market-executed.parser';
+import { limitExecutedEventParser } from 'src/actions/eventParsers/limit-executed.parser';
 
-import { CancelReason } from 'src/types';
-import {
-  isCloseMissionAction,
-  isOpenMissionAction,
-  missionEventNames,
-  missionEventParsers,
-} from 'src/actions/eventParsers';
+import { CancelReason, PendingOrderType } from 'src/types';
+
 import { TradingVariableService } from 'src/global/trading-variable.service';
+import { getStartOfMonth, getStartOfWeek } from 'src/utils';
+import { getStartOfDay } from 'src/utils';
+import { TradeTransactionCount } from './entities/trade-history.entity';
+import { TradeActionType } from '@prisma/client';
 
 @Injectable()
 export class TradeHistoriesService {
@@ -31,11 +37,161 @@ export class TradeHistoriesService {
     });
   }
 
+  async getTradeTransactionCounts(
+    contractIds: number[],
+    addresses: string[],
+  ): Promise<TradeTransactionCount> {
+    const now = new Date();
+
+    const result = {
+      daily: 0,
+      weekly: 0,
+      monthly: 0,
+    };
+
+    for (const contractId of contractIds) {
+      const dailyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses.map((address) => address.toLowerCase()),
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfDay(now),
+        },
+      };
+
+      const weeklyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses.map((address) => address.toLowerCase()),
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfWeek(now),
+        },
+      };
+
+      const monthlyFilter = {
+        ...(addresses.length > 0
+          ? {
+              address: {
+                in: addresses.map((address) => address.toLowerCase()),
+              },
+            }
+          : {}),
+        contractId,
+        timestamp: {
+          gte: getStartOfMonth(now),
+        },
+      };
+
+      const counts = await this.prismaService.$transaction([
+        this.prismaService.tradeHistory.count({
+          where: dailyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: weeklyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: monthlyFilter,
+        }),
+      ]);
+
+      result.daily += counts[0];
+      result.weekly += counts[1];
+      result.monthly += counts[2];
+    }
+
+    return result;
+  }
+
+  async getUserTransactionCounts(
+    inputs: GetUserTransactionCountsInput[],
+  ): Promise<TradeTransactionCount[]> {
+    const now = new Date();
+
+    const startOfDay = getStartOfDay(now);
+    const startOfWeek = getStartOfWeek(now);
+    const startOfMonth = getStartOfMonth(now);
+
+    const result: TradeTransactionCount[] = [];
+
+    for (const input of inputs) {
+      const { address, contractId, startedAt, endedAt } = input;
+
+      const dailyFilter = {
+        address: address.toLowerCase(),
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfDay > startedAt
+              ? startOfDay
+              : startedAt
+            : startOfDay,
+          lte: endedAt ? endedAt : now,
+        },
+      };
+
+      const weeklyFilter = {
+        address: address.toLowerCase(),
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfWeek > startedAt
+              ? startOfWeek
+              : startedAt
+            : startOfWeek,
+          lte: endedAt ? endedAt : now,
+        },
+      };
+
+      const monthlyFilter = {
+        address: address.toLowerCase(),
+        contractId,
+        timestamp: {
+          gte: startedAt
+            ? startOfMonth > startedAt
+              ? startOfMonth
+              : startedAt
+            : startOfMonth,
+          lte: endedAt ? endedAt : now,
+        },
+      };
+
+      const counts = await this.prismaService.$transaction([
+        this.prismaService.tradeHistory.count({
+          where: dailyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: weeklyFilter,
+        }),
+        this.prismaService.tradeHistory.count({
+          where: monthlyFilter,
+        }),
+      ]);
+
+      result.push({
+        daily: counts[0],
+        weekly: counts[1],
+        monthly: counts[2],
+      });
+    }
+
+    return result;
+  }
+
   getTradeHistories(addresses: string[], contractId: number) {
     return this.prismaService.tradeHistory.findMany({
       where: {
         address: {
-          in: addresses,
+          in: addresses.map((address) => address.toLowerCase()),
         },
         contractId,
       },
@@ -47,16 +203,14 @@ export class TradeHistoriesService {
     timestamp: Date,
     actionItems: { item: ActionItem; blockNumber: number }[],
   ) {
-    const historyInputs: CreateTradeHistoryInput[] = actionItems
-      .map((action) => {
-        let usdIn = 0;
-        let usdOut = 0;
-        let usdPnl = 0;
-
-        switch (action.item.name) {
+    const historyInputs = actionItems
+      .map((actionItem) => {
+        switch (actionItem.item.name) {
           case positionSizeIncreaseExecutedEventParser.eventName: {
             const { args } =
-              positionSizeIncreaseExecutedEventParser.actionParser(action.item);
+              positionSizeIncreaseExecutedEventParser.actionParser(
+                actionItem.item,
+              );
 
             if (args.cancelReason !== CancelReason.NONE) {
               return null;
@@ -67,19 +221,46 @@ export class TradeHistoriesService {
               args.collateralIndex,
             );
 
-            const realCollateralDelta = Number(
-              BigInt(args.collateralDelta) / collateral.precision,
-            );
-            const realCollateralPriceUsd =
-              Number(args.collateralPriceUsd) / 100000000; // chainlink precision
+            const leverage = Number(args.values.newLeverage) / 1000;
 
-            usdOut = Number(realCollateralDelta * realCollateralPriceUsd);
-
-            break;
+            return {
+              date: timestamp,
+              pair: this.tradingVariableServcie.getPairName(
+                contractId,
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradePosSizeIncrease,
+              contractId,
+              price: Number(args.values.newOpenPrice) / 1e10,
+              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              long: Number(args.long),
+              size:
+                Number(
+                  BigInt(args.values.newPositionSizeCollateral) /
+                    collateral.precision,
+                ) / leverage,
+              leverage,
+              pnl: Number(
+                BigInt(args.values.existingPnlCollateral) /
+                  collateral.precision,
+              ),
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: Number(
+                BigInt(args.collateralDelta) / collateral.precision,
+              ),
+              leverageDelta: Number(args.leverageDelta) / 1e3,
+              marketPrice: Number(args.oraclePrice) / 1e10,
+            } as CreateTradeHistoryInput;
           }
           case positionSizeDecreaseExecutedEventParser.eventName: {
             const { args } =
-              positionSizeDecreaseExecutedEventParser.actionParser(action.item);
+              positionSizeDecreaseExecutedEventParser.actionParser(
+                actionItem.item,
+              );
 
             if (args.cancelReason !== CancelReason.NONE) {
               return null;
@@ -90,65 +271,174 @@ export class TradeHistoriesService {
               args.collateralIndex,
             );
 
-            const realCollateralDelta = Number(
-              BigInt(args.collateralDelta) / collateral.precision,
-            );
-            const realCollateralPriceUsd =
-              Number(args.collateralPriceUsd) / 100000000;
-
-            usdIn = Number(realCollateralDelta * realCollateralPriceUsd);
-            break;
-          }
-          default: {
-            if (missionEventNames.includes(action.item.name)) {
-              const event = missionEventParsers
-                .find((parser) => parser.eventName === action.item.name)!
-                .actionParser(action.item);
-              const { t, collateralPriceUsd, amountSentToTrader } = event.args;
-
-              const collateral = this.tradingVariableServcie.getCollateral(
+            return {
+              date: timestamp,
+              pair: this.tradingVariableServcie.getPairName(
                 contractId,
-                t.collateralIndex,
-              );
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradePosSizeDecrease,
+              contractId,
+              price: Number(args.values.priceAfterImpact) / 1e10,
+              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              long: Number(args.long),
+              size: Number(
+                BigInt(args.values.newCollateralAmount) / collateral.precision,
+              ),
+              leverage: Number(args.values.newLeverage) / 1e3,
+              pnl: Number(
+                BigInt(args.values.collateralSentToTrader) /
+                  collateral.precision,
+              ),
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: Number(
+                BigInt(args.collateralDelta) / collateral.precision,
+              ),
+              leverageDelta: Number(args.leverageDelta) / 1e3,
+              marketPrice: Number(args.oraclePrice) / 1e10,
+            } as CreateTradeHistoryInput;
+          }
+          case leverageUpdateExecutedEventParser.eventName: {
+            const { args } = leverageUpdateExecutedEventParser.actionParser(
+              actionItem.item,
+            );
 
-              const realCollateralAmount = Number(
-                BigInt(t.collateralAmount) / collateral.precision,
-              );
-              const realCollateralPriceUsd =
-                Number(collateralPriceUsd) / 100000000;
-              const realAmountSentToTrader = Number(
-                BigInt(amountSentToTrader) / collateral.precision,
-              );
-
-              if (isOpenMissionAction(action.item)) {
-                usdOut = Number(realCollateralAmount * realCollateralPriceUsd);
-              } else if (isCloseMissionAction(action.item)) {
-                usdIn = Number(realAmountSentToTrader * realCollateralPriceUsd);
-
-                usdPnl =
-                  (realAmountSentToTrader - realCollateralAmount) *
-                  realCollateralPriceUsd;
-              } else {
-                return null;
-              }
-            } else {
+            if (args.cancelReason !== CancelReason.NONE) {
               return null;
             }
+
+            const collateral = this.tradingVariableServcie.getCollateral(
+              contractId,
+              args.collateralIndex,
+            );
+
+            return {
+              date: timestamp,
+              pair: this.tradingVariableServcie.getPairName(
+                contractId,
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradeLeverageUpdate,
+              contractId,
+              price: Number(args.oraclePrice) / 1e10,
+              collateralPriceUsd: 0,
+              long: 0,
+              size: Number(
+                BigInt(args.values.newCollateralAmount) / collateral.precision,
+              ),
+              leverage: Number(args.values.newLeverage) / 1e3,
+              pnl: 0,
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: Number(
+                BigInt(args.collateralDelta) / collateral.precision,
+              ),
+              leverageDelta: null,
+              marketPrice: null,
+            } as CreateTradeHistoryInput;
+          }
+          case marketExecutedEventParser.eventName: {
+            const { args } = marketExecutedEventParser.actionParser(
+              actionItem.item,
+            );
+
+            const collateral = this.tradingVariableServcie.getCollateral(
+              contractId,
+              args.t.collateralIndex,
+            );
+
+            return {
+              date: timestamp,
+              pair: this.tradingVariableServcie.getPairName(
+                contractId,
+                Number(args.t.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: args.open
+                ? TradeActionType.TradeOpenedMarket
+                : TradeActionType.TradeClosedMarket,
+              contractId,
+              price: Number(args.oraclePrice) / 1e10,
+              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              long: Number(args.t.long),
+              size: Number(
+                BigInt(args.t.collateralAmount) / collateral.precision,
+              ),
+              leverage: Number(args.t.leverage) / 1e3,
+              pnl:
+                (Number(args.t.collateralAmount) * Number(args.percentProfit)) /
+                1e12,
+              tradeId: null,
+              collateralIndex: Number(args.t.collateralIndex),
+              tradeIndex: Number(args.t.index),
+              collateralDelta: null,
+              leverageDelta: null,
+              marketPrice: Number(args.marketPrice) / 1e10,
+            };
+          }
+          case limitExecutedEventParser.eventName: {
+            const { args } = limitExecutedEventParser.actionParser(
+              actionItem.item,
+            );
+
+            const collateral = this.tradingVariableServcie.getCollateral(
+              contractId,
+              args.t.collateralIndex,
+            );
+
+            const actionNameMap: Record<string, string> = {
+              [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
+              [PendingOrderType.LIQ_CLOSE]: TradeActionType.TradeClosedLIQ,
+              [PendingOrderType.SL_CLOSE]: TradeActionType.TradeClosedSL,
+              [PendingOrderType.TP_CLOSE]: TradeActionType.TradeClosedTP,
+            };
+
+            if (!actionNameMap[args.orderType]) {
+              return null;
+            }
+
+            return {
+              date: timestamp,
+              pair: this.tradingVariableServcie.getPairName(
+                contractId,
+                Number(args.t.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: actionNameMap[args.orderType],
+              contractId,
+              price: Number(args.oraclePrice) / 1e10,
+              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              long: Number(args.t.long),
+              size: Number(
+                BigInt(args.t.collateralAmount) / collateral.precision,
+              ),
+              leverage: Number(args.t.leverage) / 1e3,
+              pnl:
+                (Number(args.t.collateralAmount) * Number(args.percentProfit)) /
+                1e12,
+              tradeId: null,
+              collateralIndex: Number(args.t.collateralIndex),
+              tradeIndex: Number(args.t.index),
+              collateralDelta: null,
+              leverageDelta: null,
+              marketPrice: Number(args.marketPrice) / 1e10,
+            };
+          }
+          default: {
+            return null;
           }
         }
-
-        return {
-          address: action.item.position.address.toLowerCase(),
-          eventName: action.item.name,
-          contractId,
-          in: usdIn,
-          out: usdOut,
-          pnl: usdPnl,
-          blockNumber: action.blockNumber,
-          timestamp,
-        };
       })
-      .filter((item) => !!item);
+      .filter((item): item is CreateTradeHistoryInput => !!item);
 
     await this.createMany(historyInputs);
   }

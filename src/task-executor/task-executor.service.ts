@@ -103,6 +103,37 @@ export class TaskExecutorService {
           const { args } =
             leverageUpdateExecutedEventParser.actionParser(action);
 
+          if (!args.isIncrease) {
+            const followerTradeData = await publicClient.readContract({
+              address: followerContract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'getTrade',
+              args: [follower.address as Address, achievePosition!.index],
+            });
+
+            const collateralDelta =
+              (BigInt(followerTradeData.collateralAmount) *
+                BigInt(followerTradeData.leverage)) /
+                BigInt(args.values.newLeverage) -
+              BigInt(followerTradeData.collateralAmount);
+
+            if (collateralDelta > 0n) {
+              const result = await this.followerService.moveAsset({
+                address: follower.address,
+                contract: followerContract,
+                amount: collateralDelta + collateralDelta / 100n,
+                kind: 'usdcDeposit',
+              });
+
+              if (!result) {
+                return {
+                  success: false,
+                  message: `Failed at borrowing usdc from vault`,
+                };
+              }
+            }
+          }
+
           tx = await this.tradeService.updateLeverage(
             walletClient,
             publicClient,
@@ -133,6 +164,18 @@ export class TaskExecutorService {
           );
 
           if (increaseParams.collateralDelta > 0n) {
+            // if new position size is less than 0.5% of the old position size, skip the update
+            if (
+              increaseParams.collateralDelta *
+                BigInt(increaseParams.leverageDelta) <
+              (followerTradeData.collateralAmount * 5n) / 1000n
+            ) {
+              return {
+                success: true,
+                message: `Skipped this position size update because collateral delta is too small`,
+              };
+            }
+
             const result = await this.followerService.moveAsset({
               address: follower.address,
               contract: followerContract,

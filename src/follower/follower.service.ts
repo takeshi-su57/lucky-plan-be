@@ -4,6 +4,7 @@ import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
+import dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -19,6 +20,7 @@ import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { Mission } from 'src/missions/entities/mission.entity';
 import {
   ContractExecutionResult,
+  FollowerDetail,
   FollowerPendingOrder,
   FollowerTrade,
 } from './entities/follower.entity';
@@ -27,6 +29,8 @@ import {
   CancelOrderAfterTimeoutInput,
   CloseTradeInput,
 } from './dto/follower.input';
+import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
+import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
 
 @Injectable()
 export class FollowerService {
@@ -38,6 +42,7 @@ export class FollowerService {
     private chainsService: ChainsService,
     private tradingVariableService: TradingVariableService,
     private tradeService: TradeService,
+    private pnlSnapshotsService: PnlSnapshotsService,
     private logger: Logger,
   ) {}
 
@@ -610,7 +615,7 @@ export class FollowerService {
     }
   }
 
-  async loadFollowers(contractId: number) {
+  async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
@@ -625,38 +630,43 @@ export class FollowerService {
 
       const followerEntities = await this.prismaService.follower.findMany();
 
+      const ethMap: Record<string, bigint> = {};
       const usdcMap: Record<string, bigint> = {};
+      const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
 
       const usdcPromises = followerEntities.map(async (entity) => {
-        const balance = await publicClient.readContract({
+        const usdcBalance = await publicClient.readContract({
           address: collateralInfo.collateral,
           abi: erc20Abi,
           functionName: 'balanceOf',
           args: [entity.address as Address],
         });
 
-        usdcMap[entity.address] = balance;
-      });
+        usdcMap[entity.address] = usdcBalance;
 
-      await Promise.allSettled(usdcPromises);
-
-      const ethMap: Record<string, bigint> = {};
-
-      const ethPromises = followerEntities.map(async (entity) => {
-        const balance = await publicClient.getBalance({
+        const ethBalance = await publicClient.getBalance({
           address: entity.address as Address,
         });
 
-        ethMap[entity.address] = balance;
+        ethMap[entity.address] = ethBalance;
+
+        const pnlSnapshots =
+          await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+            dayjs(new Date()).format('YYYY-MM-DD'),
+            entity.address,
+          );
+
+        pnlSnapshotsMap[entity.address] = pnlSnapshots;
       });
 
-      await Promise.allSettled(ethPromises);
+      await Promise.allSettled(usdcPromises);
 
       return followerEntities.map((entity) => ({
         ...entity,
         contractId,
         ethBalance: ethMap[entity.address]?.toString() || null,
         usdcBalance: usdcMap[entity.address]?.toString() || null,
+        pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
       }));
     } catch (err) {
       this.logger.error(
