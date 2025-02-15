@@ -59,7 +59,7 @@ export class TradeHistoriesService {
             }
           : {}),
         contractId,
-        timestamp: {
+        date: {
           gte: getStartOfDay(now),
         },
       };
@@ -73,7 +73,7 @@ export class TradeHistoriesService {
             }
           : {}),
         contractId,
-        timestamp: {
+        date: {
           gte: getStartOfWeek(now),
         },
       };
@@ -87,7 +87,7 @@ export class TradeHistoriesService {
             }
           : {}),
         contractId,
-        timestamp: {
+        date: {
           gte: getStartOfMonth(now),
         },
       };
@@ -129,7 +129,7 @@ export class TradeHistoriesService {
       const dailyFilter = {
         address: address.toLowerCase(),
         contractId,
-        timestamp: {
+        date: {
           gte: startedAt
             ? startOfDay > startedAt
               ? startOfDay
@@ -142,7 +142,7 @@ export class TradeHistoriesService {
       const weeklyFilter = {
         address: address.toLowerCase(),
         contractId,
-        timestamp: {
+        date: {
           gte: startedAt
             ? startOfWeek > startedAt
               ? startOfWeek
@@ -155,7 +155,7 @@ export class TradeHistoriesService {
       const monthlyFilter = {
         address: address.toLowerCase(),
         contractId,
-        timestamp: {
+        date: {
           gte: startedAt
             ? startOfMonth > startedAt
               ? startOfMonth
@@ -233,27 +233,28 @@ export class TradeHistoriesService {
               address: actionItem.item.position.address.toLowerCase(),
               action: TradeActionType.TradePosSizeIncrease,
               contractId,
-              price: Number(args.values.newOpenPrice) / 1e10,
-              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              price: `${Number(args.values.newOpenPrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
-              size:
+              size: `${
                 Number(
                   BigInt(args.values.newPositionSizeCollateral) /
                     collateral.precision,
-                ) / leverage,
+                ) / leverage
+              }`,
               leverage,
-              pnl: Number(
+              pnl: `${Number(
                 BigInt(args.values.existingPnlCollateral) /
                   collateral.precision,
-              ),
+              )}`,
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
-              collateralDelta: Number(
-                BigInt(args.collateralDelta) / collateral.precision,
-              ),
+              collateralDelta: `${
+                BigInt(args.collateralDelta) / collateral.precision
+              }`,
               leverageDelta: Number(args.leverageDelta) / 1e3,
-              marketPrice: Number(args.oraclePrice) / 1e10,
+              marketPrice: `${Number(args.oraclePrice) / 1e10}`,
             } as CreateTradeHistoryInput;
           }
           case positionSizeDecreaseExecutedEventParser.eventName: {
@@ -281,25 +282,30 @@ export class TradeHistoriesService {
               address: actionItem.item.position.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
               contractId,
-              price: Number(args.values.priceAfterImpact) / 1e10,
-              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              price: `${Number(args.values.priceAfterImpact) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
-              size: Number(
-                BigInt(args.values.newCollateralAmount) / collateral.precision,
-              ),
+              size: `${
+                Number(
+                  BigInt(args.values.newCollateralAmount) /
+                    collateral.precision,
+                ) /
+                Number(args.values.newLeverage) /
+                1e3
+              }`,
               leverage: Number(args.values.newLeverage) / 1e3,
-              pnl: Number(
+              pnl: `${Number(
                 BigInt(args.values.collateralSentToTrader) /
                   collateral.precision,
-              ),
+              )}`,
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
-              collateralDelta: Number(
-                BigInt(args.collateralDelta) / collateral.precision,
-              ),
+              collateralDelta: `${
+                BigInt(args.collateralDelta) / collateral.precision
+              }`,
               leverageDelta: Number(args.leverageDelta) / 1e3,
-              marketPrice: Number(args.oraclePrice) / 1e10,
+              marketPrice: `${Number(args.oraclePrice) / 1e10}`,
             } as CreateTradeHistoryInput;
           }
           case leverageUpdateExecutedEventParser.eventName: {
@@ -326,20 +332,25 @@ export class TradeHistoriesService {
               address: actionItem.item.position.address.toLowerCase(),
               action: TradeActionType.TradeLeverageUpdate,
               contractId,
-              price: Number(args.oraclePrice) / 1e10,
-              collateralPriceUsd: 0,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: '0',
               long: 0,
-              size: Number(
-                BigInt(args.values.newCollateralAmount) / collateral.precision,
-              ),
+              size: `${
+                Number(
+                  BigInt(args.values.newCollateralAmount) /
+                    collateral.precision,
+                ) /
+                Number(args.values.newLeverage) /
+                1e3
+              }`,
               leverage: Number(args.values.newLeverage) / 1e3,
-              pnl: 0,
+              pnl: '0',
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
-              collateralDelta: Number(
-                BigInt(args.collateralDelta) / collateral.precision,
-              ),
+              collateralDelta: `${
+                BigInt(args.collateralDelta) / collateral.precision
+              }`,
               leverageDelta: null,
               marketPrice: null,
             } as CreateTradeHistoryInput;
@@ -366,23 +377,29 @@ export class TradeHistoriesService {
                 ? TradeActionType.TradeOpenedMarket
                 : TradeActionType.TradeClosedMarket,
               contractId,
-              price: Number(args.oraclePrice) / 1e10,
-              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
-              size: Number(
-                BigInt(args.t.collateralAmount) / collateral.precision,
-              ),
+              size: `${
+                Number(BigInt(args.t.collateralAmount) / collateral.precision) /
+                Number(args.t.leverage) /
+                1e3
+              }`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl:
-                (Number(args.t.collateralAmount) * Number(args.percentProfit)) /
-                1e12,
+              pnl: `${
+                (Number(
+                  BigInt(args.t.collateralAmount) / collateral.precision,
+                ) *
+                  Number(args.percentProfit)) /
+                1e12
+              }`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
               collateralDelta: null,
               leverageDelta: null,
-              marketPrice: Number(args.marketPrice) / 1e10,
-            };
+              marketPrice: `${Number(args.marketPrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
           }
           case limitExecutedEventParser.eventName: {
             const { args } = limitExecutedEventParser.actionParser(
@@ -415,23 +432,29 @@ export class TradeHistoriesService {
               address: actionItem.item.position.address.toLowerCase(),
               action: actionNameMap[args.orderType],
               contractId,
-              price: Number(args.oraclePrice) / 1e10,
-              collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
-              size: Number(
-                BigInt(args.t.collateralAmount) / collateral.precision,
-              ),
+              size: `${
+                Number(BigInt(args.t.collateralAmount) / collateral.precision) /
+                Number(args.t.leverage) /
+                1e3
+              }`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl:
-                (Number(args.t.collateralAmount) * Number(args.percentProfit)) /
-                1e12,
+              pnl: `${
+                (Number(
+                  BigInt(args.t.collateralAmount) / collateral.precision,
+                ) *
+                  Number(args.percentProfit)) /
+                1e12
+              }`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
               collateralDelta: null,
               leverageDelta: null,
-              marketPrice: Number(args.marketPrice) / 1e10,
-            };
+              marketPrice: `${Number(args.marketPrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
           }
           default: {
             return null;

@@ -190,7 +190,7 @@ export class PnlSnapshotsService {
             const prev = pnlSnapshotMap.get(key) || 0;
 
             if (currentDate.getTime() - timestampGap < record.date.getTime()) {
-              pnlSnapshotMap.set(key, prev + record.pnl);
+              pnlSnapshotMap.set(key, prev + +record.pnl);
             }
           }
         }

@@ -96,8 +96,8 @@ async function main() {
       address: '0xd659a15812064c79e189fd950a189b15c75d3186',
       description:
         'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
-      lastBlockNumber: 33946165,
-      lastLeaderboardBlockNumber: 33946165,
+      lastBlockNumber: 104095908,
+      lastLeaderboardBlockNumber: 104095908,
       backendUrl: 'https://backend-sepolia.gains.trade',
       status: ContractStatus.Live,
     },

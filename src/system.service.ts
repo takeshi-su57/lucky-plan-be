@@ -67,7 +67,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForLeaderboardMonitor() {
     if (this.isPaused) {
       return;
