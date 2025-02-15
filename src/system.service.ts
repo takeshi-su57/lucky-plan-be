@@ -106,10 +106,10 @@ export class SystemService {
     }
   }
 
-  // @Cron(CronExpression.EVERY_5_MINUTES)
-  // async executeCronForSnapshot() {
-  //   if (this.pnlSnapshotService.status === 'ready') {
-  //     await this.pnlSnapshotService.updatePnlSnapshot();
-  //   }
-  // }
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async executeCronForSnapshot() {
+    if (this.pnlSnapshotService.status === 'ready') {
+      await this.pnlSnapshotService.buildSnapshots(new Date());
+    }
+  }
 }

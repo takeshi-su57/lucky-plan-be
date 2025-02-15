@@ -37,6 +37,7 @@
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dayjs": "^1.11.13",
     "graphql": "^16.9.0",
     "graphql-subscriptions": "^3.0.0",
     "nest-winston": "^1.9.7",
