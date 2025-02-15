@@ -252,8 +252,7 @@ input GetUserByAddressInput {
 }
 
 input GetUserTransactionCountsInput {
-  address: String!
-  contractId: Int!
+  endedAt: DateTime
   startedAt: DateTime
 }
 
@@ -318,6 +317,7 @@ type Mutation {
   addTagToUser(input: ChangeUserTagInput!): User!
   addUser(input: AddUserInput!): User!
   batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotDetails!]!
+  buildPnlSnapshots(endDate: DateTime!): Boolean!
   cancelOrderAfterTimeout(input: CancelOrderAfterTimeoutInput!): ContractExecutionResult!
   changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changePassword(input: ChangePasswordInput!): Boolean!
@@ -334,7 +334,6 @@ type Mutation {
   generateNewFollower: Follower!
   getToken(input: GetTokenInput!): GetTokenResponse!
   ignoreMission(id: Int!): MissionShallowDetails!
-  initalizePnlSnapshot: Boolean!
   liveBot(id: Int!): BotDetails!
   pauseSystem: Boolean!
   performTask(id: Int!): TaskShallowDetails!
@@ -378,7 +377,7 @@ enum PlanStatus {
 type PnlSnapshot {
   accUSDPnl: Int!
   address: String!
-  contractId: Int!
+  dateStr: String!
   id: Int!
   kind: PnlSnapshotKind!
 }
@@ -386,7 +385,7 @@ type PnlSnapshot {
 type PnlSnapshotDetails {
   accUSDPnl: Int!
   address: String!
-  contractId: Int!
+  dateStr: String!
   histories: [TradeHistory!]!
   id: Int!
   kind: PnlSnapshotKind!
@@ -410,9 +409,7 @@ enum PnlSnapshotKind {
   THREE_DAY
   THREE_MONTH
   TWO_DAY
-  TWO_MONTH
   TWO_WEEK
-  TWO_YEAR
   WEEK
   YEAR
 }
@@ -460,8 +457,8 @@ type Query {
   getPendingOrders(address: String!, contractId: Int!): [FollowerPendingOrder!]!
   getPlanById(id: Int!): PlanDetails
   getPlansByStatus(status: PlanStatus!): [PlanDetails!]!
-  getPnlSnapshots(after: Int, contractId: Int!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
-  getPnlSnapshotsByAddress(address: String!, contractId: Int!): [PnlSnapshot!]!
+  getPnlSnapshots(after: Int, contractId: Int!, dateStr: String!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
+  getPnlSnapshotsByAddress(address: String!, dateStr: String!): [PnlSnapshot!]!
   getTasksByStatus(status: TaskStatus!): [TaskShallowDetails!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getTradePairs(contractId: Int!): [TradePair!]!
@@ -469,6 +466,7 @@ type Query {
   getTrades(address: String!, contractId: Int!): [FollowerTrade!]!
   getUserByAddress(input: GetUserByAddressInput!): User!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
+  isPnlSnapshotInitialized(dateStr: String!): Boolean!
   systemStatus: Boolean!
 }
 
@@ -557,17 +555,38 @@ type TaskWithActions {
   status: TaskStatus!
 }
 
+enum TradeActionType {
+  TradeClosedLIQ
+  TradeClosedMarket
+  TradeClosedSL
+  TradeClosedTP
+  TradeLeverageUpdate
+  TradeOpenedLimit
+  TradeOpenedMarket
+  TradePosSizeDecrease
+  TradePosSizeIncrease
+}
+
 type TradeHistory {
+  action: TradeActionType!
   address: String!
-  blockNumber: Int!
+  block: Int!
+  collateralDelta: Int
+  collateralIndex: Int!
+  collateralPriceUsd: Int!
   contractId: Int!
-  eventName: String!
+  date: DateTime!
   id: Int!
-  in: Int!
-  out: Int!
-  pairIndex: Int
+  leverage: Int!
+  leverageDelta: Int
+  long: Int!
+  marketPrice: Int
+  pair: String!
   pnl: Int!
-  timestamp: DateTime!
+  price: Int!
+  size: Int!
+  tradeId: String
+  tradeIndex: Int!
 }
 
 type TradePair {
