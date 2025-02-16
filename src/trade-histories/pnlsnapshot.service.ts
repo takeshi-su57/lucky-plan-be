@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PnlSnapshot, PnlSnapshotKind, TradeHistory } from '@prisma/client';
-import * as dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { getReadableError, getStartOfDay } from 'src/utils';
@@ -136,12 +135,11 @@ export class PnlSnapshotsService {
     });
   }
 
-  async buildSnapshots(endDate: Date) {
+  async buildSnapshots(dateStr: string) {
     this.status = 'processing';
 
     try {
-      const startDate = getStartOfDay(new Date(endDate));
-      const dateStr = dayjs(endDate).format('YYYY-MM-DD');
+      const startDate = getStartOfDay(new Date(dateStr));
 
       const BATCH_SIZE = 10000;
       let cursorId: number | null = null;

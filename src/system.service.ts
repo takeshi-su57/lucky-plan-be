@@ -6,6 +6,7 @@ import { BotsService } from './bots/bots.service';
 import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
 import { TaskExecutorService } from './task-executor/task-executor.service';
 import { PlansService } from './plans/plans.service';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class SystemService {
@@ -109,7 +110,9 @@ export class SystemService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async executeCronForSnapshot() {
     if (this.pnlSnapshotService.status === 'ready') {
-      await this.pnlSnapshotService.buildSnapshots(new Date());
+      await this.pnlSnapshotService.buildSnapshots(
+        dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
+      );
     }
   }
 }
