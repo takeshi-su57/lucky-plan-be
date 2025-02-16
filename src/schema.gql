@@ -375,7 +375,7 @@ enum PlanStatus {
 }
 
 type PnlSnapshot {
-  accUSDPnl: Int!
+  accUSDPnl: Float!
   address: String!
   dateStr: String!
   id: Int!
@@ -383,7 +383,7 @@ type PnlSnapshot {
 }
 
 type PnlSnapshotDetails {
-  accUSDPnl: Int!
+  accUSDPnl: Float!
   address: String!
   dateStr: String!
   histories: [TradeHistory!]!

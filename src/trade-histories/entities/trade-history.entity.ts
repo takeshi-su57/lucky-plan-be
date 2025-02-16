@@ -1,4 +1,10 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  registerEnumType,
+  Float,
+} from '@nestjs/graphql';
 import { PnlSnapshotKind, TradeActionType } from '@prisma/client';
 
 registerEnumType(TradeActionType, {
@@ -83,7 +89,7 @@ export class PnlSnapshot {
   @Field(() => PnlSnapshotKind)
   kind: PnlSnapshotKind;
 
-  @Field(() => Int)
+  @Field(() => Float)
   accUSDPnl: number;
 }
 
