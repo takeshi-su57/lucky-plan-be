@@ -290,4 +290,12 @@ export class PnlSnapshotsService {
 
     return result.isInit;
   }
+
+  async getAllPnlSnapshotInitializedFlag() {
+    return await this.prismaService.pnlSnapshotInitializedFlag.findMany({
+      orderBy: {
+        dateStr: 'desc',
+      },
+    });
+  }
 }
