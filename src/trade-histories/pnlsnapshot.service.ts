@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PnlSnapshot, PnlSnapshotKind, TradeHistory } from '@prisma/client';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { getReadableError, getStartOfDay } from 'src/utils';
@@ -96,7 +96,6 @@ export class PnlSnapshotsService {
       },
       orderBy: {
         block: 'asc',
-        date: 'asc',
       },
     });
 
@@ -145,13 +144,12 @@ export class PnlSnapshotsService {
     this.status = 'processing';
 
     const startDate = getStartOfDay(endDate);
-    const dateStr = dayjs(startDate).format('YYYY-MM-DD');
+    const dateStr = dayjs(endDate).format('YYYY-MM-DD');
 
     await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
 
     try {
       const BATCH_SIZE = 10000;
-      const currentDate = new Date();
 
       let cursorId: number | null = null;
 
@@ -165,14 +163,12 @@ export class PnlSnapshotsService {
               },
               orderBy: {
                 block: 'asc',
-                date: 'asc',
               },
             })
           : await this.prismaService.tradeHistory.findMany({
               take: BATCH_SIZE,
               orderBy: {
                 block: 'asc',
-                date: 'asc',
               },
             });
 
@@ -189,7 +185,7 @@ export class PnlSnapshotsService {
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
             const prev = pnlSnapshotMap.get(key) || 0;
 
-            if (currentDate.getTime() - timestampGap < record.date.getTime()) {
+            if (startDate.getTime() - timestampGap < record.date.getTime()) {
               pnlSnapshotMap.set(key, prev + +record.pnl);
             }
           }
