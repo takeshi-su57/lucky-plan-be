@@ -252,6 +252,8 @@ input GetUserByAddressInput {
 }
 
 input GetUserTransactionCountsInput {
+  address: String!
+  contractId: Int!
   endedAt: DateTime
   startedAt: DateTime
 }
