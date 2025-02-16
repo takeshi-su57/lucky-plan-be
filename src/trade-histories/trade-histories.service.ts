@@ -126,16 +126,19 @@ export class TradeHistoriesService {
     for (const input of inputs) {
       const { address, contractId, startedAt, endedAt } = input;
 
+      const startedAtDate = startedAt ? new Date(startedAt) : startOfDay;
+      const endedAtDate = endedAt ? new Date(endedAt) : now;
+
       const dailyFilter = {
         address: address.toLowerCase(),
         contractId,
         date: {
-          gte: startedAt
-            ? startOfDay > startedAt
+          gte: startedAtDate
+            ? startOfDay > startedAtDate
               ? startOfDay
-              : startedAt
+              : startedAtDate
             : startOfDay,
-          lte: endedAt ? endedAt : now,
+          lte: endedAtDate ? endedAtDate : now,
         },
       };
 
@@ -143,12 +146,12 @@ export class TradeHistoriesService {
         address: address.toLowerCase(),
         contractId,
         date: {
-          gte: startedAt
-            ? startOfWeek > startedAt
+          gte: startedAtDate
+            ? startOfWeek > startedAtDate
               ? startOfWeek
-              : startedAt
+              : startedAtDate
             : startOfWeek,
-          lte: endedAt ? endedAt : now,
+          lte: endedAtDate ? endedAtDate : now,
         },
       };
 
@@ -156,12 +159,12 @@ export class TradeHistoriesService {
         address: address.toLowerCase(),
         contractId,
         date: {
-          gte: startedAt
-            ? startOfMonth > startedAt
+          gte: startedAtDate
+            ? startOfMonth > startedAtDate
               ? startOfMonth
-              : startedAt
+              : startedAtDate
             : startOfMonth,
-          lte: endedAt ? endedAt : now,
+          lte: endedAtDate ? endedAtDate : now,
         },
       };
 

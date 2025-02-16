@@ -143,7 +143,7 @@ export class PnlSnapshotsService {
   async buildSnapshots(endDate: Date) {
     this.status = 'processing';
 
-    const startDate = getStartOfDay(endDate);
+    const startDate = getStartOfDay(new Date(endDate));
     const dateStr = dayjs(endDate).format('YYYY-MM-DD');
 
     await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
