@@ -295,13 +295,14 @@ enum PnlSnapshotKind {
 }
 
 model PnlSnapshot {
-  id        Int             @id @default(autoincrement())
-  address   String
-  dateStr   String // YYYY-MM-DD
-  kind      PnlSnapshotKind
-  accUSDPnl Float
+  id         Int             @id @default(autoincrement())
+  address    String
+  contractId Int
+  dateStr    String // YYYY-MM-DD
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
 
-  @@unique([address, dateStr, kind])
+  @@unique([address, contractId, dateStr, kind])
   @@index([accUSDPnl(sort: Desc)])
 }
 

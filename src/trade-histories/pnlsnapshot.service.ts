@@ -12,22 +12,29 @@ import {
 function getKeyFromHistory(history: TradeHistory, kind: PnlSnapshotKind) {
   return JSON.stringify({
     address: history.address.toLowerCase(),
+    contractId: history.contractId,
     kind,
   });
 }
 
-function getKeyFromSnapshot(record: PnlSnapshot) {
-  return JSON.stringify({
-    address: record.address.toLowerCase(),
-    kind: record.kind,
-  });
-}
-
-function parseKey(key: string) {
+function parseHistoryKey(key: string) {
   return JSON.parse(key) as {
     address: string;
+    contractId: number;
     kind: PnlSnapshotKind;
   };
+}
+
+function getKeyFromSnapshot(
+  address: string,
+  kind: PnlSnapshotKind,
+  contractId: number | null,
+) {
+  return JSON.stringify({
+    address: address.toLowerCase(),
+    contractId,
+    kind,
+  });
 }
 
 const timestampGapByPnlSnapshotKind = {
@@ -71,6 +78,7 @@ export class PnlSnapshotsService {
         where: {
           dateStr,
           kind,
+          contractId,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -87,7 +95,7 @@ export class PnlSnapshotsService {
         OR: [
           ...pnlRecords.map((item) => ({
             address: item.address,
-            contractId,
+            ...(contractId !== 0 ? { contractId } : {}),
             date: {
               gt: startDate,
             },
@@ -176,34 +184,44 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const pnlSnapshotMap = new Map<string, number>();
+        const historiesPnlMap = new Map<string, number>();
 
         for (const record of records) {
           for (const kind of Object.values(PnlSnapshotKind)) {
             const key = getKeyFromHistory(record, kind);
 
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prev = pnlSnapshotMap.get(key) || 0;
+            const prev = historiesPnlMap.get(key) || 0;
 
             if (startDate.getTime() - timestampGap < record.date.getTime()) {
-              pnlSnapshotMap.set(key, prev + +record.pnl);
+              historiesPnlMap.set(key, prev + +record.pnl);
             }
           }
         }
 
-        const pnlSnapshotKeys = Array.from(pnlSnapshotMap.keys());
+        const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
 
         const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
           where: {
             OR: [
-              ...pnlSnapshotKeys.map((key) => {
-                const { address, kind } = parseKey(key);
+              ...historiesPnlMapKeys
+                .map((key) => {
+                  const { address, kind, contractId } = parseHistoryKey(key);
 
-                return {
-                  address: address.toLowerCase(),
-                  kind,
-                };
-              }),
+                  return [
+                    {
+                      address: address.toLowerCase(),
+                      contractId,
+                      kind,
+                    },
+                    {
+                      address: address.toLowerCase(),
+                      contractId: 0,
+                      kind,
+                    },
+                  ];
+                })
+                .reduce((acc, curr) => [...acc, ...curr], []),
             ],
           },
         });
@@ -211,32 +229,52 @@ export class PnlSnapshotsService {
         const pnlRecordsMap = new Map<string, number>();
 
         pnlRecords.forEach((record) => {
-          const key = getKeyFromSnapshot(record);
+          const key = getKeyFromSnapshot(
+            record.address,
+            record.kind,
+            record.contractId,
+          );
 
           pnlRecordsMap.set(key, record.accUSDPnl);
         });
 
-        const upsertInputs = pnlSnapshotKeys.map((key) => {
-          const accValue = pnlSnapshotMap.get(key) || 0;
-          const prevValue = pnlRecordsMap.get(key) || 0;
+        const upsertInputs = historiesPnlMapKeys
+          .map((key) => {
+            const { address, kind, contractId } = parseHistoryKey(key);
 
-          const { address, kind } = parseKey(key);
+            const accValue = historiesPnlMap.get(key) || 0;
 
-          return {
-            address: address.toLowerCase(),
-            kind,
-            accUSDPnl: prevValue + accValue,
-            dateStr,
-          };
-        });
+            const prevContractValue = pnlRecordsMap.get(key) || 0;
+            const prevOverallValue =
+              pnlRecordsMap.get(getKeyFromSnapshot(address, kind, null)) || 0;
+
+            return [
+              {
+                address: address.toLowerCase(),
+                contractId,
+                kind,
+                accUSDPnl: prevContractValue + accValue,
+                dateStr,
+              },
+              {
+                address: address.toLowerCase(),
+                contractId: 0,
+                kind,
+                accUSDPnl: prevOverallValue + accValue,
+                dateStr,
+              },
+            ];
+          })
+          .reduce((acc, item) => [...acc, ...item], []);
 
         await this.prismaService.$transaction(
           upsertInputs.map((input) => {
             return this.prismaService.pnlSnapshot.upsert({
               where: {
-                address_dateStr_kind: {
+                address_contractId_dateStr_kind: {
                   address: input.address.toLowerCase(),
-                  dateStr,
+                  dateStr: input.dateStr,
+                  contractId: input.contractId,
                   kind: input.kind,
                 },
               },
