@@ -80,6 +80,9 @@ export class PnlSnapshot {
   @Field(() => Int)
   id: number;
 
+  @Field(() => Int)
+  contractId: number;
+
   @Field()
   address: string;
 
@@ -128,4 +131,16 @@ export class TradeTransactionCount {
 
   @Field(() => Int)
   monthly: number;
+}
+
+@ObjectType()
+export class PnlSnapshotInitializedFlag {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => String)
+  dateStr: string;
+
+  @Field(() => Boolean)
+  isInit: boolean;
 }

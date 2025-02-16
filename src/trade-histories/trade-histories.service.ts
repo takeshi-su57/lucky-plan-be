@@ -239,12 +239,9 @@ export class TradeHistoriesService {
               price: `${Number(args.values.newOpenPrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
-              size: `${
-                Number(
-                  BigInt(args.values.newPositionSizeCollateral) /
-                    collateral.precision,
-                ) / leverage
-              }`,
+              size: `${Number(
+                BigInt(args.values.newCollateralAmount) / collateral.precision,
+              )}`,
               leverage,
               pnl: `${Number(
                 BigInt(args.values.existingPnlCollateral) /
@@ -288,14 +285,9 @@ export class TradeHistoriesService {
               price: `${Number(args.values.priceAfterImpact) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
-              size: `${
-                Number(
-                  BigInt(args.values.newCollateralAmount) /
-                    collateral.precision,
-                ) /
-                Number(args.values.newLeverage) /
-                1e3
-              }`,
+              size: `${Number(
+                BigInt(args.values.newCollateralAmount) / collateral.precision,
+              )}`,
               leverage: Number(args.values.newLeverage) / 1e3,
               pnl: `${Number(
                 BigInt(args.values.collateralSentToTrader) /
@@ -338,14 +330,9 @@ export class TradeHistoriesService {
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: '0',
               long: 0,
-              size: `${
-                Number(
-                  BigInt(args.values.newCollateralAmount) /
-                    collateral.precision,
-                ) /
-                Number(args.values.newLeverage) /
-                1e3
-              }`,
+              size: `${Number(
+                BigInt(args.values.newCollateralAmount) / collateral.precision,
+              )}`,
               leverage: Number(args.values.newLeverage) / 1e3,
               pnl: '0',
               tradeId: null,
@@ -383,19 +370,13 @@ export class TradeHistoriesService {
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
-              size: `${
-                Number(BigInt(args.t.collateralAmount) / collateral.precision) /
-                Number(args.t.leverage) /
-                1e3
-              }`,
+              size: `${Number(
+                BigInt(args.t.collateralAmount) / collateral.precision,
+              )}`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl: `${
-                (Number(
-                  BigInt(args.t.collateralAmount) / collateral.precision,
-                ) *
-                  Number(args.percentProfit)) /
-                1e12
-              }`,
+              pnl: `${Number(
+                BigInt(args.amountSentToTrader) / collateral.precision,
+              )}`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
@@ -438,19 +419,13 @@ export class TradeHistoriesService {
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
-              size: `${
-                Number(BigInt(args.t.collateralAmount) / collateral.precision) /
-                Number(args.t.leverage) /
-                1e3
-              }`,
+              size: `${Number(
+                BigInt(args.t.collateralAmount) / collateral.precision,
+              )}`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl: `${
-                (Number(
-                  BigInt(args.t.collateralAmount) / collateral.precision,
-                ) *
-                  Number(args.percentProfit)) /
-                1e12
-              }`,
+              pnl: `${Number(
+                BigInt(args.amountSentToTrader) / collateral.precision,
+              )}`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
