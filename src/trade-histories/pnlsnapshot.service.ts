@@ -277,7 +277,9 @@ export class PnlSnapshotsService {
         cursorId = records[records.length - 1].id;
       }
 
-      await this.prismaService.pnlSnapshotInitializedFlag.upsert({
+      this.status = 'ready';
+
+      return await this.prismaService.pnlSnapshotInitializedFlag.upsert({
         where: {
           dateStr,
         },
@@ -294,27 +296,17 @@ export class PnlSnapshotsService {
         `PnlSnapshotsService>intialBuild>: ${getReadableError(err)}`,
       );
 
-      return false;
+      this.status = 'ready';
+      return null;
     }
-
-    this.status = 'ready';
-
-    return true;
   }
 
   async isPnlSnapshotInitialized(dateStr: string) {
-    const result =
-      await this.prismaService.pnlSnapshotInitializedFlag.findUnique({
-        where: {
-          dateStr,
-        },
-      });
-
-    if (!result) {
-      return false;
-    }
-
-    return result.isInit;
+    return await this.prismaService.pnlSnapshotInitializedFlag.findUnique({
+      where: {
+        dateStr,
+      },
+    });
   }
 
   async getAllPnlSnapshotInitializedFlag() {

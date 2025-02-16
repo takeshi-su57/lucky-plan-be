@@ -17,12 +17,12 @@ export class TradeHistoriesResolver {
     private readonly pnlSnapshotsService: PnlSnapshotsService,
   ) {}
 
-  @Mutation(() => Boolean)
+  @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
   buildPnlSnapshots(@Args('endDate', { type: () => Date }) endDate: Date) {
     return this.pnlSnapshotsService.buildSnapshots(endDate);
   }
 
-  @Query(() => Boolean)
+  @Query(() => PnlSnapshotInitializedFlag, { nullable: true })
   isPnlSnapshotInitialized(
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
