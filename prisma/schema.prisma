@@ -302,6 +302,7 @@ model PnlSnapshot {
   accUSDPnl Float
 
   @@unique([address, dateStr, kind])
+  @@index([accUSDPnl(sort: Desc)])
 }
 
 model PnlSnapshotInitializedFlag {
