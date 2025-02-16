@@ -98,6 +98,7 @@ model Contract {
   chainId                    Int
   address                    String
   description                String
+  isTestnet                  Boolean        @default(false)
   lastBlockNumber            Int
   lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
