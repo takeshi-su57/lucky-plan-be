@@ -168,12 +168,22 @@ export class PnlSnapshotsService {
               cursor: {
                 id: cursorId,
               },
+              where: {
+                date: {
+                  lte: startDate,
+                },
+              },
               orderBy: {
                 block: 'asc',
               },
             })
           : await this.prismaService.tradeHistory.findMany({
               take: BATCH_SIZE,
+              where: {
+                date: {
+                  lte: startDate,
+                },
+              },
               orderBy: {
                 block: 'asc',
               },
