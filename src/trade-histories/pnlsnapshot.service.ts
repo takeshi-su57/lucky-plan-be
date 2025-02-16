@@ -9,15 +9,7 @@ import {
   PnlSnapshotDetailsEdge,
 } from './entities/trade-history.entity';
 
-function getKeyFromHistory(history: TradeHistory, kind: PnlSnapshotKind) {
-  return JSON.stringify({
-    address: history.address.toLowerCase(),
-    contractId: history.contractId,
-    kind,
-  });
-}
-
-function parseHistoryKey(key: string) {
+function parseKey(key: string) {
   return JSON.parse(key) as {
     address: string;
     contractId: number;
@@ -25,11 +17,7 @@ function parseHistoryKey(key: string) {
   };
 }
 
-function getKeyFromSnapshot(
-  address: string,
-  kind: PnlSnapshotKind,
-  contractId: number | null,
-) {
+function getKey(address: string, kind: PnlSnapshotKind, contractId: number) {
   return JSON.stringify({
     address: address.toLowerCase(),
     contractId,
@@ -151,15 +139,26 @@ export class PnlSnapshotsService {
   async buildSnapshots(endDate: Date) {
     this.status = 'processing';
 
-    const startDate = getStartOfDay(new Date(endDate));
-    const dateStr = dayjs(endDate).format('YYYY-MM-DD');
-
-    await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
-
     try {
-      const BATCH_SIZE = 10000;
+      const startDate = getStartOfDay(new Date(endDate));
+      const dateStr = dayjs(endDate).format('YYYY-MM-DD');
 
+      const BATCH_SIZE = 10000;
       let cursorId: number | null = null;
+
+      await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
+
+      const testContractIdsMap = new Map<number, boolean>();
+
+      const testContracts = await this.prismaService.contract.findMany({
+        where: {
+          isTestnet: true,
+        },
+      });
+
+      testContracts.forEach((contract) =>
+        testContractIdsMap.set(contract.id, true),
+      );
 
       while (true) {
         const records: TradeHistory[] = cursorId
@@ -188,13 +187,19 @@ export class PnlSnapshotsService {
 
         for (const record of records) {
           for (const kind of Object.values(PnlSnapshotKind)) {
-            const key = getKeyFromHistory(record, kind);
+            const contractKey = getKey(record.address, kind, record.contractId);
+            const overallKey = getKey(record.address, kind, 0);
 
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prev = historiesPnlMap.get(key) || 0;
+            const prevContractValue = historiesPnlMap.get(contractKey) || 0;
+            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
 
             if (startDate.getTime() - timestampGap < record.date.getTime()) {
-              historiesPnlMap.set(key, prev + +record.pnl);
+              historiesPnlMap.set(contractKey, prevContractValue + +record.pnl);
+
+              if (!testContractIdsMap.get(record.contractId)) {
+                historiesPnlMap.set(overallKey, prevOverallValue + +record.pnl);
+              }
             }
           }
         }
@@ -204,24 +209,15 @@ export class PnlSnapshotsService {
         const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
           where: {
             OR: [
-              ...historiesPnlMapKeys
-                .map((key) => {
-                  const { address, kind, contractId } = parseHistoryKey(key);
+              ...historiesPnlMapKeys.map((key) => {
+                const { address, kind, contractId } = parseKey(key);
 
-                  return [
-                    {
-                      address: address.toLowerCase(),
-                      contractId,
-                      kind,
-                    },
-                    {
-                      address: address.toLowerCase(),
-                      contractId: 0,
-                      kind,
-                    },
-                  ];
-                })
-                .reduce((acc, curr) => [...acc, ...curr], []),
+                return {
+                  address: address.toLowerCase(),
+                  contractId,
+                  kind,
+                };
+              }),
             ],
           },
         });
@@ -229,43 +225,25 @@ export class PnlSnapshotsService {
         const pnlRecordsMap = new Map<string, number>();
 
         pnlRecords.forEach((record) => {
-          const key = getKeyFromSnapshot(
-            record.address,
-            record.kind,
-            record.contractId,
-          );
+          const key = getKey(record.address, record.kind, record.contractId);
 
           pnlRecordsMap.set(key, record.accUSDPnl);
         });
 
-        const upsertInputs = historiesPnlMapKeys
-          .map((key) => {
-            const { address, kind, contractId } = parseHistoryKey(key);
+        const upsertInputs = historiesPnlMapKeys.map((key) => {
+          const { address, kind, contractId } = parseKey(key);
 
-            const accValue = historiesPnlMap.get(key) || 0;
+          const accValue = historiesPnlMap.get(key) || 0;
+          const prevValue = pnlRecordsMap.get(key) || 0;
 
-            const prevContractValue = pnlRecordsMap.get(key) || 0;
-            const prevOverallValue =
-              pnlRecordsMap.get(getKeyFromSnapshot(address, kind, null)) || 0;
-
-            return [
-              {
-                address: address.toLowerCase(),
-                contractId,
-                kind,
-                accUSDPnl: prevContractValue + accValue,
-                dateStr,
-              },
-              {
-                address: address.toLowerCase(),
-                contractId: 0,
-                kind,
-                accUSDPnl: prevOverallValue + accValue,
-                dateStr,
-              },
-            ];
-          })
-          .reduce((acc, item) => [...acc, ...item], []);
+          return {
+            address: address.toLowerCase(),
+            contractId,
+            kind,
+            accUSDPnl: prevValue + accValue,
+            dateStr,
+          };
+        });
 
         await this.prismaService.$transaction(
           upsertInputs.map((input) => {
