@@ -355,6 +355,14 @@ export class TradeHistoriesService {
               args.t.collateralIndex,
             );
 
+            const pnl = args.open
+              ? '0'
+              : `${Number(
+                  (BigInt(args.amountSentToTrader) -
+                    BigInt(args.t.collateralAmount)) /
+                    collateral.precision,
+                )}`;
+
             return {
               date: timestamp,
               pair: this.tradingVariableServcie.getPairName(
@@ -374,11 +382,7 @@ export class TradeHistoriesService {
                 BigInt(args.t.collateralAmount) / collateral.precision,
               )}`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl: `${Number(
-                (BigInt(args.amountSentToTrader) -
-                  BigInt(args.t.collateralAmount)) /
-                  collateral.precision,
-              )}`,
+              pnl: pnl,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
@@ -408,6 +412,15 @@ export class TradeHistoriesService {
               return null;
             }
 
+            const pnl =
+              args.orderType === PendingOrderType.LIMIT_OPEN
+                ? '0'
+                : `${Number(
+                    (BigInt(args.amountSentToTrader) -
+                      BigInt(args.t.collateralAmount)) /
+                      collateral.precision,
+                  )}`;
+
             return {
               date: timestamp,
               pair: this.tradingVariableServcie.getPairName(
@@ -425,11 +438,7 @@ export class TradeHistoriesService {
                 BigInt(args.t.collateralAmount) / collateral.precision,
               )}`,
               leverage: Number(args.t.leverage) / 1e3,
-              pnl: `${Number(
-                (BigInt(args.amountSentToTrader) -
-                  BigInt(args.t.collateralAmount)) /
-                  collateral.precision,
-              )}`,
+              pnl: pnl,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
               tradeIndex: Number(args.t.index),
