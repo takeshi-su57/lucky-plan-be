@@ -375,7 +375,9 @@ export class TradeHistoriesService {
               )}`,
               leverage: Number(args.t.leverage) / 1e3,
               pnl: `${Number(
-                BigInt(args.amountSentToTrader) / collateral.precision,
+                (BigInt(args.amountSentToTrader) -
+                  BigInt(args.t.collateralAmount)) /
+                  collateral.precision,
               )}`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
@@ -424,7 +426,9 @@ export class TradeHistoriesService {
               )}`,
               leverage: Number(args.t.leverage) / 1e3,
               pnl: `${Number(
-                BigInt(args.amountSentToTrader) / collateral.precision,
+                (BigInt(args.amountSentToTrader) -
+                  BigInt(args.t.collateralAmount)) /
+                  collateral.precision,
               )}`,
               tradeId: null,
               collateralIndex: Number(args.t.collateralIndex),
