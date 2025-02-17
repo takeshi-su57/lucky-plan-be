@@ -244,7 +244,7 @@ export class TradeHistoriesService {
               )}`,
               leverage,
               pnl: `${Number(
-                BigInt(args.values.existingPnlCollateral) /
+                BigInt(args.values.borrowingFeeCollateral) /
                   collateral.precision,
               )}`,
               tradeId: null,
@@ -290,14 +290,15 @@ export class TradeHistoriesService {
               )}`,
               leverage: Number(args.values.newLeverage) / 1e3,
               pnl: `${Number(
-                BigInt(args.values.collateralSentToTrader) /
+                (BigInt(args.values.collateralSentToTrader) -
+                  BigInt(args.collateralDelta)) /
                   collateral.precision,
               )}`,
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
               collateralDelta: `${
-                BigInt(args.collateralDelta) / collateral.precision
+                -BigInt(args.collateralDelta) / collateral.precision
               }`,
               leverageDelta: Number(args.leverageDelta) / 1e3,
               marketPrice: `${Number(args.oraclePrice) / 1e10}`,
@@ -339,7 +340,8 @@ export class TradeHistoriesService {
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
               collateralDelta: `${
-                BigInt(args.collateralDelta) / collateral.precision
+                ((args.isIncrease ? 1n : -1n) * BigInt(args.collateralDelta)) /
+                collateral.precision
               }`,
               leverageDelta: null,
               marketPrice: null,
