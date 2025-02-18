@@ -221,6 +221,7 @@ export class PnlSnapshotsService {
                 const { address, kind, contractId } = parseKey(key);
 
                 return {
+                  dateStr,
                   address: address.toLowerCase(),
                   contractId,
                   kind,
