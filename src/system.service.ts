@@ -112,6 +112,7 @@ export class SystemService {
     if (this.pnlSnapshotService.status === 'ready') {
       await this.pnlSnapshotService.buildSnapshots(
         dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
+        true,
       );
     }
   }
