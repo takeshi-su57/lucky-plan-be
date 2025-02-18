@@ -18,8 +18,11 @@ export class TradeHistoriesResolver {
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
-  buildPnlSnapshots(@Args('dateStr', { type: () => String }) dateStr: string) {
-    return this.pnlSnapshotsService.buildSnapshots(dateStr);
+  buildPnlSnapshots(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
+  ) {
+    return this.pnlSnapshotsService.buildSnapshots(dateStr, isForceBuild);
   }
 
   @Query(() => PnlSnapshotInitializedFlag, { nullable: true })

@@ -135,13 +135,23 @@ export class PnlSnapshotsService {
     });
   }
 
-  async buildSnapshots(dateStr: string) {
+  async buildSnapshots(dateStr: string, isForceBuild: boolean) {
     this.status = 'processing';
 
     try {
       const startDate = getStartOfDay(new Date(dateStr));
 
-      const BATCH_SIZE = 10000;
+      if (!isForceBuild) {
+        const isInitialized = await this.isPnlSnapshotInitialized(dateStr);
+
+        if (isInitialized?.isInit) {
+          this.status = 'ready';
+
+          return isInitialized;
+        }
+      }
+
+      const BATCH_SIZE = 1000;
       let cursorId: number | null = null;
 
       await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
