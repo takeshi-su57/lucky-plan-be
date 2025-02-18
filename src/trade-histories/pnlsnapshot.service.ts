@@ -74,7 +74,7 @@ export class PnlSnapshotsService {
 
     const timestampGap = timestampGapByPnlSnapshotKind[kind];
     const startDate = new Date(
-      getStartOfDay(new Date()).getTime() - timestampGap,
+      getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
 
     const historyRecords = await this.prismaService.tradeHistory.findMany({
