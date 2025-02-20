@@ -386,6 +386,16 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
+    await this.followersService.withdrawAllUSDC(
+      bot.followerAddress,
+      bot.followerContractId,
+    );
+
+    await this.followersService.withdrawAllETH(
+      bot.followerAddress,
+      bot.followerContractId,
+    );
+
     return await this.update({
       id: bot.id,
       status: BotStatus.Dead,
