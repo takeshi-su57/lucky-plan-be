@@ -43,11 +43,17 @@ export class BotsService {
   }
 
   async create(input: CreateBotInput) {
+    const followers = await this.followersService.getAvailableFollowers(1);
+
+    if (followers.length !== 1) {
+      throw new Error('No available followers');
+    }
+
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: input.followerAddress.toLowerCase(),
+        followerAddress: followers[0].address.toLowerCase(),
         status: BotStatus.Created,
       },
       include: {
@@ -72,7 +78,6 @@ export class BotsService {
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: input.followerAddress.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
