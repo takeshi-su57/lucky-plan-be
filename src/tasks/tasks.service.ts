@@ -38,6 +38,7 @@ import { PUB_SUB } from 'src/global/global.module';
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
+import { marketCloseCanceledEventParser } from 'src/actions/eventParsers/market-close-canceled';
 
 @Injectable()
 export class TasksService {
@@ -436,6 +437,11 @@ export class TasksService {
     const taskUpateInputs: TaskUpdateInput[] = [];
 
     const closeActions: ActionContext<MissionContext>[] = [];
+    const manualCloseActions: {
+      missionId: number;
+      pairIndex: number;
+      targetPositionId: number;
+    }[] = [];
 
     const tasksByMissionMap = await this.getTasksByMissionMap(
       actions.map((item) => item.context.mission.id),
@@ -452,6 +458,16 @@ export class TasksService {
             : (action: Action) =>
                 action.name === CloseMissionAction ||
                 isCloseMissionAction(action);
+
+        if (action.name === marketCloseCanceledEventParser.eventName) {
+          const event = marketCloseCanceledEventParser.actionParser(action);
+
+          manualCloseActions.push({
+            missionId: context.mission.id,
+            pairIndex: Number(event.args.pairIndex),
+            targetPositionId: context.mission.targetPositionId,
+          });
+        }
 
         status = TaskStatus.Failed;
       }
@@ -564,6 +580,35 @@ export class TasksService {
           }),
         ],
       });
+    }
+
+    const promises = manualCloseActions.map(async (item) => {
+      const currentPrice = await this.tradingVariableService.getPairPrice(
+        item.pairIndex,
+      );
+
+      const newAction = await this.actionsService.createCloseMissionAction(
+        item.targetPositionId,
+        currentPrice.toString(),
+      );
+
+      await this.createMany([
+        {
+          missionId: item.missionId,
+          actionId: newAction.id,
+          status: TaskStatus.Created,
+          logs: [
+            JSON.stringify({
+              timestamp: Date.now(),
+              message: `Task created`,
+            }),
+          ],
+        },
+      ]);
+    });
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
     }
 
     await this.updateMany(taskUpateInputs);
