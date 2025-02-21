@@ -43,17 +43,11 @@ export class BotsService {
   }
 
   async create(input: CreateBotInput) {
-    const followers = await this.followersService.getAvailableFollowers(1);
-
-    if (followers.length !== 1) {
-      throw new Error('No available followers');
-    }
-
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: followers[0].address.toLowerCase(),
+        followerAddress: input.followerAddress.toLowerCase(),
         status: BotStatus.Created,
       },
       include: {
@@ -73,13 +67,25 @@ export class BotsService {
   async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
     const bots: BotDetails[] = [];
 
-    for (const input of inputs) {
+    const followers = await this.followersService.getAvailableFollowers(
+      inputs.length,
+    );
+
+    if (followers.length !== inputs.length) {
+      throw new Error('No available followers');
+    }
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      const follower = followers[i];
+
       const strategy = await this.strategyService.create(input.strategy);
 
       const bot = await this.create({
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
+        followerAddress: follower.address.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
