@@ -14,6 +14,11 @@ export class PlansResolver {
     return this.plansService.create(createPlanInput);
   }
 
+  @Mutation(() => Int)
+  deletePlan(@Args('id', { type: () => Int }) id: number) {
+    return this.plansService.delete(id);
+  }
+
   @Mutation(() => PlanDetails)
   updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
     return this.plansService.update(updatePlanInput);
