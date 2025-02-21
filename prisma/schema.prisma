@@ -149,12 +149,13 @@ model Bot {
 
   plan             Plan?    @relation(fields: [planId], references: [id])
   follower         Follower @relation(fields: [followerAddress], references: [address])
-  leader           User     @relation(fields: [leaderAddress], references: [address])
   strategy         Strategy @relation(fields: [strategyId], references: [id])
   leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
   followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
 
-  missions Mission[]
+  missions    Mission[]
+  User        User?     @relation(fields: [userAddress], references: [address])
+  userAddress String?   @db.VarChar(255)
 }
 
 model Position {

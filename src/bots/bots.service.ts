@@ -52,7 +52,6 @@ export class BotsService {
       },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -199,7 +198,6 @@ export class BotsService {
       data: input,
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -221,7 +219,6 @@ export class BotsService {
     return this.prismaService.bot.findMany({
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -234,7 +231,6 @@ export class BotsService {
       where: { status },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -247,7 +243,6 @@ export class BotsService {
       where: { status },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -261,7 +256,6 @@ export class BotsService {
       include: {
         missions: true,
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -274,7 +268,6 @@ export class BotsService {
       where: { id },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,

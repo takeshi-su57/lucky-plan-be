@@ -67,7 +67,6 @@ export class TasksService {
             bot: {
               include: {
                 follower: true,
-                leader: true,
                 strategy: true,
                 followerContract: true,
                 leaderContract: true,
