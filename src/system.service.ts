@@ -6,9 +6,9 @@ import { BotsService } from './bots/bots.service';
 import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
 import { TaskExecutorService } from './task-executor/task-executor.service';
 import { PlansService } from './plans/plans.service';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -26,6 +26,8 @@ export class SystemService {
     private plansService: PlansService,
   ) {
     this.isPaused = false;
+
+    console.log(this.getServerTime());
   }
 
   pauseSystem() {
