@@ -28,7 +28,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -46,7 +45,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -89,7 +87,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -106,7 +103,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -123,7 +119,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -161,7 +156,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -199,7 +193,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
