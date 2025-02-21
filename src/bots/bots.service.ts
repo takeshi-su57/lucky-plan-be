@@ -71,10 +71,12 @@ export class BotsService {
   }
 
   async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
-    const promises = inputs.map(async (input) => {
+    const bots: BotDetails[] = [];
+
+    for (const input of inputs) {
       const strategy = await this.strategyService.create(input.strategy);
 
-      return await this.create({
+      const bot = await this.create({
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
@@ -82,9 +84,11 @@ export class BotsService {
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
       });
-    });
 
-    return await Promise.all(promises);
+      bots.push(bot);
+    }
+
+    return bots;
   }
 
   async delete(id: number) {
