@@ -7,6 +7,11 @@ import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
 import { TaskExecutorService } from './task-executor/task-executor.service';
 import { PlansService } from './plans/plans.service';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class SystemService {
@@ -114,6 +119,17 @@ export class SystemService {
         dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
         true,
       );
+      await this.pnlSnapshotService.buildSnapshots(
+        dayjs(new Date()).format('YYYY-MM-DD'),
+        true,
+      );
     }
+  }
+
+  getServerTime() {
+    return {
+      timezone: dayjs.tz.guess(),
+      timestamp: dayjs().utc().unix(),
+    };
   }
 }
