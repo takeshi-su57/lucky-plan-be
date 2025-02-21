@@ -147,6 +147,7 @@ input CreateBotAndStrategyInput {
 }
 
 input CreateBotInput {
+  followerAddress: String!
   followerContractId: Int!
   leaderAddress: String!
   leaderCollateralBaseline: Int!

@@ -12,6 +12,11 @@ export class CreateBotInput {
   @Field()
   leaderAddress: string;
 
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  followerAddress: string;
+
   @Field(() => Int, { nullable: true })
   planId: number | null;
 
