@@ -207,6 +207,55 @@ export class TasksService {
     });
   }
 
+  async stopTask(id: number) {
+    const task = await this.prismaService.task.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    await this.updateMany([
+      {
+        id: task.id,
+        status: TaskStatus.Stopped,
+        logs: [
+          ...task.logs,
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Stopped by mission close action`,
+          }),
+        ],
+      },
+    ]);
+
+    return await this.prismaService.task.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        action: true,
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                strategy: true,
+                followerContract: true,
+                leaderContract: true,
+              },
+            },
+            achievePosition: true,
+            targetPosition: true,
+          },
+        },
+      },
+    });
+  }
+
   async getTasksByMissionMap(missionIds: number[]) {
     const missionTasks = await this.prismaService.task.findMany({
       where: {

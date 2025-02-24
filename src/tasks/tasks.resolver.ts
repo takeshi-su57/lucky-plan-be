@@ -1,5 +1,12 @@
 import { Inject } from '@nestjs/common';
-import { Resolver, Query, Args, Int, Subscription } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Int,
+  Subscription,
+  Mutation,
+} from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 
 import { TasksService } from './tasks.service';
@@ -15,6 +22,11 @@ export class TasksResolver {
     private readonly tasksService: TasksService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
+
+  @Mutation(() => TaskShallowDetails, { nullable: true })
+  stopTask(@Args('id', { type: () => Int }) id: number) {
+    return this.tasksService.stopTask(id);
+  }
 
   @Query(() => [TaskShallowDetails])
   getAllTasks() {
