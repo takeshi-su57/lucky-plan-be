@@ -45,9 +45,7 @@ export class PnlSnapshotsService {
   constructor(
     private prismaService: PrismaService,
     private logger: Logger,
-  ) {
-    this.initializePnlSnapshot();
-  }
+  ) {}
 
   async getPnlSnapshots(
     dateStr: string,
