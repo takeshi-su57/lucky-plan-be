@@ -114,16 +114,11 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
     if (this.pnlSnapshotService.status === 'ready') {
-      await this.pnlSnapshotService.buildSnapshots(
-        dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
-        true,
-      );
-      await this.pnlSnapshotService.buildSnapshots(
+      await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
-        true,
       );
     }
   }
