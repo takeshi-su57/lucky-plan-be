@@ -52,7 +52,6 @@ export class BotsService {
       },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -65,21 +64,36 @@ export class BotsService {
   }
 
   async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
-    const promises = inputs.map(async (input) => {
+    const bots: BotDetails[] = [];
+
+    const followers = await this.followersService.getAvailableFollowers(
+      inputs.length,
+    );
+
+    if (followers.length !== inputs.length) {
+      throw new Error('No available followers');
+    }
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      const follower = followers[i];
+
       const strategy = await this.strategyService.create(input.strategy);
 
-      return await this.create({
+      const bot = await this.create({
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: input.followerAddress.toLowerCase(),
+        followerAddress: follower.address.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
       });
-    });
 
-    return await Promise.all(promises);
+      bots.push(bot);
+    }
+
+    return bots;
   }
 
   async delete(id: number) {
@@ -184,7 +198,6 @@ export class BotsService {
       data: input,
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -206,7 +219,6 @@ export class BotsService {
     return this.prismaService.bot.findMany({
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -219,7 +231,6 @@ export class BotsService {
       where: { status },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -232,7 +243,6 @@ export class BotsService {
       where: { status },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -246,7 +256,6 @@ export class BotsService {
       include: {
         missions: true,
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -259,7 +268,6 @@ export class BotsService {
       where: { id },
       include: {
         follower: true,
-        leader: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
@@ -385,6 +393,16 @@ export class BotsService {
     if (BotStatus.Live !== bot.status && BotStatus.Stop !== bot.status) {
       throw new Error('Invalid bot status');
     }
+
+    await this.followersService.withdrawAllUSDC(
+      bot.followerAddress,
+      bot.followerContractId,
+    );
+
+    await this.followersService.withdrawAllETH(
+      bot.followerAddress,
+      bot.followerContractId,
+    );
 
     return await this.update({
       id: bot.id,

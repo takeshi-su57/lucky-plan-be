@@ -72,11 +72,6 @@ export class CreateBotAndStrategyInput {
   @Field()
   leaderAddress: string;
 
-  @IsNotEmpty()
-  @IsWalletAddress()
-  @Field()
-  followerAddress: string;
-
   @Field(() => CreateStrategyInput)
   strategy: CreateStrategyInput;
 

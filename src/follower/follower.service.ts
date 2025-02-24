@@ -4,7 +4,7 @@ import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -31,6 +31,7 @@ import {
 } from './dto/follower.input';
 import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
+import { BotStatus } from '@prisma/client';
 
 @Injectable()
 export class FollowerService {
@@ -675,6 +676,40 @@ export class FollowerService {
     }
 
     return [];
+  }
+
+  async getAvailableFollowers(counts: number) {
+    const activeBots = await this.prismaService.bot.findMany({
+      where: {
+        status: {
+          not: BotStatus.Dead,
+        },
+      },
+    });
+
+    const followerAddressesMap = new Map<string, boolean>();
+
+    activeBots.forEach((bot) => {
+      followerAddressesMap.set(bot.followerAddress, true);
+    });
+
+    const availableFollowers = await this.prismaService.follower.findMany({
+      where: {
+        address: {
+          notIn: Object.keys(followerAddressesMap),
+        },
+      },
+    });
+
+    const validFollowers = [...availableFollowers];
+
+    while (validFollowers.length < counts) {
+      const newFollower = await this.generateNewFollower();
+
+      validFollowers.push(newFollower);
+    }
+
+    return validFollowers.slice(0, counts);
   }
 
   findAllDetails(contractId: number) {

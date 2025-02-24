@@ -466,7 +466,6 @@ export class TaskExecutorService {
             bot: {
               include: {
                 follower: true,
-                leader: true,
                 strategy: true,
                 followerContract: true,
                 leaderContract: true,
@@ -538,7 +537,6 @@ export class TaskExecutorService {
               bot: {
                 include: {
                   follower: true,
-                  leader: true,
                   strategy: true,
                   followerContract: true,
                   leaderContract: true,

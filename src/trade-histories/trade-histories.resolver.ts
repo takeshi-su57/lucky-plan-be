@@ -2,6 +2,7 @@ import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { TradeHistoriesService } from './trade-histories.service';
 import {
   PnlSnapshotDetailsConnection,
+  PnlSnapshotInitializedFlag,
   TradeHistory,
   TradeTransactionCount,
 } from './entities/trade-history.entity';
@@ -16,16 +17,24 @@ export class TradeHistoriesResolver {
     private readonly pnlSnapshotsService: PnlSnapshotsService,
   ) {}
 
-  @Mutation(() => Boolean)
-  buildPnlSnapshots(@Args('endDate', { type: () => Date }) endDate: Date) {
-    return this.pnlSnapshotsService.buildSnapshots(endDate);
+  @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  buildPnlSnapshots(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
+  ) {
+    return this.pnlSnapshotsService.buildSnapshots(dateStr, isForceBuild);
   }
 
-  @Query(() => Boolean)
+  @Query(() => PnlSnapshotInitializedFlag, { nullable: true })
   isPnlSnapshotInitialized(
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
     return this.pnlSnapshotsService.isPnlSnapshotInitialized(dateStr);
+  }
+
+  @Query(() => [PnlSnapshotInitializedFlag])
+  getPnlSnapshotInitializedFlag() {
+    return this.pnlSnapshotsService.getAllPnlSnapshotInitializedFlag();
   }
 
   @Query(() => TradeTransactionCount)

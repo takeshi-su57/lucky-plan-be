@@ -1,4 +1,10 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  registerEnumType,
+  Float,
+} from '@nestjs/graphql';
 import { PnlSnapshotKind, TradeActionType } from '@prisma/client';
 
 registerEnumType(TradeActionType, {
@@ -26,23 +32,23 @@ export class TradeHistory {
   @Field()
   pair: string;
 
-  @Field(() => Int)
-  price: number;
+  @Field()
+  price: string;
 
-  @Field(() => Int)
-  collateralPriceUsd: number;
+  @Field()
+  collateralPriceUsd: string;
 
   @Field(() => Int)
   long: number;
 
-  @Field(() => Int)
-  size: number;
+  @Field()
+  size: string;
 
   @Field(() => Int)
   leverage: number;
 
-  @Field(() => Int)
-  pnl: number;
+  @Field()
+  pnl: string;
 
   @Field(() => Int)
   collateralIndex: number;
@@ -50,14 +56,14 @@ export class TradeHistory {
   @Field(() => Int)
   tradeIndex: number;
 
-  @Field(() => Int, { nullable: true })
-  collateralDelta: number | null;
+  @Field(() => String, { nullable: true })
+  collateralDelta: string | null;
 
   @Field(() => Int, { nullable: true })
   leverageDelta: number | null;
 
-  @Field(() => Int, { nullable: true })
-  marketPrice: number | null;
+  @Field(() => String, { nullable: true })
+  marketPrice: string | null;
 
   @Field(() => String, { nullable: true })
   tradeId: string | null;
@@ -74,6 +80,9 @@ export class PnlSnapshot {
   @Field(() => Int)
   id: number;
 
+  @Field(() => Int)
+  contractId: number;
+
   @Field()
   address: string;
 
@@ -83,7 +92,7 @@ export class PnlSnapshot {
   @Field(() => PnlSnapshotKind)
   kind: PnlSnapshotKind;
 
-  @Field(() => Int)
+  @Field(() => Float)
   accUSDPnl: number;
 }
 
@@ -122,4 +131,16 @@ export class TradeTransactionCount {
 
   @Field(() => Int)
   monthly: number;
+}
+
+@ObjectType()
+export class PnlSnapshotInitializedFlag {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => String)
+  dateStr: string;
+
+  @Field(() => Boolean)
+  isInit: boolean;
 }

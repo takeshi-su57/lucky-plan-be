@@ -120,6 +120,7 @@ type Contract {
   chainId: Int!
   description: String!
   id: Int!
+  isTestnet: Boolean!
   status: ContractStatus!
 }
 
@@ -137,7 +138,6 @@ enum ContractStatus {
 }
 
 input CreateBotAndStrategyInput {
-  followerAddress: String!
   followerContractId: Int!
   leaderAddress: String!
   leaderCollateralBaseline: Int!
@@ -252,6 +252,8 @@ input GetUserByAddressInput {
 }
 
 input GetUserTransactionCountsInput {
+  address: String!
+  contractId: Int!
   endedAt: DateTime
   startedAt: DateTime
 }
@@ -317,7 +319,7 @@ type Mutation {
   addTagToUser(input: ChangeUserTagInput!): User!
   addUser(input: AddUserInput!): User!
   batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotDetails!]!
-  buildPnlSnapshots(endDate: DateTime!): Boolean!
+  buildPnlSnapshots(dateStr: String!, isForceBuild: Boolean!): PnlSnapshotInitializedFlag
   cancelOrderAfterTimeout(input: CancelOrderAfterTimeoutInput!): ContractExecutionResult!
   changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changePassword(input: ChangePasswordInput!): Boolean!
@@ -329,6 +331,7 @@ type Mutation {
   createStrategy(input: CreateStrategyInput!): Strategy!
   deleteBot(id: Int!): Int!
   deleteCategory(id: Int!): TagCategory!
+  deletePlan(id: Int!): Int!
   deleteTag(tag: String!): Tag!
   endPlan(id: Int!): PlanDetails!
   generateNewFollower: Follower!
@@ -375,16 +378,18 @@ enum PlanStatus {
 }
 
 type PnlSnapshot {
-  accUSDPnl: Int!
+  accUSDPnl: Float!
   address: String!
+  contractId: Int!
   dateStr: String!
   id: Int!
   kind: PnlSnapshotKind!
 }
 
 type PnlSnapshotDetails {
-  accUSDPnl: Int!
+  accUSDPnl: Float!
   address: String!
+  contractId: Int!
   dateStr: String!
   histories: [TradeHistory!]!
   id: Int!
@@ -399,6 +404,12 @@ type PnlSnapshotDetailsConnection {
 type PnlSnapshotDetailsEdge {
   cursor: Int!
   node: PnlSnapshotDetails!
+}
+
+type PnlSnapshotInitializedFlag {
+  dateStr: String!
+  id: Int!
+  isInit: Boolean!
 }
 
 enum PnlSnapshotKind {
@@ -457,8 +468,10 @@ type Query {
   getPendingOrders(address: String!, contractId: Int!): [FollowerPendingOrder!]!
   getPlanById(id: Int!): PlanDetails
   getPlansByStatus(status: PlanStatus!): [PlanDetails!]!
+  getPnlSnapshotInitializedFlag: [PnlSnapshotInitializedFlag!]!
   getPnlSnapshots(after: Int, contractId: Int!, dateStr: String!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
   getPnlSnapshotsByAddress(address: String!, dateStr: String!): [PnlSnapshot!]!
+  getServerTime: ServerTime!
   getTasksByStatus(status: TaskStatus!): [TaskShallowDetails!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getTradePairs(contractId: Int!): [TradePair!]!
@@ -466,8 +479,13 @@ type Query {
   getTrades(address: String!, contractId: Int!): [FollowerTrade!]!
   getUserByAddress(input: GetUserByAddressInput!): User!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
-  isPnlSnapshotInitialized(dateStr: String!): Boolean!
+  isPnlSnapshotInitialized(dateStr: String!): PnlSnapshotInitializedFlag
   systemStatus: Boolean!
+}
+
+type ServerTime {
+  timestamp: Float!
+  timezone: String!
 }
 
 type Strategy {
@@ -571,20 +589,20 @@ type TradeHistory {
   action: TradeActionType!
   address: String!
   block: Int!
-  collateralDelta: Int
+  collateralDelta: String
   collateralIndex: Int!
-  collateralPriceUsd: Int!
+  collateralPriceUsd: String!
   contractId: Int!
   date: DateTime!
   id: Int!
   leverage: Int!
   leverageDelta: Int
   long: Int!
-  marketPrice: Int
+  marketPrice: String
   pair: String!
-  pnl: Int!
-  price: Int!
-  size: Int!
+  pnl: String!
+  price: String!
+  size: String!
   tradeId: String
   tradeIndex: Int!
 }

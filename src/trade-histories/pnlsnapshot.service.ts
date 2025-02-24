@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PnlSnapshot, PnlSnapshotKind, TradeHistory } from '@prisma/client';
-import dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { getReadableError, getStartOfDay } from 'src/utils';
@@ -9,25 +8,20 @@ import {
   PnlSnapshotDetailsEdge,
 } from './entities/trade-history.entity';
 
-function getKeyFromHistory(history: TradeHistory, kind: PnlSnapshotKind) {
-  return JSON.stringify({
-    address: history.address.toLowerCase(),
-    kind,
-  });
-}
-
-function getKeyFromSnapshot(record: PnlSnapshot) {
-  return JSON.stringify({
-    address: record.address.toLowerCase(),
-    kind: record.kind,
-  });
-}
-
 function parseKey(key: string) {
   return JSON.parse(key) as {
     address: string;
+    contractId: number;
     kind: PnlSnapshotKind;
   };
+}
+
+function getKey(address: string, kind: PnlSnapshotKind, contractId: number) {
+  return JSON.stringify({
+    address: address.toLowerCase(),
+    contractId,
+    kind,
+  });
 }
 
 const timestampGapByPnlSnapshotKind = {
@@ -71,6 +65,7 @@ export class PnlSnapshotsService {
         where: {
           dateStr,
           kind,
+          contractId,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -79,7 +74,7 @@ export class PnlSnapshotsService {
 
     const timestampGap = timestampGapByPnlSnapshotKind[kind];
     const startDate = new Date(
-      getStartOfDay(new Date()).getTime() - timestampGap,
+      getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
 
     const historyRecords = await this.prismaService.tradeHistory.findMany({
@@ -87,7 +82,7 @@ export class PnlSnapshotsService {
         OR: [
           ...pnlRecords.map((item) => ({
             address: item.address,
-            contractId,
+            ...(contractId !== 0 ? { contractId } : {}),
             date: {
               gt: startDate,
             },
@@ -96,7 +91,6 @@ export class PnlSnapshotsService {
       },
       orderBy: {
         block: 'asc',
-        date: 'asc',
       },
     });
 
@@ -141,19 +135,38 @@ export class PnlSnapshotsService {
     });
   }
 
-  async buildSnapshots(endDate: Date) {
+  async buildSnapshots(dateStr: string, isForceBuild: boolean) {
     this.status = 'processing';
 
-    const startDate = getStartOfDay(endDate);
-    const dateStr = dayjs(startDate).format('YYYY-MM-DD');
-
-    await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
-
     try {
-      const BATCH_SIZE = 10000;
-      const currentDate = new Date();
+      const startDate = getStartOfDay(new Date(dateStr));
 
+      if (!isForceBuild) {
+        const isInitialized = await this.isPnlSnapshotInitialized(dateStr);
+
+        if (isInitialized?.isInit) {
+          this.status = 'ready';
+
+          return isInitialized;
+        }
+      }
+
+      const BATCH_SIZE = 1000;
       let cursorId: number | null = null;
+
+      await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
+
+      const testContractIdsMap = new Map<number, boolean>();
+
+      const testContracts = await this.prismaService.contract.findMany({
+        where: {
+          isTestnet: true,
+        },
+      });
+
+      testContracts.forEach((contract) =>
+        testContractIdsMap.set(contract.id, true),
+      );
 
       while (true) {
         const records: TradeHistory[] = cursorId
@@ -163,16 +176,24 @@ export class PnlSnapshotsService {
               cursor: {
                 id: cursorId,
               },
+              where: {
+                date: {
+                  lte: startDate,
+                },
+              },
               orderBy: {
                 block: 'asc',
-                date: 'asc',
               },
             })
           : await this.prismaService.tradeHistory.findMany({
               take: BATCH_SIZE,
+              where: {
+                date: {
+                  lte: startDate,
+                },
+              },
               orderBy: {
                 block: 'asc',
-                date: 'asc',
               },
             });
 
@@ -180,31 +201,39 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const pnlSnapshotMap = new Map<string, number>();
+        const historiesPnlMap = new Map<string, number>();
 
         for (const record of records) {
           for (const kind of Object.values(PnlSnapshotKind)) {
-            const key = getKeyFromHistory(record, kind);
+            const contractKey = getKey(record.address, kind, record.contractId);
+            const overallKey = getKey(record.address, kind, 0);
 
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prev = pnlSnapshotMap.get(key) || 0;
+            const prevContractValue = historiesPnlMap.get(contractKey) || 0;
+            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
 
-            if (currentDate.getTime() - timestampGap < record.date.getTime()) {
-              pnlSnapshotMap.set(key, prev + record.pnl);
+            if (startDate.getTime() - timestampGap < record.date.getTime()) {
+              historiesPnlMap.set(contractKey, prevContractValue + +record.pnl);
+
+              if (!testContractIdsMap.get(record.contractId)) {
+                historiesPnlMap.set(overallKey, prevOverallValue + +record.pnl);
+              }
             }
           }
         }
 
-        const pnlSnapshotKeys = Array.from(pnlSnapshotMap.keys());
+        const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
 
         const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
           where: {
             OR: [
-              ...pnlSnapshotKeys.map((key) => {
-                const { address, kind } = parseKey(key);
+              ...historiesPnlMapKeys.map((key) => {
+                const { address, kind, contractId } = parseKey(key);
 
                 return {
+                  dateStr,
                   address: address.toLowerCase(),
+                  contractId,
                   kind,
                 };
               }),
@@ -215,19 +244,20 @@ export class PnlSnapshotsService {
         const pnlRecordsMap = new Map<string, number>();
 
         pnlRecords.forEach((record) => {
-          const key = getKeyFromSnapshot(record);
+          const key = getKey(record.address, record.kind, record.contractId);
 
           pnlRecordsMap.set(key, record.accUSDPnl);
         });
 
-        const upsertInputs = pnlSnapshotKeys.map((key) => {
-          const accValue = pnlSnapshotMap.get(key) || 0;
-          const prevValue = pnlRecordsMap.get(key) || 0;
+        const upsertInputs = historiesPnlMapKeys.map((key) => {
+          const { address, kind, contractId } = parseKey(key);
 
-          const { address, kind } = parseKey(key);
+          const accValue = historiesPnlMap.get(key) || 0;
+          const prevValue = pnlRecordsMap.get(key) || 0;
 
           return {
             address: address.toLowerCase(),
+            contractId,
             kind,
             accUSDPnl: prevValue + accValue,
             dateStr,
@@ -238,9 +268,10 @@ export class PnlSnapshotsService {
           upsertInputs.map((input) => {
             return this.prismaService.pnlSnapshot.upsert({
               where: {
-                address_dateStr_kind: {
+                address_contractId_dateStr_kind: {
                   address: input.address.toLowerCase(),
-                  dateStr,
+                  dateStr: input.dateStr,
+                  contractId: input.contractId,
                   kind: input.kind,
                 },
               },
@@ -255,7 +286,9 @@ export class PnlSnapshotsService {
         cursorId = records[records.length - 1].id;
       }
 
-      await this.prismaService.pnlSnapshotInitializedFlag.upsert({
+      this.status = 'ready';
+
+      return await this.prismaService.pnlSnapshotInitializedFlag.upsert({
         where: {
           dateStr,
         },
@@ -272,26 +305,24 @@ export class PnlSnapshotsService {
         `PnlSnapshotsService>intialBuild>: ${getReadableError(err)}`,
       );
 
-      return false;
+      this.status = 'ready';
+      return null;
     }
-
-    this.status = 'ready';
-
-    return true;
   }
 
   async isPnlSnapshotInitialized(dateStr: string) {
-    const result =
-      await this.prismaService.pnlSnapshotInitializedFlag.findUnique({
-        where: {
-          dateStr,
-        },
-      });
+    return await this.prismaService.pnlSnapshotInitializedFlag.findUnique({
+      where: {
+        dateStr,
+      },
+    });
+  }
 
-    if (!result) {
-      return false;
-    }
-
-    return result.isInit;
+  async getAllPnlSnapshotInitializedFlag() {
+    return await this.prismaService.pnlSnapshotInitializedFlag.findMany({
+      orderBy: {
+        dateStr: 'desc',
+      },
+    });
   }
 }

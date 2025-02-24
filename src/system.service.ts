@@ -6,6 +6,12 @@ import { BotsService } from './bots/bots.service';
 import { PnlSnapshotsService } from './trade-histories/pnlsnapshot.service';
 import { TaskExecutorService } from './task-executor/task-executor.service';
 import { PlansService } from './plans/plans.service';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class SystemService {
@@ -20,6 +26,8 @@ export class SystemService {
     private plansService: PlansService,
   ) {
     this.isPaused = false;
+
+    console.log(this.getServerTime());
   }
 
   pauseSystem() {
@@ -67,7 +75,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForLeaderboardMonitor() {
     if (this.isPaused) {
       return;
@@ -109,7 +117,21 @@ export class SystemService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async executeCronForSnapshot() {
     if (this.pnlSnapshotService.status === 'ready') {
-      await this.pnlSnapshotService.buildSnapshots(new Date());
+      await this.pnlSnapshotService.buildSnapshots(
+        dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
+        true,
+      );
+      await this.pnlSnapshotService.buildSnapshots(
+        dayjs(new Date()).format('YYYY-MM-DD'),
+        true,
+      );
     }
+  }
+
+  getServerTime() {
+    return {
+      timezone: dayjs.tz.guess(),
+      timestamp: dayjs().utc().unix(),
+    };
   }
 }

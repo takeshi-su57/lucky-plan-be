@@ -1,6 +1,15 @@
-import { Resolver, Mutation, Query } from '@nestjs/graphql';
+import { Resolver, Mutation, Query, Field, ObjectType } from '@nestjs/graphql';
 
 import { SystemService } from './system.service';
+
+@ObjectType()
+class ServerTime {
+  @Field(() => String)
+  timezone: string;
+
+  @Field(() => Number)
+  timestamp: number;
+}
 
 @Resolver()
 export class SystemResolver {
@@ -19,5 +28,10 @@ export class SystemResolver {
   @Query(() => Boolean)
   systemStatus() {
     return this.systemsService.isSystemPaused();
+  }
+
+  @Query(() => ServerTime)
+  getServerTime() {
+    return this.systemsService.getServerTime();
   }
 }

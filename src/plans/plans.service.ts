@@ -28,7 +28,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -36,6 +35,26 @@ export class PlansService {
         },
       },
     });
+  }
+
+  async delete(id: number): Promise<number> {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id },
+    });
+
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    if (plan.status !== PlanStatus.Created) {
+      throw new Error('Plan is in started status');
+    }
+
+    await this.prisma.plan.delete({
+      where: { id },
+    });
+
+    return id;
   }
 
   async update(input: UpdatePlanInput): Promise<PlanDetails> {
@@ -46,7 +65,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -89,7 +107,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -106,7 +123,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -123,7 +139,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -161,7 +176,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,
@@ -199,7 +213,6 @@ export class PlansService {
         bots: {
           include: {
             follower: true,
-            leader: true,
             strategy: true,
             leaderContract: true,
             followerContract: true,

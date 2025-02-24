@@ -98,6 +98,7 @@ model Contract {
   chainId                    Int
   address                    String
   description                String
+  isTestnet                  Boolean        @default(false)
   lastBlockNumber            Int
   lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
@@ -148,12 +149,13 @@ model Bot {
 
   plan             Plan?    @relation(fields: [planId], references: [id])
   follower         Follower @relation(fields: [followerAddress], references: [address])
-  leader           User     @relation(fields: [leaderAddress], references: [address])
   strategy         Strategy @relation(fields: [strategyId], references: [id])
   leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
   followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
 
-  missions Mission[]
+  missions    Mission[]
+  User        User?     @relation(fields: [userAddress], references: [address])
+  userAddress String?   @db.VarChar(255)
 }
 
 model Position {
@@ -263,17 +265,17 @@ model TradeHistory {
   action             TradeActionType
   contractId         Int
   pair               String
-  price              Int
-  collateralPriceUsd Int
+  price              String
+  collateralPriceUsd String
   long               Int
-  size               Int
+  size               String
   leverage           Int
-  pnl                Int
+  pnl                String
   collateralIndex    Int
   tradeIndex         Int
-  collateralDelta    Int?
+  collateralDelta    String?
   leverageDelta      Int?
-  marketPrice        Int?
+  marketPrice        String?
   tradeId            String?
   block              Int
   date               DateTime
@@ -295,13 +297,15 @@ enum PnlSnapshotKind {
 }
 
 model PnlSnapshot {
-  id        Int             @id @default(autoincrement())
-  address   String
-  dateStr   String // YYYY-MM-DD
-  kind      PnlSnapshotKind
-  accUSDPnl Float
+  id         Int             @id @default(autoincrement())
+  address    String
+  contractId Int
+  dateStr    String // YYYY-MM-DD
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
 
-  @@unique([address, dateStr, kind])
+  @@unique([address, contractId, dateStr, kind])
+  @@index([accUSDPnl(sort: Desc)])
 }
 
 model PnlSnapshotInitializedFlag {

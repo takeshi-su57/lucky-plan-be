@@ -18,5 +18,5 @@ export const SUBSCRIPTION_TOKEN = {
   followerDetailsUpdated: 'followerDetailsUpdated',
 };
 
-export const MIN_GAS = BigInt(0.003 * Math.pow(10, etherUnits.wei));
-export const MAX_GAS = BigInt(0.01 * Math.pow(10, etherUnits.wei));
+export const MIN_GAS = BigInt(0.0001 * Math.pow(10, etherUnits.wei));
+export const MAX_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
