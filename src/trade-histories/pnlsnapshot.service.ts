@@ -45,7 +45,9 @@ export class PnlSnapshotsService {
   constructor(
     private prismaService: PrismaService,
     private logger: Logger,
-  ) {}
+  ) {
+    this.initializePnlSnapshot();
+  }
 
   async getPnlSnapshots(
     dateStr: string,
@@ -227,8 +229,8 @@ export class PnlSnapshotsService {
                 },
                 where: {
                   date: {
-                    lte: new Date(pastLowerBound),
-                    gte: new Date(pastUpperBound),
+                    gte: new Date(pastLowerBound),
+                    lte: new Date(pastUpperBound),
                   },
                 },
                 orderBy: {
@@ -239,8 +241,8 @@ export class PnlSnapshotsService {
                 take: BATCH_SIZE,
                 where: {
                   date: {
-                    lte: new Date(pastLowerBound),
-                    gte: new Date(pastUpperBound),
+                    gte: new Date(pastLowerBound),
+                    lte: new Date(pastUpperBound),
                   },
                 },
                 orderBy: {
@@ -345,8 +347,8 @@ export class PnlSnapshotsService {
               },
               where: {
                 date: {
-                  lte: new Date(lowerBound),
-                  gte: new Date(upperBound),
+                  gte: new Date(lowerBound),
+                  lte: new Date(upperBound),
                 },
               },
               orderBy: {
@@ -357,8 +359,8 @@ export class PnlSnapshotsService {
               take: BATCH_SIZE,
               where: {
                 date: {
-                  lte: new Date(lowerBound),
-                  gte: new Date(upperBound),
+                  gte: new Date(lowerBound),
+                  lte: new Date(upperBound),
                 },
               },
               orderBy: {
@@ -662,7 +664,9 @@ export class PnlSnapshotsService {
 
     await this.buildSnapshots('2024-11-01', true);
 
-    while (startDate.getTime() < new Date().getTime()) {
+    while (
+      startDate.getTime() < dayjs(new Date()).endOf('day').toDate().getTime()
+    ) {
       console.log(`Completed: ${dayjs(startDate).format('YYYY-MM-DD')}`);
 
       await this.dynamicSnapshotBuild(dayjs(startDate).format('YYYY-MM-DD'));
