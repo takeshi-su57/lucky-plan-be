@@ -687,10 +687,10 @@ export class FollowerService {
       },
     });
 
-    const followerAddressesMap = new Map<string, boolean>();
+    const followerAddressesMap: Record<string, boolean> = {};
 
     activeBots.forEach((bot) => {
-      followerAddressesMap.set(bot.followerAddress, true);
+      followerAddressesMap[bot.followerAddress] = true;
     });
 
     const availableFollowers = await this.prismaService.follower.findMany({
