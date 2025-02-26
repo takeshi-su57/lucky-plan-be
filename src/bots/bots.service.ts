@@ -235,7 +235,7 @@ export class BotsService {
   async findByStatus(
     status: BotStatus,
     first: number,
-    after: number = 20,
+    after: number | null,
   ): Promise<BotDeepDetailsConnection> {
     const records = await this.prismaService.bot.findMany({
       skip: after ? 1 : undefined,

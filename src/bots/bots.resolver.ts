@@ -47,7 +47,7 @@ export class BotsResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
-    return this.botsService.findByStatus(status, first, after || undefined);
+    return this.botsService.findByStatus(status, first, after);
   }
 
   @Query(() => BotWithMissions, { nullable: true })
