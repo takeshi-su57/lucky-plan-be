@@ -101,29 +101,6 @@ enum BotStatus {
   Stop
 }
 
-type BotWithMissions {
-  endedAt: DateTime
-  follower: Follower!
-  followerAddress: String!
-  followerContract: Contract!
-  followerContractId: Int!
-  followerEndedBlock: Int
-  followerStartedBlock: Int
-  id: Int!
-  leaderAddress: String!
-  leaderCollateralBaseline: Int!
-  leaderContract: Contract!
-  leaderContractId: Int!
-  leaderEndedBlock: Int
-  leaderStartedBlock: Int
-  missions: [Mission!]!
-  planId: Int
-  startedAt: DateTime
-  status: BotStatus!
-  strategy: Strategy!
-  strategyId: Int!
-}
-
 input CancelOrderAfterTimeoutInput {
   address: String!
   contractId: Int!
@@ -367,14 +344,14 @@ type Mutation {
   addBotsToPlan(botIds: [Int!]!, planId: Int!): PlanDetails!
   addTagToUser(input: ChangeUserTagInput!): User!
   addUser(input: AddUserInput!): User!
-  batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotDetails!]!
+  batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotDeepDetails!]!
   buildPnlSnapshots(dateStr: String!, isForceBuild: Boolean!): PnlSnapshotInitializedFlag
   cancelOrderAfterTimeout(input: CancelOrderAfterTimeoutInput!): ContractExecutionResult!
   changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changePassword(input: ChangePasswordInput!): Boolean!
   closeMission(id: Int!, isForce: Boolean!): MissionShallowDetails!
   closeTradeMarket(input: CloseTradeInput!): ContractExecutionResult!
-  createBot(input: CreateBotInput!): BotDetails!
+  createBot(input: CreateBotInput!): BotDeepDetails!
   createContract(input: CreateContractInput!): Contract!
   createPlan(createPlanInput: CreatePlanInput!): PlanDetails!
   createStrategy(input: CreateStrategyInput!): Strategy!
@@ -388,14 +365,14 @@ type Mutation {
   getToken(input: GetTokenInput!): GetTokenResponse!
   ignoreMission(id: Int!): MissionShallowDetails!
   initializePnlSnapshot: Boolean!
-  liveBot(id: Int!): BotDetails!
+  liveBot(id: Int!): BotDeepDetails!
   pauseSystem: Boolean!
   performTask(id: Int!): TaskShallowDetails!
   removeStrategy(id: Int!): Strategy!
   removeTagFromUser(input: ChangeUserTagInput!): User!
   resumeSystem: Boolean!
   startPlan(id: Int!): PlanDetails!
-  stopBot(id: Int!): BotDetails!
+  stopBot(id: Int!): BotDeepDetails!
   stopTask(id: Int!): TaskShallowDetails
   updatePlan(updatePlanInput: UpdatePlanInput!): PlanDetails!
   updateStrategyMetadata(input: UpdateStrategyMetadataInput!, key: String!): StrategyMetadata!
@@ -494,7 +471,6 @@ type Query {
   findAction(id: Int!): Action
   findActionsByPosition(positionId: Float!): [Action!]!
   findAllPositions: [Position!]!
-  findBot(id: Int!): BotWithMissions
   findContract(id: Int!): Contract!
   findFollowerAction(id: Int!): FollowerActionDetails
   findMission(id: Int!): MissionWithTasks
