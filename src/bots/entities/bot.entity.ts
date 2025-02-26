@@ -3,7 +3,10 @@ import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
-import { Mission } from 'src/missions/entities/mission.entity';
+import {
+  Mission,
+  MissionWithDeepTasks,
+} from 'src/missions/entities/mission.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
 
 registerEnumType(BotStatus, {
@@ -74,7 +77,32 @@ export class BotDetails extends Bot {
 }
 
 @ObjectType()
+export class BotDeepDetails extends BotDetails {
+  @Field(() => [MissionWithDeepTasks])
+  missions: MissionWithDeepTasks[];
+}
+
+@ObjectType()
 export class BotWithMissions extends BotDetails {
   @Field(() => [Mission])
   missions: Mission[];
+}
+
+@ObjectType()
+export class BotDeepDetailsEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => BotDeepDetails) node: BotDeepDetails;
+}
+
+@ObjectType()
+export class BotDeepDetailsPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class BotDeepDetailsConnection {
+  @Field(() => [BotDeepDetailsEdge])
+  edges: BotDeepDetailsEdge[];
+  @Field(() => BotDeepDetailsPageInfo) pageInfo: BotDeepDetailsPageInfo;
 }
