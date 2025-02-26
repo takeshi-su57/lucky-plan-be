@@ -3,10 +3,7 @@ import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
-import {
-  Mission,
-  MissionWithDeepTasks,
-} from 'src/missions/entities/mission.entity';
+import { MissionWithDeepTasks } from 'src/missions/entities/mission.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
 
 registerEnumType(BotStatus, {
@@ -80,12 +77,6 @@ export class BotDetails extends Bot {
 export class BotDeepDetails extends BotDetails {
   @Field(() => [MissionWithDeepTasks])
   missions: MissionWithDeepTasks[];
-}
-
-@ObjectType()
-export class BotWithMissions extends BotDetails {
-  @Field(() => [Mission])
-  missions: Mission[];
 }
 
 @ObjectType()

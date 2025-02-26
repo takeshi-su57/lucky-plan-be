@@ -2,9 +2,8 @@ import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { BotsService } from './bots.service';
 import {
   Bot,
-  BotDetails,
-  BotWithMissions,
   BotDeepDetailsConnection,
+  BotDeepDetails,
 } from './entities/bot.entity';
 import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
 import { BotStatus } from '@prisma/client';
@@ -13,12 +12,12 @@ import { BotStatus } from '@prisma/client';
 export class BotsResolver {
   constructor(private readonly botsService: BotsService) {}
 
-  @Mutation(() => BotDetails)
+  @Mutation(() => BotDeepDetails)
   createBot(@Args('input') input: CreateBotInput) {
     return this.botsService.create(input);
   }
 
-  @Mutation(() => [BotDetails])
+  @Mutation(() => [BotDeepDetails])
   batchCreateBots(
     @Args('input', { type: () => [CreateBotAndStrategyInput] })
     inputs: CreateBotAndStrategyInput[],
@@ -31,12 +30,12 @@ export class BotsResolver {
     return this.botsService.delete(id);
   }
 
-  @Mutation(() => BotDetails)
+  @Mutation(() => BotDeepDetails)
   liveBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.live(id);
   }
 
-  @Mutation(() => BotDetails)
+  @Mutation(() => BotDeepDetails)
   stopBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.stop(id);
   }
@@ -48,10 +47,5 @@ export class BotsResolver {
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.botsService.findByStatus(status, first, after);
-  }
-
-  @Query(() => BotWithMissions, { nullable: true })
-  findBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.findBotWithMissions(id);
   }
 }

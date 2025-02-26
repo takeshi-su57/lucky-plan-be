@@ -16,9 +16,7 @@ import { ActionContext, BotContext } from 'src/types';
 import {
   BotDeepDetails,
   BotDeepDetailsConnection,
-  BotDeepDetailsEdge,
   BotDetails,
-  BotWithMissions,
 } from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
@@ -61,6 +59,20 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        missions: {
+          include: {
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -69,8 +81,10 @@ export class BotsService {
     return newBot;
   }
 
-  async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
-    const bots: BotDetails[] = [];
+  async batchCreateBots(
+    inputs: CreateBotAndStrategyInput[],
+  ): Promise<BotDeepDetails[]> {
+    const bots: BotDeepDetails[] = [];
 
     const followers = await this.followersService.getAvailableFollowers(
       inputs.length,
@@ -207,6 +221,20 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        missions: {
+          include: {
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -219,17 +247,6 @@ export class BotsService {
     }
 
     return updatedBot;
-  }
-
-  async findAll(): Promise<BotDetails[]> {
-    return this.prismaService.bot.findMany({
-      include: {
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-      },
-    });
   }
 
   async findByStatus(
@@ -283,32 +300,7 @@ export class BotsService {
     };
   }
 
-  find(status: BotStatus) {
-    return this.prismaService.bot.findMany({
-      where: { status },
-      include: {
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-      },
-    });
-  }
-
-  findBotWithMissions(id: number): Promise<BotWithMissions | null> {
-    return this.prismaService.bot.findUnique({
-      where: { id },
-      include: {
-        missions: true,
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-      },
-    });
-  }
-
-  async findOne(id: number) {
+  private async findOne(id: number) {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
       include: {
@@ -331,7 +323,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  async live(id: number) {
+  async live(id: number): Promise<BotDeepDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -424,7 +416,7 @@ export class BotsService {
     });
   }
 
-  async stop(id: number) {
+  async stop(id: number): Promise<BotDeepDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -455,7 +447,7 @@ export class BotsService {
     });
   }
 
-  async kill(id: number) {
+  async kill(id: number): Promise<BotDeepDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -466,10 +458,17 @@ export class BotsService {
   }
 
   async loadBots() {
-    this.bots = await this.findAll();
+    this.bots = await this.prismaService.bot.findMany({
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
+    });
   }
 
-  filterBots(contractId: number, blockNumber: number) {
+  private filterBots(contractId: number, blockNumber: number) {
     const leaderBots: BotDetails[] = [];
     const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];
