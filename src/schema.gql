@@ -34,6 +34,44 @@ type Bot {
   strategyId: Int!
 }
 
+type BotDeepDetails {
+  endedAt: DateTime
+  follower: Follower!
+  followerAddress: String!
+  followerContract: Contract!
+  followerContractId: Int!
+  followerEndedBlock: Int
+  followerStartedBlock: Int
+  id: Int!
+  leaderAddress: String!
+  leaderCollateralBaseline: Int!
+  leaderContract: Contract!
+  leaderContractId: Int!
+  leaderEndedBlock: Int
+  leaderStartedBlock: Int
+  missions: [MissionWithDeepTasks!]!
+  planId: Int
+  startedAt: DateTime
+  status: BotStatus!
+  strategy: Strategy!
+  strategyId: Int!
+}
+
+type BotDeepDetailsConnection {
+  edges: [BotDeepDetailsEdge!]!
+  pageInfo: BotDeepDetailsPageInfo!
+}
+
+type BotDeepDetailsEdge {
+  cursor: Int!
+  node: BotDeepDetails!
+}
+
+type BotDeepDetailsPageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
+}
+
 type BotDetails {
   endedAt: DateTime
   follower: Follower!
@@ -303,6 +341,17 @@ enum MissionStatus {
   Opening
 }
 
+type MissionWithDeepTasks {
+  achievePositionId: Int
+  botId: Int!
+  createdAt: DateTime!
+  id: Int!
+  status: MissionStatus!
+  targetPositionId: Int!
+  tasks: [TaskWithActions!]!
+  updatedAt: DateTime!
+}
+
 type MissionWithTasks {
   achievePositionId: Int
   botId: Int!
@@ -356,11 +405,6 @@ type Mutation {
   withdrawAllUSDC(input: WithdrawAllInput!): Boolean!
 }
 
-type PageInfo {
-  endCursor: Int
-  hasNextPage: Boolean!
-}
-
 type PlanDetails {
   bots: [BotDetails!]!
   description: String!
@@ -401,12 +445,17 @@ type PnlSnapshotDetails {
 
 type PnlSnapshotDetailsConnection {
   edges: [PnlSnapshotDetailsEdge!]!
-  pageInfo: PageInfo!
+  pageInfo: PnlSnapshotDetailsPageInfo!
 }
 
 type PnlSnapshotDetailsEdge {
   cursor: Int!
   node: PnlSnapshotDetails!
+}
+
+type PnlSnapshotDetailsPageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
 }
 
 type PnlSnapshotInitializedFlag {
@@ -466,7 +515,7 @@ type Query {
   getAllTags: [Tag!]!
   getAllTasks: [TaskShallowDetails!]!
   getAllUsers: [User!]!
-  getBotsByStatus(status: BotStatus!): [BotDetails!]!
+  getBotsByStatus(after: Int, first: Int!, status: BotStatus!): BotDeepDetailsConnection!
   getFollowerPrivateKey(input: GetFollowerByAddressInput!): String!
   getPendingOrders(address: String!, contractId: Int!): [FollowerPendingOrder!]!
   getPlanById(id: Int!): PlanDetails

@@ -13,7 +13,13 @@ import {
 } from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
-import { BotDetails, BotWithMissions } from './entities/bot.entity';
+import {
+  BotDeepDetails,
+  BotDeepDetailsConnection,
+  BotDeepDetailsEdge,
+  BotDetails,
+  BotWithMissions,
+} from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
@@ -226,16 +232,55 @@ export class BotsService {
     });
   }
 
-  async findByStatus(status: BotStatus): Promise<BotDetails[]> {
-    return this.prismaService.bot.findMany({
+  async findByStatus(
+    status: BotStatus,
+    first: number,
+    after: number = 20,
+  ): Promise<BotDeepDetailsConnection> {
+    const records = await this.prismaService.bot.findMany({
+      skip: after ? 1 : undefined,
+      take: first,
+      cursor: after
+        ? {
+            id: after,
+          }
+        : undefined,
       where: { status },
+      orderBy: { id: 'desc' },
       include: {
         follower: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        missions: {
+          include: {
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
+
+    const edges = records.map((record) => ({
+      cursor: record.id,
+      node: record,
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges[edges.length - 1].cursor,
+      },
+    };
   }
 
   find(status: BotStatus) {
