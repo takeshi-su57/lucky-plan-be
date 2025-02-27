@@ -278,7 +278,7 @@ export class BotsService {
       edges,
       pageInfo: {
         hasNextPage: edges.length > 0,
-        endCursor: edges[edges.length - 1].cursor,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
   }
