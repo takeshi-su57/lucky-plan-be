@@ -54,24 +54,33 @@ export class PnlSnapshotsService {
     first: number,
     after: number | null,
   ): Promise<PnlSnapshotDetailsConnection> {
-    const pnlRecords: PnlSnapshot[] =
-      await this.prismaService.pnlSnapshot.findMany({
-        skip: after ? 1 : undefined,
-        take: first,
-        cursor: after
-          ? {
-              id: after,
-            }
-          : undefined,
-        where: {
-          dateStr,
-          kind,
-          contractId,
-        },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
-      });
+    const pnlRecords: PnlSnapshot[] = after
+      ? await this.prismaService.pnlSnapshot.findMany({
+          skip: after ? 1 : undefined,
+          take: first,
+          cursor: {
+            id: after,
+          },
+          where: {
+            dateStr,
+            kind,
+            contractId,
+          },
+          orderBy: {
+            accUSDPnl: 'desc',
+          },
+        })
+      : await this.prismaService.pnlSnapshot.findMany({
+          take: first,
+          where: {
+            dateStr,
+            kind,
+            contractId,
+          },
+          orderBy: {
+            accUSDPnl: 'desc',
+          },
+        });
 
     const timestampGap = timestampGapByPnlSnapshotKind[kind];
     const startDate = new Date(
@@ -119,7 +128,7 @@ export class PnlSnapshotsService {
       edges,
       pageInfo: {
         hasNextPage: edges.length > 0,
-        endCursor: edges[edges.length - 1].cursor,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
   }

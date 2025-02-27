@@ -9,12 +9,11 @@ export const USDCCollateralIndex = {
 export const CloseMissionAction = 'CloseMissionAction';
 
 export const SUBSCRIPTION_TOKEN = {
+  botUpdated: 'botUpdated',
   missionAdded: 'missionAdded',
   missionUpdated: 'missionUpdated',
   taskAdded: 'taskAdded',
   taskUpdated: 'taskUpdated',
-  actionAdded: 'actionAdded',
-  followerActionAdded: 'followerActionAdded',
   followerDetailsUpdated: 'followerDetailsUpdated',
 };
 

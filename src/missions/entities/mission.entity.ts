@@ -1,17 +1,9 @@
-import {
-  ObjectType,
-  Field,
-  Int,
-  registerEnumType,
-  OmitType,
-} from '@nestjs/graphql';
+import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { MissionStatus } from '@prisma/client';
-import { Bot, BotDetails } from 'src/bots/entities/bot.entity';
+import { BotBackwardDetails, BotDetails } from 'src/bots/entities/bot.entity';
+
 import { Position } from 'src/positions/entities/position.entity';
-import {
-  TaskShallowDetails,
-  TaskWithActions,
-} from 'src/tasks/entities/task.entity';
+import { TaskForwardDetails } from 'src/tasks/entities/task.entity';
 
 registerEnumType(MissionStatus, {
   name: 'MissionStatus',
@@ -42,31 +34,28 @@ export class Mission {
 }
 
 @ObjectType()
-export class MissionShallowDetails extends Mission {
+export class MissionDetails extends Mission {
   @Field(() => Position)
   targetPosition: Position;
 
   @Field(() => Position, { nullable: true })
   achievePosition: Position | null;
-
-  @Field(() => Bot)
-  bot: Bot;
 }
 
 @ObjectType()
-export class MissionDetails extends OmitType(MissionShallowDetails, ['bot']) {
+export class MissionShallowBackwardDetails extends MissionDetails {
   @Field(() => BotDetails)
   bot: BotDetails;
 }
 
 @ObjectType()
-export class MissionWithTasks extends Mission {
-  @Field(() => [TaskShallowDetails])
-  tasks: TaskShallowDetails[];
+export class MissionBackwardDetails extends MissionDetails {
+  @Field(() => BotBackwardDetails)
+  bot: BotBackwardDetails;
 }
 
 @ObjectType()
-export class MissionWithDeepTasks extends Mission {
-  @Field(() => [TaskWithActions])
-  tasks: TaskWithActions[];
+export class MissionForwardDetails extends MissionDetails {
+  @Field(() => [TaskForwardDetails])
+  tasks: TaskForwardDetails[];
 }

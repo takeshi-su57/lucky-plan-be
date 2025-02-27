@@ -14,9 +14,9 @@ import {
 
 import { ActionContext, BotContext } from 'src/types';
 import {
-  BotDeepDetails,
-  BotDeepDetailsConnection,
+  BotConnection,
   BotDetails,
+  BotBackwardDetails,
 } from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
@@ -46,7 +46,7 @@ export class BotsService {
     this.loadBots();
   }
 
-  async create(input: CreateBotInput) {
+  async create(input: CreateBotInput): Promise<BotBackwardDetails> {
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
@@ -59,20 +59,7 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
-        missions: {
-          include: {
-            tasks: {
-              include: {
-                action: true,
-                followerActions: {
-                  include: {
-                    action: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        plan: true,
       },
     });
 
@@ -83,8 +70,8 @@ export class BotsService {
 
   async batchCreateBots(
     inputs: CreateBotAndStrategyInput[],
-  ): Promise<BotDeepDetails[]> {
-    const bots: BotDeepDetails[] = [];
+  ): Promise<BotBackwardDetails[]> {
+    const bots: BotBackwardDetails[] = [];
 
     const followers = await this.followersService.getAvailableFollowers(
       inputs.length,
@@ -116,7 +103,7 @@ export class BotsService {
     return bots;
   }
 
-  async delete(id: number) {
+  async delete(id: number): Promise<BotBackwardDetails> {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
     });
@@ -131,6 +118,13 @@ export class BotsService {
 
     const deletedBot = await this.prismaService.bot.delete({
       where: { id },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        plan: true,
+      },
     });
 
     if (!deletedBot) {
@@ -139,10 +133,10 @@ export class BotsService {
 
     this.bots = this.bots.filter((item) => item.id !== id);
 
-    return id;
+    return deletedBot;
   }
 
-  async reBalanceAsset(bot: BotDetails) {
+  private async reBalanceAsset(bot: BotDetails) {
     try {
       const { followerContract, follower } = bot;
 
@@ -210,7 +204,7 @@ export class BotsService {
     this.status = 'ready';
   }
 
-  async update(input: BotUpdateInput) {
+  async update(input: BotUpdateInput): Promise<BotBackwardDetails> {
     const updatedBot = await this.prismaService.bot.update({
       where: {
         id: input.id,
@@ -221,20 +215,7 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
-        missions: {
-          include: {
-            tasks: {
-              include: {
-                action: true,
-                followerActions: {
-                  include: {
-                    action: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        plan: true,
       },
     });
 
@@ -253,7 +234,7 @@ export class BotsService {
     status: BotStatus,
     first: number,
     after: number | null,
-  ): Promise<BotDeepDetailsConnection> {
+  ): Promise<BotConnection> {
     const records = await this.prismaService.bot.findMany({
       skip: after ? 1 : undefined,
       take: first,
@@ -271,6 +252,8 @@ export class BotsService {
         followerContract: true,
         missions: {
           include: {
+            targetPosition: true,
+            achievePosition: true,
             tasks: {
               include: {
                 action: true,
@@ -295,7 +278,7 @@ export class BotsService {
       edges,
       pageInfo: {
         hasNextPage: edges.length > 0,
-        endCursor: edges[edges.length - 1].cursor,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
   }
@@ -323,7 +306,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  async live(id: number): Promise<BotDeepDetails> {
+  async live(id: number): Promise<BotBackwardDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -416,7 +399,7 @@ export class BotsService {
     });
   }
 
-  async stop(id: number): Promise<BotDeepDetails> {
+  async stop(id: number): Promise<BotBackwardDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -447,7 +430,7 @@ export class BotsService {
     });
   }
 
-  async kill(id: number): Promise<BotDeepDetails> {
+  async kill(id: number): Promise<BotBackwardDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -457,7 +440,7 @@ export class BotsService {
     return this._kill(bot);
   }
 
-  async loadBots() {
+  private async loadBots() {
     this.bots = await this.prismaService.bot.findMany({
       include: {
         follower: true,

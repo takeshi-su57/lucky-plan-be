@@ -12,9 +12,9 @@ import { MarketOpenCanceledEvent } from 'src/actions/eventParsers/market-open-ca
 
 import { ActionDetails } from 'src/actions/entities/action.entity';
 import { BotDetails } from 'src/bots/entities/bot.entity';
-import { MissionShallowDetails } from 'src/missions/entities/mission.entity';
 import { TaskDetails } from 'src/tasks/entities/task.entity';
 import { MarketCloseCanceledEvent } from 'src/actions/eventParsers/market-close-canceled';
+import { MissionDetails } from 'src/missions/entities/mission.entity';
 
 export enum TradeType {
   TRADE,
@@ -140,7 +140,7 @@ export type BotContext = {
 };
 
 export type MissionContext = BotContext & {
-  mission: MissionShallowDetails;
+  mission: MissionDetails;
 };
 
 export type TaskContext = MissionContext & {

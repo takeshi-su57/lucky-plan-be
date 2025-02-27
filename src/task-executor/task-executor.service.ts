@@ -29,7 +29,10 @@ import {
 } from 'src/strategy/strategy-library';
 import { CloseMissionActionArgs, TradeType } from 'src/types';
 
-import { TaskDetails } from 'src/tasks/entities/task.entity';
+import {
+  TaskBackwardDetails,
+  TaskShallowBackwardDetails,
+} from 'src/tasks/entities/task.entity';
 
 import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
@@ -52,7 +55,7 @@ export class TaskExecutorService {
   ) {}
 
   private async performTask(
-    task: TaskDetails,
+    task: TaskShallowBackwardDetails,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const { action, mission } = task;
@@ -454,13 +457,18 @@ export class TaskExecutorService {
     }
   }
 
-  async performTaskById(taskId: number) {
+  async performTaskById(taskId: number): Promise<TaskBackwardDetails> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id: taskId,
       },
       include: {
         action: true,
+        followerActions: {
+          include: {
+            action: true,
+          },
+        },
         mission: {
           include: {
             bot: {
@@ -512,7 +520,7 @@ export class TaskExecutorService {
       },
     ]);
 
-    return task;
+    return (await this.tasksService.getTasks([taskId]))[0];
   }
 
   async performAvailableTasks() {
@@ -532,6 +540,11 @@ export class TaskExecutorService {
         },
         include: {
           action: true,
+          followerActions: {
+            include: {
+              action: true,
+            },
+          },
           mission: {
             include: {
               bot: {
@@ -549,7 +562,10 @@ export class TaskExecutorService {
         },
       });
 
-      const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+      const allTasksByBotMap = new Map<
+        number,
+        Map<number, TaskShallowBackwardDetails[]>
+      >();
       const awaitBotsMap = new Map<number, boolean>();
 
       allTasks.forEach((task) => {
@@ -568,20 +584,20 @@ export class TaskExecutorService {
             tasksByMissionMap.set(task.missionId, [task]);
           }
         } else {
-          const tempMap = new Map<number, TaskDetails[]>();
+          const tempMap = new Map<number, TaskShallowBackwardDetails[]>();
           tempMap.set(task.missionId, [task]);
           allTasksByBotMap.set(task.mission.botId, tempMap);
         }
       });
 
-      const botTasks: TaskDetails[] = [];
+      const botTasks: TaskShallowBackwardDetails[] = [];
 
       for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
         if (awaitBotsMap.get(botId)) {
           continue;
         }
 
-        let botTask: TaskDetails | null = null;
+        let botTask: TaskShallowBackwardDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
           if (botTask) {

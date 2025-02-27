@@ -25,8 +25,8 @@ import {
   MissionContext,
 } from 'src/types';
 import {
-  MissionShallowDetails,
-  MissionWithTasks,
+  MissionDetails,
+  MissionBackwardDetails,
 } from './entities/mission.entity';
 import {
   MissionCloseInput,
@@ -38,7 +38,7 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 
 @Injectable()
 export class MissionsService {
-  private missionsByBotMap = new Map<number, MissionShallowDetails[]>();
+  private missionsByBotMap = new Map<number, MissionDetails[]>();
 
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
@@ -50,7 +50,28 @@ export class MissionsService {
     this.loadMissions();
   }
 
-  async createMany(inputs: MissionCreateInput[]) {
+  private async getMissions(ids: number[]): Promise<MissionBackwardDetails[]> {
+    return await this.prismaService.mission.findMany({
+      where: {
+        id: { in: ids },
+      },
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: {
+          include: {
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async createMany(inputs: MissionCreateInput[]) {
     const newMissions = await this.prismaService.mission.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,
@@ -73,12 +94,16 @@ export class MissionsService {
       }
     });
 
+    const missions = await this.getMissions(
+      newMissions.map((mission) => mission.id),
+    );
+
     this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
-      [SUBSCRIPTION_TOKEN.missionAdded]: newMissions,
+      [SUBSCRIPTION_TOKEN.missionAdded]: missions,
     });
   }
 
-  async updateMany(inputs: MissionUpdateInput[]) {
+  private async updateMany(inputs: MissionUpdateInput[]) {
     const updatedMissions = await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.mission.update({
@@ -95,8 +120,12 @@ export class MissionsService {
       }),
     );
 
+    const missions = await this.getMissions(
+      updatedMissions.map((mission) => mission.id),
+    );
+
     this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
-      [SUBSCRIPTION_TOKEN.missionUpdated]: updatedMissions,
+      [SUBSCRIPTION_TOKEN.missionUpdated]: missions,
     });
 
     return updatedMissions;
@@ -106,7 +135,7 @@ export class MissionsService {
     return this.missionsByBotMap.get(botId) || [];
   }
 
-  async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
+  private async attachAchievePositionMany(inputs: MissionUpdateInput[]) {
     const updatedMissions = await this.updateMany(inputs);
 
     updatedMissions.forEach((item) => {
@@ -138,7 +167,7 @@ export class MissionsService {
     });
   }
 
-  async loadMissions() {
+  private async loadMissions() {
     const missions = await this.prismaService.mission.findMany({
       where: {
         status: {
@@ -163,7 +192,10 @@ export class MissionsService {
     });
   }
 
-  async closeMission(id: number, isForce: boolean) {
+  async closeMission(
+    id: number,
+    isForce: boolean,
+  ): Promise<MissionBackwardDetails> {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
@@ -171,7 +203,15 @@ export class MissionsService {
       include: {
         targetPosition: true,
         achievePosition: true,
-        bot: true,
+        bot: {
+          include: {
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
+          },
+        },
       },
     });
 
@@ -228,10 +268,13 @@ export class MissionsService {
       this.missionsByBotMap.set(closingMission.botId, [closingMission]);
     }
 
-    return closingMission;
+    return {
+      ...mission,
+      status: MissionStatus.Closing,
+    };
   }
 
-  async ignoreMission(id: number) {
+  async ignoreMission(id: number): Promise<MissionBackwardDetails> {
     const ignoredMissions = await this.updateMany([
       { id, status: MissionStatus.Ignored },
     ]);
@@ -251,34 +294,33 @@ export class MissionsService {
       }
     });
 
-    return ignoredMissions[0];
-  }
-
-  findAll() {
-    return this.prismaService.mission.findMany({
+    const mission = await this.prismaService.mission.findUnique({
+      where: {
+        id,
+      },
       include: {
         targetPosition: true,
         achievePosition: true,
-        bot: true,
-      },
-    });
-  }
-
-  findOne(id: number): Promise<MissionWithTasks | null> {
-    return this.prismaService.mission.findUnique({
-      where: { id },
-      include: {
-        tasks: {
+        bot: {
           include: {
-            action: true,
-            mission: true,
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
           },
         },
       },
     });
+
+    if (!mission) {
+      throw new Error('Invalid mission id!');
+    }
+
+    return mission;
   }
 
-  async handleMarketOrderInitiatedActions(
+  private async handleMarketOrderInitiatedActions(
     followerActions: ActionContext<BotContext>[],
   ) {
     const openEvents = followerActions
@@ -335,7 +377,9 @@ export class MissionsService {
     );
   }
 
-  async handleMissionLeaderActions(actions: ActionContext<BotContext>[]) {
+  private async handleMissionLeaderActions(
+    actions: ActionContext<BotContext>[],
+  ) {
     const openEvents = actions
       .filter(
         (item) =>
@@ -365,7 +409,7 @@ export class MissionsService {
     );
   }
 
-  getMissionActions(
+  private getMissionActions(
     actions: ActionContext<BotContext>[],
     field: 'targetPosition' | 'achievePosition',
   ): ActionContext<MissionContext>[] {

@@ -3,7 +3,11 @@ import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
-import { MissionWithDeepTasks } from 'src/missions/entities/mission.entity';
+import {
+  MissionDetails,
+  MissionForwardDetails,
+} from 'src/missions/entities/mission.entity';
+import { Plan } from 'src/plans/entities/plan.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
 
 registerEnumType(BotStatus, {
@@ -74,26 +78,38 @@ export class BotDetails extends Bot {
 }
 
 @ObjectType()
-export class BotDeepDetails extends BotDetails {
-  @Field(() => [MissionWithDeepTasks])
-  missions: MissionWithDeepTasks[];
+export class BotForwardShallowDetails extends BotDetails {
+  @Field(() => [MissionDetails])
+  missions: MissionDetails[];
 }
 
 @ObjectType()
-export class BotDeepDetailsEdge {
+export class BotForwardDetails extends BotDetails {
+  @Field(() => [MissionForwardDetails])
+  missions: MissionForwardDetails[];
+}
+
+@ObjectType()
+export class BotBackwardDetails extends BotDetails {
+  @Field(() => Plan, { nullable: true })
+  plan: Plan | null;
+}
+
+@ObjectType()
+export class BotEdge {
   @Field(() => Int) cursor: number;
-  @Field(() => BotDeepDetails) node: BotDeepDetails;
+  @Field(() => BotForwardDetails) node: BotForwardDetails;
 }
 
 @ObjectType()
-export class BotDeepDetailsPageInfo {
+export class BotPageInfo {
   @Field(() => Boolean) hasNextPage: boolean;
   @Field(() => Int, { nullable: true }) endCursor: number | null;
 }
 
 @ObjectType()
-export class BotDeepDetailsConnection {
-  @Field(() => [BotDeepDetailsEdge])
-  edges: BotDeepDetailsEdge[];
-  @Field(() => BotDeepDetailsPageInfo) pageInfo: BotDeepDetailsPageInfo;
+export class BotConnection {
+  @Field(() => [BotEdge])
+  edges: BotEdge[];
+  @Field(() => BotPageInfo) pageInfo: BotPageInfo;
 }

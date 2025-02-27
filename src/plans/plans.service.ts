@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BotStatus, PlanStatus } from '@prisma/client';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
-import { PlanDetails } from './entities/plan.entity';
+import {
+  PlanForwardDetails,
+  PlanForwardShallowDetails,
+} from './entities/plan.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/bots/bots.service';
@@ -18,7 +21,9 @@ export class PlansService {
     private logger: Logger,
   ) {}
 
-  async create(createPlanInput: CreatePlanInput): Promise<PlanDetails> {
+  async create(
+    createPlanInput: CreatePlanInput,
+  ): Promise<PlanForwardShallowDetails> {
     return await this.prisma.plan.create({
       data: {
         ...createPlanInput,
@@ -31,6 +36,12 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
@@ -57,7 +68,7 @@ export class PlansService {
     return id;
   }
 
-  async update(input: UpdatePlanInput): Promise<PlanDetails> {
+  async update(input: UpdatePlanInput): Promise<PlanForwardShallowDetails> {
     return await this.prisma.plan.update({
       where: { id: input.id },
       data: input,
@@ -68,13 +79,22 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
     });
   }
 
-  async addBotsToPlan(planId: number, botIds: number[]): Promise<PlanDetails> {
+  async addBotsToPlan(
+    planId: number,
+    botIds: number[],
+  ): Promise<PlanForwardShallowDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
     });
@@ -110,13 +130,21 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
     });
   }
 
-  async getPlansByStatus(status: PlanStatus): Promise<PlanDetails[]> {
+  async getPlansByStatus(
+    status: PlanStatus,
+  ): Promise<PlanForwardShallowDetails[]> {
     return this.prisma.plan.findMany({
       where: { status },
       include: {
@@ -126,13 +154,19 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
     });
   }
 
-  async getPlanById(id: number): Promise<PlanDetails | null> {
+  async getPlanById(id: number): Promise<PlanForwardDetails | null> {
     return await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -142,13 +176,29 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
   }
 
-  async start(id: number): Promise<PlanDetails> {
+  async start(id: number): Promise<PlanForwardShallowDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -179,13 +229,19 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
     });
   }
 
-  async end(id: number): Promise<PlanDetails> {
+  async end(id: number): Promise<PlanForwardShallowDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -216,6 +272,12 @@ export class PlansService {
             strategy: true,
             leaderContract: true,
             followerContract: true,
+            missions: {
+              include: {
+                targetPosition: true,
+                achievePosition: true,
+              },
+            },
           },
         },
       },
