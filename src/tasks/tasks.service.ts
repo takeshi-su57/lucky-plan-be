@@ -15,11 +15,7 @@ import {
 import { PrismaService } from 'src/global/prisma.service';
 
 import { ActionContext, CancelReason, MissionContext } from 'src/types';
-import {
-  TaskWithActions,
-  TaskDetails,
-  TaskShallowDetails,
-} from './entities/task.entity';
+import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
 import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
@@ -42,7 +38,6 @@ import { marketCloseCanceledEventParser } from 'src/actions/eventParsers/market-
 
 @Injectable()
 export class TasksService {
-  // Map<botId, Map<missionId, TaskDetails[]>>
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
@@ -51,6 +46,37 @@ export class TasksService {
     private actionsService: ActionsService,
     private readonly logger: Logger,
   ) {}
+
+  async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
+    return await this.prismaService.task.findMany({
+      where: {
+        id: { in: ids },
+      },
+      include: {
+        action: true,
+        followerActions: {
+          include: {
+            action: true,
+          },
+        },
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                strategy: true,
+                leaderContract: true,
+                followerContract: true,
+                plan: true,
+              },
+            },
+            targetPosition: true,
+            achievePosition: true,
+          },
+        },
+      },
+    });
+  }
 
   async closeMissionTasks(
     mission: Mission,
@@ -170,7 +196,7 @@ export class TasksService {
     return 'closing';
   }
 
-  async createMany(inputs: TaskCreateInput[]) {
+  private async createMany(inputs: TaskCreateInput[]) {
     const newTasks = await this.prismaService.task.createManyAndReturn({
       data: inputs,
       include: {
@@ -179,8 +205,10 @@ export class TasksService {
       },
     });
 
+    const tasks = await this.getTasks(newTasks.map((task) => task.id));
+
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
-      [SUBSCRIPTION_TOKEN.taskAdded]: newTasks,
+      [SUBSCRIPTION_TOKEN.taskAdded]: tasks,
     });
 
     return newTasks;
@@ -202,12 +230,14 @@ export class TasksService {
       }),
     );
 
+    const tasks = await this.getTasks(updatedTasks.map((task) => task.id));
+
     this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
-      [SUBSCRIPTION_TOKEN.taskUpdated]: updatedTasks,
+      [SUBSCRIPTION_TOKEN.taskUpdated]: tasks,
     });
   }
 
-  async stopTask(id: number) {
+  async stopTask(id: number): Promise<TaskBackwardDetails | null> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id,
@@ -232,31 +262,12 @@ export class TasksService {
       },
     ]);
 
-    return await this.prismaService.task.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        action: true,
-        mission: {
-          include: {
-            bot: {
-              include: {
-                follower: true,
-                strategy: true,
-                followerContract: true,
-                leaderContract: true,
-              },
-            },
-            achievePosition: true,
-            targetPosition: true,
-          },
-        },
-      },
-    });
+    const tasks = await this.getTasks([id]);
+
+    return tasks[0] || null;
   }
 
-  async getTasksByMissionMap(missionIds: number[]) {
+  private async getTasksByMissionMap(missionIds: number[]) {
     const missionTasks = await this.prismaService.task.findMany({
       where: {
         missionId: {
@@ -269,7 +280,7 @@ export class TasksService {
       },
     });
 
-    const tasksByMissionMap = new Map<number, TaskShallowDetails[]>();
+    const tasksByMissionMap = new Map<number, TaskDetails[]>();
 
     missionTasks.forEach((task) => {
       const arr = tasksByMissionMap.get(task.missionId);
@@ -300,34 +311,6 @@ export class TasksService {
         action: true,
         mission: true,
       },
-    });
-  }
-
-  findAll() {
-    return this.prismaService.task.findMany({
-      include: {
-        action: true,
-        mission: true,
-      },
-    });
-  }
-
-  findByStatus(status: TaskStatus) {
-    return this.prismaService.task.findMany({
-      where: {
-        status,
-      },
-      include: {
-        action: true,
-        mission: true,
-      },
-    });
-  }
-
-  findOne(id: number): Promise<TaskWithActions | null> {
-    return this.prismaService.task.findUnique({
-      where: { id },
-      include: { action: true, followerActions: { include: { action: true } } },
     });
   }
 
@@ -386,7 +369,7 @@ export class TasksService {
       (item) => !isCloseMissionAction(item.action),
     );
 
-    const createdOrFailedTasks: TaskShallowDetails[] = [];
+    const createdOrFailedTasks: TaskDetails[] = [];
     const closeActionsStopped: ActionContext<MissionContext>[] = [];
     const normalClosedActions: ActionContext<MissionContext>[] = [];
 
@@ -665,5 +648,43 @@ export class TasksService {
     await missionCloseCallback(
       closeActions.map((item) => item.context.mission.id),
     );
+  }
+
+  async getAlertTasks(): Promise<TaskBackwardDetails[]> {
+    return await this.prismaService.task.findMany({
+      where: {
+        status: {
+          notIn: [TaskStatus.Stopped, TaskStatus.Completed],
+        },
+        mission: {
+          status: {
+            notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+          },
+        },
+      },
+      include: {
+        action: true,
+        followerActions: {
+          include: {
+            action: true,
+          },
+        },
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                strategy: true,
+                leaderContract: true,
+                followerContract: true,
+                plan: true,
+              },
+            },
+            targetPosition: true,
+            achievePosition: true,
+          },
+        },
+      },
+    });
   }
 }

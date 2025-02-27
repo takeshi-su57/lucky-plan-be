@@ -1,7 +1,10 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 
 import { PlansService } from './plans.service';
-import { PlanDetails } from './entities/plan.entity';
+import {
+  PlanForwardDetails,
+  PlanForwardShallowDetails,
+} from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { PlanStatus } from '@prisma/client';
 
@@ -9,7 +12,7 @@ import { PlanStatus } from '@prisma/client';
 export class PlansResolver {
   constructor(private readonly plansService: PlansService) {}
 
-  @Mutation(() => PlanDetails)
+  @Mutation(() => PlanForwardShallowDetails)
   createPlan(@Args('createPlanInput') createPlanInput: CreatePlanInput) {
     return this.plansService.create(createPlanInput);
   }
@@ -19,22 +22,22 @@ export class PlansResolver {
     return this.plansService.delete(id);
   }
 
-  @Mutation(() => PlanDetails)
+  @Mutation(() => PlanForwardShallowDetails)
   updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
     return this.plansService.update(updatePlanInput);
   }
 
-  @Mutation(() => PlanDetails)
+  @Mutation(() => PlanForwardShallowDetails)
   startPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.start(id);
   }
 
-  @Mutation(() => PlanDetails)
+  @Mutation(() => PlanForwardShallowDetails)
   endPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.end(id);
   }
 
-  @Mutation(() => PlanDetails)
+  @Mutation(() => PlanForwardShallowDetails)
   addBotsToPlan(
     @Args('planId', { type: () => Int }) planId: number,
     @Args('botIds', { type: () => [Int] }) botIds: number[],
@@ -42,7 +45,7 @@ export class PlansResolver {
     return this.plansService.addBotsToPlan(planId, botIds);
   }
 
-  @Query(() => [PlanDetails])
+  @Query(() => [PlanForwardShallowDetails])
   getPlansByStatus(
     @Args('status', { type: () => PlanStatus })
     status: PlanStatus,
@@ -50,7 +53,7 @@ export class PlansResolver {
     return this.plansService.getPlansByStatus(status);
   }
 
-  @Query(() => PlanDetails, { nullable: true })
+  @Query(() => PlanForwardDetails, { nullable: true })
   getPlanById(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.getPlanById(id);
   }

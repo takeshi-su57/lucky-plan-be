@@ -616,7 +616,7 @@ export class FollowerService {
     }
   }
 
-  async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
+  private async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
     try {
       const contract = await this.contractService.findOne(contractId);
 

@@ -2,7 +2,11 @@ import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { TaskStatus } from '@prisma/client';
 import { Action } from 'src/actions/entities/action.entity';
 import { FollowerActionDetails } from 'src/follower-actions/entities/follower-action.entity';
-import { Mission, MissionDetails } from 'src/missions/entities/mission.entity';
+import {
+  Mission,
+  MissionBackwardDetails,
+  MissionShallowBackwardDetails,
+} from 'src/missions/entities/mission.entity';
 
 registerEnumType(TaskStatus, {
   name: 'TaskStatus',
@@ -30,7 +34,7 @@ export class Task {
 }
 
 @ObjectType()
-export class TaskShallowDetails extends Task {
+export class TaskDetails extends Task {
   @Field(() => Mission)
   mission: Mission;
 
@@ -39,19 +43,22 @@ export class TaskShallowDetails extends Task {
 }
 
 @ObjectType()
-export class TaskDetails extends Task {
-  @Field(() => MissionDetails)
-  mission: MissionDetails;
-
-  @Field(() => Action)
-  action: Action;
-}
-
-@ObjectType()
-export class TaskWithActions extends Task {
+export class TaskForwardDetails extends Task {
   @Field(() => Action)
   action: Action;
 
   @Field(() => [FollowerActionDetails])
   followerActions: FollowerActionDetails[];
+}
+
+@ObjectType()
+export class TaskShallowBackwardDetails extends TaskForwardDetails {
+  @Field(() => MissionShallowBackwardDetails)
+  mission: MissionShallowBackwardDetails;
+}
+
+@ObjectType()
+export class TaskBackwardDetails extends TaskForwardDetails {
+  @Field(() => MissionBackwardDetails)
+  mission: MissionBackwardDetails;
 }

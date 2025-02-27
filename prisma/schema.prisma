@@ -49,9 +49,6 @@ model Tag {
 model User {
   address String @id @db.VarChar(255)
   tags    Tag[]
-
-  follower Follower?
-  bots     Bot[]
 }
 
 model Follower {
@@ -59,7 +56,6 @@ model Follower {
   publicKey    String @unique
   accountIndex Int    @unique // this is master follower
 
-  user User  @relation(fields: [address], references: [address])
   bots Bot[]
 }
 
@@ -153,9 +149,7 @@ model Bot {
   leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
   followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
 
-  missions    Mission[]
-  User        User?     @relation(fields: [userAddress], references: [address])
-  userAddress String?   @db.VarChar(255)
+  missions Mission[]
 }
 
 model Position {

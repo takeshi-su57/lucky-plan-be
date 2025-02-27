@@ -1,18 +1,14 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { PubSub } from 'graphql-subscriptions';
+import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { PositionsService } from 'src/positions/positions.service';
 import { Position, PositionInfo } from 'src/positions/entities/position.entity';
-import { PUB_SUB } from 'src/global/global.module';
-
 import { CreateActionInput } from './dto/action.input';
-import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { CloseMissionAction } from 'src/utils/constants';
 
 @Injectable()
 export class ActionsService {
   constructor(
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private positionsService: PositionsService,
   ) {}
@@ -28,10 +24,6 @@ export class ActionsService {
         blockNumber: 0,
         orderInBlock: 0,
       },
-    });
-
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.actionAdded, {
-      [SUBSCRIPTION_TOKEN.actionAdded]: [action],
     });
 
     return action;
@@ -75,22 +67,6 @@ export class ActionsService {
       },
     });
 
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.actionAdded, {
-      [SUBSCRIPTION_TOKEN.actionAdded]: actions,
-    });
-
     return actions;
-  }
-
-  findAll() {
-    return this.prismaService.action.findMany();
-  }
-
-  findByPosition(positionId: number) {
-    return this.prismaService.action.findMany({ where: { positionId } });
-  }
-
-  findOne(id: number) {
-    return this.prismaService.action.findUnique({ where: { id } });
   }
 }
