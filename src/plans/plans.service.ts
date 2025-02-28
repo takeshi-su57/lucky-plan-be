@@ -210,13 +210,11 @@ export class PlansService {
       throw new Error('Plan is not in created status');
     }
 
-    const botsPromises = plan.bots.map(async (bot) => {
+    for (const bot of plan.bots) {
       if (bot.status === BotStatus.Created) {
         await this.botService.live(bot.id);
       }
-    });
-
-    await Promise.allSettled(botsPromises);
+    }
 
     return await this.prisma.plan.update({
       where: { id },
@@ -253,13 +251,11 @@ export class PlansService {
       throw new Error('Plan is not in started status');
     }
 
-    const botsPromises = plan.bots.map(async (bot) => {
+    for (const bot of plan.bots) {
       if (bot.status === BotStatus.Live) {
         await this.botService.stop(bot.id);
       }
-    });
-
-    await Promise.allSettled(botsPromises);
+    }
 
     return await this.prisma.plan.update({
       where: { id },
@@ -301,7 +297,7 @@ export class PlansService {
 
       const now = Date.now();
 
-      const plansPromises = plans.map(async (plan) => {
+      for (const plan of plans) {
         if (plan.status === PlanStatus.Stopped) {
           const allBotsDead = plan.bots.every(
             (bot) => bot.status === BotStatus.Dead,
@@ -322,9 +318,7 @@ export class PlansService {
             await this.start(plan.id);
           }
         }
-      });
-
-      await Promise.all(plansPromises);
+      }
     } catch (err) {
       this.logger.error(
         `Plans Service checkAndUpdateAllPlans> ${getReadableError(err)}`,

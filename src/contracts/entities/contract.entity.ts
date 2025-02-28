@@ -40,3 +40,21 @@ export class TradePair {
   @Field()
   to: string;
 }
+
+@ObjectType()
+export class TradeCollateral {
+  @Field(() => Int)
+  collateralIndex: number;
+
+  @Field()
+  collateral: string;
+
+  @Field(() => Boolean)
+  isActive: boolean;
+
+  @Field(() => String)
+  precision: string;
+
+  @Field(() => String)
+  precisionDelta: string;
+}
