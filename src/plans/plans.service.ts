@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BotStatus, PlanStatus } from '@prisma/client';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
-import {
-  PlanForwardDetails,
-  PlanForwardShallowDetails,
-} from './entities/plan.entity';
+import { PlanConnection, PlanForwardDetails } from './entities/plan.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/bots/bots.service';
@@ -21,9 +18,7 @@ export class PlansService {
     private logger: Logger,
   ) {}
 
-  async create(
-    createPlanInput: CreatePlanInput,
-  ): Promise<PlanForwardShallowDetails> {
+  async create(createPlanInput: CreatePlanInput): Promise<PlanForwardDetails> {
     return await this.prisma.plan.create({
       data: {
         ...createPlanInput,
@@ -40,6 +35,16 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -68,7 +73,7 @@ export class PlansService {
     return id;
   }
 
-  async update(input: UpdatePlanInput): Promise<PlanForwardShallowDetails> {
+  async update(input: UpdatePlanInput): Promise<PlanForwardDetails> {
     return await this.prisma.plan.update({
       where: { id: input.id },
       data: input,
@@ -83,6 +88,16 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -94,7 +109,7 @@ export class PlansService {
   async addBotsToPlan(
     planId: number,
     botIds: number[],
-  ): Promise<PlanForwardShallowDetails> {
+  ): Promise<PlanForwardDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
     });
@@ -121,7 +136,6 @@ export class PlansService {
 
     return await this.prisma.plan.update({
       where: { id: planId },
-
       data: { bots: { connect: botIds.map((botId) => ({ id: botId })) } },
       include: {
         bots: {
@@ -134,6 +148,16 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -144,9 +168,19 @@ export class PlansService {
 
   async getPlansByStatus(
     status: PlanStatus,
-  ): Promise<PlanForwardShallowDetails[]> {
-    return this.prisma.plan.findMany({
+    first: number,
+    after: number | null,
+  ): Promise<PlanConnection> {
+    const records = await this.prisma.plan.findMany({
+      skip: after ? 1 : undefined,
+      take: first,
+      cursor: after
+        ? {
+            id: after,
+          }
+        : undefined,
       where: { status },
+      orderBy: { startedAt: 'desc' },
       include: {
         bots: {
           include: {
@@ -158,12 +192,35 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
         },
       },
     });
+
+    const edges = records.map((record) => ({
+      cursor: record.id,
+      node: record,
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      },
+    };
   }
 
   async getPlanById(id: number): Promise<PlanForwardDetails | null> {
@@ -198,7 +255,7 @@ export class PlansService {
     });
   }
 
-  async start(id: number): Promise<PlanForwardShallowDetails> {
+  async start(id: number): Promise<PlanForwardDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -218,7 +275,6 @@ export class PlansService {
 
     return await this.prisma.plan.update({
       where: { id },
-
       data: { status: PlanStatus.Started, startedAt: new Date() },
       include: {
         bots: {
@@ -231,6 +287,16 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -239,7 +305,7 @@ export class PlansService {
     });
   }
 
-  async end(id: number): Promise<PlanForwardShallowDetails> {
+  async end(id: number): Promise<PlanForwardDetails> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -259,7 +325,6 @@ export class PlansService {
 
     return await this.prisma.plan.update({
       where: { id },
-
       data: { status: PlanStatus.Stopped, endedAt: new Date() },
       include: {
         bots: {
@@ -272,6 +337,16 @@ export class PlansService {
               include: {
                 targetPosition: true,
                 achievePosition: true,
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

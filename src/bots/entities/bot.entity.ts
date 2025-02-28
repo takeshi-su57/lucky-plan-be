@@ -3,10 +3,7 @@ import { BotStatus } from '@prisma/client';
 
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { Follower } from 'src/follower/entities/follower.entity';
-import {
-  MissionDetails,
-  MissionForwardDetails,
-} from 'src/missions/entities/mission.entity';
+import { MissionForwardDetails } from 'src/missions/entities/mission.entity';
 import { Plan } from 'src/plans/entities/plan.entity';
 import { Strategy } from 'src/strategy/entities/strategy.entity';
 
@@ -75,12 +72,6 @@ export class BotDetails extends Bot {
 
   @Field(() => Contract)
   followerContract: Contract;
-}
-
-@ObjectType()
-export class BotForwardShallowDetails extends BotDetails {
-  @Field(() => [MissionDetails])
-  missions: MissionDetails[];
 }
 
 @ObjectType()

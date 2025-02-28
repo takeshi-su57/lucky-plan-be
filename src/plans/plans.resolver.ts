@@ -1,10 +1,7 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 
 import { PlansService } from './plans.service';
-import {
-  PlanForwardDetails,
-  PlanForwardShallowDetails,
-} from './entities/plan.entity';
+import { PlanConnection, PlanForwardDetails } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { PlanStatus } from '@prisma/client';
 
@@ -12,7 +9,7 @@ import { PlanStatus } from '@prisma/client';
 export class PlansResolver {
   constructor(private readonly plansService: PlansService) {}
 
-  @Mutation(() => PlanForwardShallowDetails)
+  @Mutation(() => PlanForwardDetails)
   createPlan(@Args('createPlanInput') createPlanInput: CreatePlanInput) {
     return this.plansService.create(createPlanInput);
   }
@@ -22,22 +19,22 @@ export class PlansResolver {
     return this.plansService.delete(id);
   }
 
-  @Mutation(() => PlanForwardShallowDetails)
+  @Mutation(() => PlanForwardDetails)
   updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
     return this.plansService.update(updatePlanInput);
   }
 
-  @Mutation(() => PlanForwardShallowDetails)
+  @Mutation(() => PlanForwardDetails)
   startPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.start(id);
   }
 
-  @Mutation(() => PlanForwardShallowDetails)
+  @Mutation(() => PlanForwardDetails)
   endPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.end(id);
   }
 
-  @Mutation(() => PlanForwardShallowDetails)
+  @Mutation(() => PlanForwardDetails)
   addBotsToPlan(
     @Args('planId', { type: () => Int }) planId: number,
     @Args('botIds', { type: () => [Int] }) botIds: number[],
@@ -45,12 +42,14 @@ export class PlansResolver {
     return this.plansService.addBotsToPlan(planId, botIds);
   }
 
-  @Query(() => [PlanForwardShallowDetails])
+  @Query(() => PlanConnection)
   getPlansByStatus(
     @Args('status', { type: () => PlanStatus })
     status: PlanStatus,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
-    return this.plansService.getPlansByStatus(status);
+    return this.plansService.getPlansByStatus(status, first, after);
   }
 
   @Query(() => PlanForwardDetails, { nullable: true })
