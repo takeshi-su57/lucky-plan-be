@@ -1,7 +1,11 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 
 import { ContractsService } from './contracts.service';
-import { Contract, TradePair } from './entities/contract.entity';
+import {
+  Contract,
+  TradeCollateral,
+  TradePair,
+} from './entities/contract.entity';
 import {
   CreateContractInput,
   ChangeContractStatusInput,
@@ -38,5 +42,12 @@ export class ContractsResolver {
   @Query(() => [TradePair])
   getTradePairs(@Args('contractId', { type: () => Int }) contractId: number) {
     return this.tradingVariableService.getTradePairs(contractId);
+  }
+
+  @Query(() => [TradeCollateral])
+  getTradeCollaterals(
+    @Args('contractId', { type: () => Int }) contractId: number,
+  ) {
+    return this.tradingVariableService.getTradeCollaterals(contractId);
   }
 }
