@@ -167,7 +167,7 @@ export class BotsService {
     try {
       this.logger.log('BotsService>: Rebalancing Bots');
 
-      const promises = this.bots.map(async (bot) => {
+      for (const bot of this.bots) {
         if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
           return;
         }
@@ -192,9 +192,7 @@ export class BotsService {
         }
 
         await this.reBalanceAsset(bot);
-      });
-
-      await Promise.all(promises);
+      }
     } catch (err) {
       this.logger.error(
         `BotsService>checkAndUpdateAllBots> ${getReadableError(err)}`,
