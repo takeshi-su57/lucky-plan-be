@@ -169,7 +169,7 @@ export class BotsService {
 
       for (const bot of this.bots) {
         if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
-          return;
+          break;
         }
 
         if (bot.status === BotStatus.Live && bot.startedAt) {
