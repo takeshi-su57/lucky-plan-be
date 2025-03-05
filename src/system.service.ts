@@ -46,7 +46,7 @@ export class SystemService {
     return this.isPaused;
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
     if (this.isPaused) {
       return;
@@ -61,7 +61,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async executeTaskCron() {
     if (this.isPaused) {
       return;

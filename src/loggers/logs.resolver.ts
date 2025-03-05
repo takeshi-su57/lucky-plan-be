@@ -25,7 +25,7 @@ export class LogsResolver {
   }
 
   @Mutation(() => Log)
-  checkLog(@Args('id') id: number) {
+  checkLog(@Args('id', { type: () => Int }) id: number) {
     return this.logsService.check(id);
   }
 }
