@@ -8,6 +8,10 @@ export class PositionsService {
   constructor(private prismaService: PrismaService) {}
 
   upsertMany(positions: CreatePositionInput[]) {
+    if (positions.length === 0) {
+      return [];
+    }
+
     return this.prismaService.$transaction(
       positions.map((position) =>
         this.prismaService.position.upsert({

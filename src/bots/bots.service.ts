@@ -72,6 +72,10 @@ export class BotsService {
   async batchCreateBots(
     inputs: CreateBotAndStrategyInput[],
   ): Promise<BotBackwardDetails[]> {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     const bots: BotBackwardDetails[] = [];
 
     const followers = await this.followersService.getAvailableFollowers(

@@ -198,6 +198,10 @@ export class TasksService {
   }
 
   private async createMany(inputs: TaskCreateInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     const newTasks = await this.prismaService.task.createManyAndReturn({
       data: inputs,
       include: {
@@ -208,14 +212,18 @@ export class TasksService {
 
     const tasks = await this.getTasks(newTasks.map((task) => task.id));
 
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskAdded, {
-      [SUBSCRIPTION_TOKEN.taskAdded]: tasks,
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskCreated, {
+      [SUBSCRIPTION_TOKEN.taskCreated]: tasks,
     });
 
     return newTasks;
   }
 
   async updateMany(inputs: TaskUpdateInput[]) {
+    if (inputs.length === 0) {
+      return;
+    }
+
     const updatedTasks = await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.task.update({
@@ -238,7 +246,7 @@ export class TasksService {
     });
   }
 
-  async stopTask(id: number): Promise<TaskBackwardDetails | null> {
+  async stopTask(id: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id,
@@ -263,9 +271,7 @@ export class TasksService {
       },
     ]);
 
-    const tasks = await this.getTasks([id]);
-
-    return tasks[0] || null;
+    return true;
   }
 
   private async getTasksByMissionMap(missionIds: number[]) {

@@ -30,6 +30,10 @@ export class ActionsService {
   }
 
   async createMany(contractId: number, inputs: CreateActionInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     const positionInputs = Array.from(
       new Set(
         inputs.map((input) =>

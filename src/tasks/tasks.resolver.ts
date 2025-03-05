@@ -22,7 +22,7 @@ export class TasksResolver {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
-  @Mutation(() => TaskBackwardDetails, { nullable: true })
+  @Mutation(() => Boolean)
   stopTask(@Args('id', { type: () => Int }) id: number) {
     return this.tasksService.stopTask(id);
   }
@@ -33,10 +33,10 @@ export class TasksResolver {
   }
 
   @Subscription(() => [TaskBackwardDetails], {
-    name: SUBSCRIPTION_TOKEN.taskAdded,
+    name: SUBSCRIPTION_TOKEN.taskCreated,
   })
-  subscribeToTaskAdded() {
-    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskAdded);
+  subscribeToTaskCreated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskCreated);
   }
 
   @Subscription(() => [TaskBackwardDetails], {

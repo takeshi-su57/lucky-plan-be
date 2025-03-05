@@ -1,15 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { LogSeverity } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
 
+import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
 
 import { CreateLogInput } from './dto/log.dto';
 import { LogsConnection, SeverityCount } from './entities/log.entity';
-import { LogSeverity } from '@prisma/client';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Injectable()
 export class LogsService {
   constructor(
     private prismaService: PrismaService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private logger: Logger,
   ) {}
 
@@ -56,8 +60,12 @@ export class LogsService {
   async log(createLogInput: CreateLogInput): Promise<void> {
     this.nativeLog(createLogInput);
 
-    await this.prismaService.log.create({
+    const log = await this.prismaService.log.create({
       data: createLogInput,
+    });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.newLog, {
+      [SUBSCRIPTION_TOKEN.newLog]: log,
     });
   }
 

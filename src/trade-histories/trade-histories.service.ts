@@ -29,6 +29,10 @@ export class TradeHistoriesService {
   ) {}
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
+    if (inputs.length > 0) {
+      return [];
+    }
+
     return await this.prismaService.tradeHistory.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,
