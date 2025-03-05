@@ -1,10 +1,11 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
+import { BotStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -31,7 +32,7 @@ import {
 } from './dto/follower.input';
 import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
-import { BotStatus } from '@prisma/client';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class FollowerService {
@@ -44,7 +45,7 @@ export class FollowerService {
     private tradingVariableService: TradingVariableService,
     private tradeService: TradeService,
     private pnlSnapshotsService: PnlSnapshotsService,
-    private logger: Logger,
+    private logger: LogsService,
   ) {}
 
   async moveAsset({
@@ -98,9 +99,11 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdcWithdraw': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
-          );
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>moveAsset',
+            details: `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
+          });
 
           const { request } = await publicClient.simulateContract({
             account: followerWallet.account,
@@ -115,9 +118,11 @@ export class FollowerService {
           break;
         }
         case 'usdcDeposit': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
-          );
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>moveAsset',
+            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
+          });
 
           const { request } = await publicClient.simulateContract({
             account: masterWallet.account,
@@ -132,9 +137,11 @@ export class FollowerService {
           break;
         }
         case 'ethWithdraw': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
-          );
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>moveAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
+          });
 
           const gas = await publicClient.estimateGas({
             account: followerWallet.account?.address,
@@ -154,9 +161,11 @@ export class FollowerService {
           break;
         }
         case 'ethDeposit': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
-          );
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>moveAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
+          });
 
           tx = await masterWallet.sendTransaction({
             account: masterWallet.account!,
@@ -179,7 +188,11 @@ export class FollowerService {
         return false;
       }
     } catch (err) {
-      this.logger.error(`FollowerService>moveAsset>: ${getReadableError(err)}`);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>moveAsset`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -214,9 +227,11 @@ export class FollowerService {
 
       return true;
     } catch (err) {
-      this.logger.error(
-        `FollowerService>withdrawAllUSDC>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawAllUSDC`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -241,9 +256,11 @@ export class FollowerService {
 
       return true;
     } catch (err) {
-      this.logger.error(
-        `FollowerService>withdrawAll>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawAllETH`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -337,9 +354,11 @@ export class FollowerService {
         });
       }
     } catch (err) {
-      this.logger.error(
-        `FollowerService>followerAssetBalanceUpdateCron>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>followerAssetBalanceUpdateCron`,
+        details: getReadableError(err),
+      });
     }
   }
 
@@ -367,7 +386,11 @@ export class FollowerService {
         ),
       }));
     } catch (err) {
-      console.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getPendingOrders`,
+        details: getReadableError(err),
+      });
     }
 
     return [];
@@ -453,7 +476,11 @@ export class FollowerService {
         ),
       }));
     } catch (err) {
-      console.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getTrades`,
+        details: getReadableError(err),
+      });
     }
 
     return [];
@@ -508,6 +535,14 @@ export class FollowerService {
             contractId: input.contractId,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>closeTradeMarket`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -528,6 +563,12 @@ export class FollowerService {
         contractId: input.contractId,
       };
     } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getTrades`,
+        details: getReadableError(err),
+      });
+
       return {
         success: false,
         message: JSON.stringify(err, (_, v) =>
@@ -584,6 +625,14 @@ export class FollowerService {
             contractId: input.contractId,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>closeTradeMarket`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -604,6 +653,12 @@ export class FollowerService {
         contractId: input.contractId,
       };
     } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>closeTradeMarket`,
+        details: getReadableError(err),
+      });
+
       return {
         success: false,
         message: JSON.stringify(err, (_, v) =>
@@ -670,9 +725,11 @@ export class FollowerService {
         pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
       }));
     } catch (err) {
-      this.logger.error(
-        `FollowerService>loadFollowers>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>loadFollowers`,
+        details: getReadableError(err),
+      });
     }
 
     return [];

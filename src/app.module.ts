@@ -25,6 +25,7 @@ import { TradeHistoriesModule } from './trade-histories/trade-histories.module';
 import { TaskExecutorModule } from './task-executor/task-executor.module';
 import { SystemResolver } from './system.resolver';
 import { PlansModule } from './plans/plans.module';
+import { LogsModule } from './loggers/logs.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { PlansModule } from './plans/plans.module';
     TradeHistoriesModule,
     TaskExecutorModule,
     PlansModule,
+    LogsModule,
   ],
   controllers: [],
   providers: [SystemService, ContractMonitorService, SystemResolver],

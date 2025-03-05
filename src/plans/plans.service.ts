@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BotStatus, PlanStatus } from '@prisma/client';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
@@ -7,6 +7,7 @@ import { PlanConnection, PlanForwardDetails } from './entities/plan.entity';
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/bots/bots.service';
 import { getReadableError } from 'src/utils';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class PlansService {
@@ -15,7 +16,7 @@ export class PlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly botService: BotsService,
-    private logger: Logger,
+    private logger: LogsService,
   ) {}
 
   async create(createPlanInput: CreatePlanInput): Promise<PlanForwardDetails> {
@@ -395,9 +396,11 @@ export class PlansService {
         }
       }
     } catch (err) {
-      this.logger.error(
-        `Plans Service checkAndUpdateAllPlans> ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'PlansService>checkAndUpdateAllPlans',
+        details: getReadableError(err),
+      });
     }
 
     this.status = 'ready';

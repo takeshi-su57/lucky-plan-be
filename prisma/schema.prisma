@@ -307,3 +307,26 @@ model PnlSnapshotInitializedFlag {
   dateStr String  @unique // YYYY-MM-DD
   isInit  Boolean @default(false)
 }
+
+enum LogSeverity {
+  Emergency
+  Alert
+  Critical
+  Error
+  Warning
+  Notice
+  Info
+  Debug
+  Default
+}
+
+model Log {
+  id        Int         @id @default(autoincrement())
+  severity  LogSeverity
+  timestamp DateTime    @default(now())
+  summary   String
+  details   String?
+  checked   Boolean     @default(false)
+
+  @@index([severity, timestamp(sort: Desc)])
+}

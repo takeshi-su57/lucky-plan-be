@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PnlSnapshot, PnlSnapshotKind, TradeHistory } from '@prisma/client';
 import * as dayjs from 'dayjs';
 
@@ -8,6 +8,7 @@ import {
   PnlSnapshotDetailsConnection,
   PnlSnapshotDetailsEdge,
 } from './entities/trade-history.entity';
+import { LogsService } from 'src/loggers/logs.service';
 
 function parseKey(key: string) {
   return JSON.parse(key) as {
@@ -44,7 +45,7 @@ export class PnlSnapshotsService {
 
   constructor(
     private prismaService: PrismaService,
-    private logger: Logger,
+    private logger: LogsService,
   ) {}
 
   async getPnlSnapshots(
@@ -479,9 +480,11 @@ export class PnlSnapshotsService {
 
       return pnlSnapshotInitializedFlag;
     } catch (err) {
-      this.logger.error(
-        `PnlSnapshotsService>dynamicSnapshotBuild>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild`,
+        details: getReadableError(err),
+      });
 
       this.status = 'ready';
       return null;
@@ -657,9 +660,11 @@ export class PnlSnapshotsService {
 
       return pnlSnapshotInitializedFlag;
     } catch (err) {
-      this.logger.error(
-        `PnlSnapshotsService>intialBuild>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `PnlSnapshotsService>intialBuild`,
+        details: getReadableError(err),
+      });
 
       this.status = 'ready';
       return null;

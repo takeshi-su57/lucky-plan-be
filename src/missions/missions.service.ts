@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { BotStatus, MissionStatus } from '@prisma/client';
 import { Address, isAddressEqual } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
@@ -35,6 +35,7 @@ import {
 } from './dto/mission.input';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class MissionsService {
@@ -45,7 +46,7 @@ export class MissionsService {
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private tradingVariableService: TradingVariableService,
-    private readonly logger: Logger,
+    private readonly logger: LogsService,
   ) {
     this.loadMissions();
   }
@@ -338,9 +339,12 @@ export class MissionsService {
 
     openEvents.forEach((event) => {
       if (eventsMap.get(event.context.bot.id)) {
-        this.logger.warn(
-          'Unexpected app error: There are two MarketOrderInitiated events having same bot id',
-        );
+        this.logger.log({
+          severity: 'Warning',
+          summary: 'MissionsService>handleMarketOrderInitiatedActions',
+          details:
+            'Unexpected app error: There are two MarketOrderInitiated events having same bot id',
+        });
       }
 
       eventsMap.set(event.context.bot.id, event);
@@ -360,9 +364,12 @@ export class MissionsService {
           const eventContext = eventsMap.get(botId);
 
           if (!eventContext) {
-            this.logger.warn(
-              'Unexpected app error: eventContext = eventsByBotId[botId] <- no eventContet',
-            );
+            this.logger.log({
+              severity: 'Warning',
+              summary: 'MissionsService>handleMarketOrderInitiatedActions',
+              details:
+                'Unexpected app error: eventContext = eventsByBotId[botId] <- no eventContet',
+            });
 
             return null;
           }

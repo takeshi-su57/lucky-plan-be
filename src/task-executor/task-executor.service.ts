@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
 import { MissionStatus, TaskStatus } from '@prisma/client';
 
@@ -38,6 +38,7 @@ import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
 import { FollowerService } from 'src/follower/follower.service';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class TaskExecutorService {
@@ -51,7 +52,7 @@ export class TaskExecutorService {
     private tradingVariableService: TradingVariableService,
     private missionsService: MissionsService,
     private tasksService: TasksService,
-    private readonly logger: Logger,
+    private readonly logger: LogsService,
   ) {}
 
   private async performTask(
@@ -129,6 +130,12 @@ export class TaskExecutorService {
               });
 
               if (!result) {
+                await this.logger.log({
+                  severity: 'Error',
+                  summary: 'TaskExecutorService>performTask',
+                  details: `Failed at borrowing usdc from vault`,
+                });
+
                 return {
                   success: false,
                   message: `Failed at borrowing usdc from vault`,
@@ -187,6 +194,12 @@ export class TaskExecutorService {
             });
 
             if (!result) {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: `Failed at borrowing usdc from vault`,
+              });
+
               return {
                 success: false,
                 message: `Failed at borrowing usdc from vault`,
@@ -244,6 +257,14 @@ export class TaskExecutorService {
                 message: `Task achieved`,
               };
             } else {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              });
+
               return {
                 success: false,
                 message: JSON.stringify(transaction.logs, (_, v) =>
@@ -284,6 +305,14 @@ export class TaskExecutorService {
                 message: `Task achieved`,
               };
             } else {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              });
+
               return {
                 success: false,
                 message: JSON.stringify(transaction.logs, (_, v) =>
@@ -349,6 +378,12 @@ export class TaskExecutorService {
                 });
 
                 if (!result) {
+                  await this.logger.log({
+                    severity: 'Error',
+                    summary: 'TaskExecutorService>performTask',
+                    details: 'Failed at borrowing usdc from vault',
+                  });
+
                   return {
                     success: false,
                     message: `Failed at borrowing usdc from vault`,
@@ -411,6 +446,14 @@ export class TaskExecutorService {
                     message: `Task achieved`,
                   };
                 } else {
+                  await this.logger.log({
+                    severity: 'Error',
+                    summary: 'TaskExecutorService>performTask',
+                    details: JSON.stringify(transaction.logs, (_, v) =>
+                      typeof v === 'bigint' ? v.toString() : v,
+                    ),
+                  });
+
                   return {
                     success: false,
                     message: JSON.stringify(transaction.logs, (_, v) =>
@@ -437,6 +480,14 @@ export class TaskExecutorService {
             message: `Task achieved`,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: 'TaskExecutorService>performTask',
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -448,7 +499,11 @@ export class TaskExecutorService {
         throw new Error('Error at waiting for transaction receipt');
       }
     } catch (err) {
-      this.logger.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performTask',
+        details: getReadableError(err),
+      });
 
       return {
         success: false,
@@ -527,6 +582,11 @@ export class TaskExecutorService {
     this.status = 'process';
 
     try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>performAvailableTasks',
+      });
+
       const allTasks = await this.prismaService.task.findMany({
         where: {
           status: {
@@ -661,7 +721,11 @@ export class TaskExecutorService {
           })),
       );
     } catch (err) {
-      this.logger.error('Error at task perform', err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performAvailableTasks',
+        details: getReadableError(err),
+      });
     }
 
     this.status = 'ready';

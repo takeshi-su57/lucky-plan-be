@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BotStatus, Contract } from '@prisma/client';
 import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
 
@@ -27,6 +27,7 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/strategy/strategy.service';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class BotsService {
@@ -41,7 +42,7 @@ export class BotsService {
     private actionsService: ActionsService,
     private tradingVariableService: TradingVariableService,
     private strategyService: StrategyService,
-    private logger: Logger,
+    private logger: LogsService,
   ) {
     this.loadBots();
   }
@@ -138,6 +139,12 @@ export class BotsService {
 
   private async reBalanceAsset(bot: BotDetails) {
     try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'BotsService>reBalanceAsset',
+        details: `BotId: ${bot.id}`,
+      });
+
       const { followerContract, follower } = bot;
 
       const publicClient = this.chainsService.publicClient(
@@ -157,7 +164,11 @@ export class BotsService {
         });
       }
     } catch (err) {
-      this.logger.error('BotsService>reBalanceAsset> ', getReadableError(err));
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'BotsService>reBalanceAsset',
+        details: getReadableError(err),
+      });
     }
   }
 
@@ -165,7 +176,10 @@ export class BotsService {
     this.status = 'progress';
 
     try {
-      this.logger.log('BotsService>: Rebalancing Bots');
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'BotsService>checkAndUpdateAllBots',
+      });
 
       for (const bot of this.bots) {
         if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
@@ -194,9 +208,11 @@ export class BotsService {
         await this.reBalanceAsset(bot);
       }
     } catch (err) {
-      this.logger.error(
-        `BotsService>checkAndUpdateAllBots> ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'BotsService>checkAndUpdateAllBots',
+        details: getReadableError(err),
+      });
     }
 
     this.status = 'ready';
