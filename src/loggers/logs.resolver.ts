@@ -1,11 +1,27 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { LogSeverity } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
+
 import { LogsService } from './logs.service';
 import { Log, LogsConnection, SeverityCount } from './entities/log.entity';
-import { LogSeverity } from '@prisma/client';
+
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Resolver(() => Log)
 export class LogsResolver {
-  constructor(private readonly logsService: LogsService) {}
+  constructor(
+    private readonly logsService: LogsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
   @Query(() => [SeverityCount])
   getLogsSeverityCounts() {
@@ -27,5 +43,28 @@ export class LogsResolver {
   @Mutation(() => Log)
   checkLog(@Args('id', { type: () => Int }) id: number) {
     return this.logsService.check(id);
+  }
+
+  @Subscription(() => Log, {
+    name: SUBSCRIPTION_TOKEN.newLog,
+    filter: (payload, variables) => {
+      if (variables.checked !== payload.newLog.checked) {
+        return false;
+      }
+
+      if (variables.severity) {
+        return payload.newLog.severity === variables.severity;
+      }
+
+      return true;
+    },
+  })
+  subscribeToNewLog(
+    @Args('severity', { type: () => LogSeverity, nullable: true })
+    _severity: LogSeverity | null,
+    @Args('checked', { type: () => Boolean })
+    _checked: boolean,
+  ) {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.newLog);
   }
 }
