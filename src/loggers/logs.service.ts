@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
 
@@ -8,9 +8,54 @@ import { LogSeverity } from '@prisma/client';
 
 @Injectable()
 export class LogsService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private logger: Logger,
+  ) {}
+
+  nativeLog(logInput: CreateLogInput) {
+    switch (logInput.severity) {
+      case 'Info': {
+        this.logger.log(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Error': {
+        this.logger.error(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Warning': {
+        this.logger.warn(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Emergency': {
+        this.logger.error(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Critical': {
+        this.logger.error(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Alert': {
+        this.logger.warn(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Debug': {
+        this.logger.debug(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      case 'Notice': {
+        this.logger.log(`${logInput.summary} : ${logInput.details || ''}`);
+        break;
+      }
+      default: {
+        this.logger.log(`${logInput.summary} : ${logInput.details || ''}`);
+      }
+    }
+  }
 
   async log(createLogInput: CreateLogInput): Promise<void> {
+    this.nativeLog(createLogInput);
+
     await this.prismaService.log.create({
       data: createLogInput,
     });
@@ -28,6 +73,9 @@ export class LogsService {
   async getSeverityCounts(): Promise<SeverityCount[]> {
     const result = await this.prismaService.log.groupBy({
       by: ['severity'],
+      where: {
+        checked: false,
+      },
       _count: true,
     });
 
@@ -39,6 +87,7 @@ export class LogsService {
 
   async allLogs(
     severity: LogSeverity | null,
+    checked: boolean,
     first: number,
     after: number | null,
   ): Promise<LogsConnection> {
@@ -50,7 +99,7 @@ export class LogsService {
             id: after,
           }
         : undefined,
-      where: severity ? { severity } : undefined,
+      where: { ...(severity ? { severity } : {}), checked },
       orderBy: { timestamp: 'desc' },
     });
 

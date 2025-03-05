@@ -9,6 +9,7 @@ import { BotsResolver } from './bots.resolver';
 import { ActionsModule } from 'src/actions/actions.module';
 import { FollowerModule } from 'src/follower/follower.module';
 import { StrategyModule } from 'src/strategy/strategy.module';
+import { LogsModule } from 'src/loggers/logs.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { StrategyModule } from 'src/strategy/strategy.module';
     ActionsModule,
     FollowerModule,
     StrategyModule,
+    LogsModule,
   ],
   providers: [BotsResolver, BotsService],
   exports: [BotsService],

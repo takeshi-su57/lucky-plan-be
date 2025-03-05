@@ -4,9 +4,10 @@ import { FollowerResolver } from './follower.resolver';
 import { UsersModule } from 'src/users/users.module';
 import { ContractsModule } from 'src/contracts/contracts.module';
 import { TradeHistoriesModule } from 'src/trade-histories/trade-histories.module';
+import { LogsModule } from 'src/loggers/logs.module';
 
 @Module({
-  imports: [UsersModule, ContractsModule, TradeHistoriesModule],
+  imports: [UsersModule, ContractsModule, TradeHistoriesModule, LogsModule],
   providers: [FollowerResolver, FollowerService],
   exports: [FollowerService],
 })

@@ -16,10 +16,12 @@ export class LogsResolver {
   allLogs(
     @Args('severity', { type: () => LogSeverity, nullable: true })
     severity: LogSeverity | null,
+    @Args('checked', { type: () => Boolean })
+    checked: boolean,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
-    return this.logsService.allLogs(severity, first, after);
+    return this.logsService.allLogs(severity, checked, first, after);
   }
 
   @Mutation(() => Log)

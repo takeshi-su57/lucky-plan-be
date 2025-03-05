@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
+
+import { LogsModule } from 'src/loggers/logs.module';
+import { ActionsModule } from 'src/actions/actions.module';
+import { FollowerActionsModule } from 'src/follower-actions/follower-actions.module';
+
 import { TasksService } from './tasks.service';
 import { TasksResolver } from './tasks.resolver';
-import { FollowerActionsModule } from 'src/follower-actions/follower-actions.module';
-import { ActionsModule } from 'src/actions/actions.module';
 
 @Module({
-  imports: [FollowerActionsModule, ActionsModule],
+  imports: [FollowerActionsModule, ActionsModule, LogsModule],
   providers: [TasksResolver, TasksService],
   exports: [TasksService],
 })

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Address, AbiEvent, decodeEventLog } from 'viem';
 import { Contract } from '@prisma/client';
 
@@ -10,6 +10,7 @@ import { BotsService } from './bots/bots.service';
 import { ContractsService } from './contracts/contracts.service';
 import { TradeHistoriesService } from './trade-histories/trade-histories.service';
 import { getReadableError } from './utils';
+import { LogsService } from './loggers/logs.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -31,7 +32,7 @@ export class ContractMonitorService {
     private botsService: BotsService,
     private contractsService: ContractsService,
     private tradeHistoriesService: TradeHistoriesService,
-    private readonly logger: Logger,
+    private readonly logger: LogsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = { leaderboard: 'ready', bot: 'ready' };
@@ -76,17 +77,20 @@ export class ContractMonitorService {
           Number(toBlock),
         );
 
-        this.logger.log(
-          `Check Contract For Bots: chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        );
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'contract-monitor>checkContractForBots',
+          details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        });
 
         fromBlock = toBlock + 1n;
       }
     } catch (err) {
-      this.logger.log(
-        `src/contract-monitor.service.ts: Failed CheckContractForBots: ${contract.id}`,
-        err,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'contract-monitor>checkContractForBots',
+        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+      });
     }
   }
 
@@ -137,17 +141,20 @@ export class ContractMonitorService {
           Number(toBlock),
         );
 
-        this.logger.log(
-          `Check Contract For Leaderboard: chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        );
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'contract-monitor>checkContractForLeaderboard',
+          details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        });
 
         fromBlock = toBlock + 1n;
       }
     } catch (err) {
-      this.logger.log(
-        `src/contract-monitor.service.ts: Failed CheckContractForLeaderboard: ${contract.id}`,
-        err,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'contract-monitor>checkContractForLeaderboard',
+        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+      });
     }
   }
 
@@ -184,9 +191,11 @@ export class ContractMonitorService {
             blockNumber: Number(log.blockNumber),
           };
         } catch (err) {
-          this.logger.error(
-            `contract-monitor.service.ts > parseEventLog ${getReadableError(err)}`,
-          );
+          this.logger.nativeLog({
+            severity: 'Error',
+            summary: 'contract-monitor.service>parseEventLog',
+            details: getReadableError(err),
+          });
         }
 
         return null;

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { MissionStatus, TaskStatus } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
@@ -35,6 +35,7 @@ import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leve
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { marketCloseCanceledEventParser } from 'src/actions/eventParsers/market-close-canceled';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class TasksService {
@@ -44,7 +45,7 @@ export class TasksService {
     private tradingVariableService: TradingVariableService,
     private followerActionsService: FollowerActionsService,
     private actionsService: ActionsService,
-    private readonly logger: Logger,
+    private readonly logger: LogsService,
   ) {}
 
   async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
@@ -571,9 +572,12 @@ export class TasksService {
           ]);
 
           if (newTasks.length !== 1) {
-            this.logger.error(
-              'Unexpected app error: There are one more open mission tasks for one mission, or no open mission',
-            );
+            await this.logger.log({
+              severity: 'Warning',
+              summary: 'TasksService>handleFollowerActions',
+              details:
+                'Unexpected app error: There are one more open mission tasks for one mission, or no open mission',
+            });
 
             continue;
           }
@@ -583,9 +587,12 @@ export class TasksService {
             actionId: action.id,
           });
         } else {
-          this.logger.error(
-            'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
-          );
+          await this.logger.log({
+            severity: 'Warning',
+            summary: 'TasksService>handleFollowerActions',
+            details:
+              'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
+          });
         }
 
         continue;
