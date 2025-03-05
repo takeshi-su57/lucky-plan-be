@@ -29,10 +29,7 @@ import {
 } from 'src/strategy/strategy-library';
 import { CloseMissionActionArgs, TradeType } from 'src/types';
 
-import {
-  TaskBackwardDetails,
-  TaskShallowBackwardDetails,
-} from 'src/tasks/entities/task.entity';
+import { TaskShallowBackwardDetails } from 'src/tasks/entities/task.entity';
 
 import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
@@ -512,7 +509,7 @@ export class TaskExecutorService {
     }
   }
 
-  async performTaskById(taskId: number): Promise<TaskBackwardDetails> {
+  async performTaskById(taskId: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id: taskId,
@@ -575,7 +572,7 @@ export class TaskExecutorService {
       },
     ]);
 
-    return (await this.tasksService.getTasks([taskId]))[0];
+    return true;
   }
 
   async performAvailableTasks() {

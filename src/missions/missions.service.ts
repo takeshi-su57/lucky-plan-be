@@ -73,6 +73,10 @@ export class MissionsService {
   }
 
   private async createMany(inputs: MissionCreateInput[]) {
+    if (inputs.length === 0) {
+      return;
+    }
+
     const newMissions = await this.prismaService.mission.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,
@@ -105,6 +109,10 @@ export class MissionsService {
   }
 
   private async updateMany(inputs: MissionUpdateInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     const updatedMissions = await this.prismaService.$transaction(
       inputs.map((input) => {
         return this.prismaService.mission.update({

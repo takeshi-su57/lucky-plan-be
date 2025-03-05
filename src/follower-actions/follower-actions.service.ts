@@ -9,6 +9,10 @@ export class FollowerActionsService {
   constructor(private prismaService: PrismaService) {}
 
   async createMany(inputs: CreateFollowerActionInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     const actions = await this.prismaService.followerAction.createManyAndReturn(
       {
         data: inputs,
