@@ -36,6 +36,9 @@ import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class FollowerService {
+  public status: 'ready' | 'process' = 'process';
+  private masterFollowerNonce: Record<number, number> = {};
+
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
@@ -46,7 +49,40 @@ export class FollowerService {
     private tradeService: TradeService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
-  ) {}
+  ) {
+    this.getMasterFollowerNonce();
+  }
+
+  async getMasterFollowerNonce() {
+    try {
+      const allContracts = await this.contractService.findAll();
+      const masterFollower = await this.prismaService.follower.findUnique({
+        where: { accountIndex: 1 },
+      });
+
+      if (!masterFollower) {
+        throw new Error('Master follower not found');
+      }
+
+      for (const contract of allContracts) {
+        const publicClient = this.chainsService.publicClient(contract.chainId);
+
+        const nonce = await publicClient.getTransactionCount({
+          address: masterFollower.address as Address,
+        });
+
+        this.masterFollowerNonce[contract.id] = nonce;
+      }
+    } catch (err) {
+      this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getMasterFollowerNonce`,
+        details: getReadableError(err),
+      });
+    }
+
+    this.status = 'ready';
+  }
 
   async moveAsset({
     address,
@@ -130,7 +166,10 @@ export class FollowerService {
             abi: erc20Abi,
             functionName: 'transfer',
             args: [follower.address as Address, amount],
+            nonce: this.masterFollowerNonce[contract.id] + 1,
           });
+
+          this.masterFollowerNonce[contract.id]++;
 
           tx = await masterWallet.writeContract(request);
 
@@ -172,7 +211,10 @@ export class FollowerService {
             to: follower.address as Address,
             value: amount,
             chain: masterWallet.chain,
+            nonce: this.masterFollowerNonce[contract.id] + 1,
           });
+
+          this.masterFollowerNonce[contract.id]++;
 
           break;
         }

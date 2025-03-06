@@ -9,6 +9,7 @@ import { PlansService } from './plans/plans.service';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
+import { FollowerService } from './follower/follower.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -24,6 +25,7 @@ export class SystemService {
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
     private plansService: PlansService,
+    private followerService: FollowerService,
   ) {
     this.isPaused = false;
 
@@ -55,7 +57,8 @@ export class SystemService {
     if (
       this.contractMonitorService.status.bot === 'ready' &&
       this.tradingVariableService.status === 'ready' &&
-      this.taskExecutorService.status === 'ready'
+      this.taskExecutorService.status === 'ready' &&
+      this.followerService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
     }
@@ -69,7 +72,8 @@ export class SystemService {
 
     if (
       this.taskExecutorService.status === 'ready' &&
-      this.tradingVariableService.status === 'ready'
+      this.tradingVariableService.status === 'ready' &&
+      this.followerService.status === 'ready'
     ) {
       await this.taskExecutorService.performAvailableTasks();
     }
@@ -97,7 +101,8 @@ export class SystemService {
 
     if (
       this.tradingVariableService.status === 'ready' &&
-      this.botsService.status === 'ready'
+      this.botsService.status === 'ready' &&
+      this.followerService.status === 'ready'
     ) {
       await this.botsService.checkAndUpdateAllBots();
     }
@@ -109,7 +114,10 @@ export class SystemService {
       return;
     }
 
-    if (this.plansService.status === 'ready') {
+    if (
+      this.plansService.status === 'ready' &&
+      this.followerService.status === 'ready'
+    ) {
       await this.plansService.checkAndUpdateAllPlans();
     }
   }
