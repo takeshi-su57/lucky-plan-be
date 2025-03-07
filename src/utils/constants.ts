@@ -10,7 +10,7 @@ export const CloseMissionAction = 'CloseMissionAction';
 
 export const SUBSCRIPTION_TOKEN = {
   botUpdated: 'botUpdated',
-  missionAdded: 'missionAdded',
+  missionCreated: 'missionCreated',
   missionUpdated: 'missionUpdated',
   taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',

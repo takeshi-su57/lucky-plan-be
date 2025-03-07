@@ -15,7 +15,7 @@ export class MissionsResolver {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
-  @Mutation(() => MissionBackwardDetails)
+  @Mutation(() => Boolean)
   closeMission(
     @Args('id', { type: () => Int }) id: number,
     @Args('isForce', { type: () => Boolean }) isForce: boolean,
@@ -23,16 +23,16 @@ export class MissionsResolver {
     return this.missionsService.closeMission(id, isForce);
   }
 
-  @Mutation(() => MissionBackwardDetails)
+  @Mutation(() => Boolean)
   ignoreMission(@Args('id', { type: () => Int }) id: number) {
     return this.missionsService.ignoreMission(id);
   }
 
   @Subscription(() => [MissionBackwardDetails], {
-    name: SUBSCRIPTION_TOKEN.missionAdded,
+    name: SUBSCRIPTION_TOKEN.missionCreated,
   })
-  subscribeToMissionAdded() {
-    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionAdded);
+  subscribeToMissionCreated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionCreated);
   }
 
   @Subscription(() => [MissionBackwardDetails], {
