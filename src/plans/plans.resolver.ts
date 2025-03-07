@@ -1,15 +1,34 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { PlanStatus } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
+
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 import { PlansService } from './plans.service';
-import { PlanConnection, PlanForwardDetails } from './entities/plan.entity';
+import {
+  Plan,
+  PlanConnection,
+  PlanForwardDetails,
+} from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
-import { PlanStatus } from '@prisma/client';
 
 @Resolver()
 export class PlansResolver {
-  constructor(private readonly plansService: PlansService) {}
+  constructor(
+    private readonly plansService: PlansService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
-  @Mutation(() => PlanForwardDetails)
+  @Mutation(() => Plan)
   createPlan(@Args('createPlanInput') createPlanInput: CreatePlanInput) {
     return this.plansService.create(createPlanInput);
   }
@@ -19,17 +38,17 @@ export class PlansResolver {
     return this.plansService.delete(id);
   }
 
-  @Mutation(() => PlanForwardDetails)
+  @Mutation(() => Plan)
   updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
     return this.plansService.update(updatePlanInput);
   }
 
-  @Mutation(() => PlanForwardDetails)
+  @Mutation(() => Boolean)
   startPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.start(id);
   }
 
-  @Mutation(() => PlanForwardDetails)
+  @Mutation(() => Boolean)
   endPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.end(id);
   }
@@ -40,6 +59,20 @@ export class PlansResolver {
     @Args('botIds', { type: () => [Int] }) botIds: number[],
   ) {
     return this.plansService.addBotsToPlan(planId, botIds);
+  }
+
+  @Subscription(() => Plan, {
+    name: SUBSCRIPTION_TOKEN.planCreated,
+  })
+  subscribeToPlanCreated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planCreated);
+  }
+
+  @Subscription(() => Plan, {
+    name: SUBSCRIPTION_TOKEN.planUpdated,
+  })
+  subscribeToPlanUpdated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
   }
 
   @Query(() => PlanConnection)

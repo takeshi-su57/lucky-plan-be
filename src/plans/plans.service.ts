@@ -1,57 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BotStatus, PlanStatus } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
-import { PlanConnection, PlanForwardDetails } from './entities/plan.entity';
+import {
+  PlanConnection,
+  PlanForwardDetails,
+  Plan,
+} from './entities/plan.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/bots/bots.service';
 import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/loggers/logs.service';
 
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+
 @Injectable()
 export class PlansService {
   status: 'ready' | 'progress' = 'ready';
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private readonly prisma: PrismaService,
     private readonly botService: BotsService,
     private logger: LogsService,
   ) {}
 
-  async create(createPlanInput: CreatePlanInput): Promise<PlanForwardDetails> {
-    return await this.prisma.plan.create({
+  async create(createPlanInput: CreatePlanInput): Promise<Plan> {
+    const plan = await this.prisma.plan.create({
       data: {
         ...createPlanInput,
         status: PlanStatus.Created,
       },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                targetPosition: true,
-                achievePosition: true,
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.planCreated, {
+      [SUBSCRIPTION_TOKEN.planCreated]: plan,
+    });
+
+    return plan;
   }
 
   async delete(id: number): Promise<number> {
@@ -74,37 +63,18 @@ export class PlansService {
     return id;
   }
 
-  async update(input: UpdatePlanInput): Promise<PlanForwardDetails> {
-    return await this.prisma.plan.update({
+  async update(input: UpdatePlanInput): Promise<Plan> {
+    const plan = await this.prisma.plan.update({
       where: { id: input.id },
       data: input,
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                targetPosition: true,
-                achievePosition: true,
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: {},
     });
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.planUpdated, {
+      [SUBSCRIPTION_TOKEN.planUpdated]: plan,
+    });
+
+    return plan;
   }
 
   async addBotsToPlan(
@@ -256,7 +226,7 @@ export class PlansService {
     });
   }
 
-  async start(id: number): Promise<PlanForwardDetails> {
+  async start(id: number): Promise<boolean> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -274,39 +244,16 @@ export class PlansService {
       }
     }
 
-    return await this.prisma.plan.update({
-      where: { id },
-      data: { status: PlanStatus.Started, startedAt: new Date() },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                targetPosition: true,
-                achievePosition: true,
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+    await this.update({
+      id,
+      status: PlanStatus.Started,
+      startedAt: new Date(),
     });
+
+    return true;
   }
 
-  async end(id: number): Promise<PlanForwardDetails> {
+  async end(id: number): Promise<boolean> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -324,36 +271,13 @@ export class PlansService {
       }
     }
 
-    return await this.prisma.plan.update({
-      where: { id },
-      data: { status: PlanStatus.Stopped, endedAt: new Date() },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                targetPosition: true,
-                achievePosition: true,
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+    await this.update({
+      id,
+      status: PlanStatus.Stopped,
+      endedAt: new Date(),
     });
+
+    return true;
   }
 
   async checkAndUpdateAllPlans() {

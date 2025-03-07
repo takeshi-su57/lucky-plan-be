@@ -32,4 +32,10 @@ export class UpdatePlanInput extends PartialType(CreatePlanInput) {
 
   @Field(() => PlanStatus)
   status: PlanStatus;
+
+  @Field(() => Date, { nullable: true })
+  startedAt?: Date | null;
+
+  @Field(() => Date, { nullable: true })
+  endedAt?: Date | null;
 }
