@@ -160,11 +160,11 @@ export class BotsService {
       });
 
       if (ethBalance < MIN_GAS) {
-        await this.followersService.moveAsset({
+        await this.followersService.depositAsset({
           address: follower.address,
           contract: followerContract,
           amount: MAX_GAS - ethBalance,
-          kind: 'ethDeposit',
+          kind: 'eth',
         });
       }
     } catch (err) {

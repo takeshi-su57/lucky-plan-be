@@ -119,11 +119,11 @@ export class TaskExecutorService {
               BigInt(followerTradeData.collateralAmount);
 
             if (collateralDelta > 0n) {
-              const result = await this.followerService.moveAsset({
+              const result = await this.followerService.depositAsset({
                 address: follower.address,
                 contract: followerContract,
                 amount: collateralDelta + collateralDelta / 100n,
-                kind: 'usdcDeposit',
+                kind: 'usdc',
               });
 
               if (!result) {
@@ -183,11 +183,11 @@ export class TaskExecutorService {
               };
             }
 
-            const result = await this.followerService.moveAsset({
+            const result = await this.followerService.depositAsset({
               address: follower.address,
               contract: followerContract,
               amount: increaseParams.collateralDelta,
-              kind: 'usdcDeposit',
+              kind: 'usdc',
             });
 
             if (!result) {
@@ -367,11 +367,11 @@ export class TaskExecutorService {
               );
 
               if (openMissionParams.collateralAmount > 0n) {
-                const result = await this.followerService.moveAsset({
+                const result = await this.followerService.depositAsset({
                   address: follower.address,
                   contract: followerContract,
                   amount: openMissionParams.collateralAmount,
-                  kind: 'usdcDeposit',
+                  kind: 'usdc',
                 });
 
                 if (!result) {
