@@ -103,8 +103,8 @@ export class MissionsService {
       newMissions.map((mission) => mission.id),
     );
 
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionAdded, {
-      [SUBSCRIPTION_TOKEN.missionAdded]: missions,
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionCreated, {
+      [SUBSCRIPTION_TOKEN.missionCreated]: missions,
     });
   }
 
@@ -201,10 +201,7 @@ export class MissionsService {
     });
   }
 
-  async closeMission(
-    id: number,
-    isForce: boolean,
-  ): Promise<MissionBackwardDetails> {
+  async closeMission(id: number, isForce: boolean): Promise<boolean> {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
@@ -249,10 +246,7 @@ export class MissionsService {
     if (isClosed === 'closed') {
       await this.closeMany([{ id: mission.id }]);
 
-      return {
-        ...mission,
-        status: MissionStatus.Closed,
-      };
+      return true;
     }
 
     const closingMissions = await this.updateMany([
@@ -277,13 +271,10 @@ export class MissionsService {
       this.missionsByBotMap.set(closingMission.botId, [closingMission]);
     }
 
-    return {
-      ...mission,
-      status: MissionStatus.Closing,
-    };
+    return true;
   }
 
-  async ignoreMission(id: number): Promise<MissionBackwardDetails> {
+  async ignoreMission(id: number): Promise<boolean> {
     const ignoredMissions = await this.updateMany([
       { id, status: MissionStatus.Ignored },
     ]);
@@ -326,7 +317,7 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    return mission;
+    return true;
   }
 
   private async handleMarketOrderInitiatedActions(

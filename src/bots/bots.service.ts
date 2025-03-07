@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BotStatus, Contract } from '@prisma/client';
 import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { ChainsService } from 'src/global/chains.service';
@@ -29,12 +30,16 @@ import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/strategy/strategy.service';
 import { LogsService } from 'src/loggers/logs.service';
 
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { PUB_SUB } from 'src/global/global.module';
+
 @Injectable()
 export class BotsService {
   private bots: BotDetails[] = [];
   status: 'ready' | 'progress' = 'ready';
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private missionsService: MissionsService,
@@ -65,6 +70,10 @@ export class BotsService {
     });
 
     this.bots.push(newBot);
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+      [SUBSCRIPTION_TOKEN.botCreated]: [newBot],
+    });
 
     return newBot;
   }
@@ -104,6 +113,10 @@ export class BotsService {
 
       bots.push(bot);
     }
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+      [SUBSCRIPTION_TOKEN.botCreated]: bots,
+    });
 
     return bots;
   }
@@ -245,6 +258,10 @@ export class BotsService {
       this.bots.push(updatedBot);
     }
 
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botUpdated, {
+      [SUBSCRIPTION_TOKEN.botUpdated]: [updatedBot],
+    });
+
     return updatedBot;
   }
 
@@ -324,7 +341,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  async live(id: number): Promise<BotBackwardDetails> {
+  async live(id: number): Promise<boolean> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -386,13 +403,15 @@ export class BotsService {
       .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
-    return await this.update({
+    await this.update({
       id,
       leaderStartedBlock: Number(leaderBlockNumber),
       followerStartedBlock: Number(followerBlockNumber),
       startedAt: new Date(),
       status: BotStatus.Live,
     });
+
+    return true;
   }
 
   private async _stop(bot: BotDetails) {
@@ -417,14 +436,16 @@ export class BotsService {
     });
   }
 
-  async stop(id: number): Promise<BotBackwardDetails> {
+  async stop(id: number): Promise<boolean> {
     const bot = await this.findOne(id);
 
     if (!bot) {
       throw new Error('Invalid bot id');
     }
 
-    return this._stop(bot);
+    await this._stop(bot);
+
+    return true;
   }
 
   private async _kill(bot: BotDetails) {
