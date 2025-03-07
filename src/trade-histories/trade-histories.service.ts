@@ -29,7 +29,7 @@ export class TradeHistoriesService {
   ) {}
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
-    if (inputs.length > 0) {
+    if (inputs.length === 0) {
       return [];
     }
 
