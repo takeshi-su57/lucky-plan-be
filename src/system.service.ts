@@ -48,7 +48,7 @@ export class SystemService {
     return this.isPaused;
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_SECOND)
   async executeCronForBotMonitor() {
     if (this.isPaused) {
       return;
@@ -57,14 +57,13 @@ export class SystemService {
     if (
       this.contractMonitorService.status.bot === 'ready' &&
       this.tradingVariableService.status === 'ready' &&
-      this.taskExecutorService.status === 'ready' &&
-      this.followerService.status === 'ready'
+      this.taskExecutorService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
     }
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_SECOND)
   async executeTaskCron() {
     if (this.isPaused) {
       return;
@@ -72,8 +71,7 @@ export class SystemService {
 
     if (
       this.taskExecutorService.status === 'ready' &&
-      this.tradingVariableService.status === 'ready' &&
-      this.followerService.status === 'ready'
+      this.tradingVariableService.status === 'ready'
     ) {
       await this.taskExecutorService.performAvailableTasks();
     }
@@ -101,8 +99,7 @@ export class SystemService {
 
     if (
       this.tradingVariableService.status === 'ready' &&
-      this.botsService.status === 'ready' &&
-      this.followerService.status === 'ready'
+      this.botsService.status === 'ready'
     ) {
       await this.botsService.checkAndUpdateAllBots();
     }
@@ -114,10 +111,7 @@ export class SystemService {
       return;
     }
 
-    if (
-      this.plansService.status === 'ready' &&
-      this.followerService.status === 'ready'
-    ) {
+    if (this.plansService.status === 'ready') {
       await this.plansService.checkAndUpdateAllPlans();
     }
   }
