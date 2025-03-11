@@ -66,6 +66,9 @@ export class PnlSnapshotsService {
             dateStr,
             kind,
             contractId,
+            accUSDPnl: {
+              not: 0,
+            },
           },
           orderBy: {
             accUSDPnl: 'desc',
@@ -77,6 +80,9 @@ export class PnlSnapshotsService {
             dateStr,
             kind,
             contractId,
+            accUSDPnl: {
+              not: 0,
+            },
           },
           orderBy: {
             accUSDPnl: 'desc',
