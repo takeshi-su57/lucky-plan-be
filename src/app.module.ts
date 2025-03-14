@@ -10,7 +10,7 @@ import { SystemService } from './system.service';
 import { ContractMonitorService } from './contract-monitor.service';
 
 import { GlobalModule } from './global/global.module';
-import { UsersModule } from './users/users.module';
+import { WalletAccountsModule } from './wallet-accounts/wallet-accounts.module';
 import { AuthModule } from './auth/auth.module';
 import { FollowerModule } from './follower/follower.module';
 import { StrategyModule } from './strategy/strategy.module';
@@ -41,7 +41,7 @@ import { LogsModule } from './loggers/logs.module';
       sortSchema: true,
     }),
     ScheduleModule.forRoot(),
-    UsersModule,
+    WalletAccountsModule,
     AuthModule,
     GlobalModule,
     FollowerModule,
