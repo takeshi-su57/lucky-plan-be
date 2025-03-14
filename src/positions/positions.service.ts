@@ -8,6 +8,10 @@ export class PositionsService {
   constructor(private prismaService: PrismaService) {}
 
   upsertMany(positions: CreatePositionInput[]) {
+    if (positions.length === 0) {
+      return [];
+    }
+
     return this.prismaService.$transaction(
       positions.map((position) =>
         this.prismaService.position.upsert({
@@ -27,19 +31,5 @@ export class PositionsService {
         }),
       ),
     );
-  }
-
-  findAll() {
-    return this.prismaService.position.findMany();
-  }
-
-  findOne(id: number) {
-    return this.prismaService.position.findUnique({ where: { id } });
-  }
-
-  find(address: string, index: number) {
-    return this.prismaService.position.findFirst({
-      where: { address: address, index: index },
-    });
   }
 }

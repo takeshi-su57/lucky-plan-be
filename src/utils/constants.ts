@@ -9,14 +9,17 @@ export const USDCCollateralIndex = {
 export const CloseMissionAction = 'CloseMissionAction';
 
 export const SUBSCRIPTION_TOKEN = {
-  missionAdded: 'missionAdded',
+  planCreated: 'planCreated',
+  planUpdated: 'planUpdated',
+  botCreated: 'botCreated',
+  botUpdated: 'botUpdated',
+  missionCreated: 'missionCreated',
   missionUpdated: 'missionUpdated',
-  taskAdded: 'taskAdded',
+  taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',
-  actionAdded: 'actionAdded',
-  followerActionAdded: 'followerActionAdded',
   followerDetailsUpdated: 'followerDetailsUpdated',
+  newLog: 'newLog',
 };
 
-export const MIN_GAS = BigInt(0.0001 * Math.pow(10, etherUnits.wei));
-export const MAX_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
+export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
+export const MAX_GAS = BigInt(0.001 * Math.pow(10, etherUnits.wei));

@@ -11062,6 +11062,27 @@ export const gnsMultiCollatDiamondAbi = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        internalType: 'uint32',
+        name: 'minP',
+        type: 'uint32',
+      },
+      {
+        indexed: false,
+        internalType: 'uint32',
+        name: 'maxP',
+        type: 'uint32',
+      },
+    ],
+    name: 'BorrowingFeePerBlockCapUpdated',
+    type: 'event',
+    signature:
+      '0xca38800286190b44d87a61aaf551868afbd46f1f76ed5b145e4e975e446a2964',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: true,
         internalType: 'uint8',
         name: 'collateralIndex',
@@ -11276,6 +11297,39 @@ export const gnsMultiCollatDiamondAbi = [
     type: 'event',
     signature:
       '0x12515cf8712ede0f0e48dd7513c14f22f116a6b3f95bd493da7511cf7dcbadd7',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'uint8',
+        name: 'collateralIndex',
+        type: 'uint8',
+      },
+      {
+        indexed: true,
+        internalType: 'uint16',
+        name: 'pairIndex',
+        type: 'uint16',
+      },
+      {
+        indexed: false,
+        internalType: 'uint32',
+        name: 'minP',
+        type: 'uint32',
+      },
+      {
+        indexed: false,
+        internalType: 'uint32',
+        name: 'maxP',
+        type: 'uint32',
+      },
+    ],
+    name: 'BorrowingPairFeePerBlockCapUpdated',
+    type: 'event',
+    signature:
+      '0xf5413841beaa3a78d74ab0e0e7528e0f5d357a193b9f600eb87c8746475109f6',
   },
   {
     anonymous: false,
@@ -11584,6 +11638,32 @@ export const gnsMultiCollatDiamondAbi = [
     signature: '0x48da5b38',
   },
   {
+    inputs: [],
+    name: 'getBorrowingFeePerBlockCap',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+    signature: '0x06c01bef',
+  },
+  {
     inputs: [
       {
         internalType: 'uint8',
@@ -11714,7 +11794,12 @@ export const gnsMultiCollatDiamondAbi = [
       },
       {
         internalType: 'uint64',
-        name: 'groupAccFeeDelta',
+        name: 'groupAccFeeLongDelta',
+        type: 'uint64',
+      },
+      {
+        internalType: 'uint64',
+        name: 'groupAccFeeShortDelta',
         type: 'uint64',
       },
     ],
@@ -11918,6 +12003,80 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint16',
       },
     ],
+    name: 'getBorrowingPairFeePerBlockCap',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+    signature: '0x7bdbfe5a',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint8',
+        name: '_collateralIndex',
+        type: 'uint8',
+      },
+      {
+        internalType: 'uint16[]',
+        name: '_indices',
+        type: 'uint16[]',
+      },
+    ],
+    name: 'getBorrowingPairFeePerBlockCaps',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap[]',
+        name: '',
+        type: 'tuple[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+    signature: '0x0a67b9a3',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint8',
+        name: '_collateralIndex',
+        type: 'uint8',
+      },
+      {
+        internalType: 'uint16',
+        name: '_pairIndex',
+        type: 'uint16',
+      },
+    ],
     name: 'getBorrowingPairGroupIndex',
     outputs: [
       {
@@ -12081,7 +12240,12 @@ export const gnsMultiCollatDiamondAbi = [
       },
       {
         internalType: 'uint64',
-        name: 'pairAccFeeDelta',
+        name: 'pairAccFeeLongDelta',
+        type: 'uint64',
+      },
+      {
+        internalType: 'uint64',
+        name: 'pairAccFeeShortDelta',
         type: 'uint64',
       },
     ],
@@ -12402,6 +12566,32 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap',
+        name: '_feePerBlockCap',
+        type: 'tuple',
+      },
+    ],
+    name: 'initializeBorrowingFeePerBlockCap',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0x1a733ea0',
+  },
+  {
+    inputs: [
+      {
         internalType: 'uint8',
         name: '_collateralIndex',
         type: 'uint8',
@@ -12432,6 +12622,32 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0x4fa72788',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap',
+        name: '_feePerBlockCap',
+        type: 'tuple',
+      },
+    ],
+    name: 'setBorrowingFeePerBlockCap',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0x197b65a5',
   },
   {
     inputs: [
@@ -12514,6 +12730,42 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0x02c4e7c1',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint8',
+        name: '_collateralIndex',
+        type: 'uint8',
+      },
+      {
+        internalType: 'uint16[]',
+        name: '_indices',
+        type: 'uint16[]',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint32',
+            name: 'minP',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint32',
+            name: 'maxP',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct IBorrowingFees.BorrowingFeePerBlockCap[]',
+        name: '_values',
+        type: 'tuple[]',
+      },
+    ],
+    name: 'setBorrowingPairFeePerBlockCapArray',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0x92748a7d',
   },
   {
     inputs: [
@@ -12761,6 +13013,21 @@ export const gnsMultiCollatDiamondAbi = [
     type: 'event',
     signature:
       '0x764c19c693af0da42ec6c6bed68a2dd1a2fa93d24785fcfce58ffa29ae313606',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint8',
+        name: 'limitJobCount',
+        type: 'uint8',
+      },
+    ],
+    name: 'LimitJobCountUpdated',
+    type: 'event',
+    signature:
+      '0xe3fd233ab0f657acfa4eec07f6b1d79a510c3eef274d27d305c7fc47695a1e7f',
   },
   {
     anonymous: false,
@@ -13384,6 +13651,20 @@ export const gnsMultiCollatDiamondAbi = [
   },
   {
     inputs: [],
+    name: 'getLimitJobCount',
+    outputs: [
+      {
+        internalType: 'uint8',
+        name: '',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+    signature: '0x75d097a7',
+  },
+  {
+    inputs: [],
     name: 'getLimitJobId',
     outputs: [
       {
@@ -13395,6 +13676,20 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'view',
     type: 'function',
     signature: '0xf4b0664d',
+  },
+  {
+    inputs: [],
+    name: 'getLimitJobIndex',
+    outputs: [
+      {
+        internalType: 'uint88',
+        name: '',
+        type: 'uint88',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+    signature: '0xdb461060',
   },
   {
     inputs: [
@@ -13757,6 +14052,20 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
+        internalType: 'uint8',
+        name: '_limitJobCount',
+        type: 'uint8',
+      },
+    ],
+    name: 'initializeLimitJobCount',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0xc386f31b',
+  },
+  {
+    inputs: [
+      {
         internalType: 'address',
         name: '_linkToken',
         type: 'address',
@@ -13852,6 +14161,20 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0x25e589cd',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint8',
+        name: '_limitJobCount',
+        type: 'uint8',
+      },
+    ],
+    name: 'setLimitJobCount',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0x19a891e4',
   },
   {
     inputs: [

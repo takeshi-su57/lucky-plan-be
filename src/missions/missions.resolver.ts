@@ -1,31 +1,21 @@
-import {
-  Resolver,
-  Query,
-  Args,
-  Int,
-  Mutation,
-  Subscription,
-} from '@nestjs/graphql';
+import { Resolver, Args, Int, Mutation, Subscription } from '@nestjs/graphql';
 import { Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 
 import { MissionsService } from './missions.service';
-import {
-  MissionShallowDetails,
-  MissionWithTasks,
-} from './entities/mission.entity';
+import { MissionBackwardDetails } from './entities/mission.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
-@Resolver(() => MissionShallowDetails)
+@Resolver()
 export class MissionsResolver {
   constructor(
     private readonly missionsService: MissionsService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
-  @Mutation(() => MissionShallowDetails)
+  @Mutation(() => Boolean)
   closeMission(
     @Args('id', { type: () => Int }) id: number,
     @Args('isForce', { type: () => Boolean }) isForce: boolean,
@@ -33,29 +23,19 @@ export class MissionsResolver {
     return this.missionsService.closeMission(id, isForce);
   }
 
-  @Mutation(() => MissionShallowDetails)
+  @Mutation(() => Boolean)
   ignoreMission(@Args('id', { type: () => Int }) id: number) {
     return this.missionsService.ignoreMission(id);
   }
 
-  @Query(() => [MissionShallowDetails])
-  getAllMissions() {
-    return this.missionsService.findAll();
-  }
-
-  @Query(() => MissionWithTasks, { nullable: true })
-  findMission(@Args('id', { type: () => Int }) id: number) {
-    return this.missionsService.findOne(id);
-  }
-
-  @Subscription(() => [MissionShallowDetails], {
-    name: SUBSCRIPTION_TOKEN.missionAdded,
+  @Subscription(() => [MissionBackwardDetails], {
+    name: SUBSCRIPTION_TOKEN.missionCreated,
   })
-  subscribeToMissionAdded() {
-    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionAdded);
+  subscribeToMissionCreated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionCreated);
   }
 
-  @Subscription(() => [MissionShallowDetails], {
+  @Subscription(() => [MissionBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.missionUpdated,
   })
   subscribeToMissionUpdated() {

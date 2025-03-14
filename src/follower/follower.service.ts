@@ -1,14 +1,15 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
+import { BotStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
-import { UsersService } from 'src/users/users.service';
+import { WalletAccountsService } from 'src/wallet-accounts/wallet-accounts.service';
 import { ContractsService } from 'src/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
 
@@ -31,23 +32,28 @@ import {
 } from './dto/follower.input';
 import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
-import { BotStatus } from '@prisma/client';
+import { LogsService } from 'src/loggers/logs.service';
+import { TaskQueue } from 'src/utils/TaskQueue';
 
 @Injectable()
 export class FollowerService {
+  private depositAssetQueue: TaskQueue;
+
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
-    private usersService: UsersService,
+    private walletAccountsService: WalletAccountsService,
     private contractService: ContractsService,
     private chainsService: ChainsService,
     private tradingVariableService: TradingVariableService,
     private tradeService: TradeService,
     private pnlSnapshotsService: PnlSnapshotsService,
-    private logger: Logger,
-  ) {}
+    private logger: LogsService,
+  ) {
+    this.depositAssetQueue = new TaskQueue();
+  }
 
-  async moveAsset({
+  async depositAsset({
     address,
     contract,
     amount,
@@ -56,7 +62,126 @@ export class FollowerService {
     address: string;
     contract: Contract;
     amount: bigint;
-    kind: 'usdcDeposit' | 'usdcWithdraw' | 'ethDeposit' | 'ethWithdraw';
+    kind: 'usdc' | 'eth';
+  }) {
+    return await this.depositAssetQueue.add(
+      async () =>
+        await this.depositAssetCore({ address, contract, amount, kind }),
+    );
+  }
+
+  private async depositAssetCore({
+    address,
+    contract,
+    amount,
+    kind,
+  }: {
+    address: string;
+    contract: Contract;
+    amount: bigint;
+    kind: 'usdc' | 'eth';
+  }) {
+    try {
+      const masterFollower = await this.prismaService.follower.findUnique({
+        where: {
+          accountIndex: 1,
+        },
+      });
+
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address,
+        },
+      });
+
+      if (!follower || !masterFollower) {
+        throw new Error('Wrong address');
+      }
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        contract.id,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const masterWallet = this.chainsService.walletClient(
+        contract.chainId,
+        masterFollower,
+      );
+
+      let tx: string;
+
+      switch (kind) {
+        case 'usdc': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>depositAsset',
+            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
+          });
+
+          const { request } = await publicClient.simulateContract({
+            account: masterWallet.account,
+            address: collateralInfo.collateral,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [follower.address as Address, amount],
+          });
+
+          tx = await masterWallet.writeContract(request);
+
+          break;
+        }
+        case 'eth': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>depositAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
+          });
+
+          tx = await masterWallet.sendTransaction({
+            account: masterWallet.account!,
+            to: follower.address as Address,
+            value: amount,
+            chain: masterWallet.chain,
+          });
+
+          break;
+        }
+      }
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        return transaction.status === 'success';
+      } else {
+        return false;
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>depositAsset`,
+        details: getReadableError(err),
+      });
+    }
+
+    return false;
+  }
+
+  async withdrawAsset({
+    address,
+    contract,
+    amount,
+    kind,
+  }: {
+    address: string;
+    contract: Contract;
+    amount: bigint;
+    kind: 'usdc' | 'eth';
   }) {
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
@@ -89,18 +214,15 @@ export class FollowerService {
         follower,
       );
 
-      const masterWallet = this.chainsService.walletClient(
-        contract.chainId,
-        masterFollower,
-      );
-
       let tx: string;
 
       switch (kind) {
-        case 'usdcWithdraw': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
-          );
+        case 'usdc': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAsset',
+            details: `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
+          });
 
           const { request } = await publicClient.simulateContract({
             account: followerWallet.account,
@@ -114,27 +236,12 @@ export class FollowerService {
 
           break;
         }
-        case 'usdcDeposit': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
-          );
-
-          const { request } = await publicClient.simulateContract({
-            account: masterWallet.account,
-            address: collateralInfo.collateral,
-            abi: erc20Abi,
-            functionName: 'transfer',
-            args: [follower.address as Address, amount],
+        case 'eth': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
           });
-
-          tx = await masterWallet.writeContract(request);
-
-          break;
-        }
-        case 'ethWithdraw': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
-          );
 
           const gas = await publicClient.estimateGas({
             account: followerWallet.account?.address,
@@ -153,20 +260,6 @@ export class FollowerService {
 
           break;
         }
-        case 'ethDeposit': {
-          this.logger.log(
-            `FollowerService>moveAsset>: Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
-          );
-
-          tx = await masterWallet.sendTransaction({
-            account: masterWallet.account!,
-            to: follower.address as Address,
-            value: amount,
-            chain: masterWallet.chain,
-          });
-
-          break;
-        }
       }
 
       if (tx) {
@@ -179,7 +272,11 @@ export class FollowerService {
         return false;
       }
     } catch (err) {
-      this.logger.error(`FollowerService>moveAsset>: ${getReadableError(err)}`);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawAsset`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -205,18 +302,20 @@ export class FollowerService {
         args: [address as Address],
       });
 
-      await this.moveAsset({
+      await this.withdrawAsset({
         address,
         contract: contract,
         amount: usdcBalance,
-        kind: 'usdcWithdraw',
+        kind: 'usdc',
       });
 
       return true;
     } catch (err) {
-      this.logger.error(
-        `FollowerService>withdrawAllUSDC>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawAllUSDC`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -232,18 +331,20 @@ export class FollowerService {
         address: address as Address,
       });
 
-      await this.moveAsset({
+      await this.withdrawAsset({
         address,
         contract: contract,
         amount: ethBalance,
-        kind: 'ethWithdraw',
+        kind: 'eth',
       });
 
       return true;
     } catch (err) {
-      this.logger.error(
-        `FollowerService>withdrawAll>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawAllETH`,
+        details: getReadableError(err),
+      });
     }
 
     return false;
@@ -305,12 +406,14 @@ export class FollowerService {
 
       // find new account
       if (!followerRecord) {
-        const user = await this.usersService.getUserByAddress(
+        const user = await this.walletAccountsService.getWalletAccountByAddress(
           account.address.toLowerCase(),
         );
 
         if (!user) {
-          await this.usersService.addFollower(account.address.toLowerCase());
+          await this.walletAccountsService.addFollower(
+            account.address.toLowerCase(),
+          );
         }
 
         return await this.prismaService.follower.create({
@@ -337,9 +440,11 @@ export class FollowerService {
         });
       }
     } catch (err) {
-      this.logger.error(
-        `FollowerService>followerAssetBalanceUpdateCron>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>followerAssetBalanceUpdateCron`,
+        details: getReadableError(err),
+      });
     }
   }
 
@@ -367,7 +472,11 @@ export class FollowerService {
         ),
       }));
     } catch (err) {
-      console.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getPendingOrders`,
+        details: getReadableError(err),
+      });
     }
 
     return [];
@@ -453,7 +562,11 @@ export class FollowerService {
         ),
       }));
     } catch (err) {
-      console.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getTrades`,
+        details: getReadableError(err),
+      });
     }
 
     return [];
@@ -508,6 +621,14 @@ export class FollowerService {
             contractId: input.contractId,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>closeTradeMarket`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -528,6 +649,12 @@ export class FollowerService {
         contractId: input.contractId,
       };
     } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>getTrades`,
+        details: getReadableError(err),
+      });
+
       return {
         success: false,
         message: JSON.stringify(err, (_, v) =>
@@ -584,6 +711,14 @@ export class FollowerService {
             contractId: input.contractId,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>closeTradeMarket`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -604,6 +739,12 @@ export class FollowerService {
         contractId: input.contractId,
       };
     } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>closeTradeMarket`,
+        details: getReadableError(err),
+      });
+
       return {
         success: false,
         message: JSON.stringify(err, (_, v) =>
@@ -616,7 +757,7 @@ export class FollowerService {
     }
   }
 
-  async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
+  private async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
@@ -670,9 +811,11 @@ export class FollowerService {
         pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
       }));
     } catch (err) {
-      this.logger.error(
-        `FollowerService>loadFollowers>: ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>loadFollowers`,
+        details: getReadableError(err),
+      });
     }
 
     return [];
@@ -687,10 +830,10 @@ export class FollowerService {
       },
     });
 
-    const followerAddressesMap = new Map<string, boolean>();
+    const followerAddressesMap: Record<string, boolean> = {};
 
     activeBots.forEach((bot) => {
-      followerAddressesMap.set(bot.followerAddress, true);
+      followerAddressesMap[bot.followerAddress] = true;
     });
 
     const availableFollowers = await this.prismaService.follower.findMany({

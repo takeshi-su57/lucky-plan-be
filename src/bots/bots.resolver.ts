@@ -1,19 +1,35 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { BotsService } from './bots.service';
-import { Bot, BotDetails, BotWithMissions } from './entities/bot.entity';
-import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { BotStatus } from '@prisma/client';
 
-@Resolver(() => Bot)
-export class BotsResolver {
-  constructor(private readonly botsService: BotsService) {}
+import { BotsService } from './bots.service';
+import { BotBackwardDetails, BotConnection } from './entities/bot.entity';
+import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
 
-  @Mutation(() => BotDetails)
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+
+@Resolver()
+export class BotsResolver {
+  constructor(
+    private readonly botsService: BotsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
+
+  @Mutation(() => BotBackwardDetails)
   createBot(@Args('input') input: CreateBotInput) {
     return this.botsService.create(input);
   }
 
-  @Mutation(() => [BotDetails])
+  @Mutation(() => [BotBackwardDetails])
   batchCreateBots(
     @Args('input', { type: () => [CreateBotAndStrategyInput] })
     inputs: CreateBotAndStrategyInput[],
@@ -21,30 +37,41 @@ export class BotsResolver {
     return this.botsService.batchCreateBots(inputs);
   }
 
-  @Mutation(() => Int)
+  @Mutation(() => BotBackwardDetails)
   deleteBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.delete(id);
   }
 
-  @Mutation(() => BotDetails)
+  @Mutation(() => Boolean)
   liveBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.live(id);
   }
 
-  @Mutation(() => BotDetails)
+  @Mutation(() => Boolean)
   stopBot(@Args('id', { type: () => Int }) id: number) {
     return this.botsService.stop(id);
   }
 
-  @Query(() => [BotDetails])
-  getBotsByStatus(
-    @Args('status', { type: () => BotStatus }) status: BotStatus,
-  ) {
-    return this.botsService.findByStatus(status);
+  @Subscription(() => [BotBackwardDetails], {
+    name: SUBSCRIPTION_TOKEN.botCreated,
+  })
+  subscribeToBotCreated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botCreated);
   }
 
-  @Query(() => BotWithMissions, { nullable: true })
-  findBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.findBotWithMissions(id);
+  @Subscription(() => [BotBackwardDetails], {
+    name: SUBSCRIPTION_TOKEN.botUpdated,
+  })
+  subscribeToBotUpdated() {
+    return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botUpdated);
+  }
+
+  @Query(() => BotConnection)
+  getBotsByStatus(
+    @Args('status', { type: () => BotStatus }) status: BotStatus,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.botsService.findByStatus(status, first, after);
   }
 }

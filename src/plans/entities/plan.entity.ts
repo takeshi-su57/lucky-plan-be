@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { PlanStatus } from '@prisma/client';
 
-import { BotDetails } from 'src/bots/entities/bot.entity';
+import { BotForwardDetails } from 'src/bots/entities/bot.entity';
 
 registerEnumType(PlanStatus, {
   name: 'PlanStatus',
@@ -35,7 +35,26 @@ export class Plan {
 }
 
 @ObjectType()
-export class PlanDetails extends Plan {
-  @Field(() => [BotDetails])
-  bots: BotDetails[];
+export class PlanForwardDetails extends Plan {
+  @Field(() => [BotForwardDetails])
+  bots: BotForwardDetails[];
+}
+
+@ObjectType()
+export class PlanEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => PlanForwardDetails) node: PlanForwardDetails;
+}
+
+@ObjectType()
+export class PlanPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class PlanConnection {
+  @Field(() => [PlanEdge])
+  edges: PlanEdge[];
+  @Field(() => PlanPageInfo) pageInfo: PlanPageInfo;
 }

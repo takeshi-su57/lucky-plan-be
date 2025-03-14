@@ -6,7 +6,11 @@ import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { PrismaService } from './prisma.service';
 import { Collateral, Pair } from 'src/types';
 
-import { Contract, TradePair } from 'src/contracts/entities/contract.entity';
+import {
+  Contract,
+  TradeCollateral,
+  TradePair,
+} from 'src/contracts/entities/contract.entity';
 
 export type TradingVariable = {
   pairs: (Pair | undefined)[];
@@ -156,5 +160,21 @@ export class TradingVariableService {
     }
 
     return this.tradingVariable[contractId].collaterals[collateralIndex - 1];
+  }
+
+  getTradeCollaterals(contractId: number): TradeCollateral[] {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].collaterals.map(
+      (collateral, index) => ({
+        collateralIndex: index + 1,
+        collateral: collateral.collateral,
+        isActive: collateral.isActive,
+        precision: collateral.precision.toString(),
+        precisionDelta: collateral.precisionDelta.toString(),
+      }),
+    );
   }
 }

@@ -103,22 +103,22 @@ export class PnlSnapshotDetails extends PnlSnapshot {
 }
 
 @ObjectType()
-export class PageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
-}
-
-@ObjectType()
 export class PnlSnapshotDetailsEdge {
   @Field(() => Int) cursor: number;
   @Field(() => PnlSnapshotDetails) node: PnlSnapshotDetails;
 }
 
 @ObjectType()
+export class PnlSnapshotDetailsPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
 export class PnlSnapshotDetailsConnection {
   @Field(() => [PnlSnapshotDetailsEdge])
   edges: PnlSnapshotDetailsEdge[];
-  @Field(() => PageInfo) pageInfo: PageInfo;
+  @Field(() => PnlSnapshotDetailsPageInfo) pageInfo: PnlSnapshotDetailsPageInfo;
 }
 
 @ObjectType()

@@ -25,6 +25,18 @@ export class TradeHistoriesResolver {
     return this.pnlSnapshotsService.buildSnapshots(dateStr, isForceBuild);
   }
 
+  @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  dynamicSnapshotBuild(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+  ) {
+    return this.pnlSnapshotsService.dynamicSnapshotBuild(dateStr);
+  }
+
+  @Mutation(() => Boolean)
+  initializePnlSnapshot() {
+    return this.pnlSnapshotsService.initializePnlSnapshot();
+  }
+
   @Query(() => PnlSnapshotInitializedFlag, { nullable: true })
   isPnlSnapshotInitialized(
     @Args('dateStr', { type: () => String }) dateStr: string,

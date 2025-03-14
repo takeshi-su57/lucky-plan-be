@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ActionItem } from 'src/actions/entities/action.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -26,10 +26,13 @@ export class TradeHistoriesService {
   constructor(
     private prismaService: PrismaService,
     private tradingVariableServcie: TradingVariableService,
-    private logger: Logger,
   ) {}
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
     return await this.prismaService.tradeHistory.createManyAndReturn({
       data: inputs.map((input) => ({
         ...input,

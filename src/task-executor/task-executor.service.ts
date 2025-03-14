@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
 import { MissionStatus, TaskStatus } from '@prisma/client';
 
@@ -29,12 +29,13 @@ import {
 } from 'src/strategy/strategy-library';
 import { CloseMissionActionArgs, TradeType } from 'src/types';
 
-import { TaskDetails } from 'src/tasks/entities/task.entity';
+import { TaskShallowBackwardDetails } from 'src/tasks/entities/task.entity';
 
 import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
 import { FollowerService } from 'src/follower/follower.service';
+import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
 export class TaskExecutorService {
@@ -48,11 +49,11 @@ export class TaskExecutorService {
     private tradingVariableService: TradingVariableService,
     private missionsService: MissionsService,
     private tasksService: TasksService,
-    private readonly logger: Logger,
+    private readonly logger: LogsService,
   ) {}
 
   private async performTask(
-    task: TaskDetails,
+    task: TaskShallowBackwardDetails,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const { action, mission } = task;
@@ -118,14 +119,20 @@ export class TaskExecutorService {
               BigInt(followerTradeData.collateralAmount);
 
             if (collateralDelta > 0n) {
-              const result = await this.followerService.moveAsset({
+              const result = await this.followerService.depositAsset({
                 address: follower.address,
                 contract: followerContract,
                 amount: collateralDelta + collateralDelta / 100n,
-                kind: 'usdcDeposit',
+                kind: 'usdc',
               });
 
               if (!result) {
+                await this.logger.log({
+                  severity: 'Error',
+                  summary: 'TaskExecutorService>performTask',
+                  details: `Failed at borrowing usdc from vault`,
+                });
+
                 return {
                   success: false,
                   message: `Failed at borrowing usdc from vault`,
@@ -176,14 +183,20 @@ export class TaskExecutorService {
               };
             }
 
-            const result = await this.followerService.moveAsset({
+            const result = await this.followerService.depositAsset({
               address: follower.address,
               contract: followerContract,
               amount: increaseParams.collateralDelta,
-              kind: 'usdcDeposit',
+              kind: 'usdc',
             });
 
             if (!result) {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: `Failed at borrowing usdc from vault`,
+              });
+
               return {
                 success: false,
                 message: `Failed at borrowing usdc from vault`,
@@ -241,6 +254,14 @@ export class TaskExecutorService {
                 message: `Task achieved`,
               };
             } else {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              });
+
               return {
                 success: false,
                 message: JSON.stringify(transaction.logs, (_, v) =>
@@ -281,6 +302,14 @@ export class TaskExecutorService {
                 message: `Task achieved`,
               };
             } else {
+              await this.logger.log({
+                severity: 'Error',
+                summary: 'TaskExecutorService>performTask',
+                details: JSON.stringify(transaction.logs, (_, v) =>
+                  typeof v === 'bigint' ? v.toString() : v,
+                ),
+              });
+
               return {
                 success: false,
                 message: JSON.stringify(transaction.logs, (_, v) =>
@@ -338,14 +367,20 @@ export class TaskExecutorService {
               );
 
               if (openMissionParams.collateralAmount > 0n) {
-                const result = await this.followerService.moveAsset({
+                const result = await this.followerService.depositAsset({
                   address: follower.address,
                   contract: followerContract,
                   amount: openMissionParams.collateralAmount,
-                  kind: 'usdcDeposit',
+                  kind: 'usdc',
                 });
 
                 if (!result) {
+                  await this.logger.log({
+                    severity: 'Error',
+                    summary: 'TaskExecutorService>performTask',
+                    details: 'Failed at borrowing usdc from vault',
+                  });
+
                   return {
                     success: false,
                     message: `Failed at borrowing usdc from vault`,
@@ -408,6 +443,14 @@ export class TaskExecutorService {
                     message: `Task achieved`,
                   };
                 } else {
+                  await this.logger.log({
+                    severity: 'Error',
+                    summary: 'TaskExecutorService>performTask',
+                    details: JSON.stringify(transaction.logs, (_, v) =>
+                      typeof v === 'bigint' ? v.toString() : v,
+                    ),
+                  });
+
                   return {
                     success: false,
                     message: JSON.stringify(transaction.logs, (_, v) =>
@@ -434,6 +477,14 @@ export class TaskExecutorService {
             message: `Task achieved`,
           };
         } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: 'TaskExecutorService>performTask',
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
           return {
             success: false,
             message: JSON.stringify(transaction.logs, (_, v) =>
@@ -445,7 +496,11 @@ export class TaskExecutorService {
         throw new Error('Error at waiting for transaction receipt');
       }
     } catch (err) {
-      this.logger.log(err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performTask',
+        details: getReadableError(err),
+      });
 
       return {
         success: false,
@@ -454,13 +509,18 @@ export class TaskExecutorService {
     }
   }
 
-  async performTaskById(taskId: number) {
+  async performTaskById(taskId: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id: taskId,
       },
       include: {
         action: true,
+        followerActions: {
+          include: {
+            action: true,
+          },
+        },
         mission: {
           include: {
             bot: {
@@ -512,13 +572,18 @@ export class TaskExecutorService {
       },
     ]);
 
-    return task;
+    return true;
   }
 
   async performAvailableTasks() {
     this.status = 'process';
 
     try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>performAvailableTasks',
+      });
+
       const allTasks = await this.prismaService.task.findMany({
         where: {
           status: {
@@ -532,6 +597,11 @@ export class TaskExecutorService {
         },
         include: {
           action: true,
+          followerActions: {
+            include: {
+              action: true,
+            },
+          },
           mission: {
             include: {
               bot: {
@@ -549,7 +619,10 @@ export class TaskExecutorService {
         },
       });
 
-      const allTasksByBotMap = new Map<number, Map<number, TaskDetails[]>>();
+      const allTasksByBotMap = new Map<
+        number,
+        Map<number, TaskShallowBackwardDetails[]>
+      >();
       const awaitBotsMap = new Map<number, boolean>();
 
       allTasks.forEach((task) => {
@@ -568,20 +641,20 @@ export class TaskExecutorService {
             tasksByMissionMap.set(task.missionId, [task]);
           }
         } else {
-          const tempMap = new Map<number, TaskDetails[]>();
+          const tempMap = new Map<number, TaskShallowBackwardDetails[]>();
           tempMap.set(task.missionId, [task]);
           allTasksByBotMap.set(task.mission.botId, tempMap);
         }
       });
 
-      const botTasks: TaskDetails[] = [];
+      const botTasks: TaskShallowBackwardDetails[] = [];
 
       for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
         if (awaitBotsMap.get(botId)) {
           continue;
         }
 
-        let botTask: TaskDetails | null = null;
+        let botTask: TaskShallowBackwardDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
           if (botTask) {
@@ -645,7 +718,11 @@ export class TaskExecutorService {
           })),
       );
     } catch (err) {
-      this.logger.error('Error at task perform', err);
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performAvailableTasks',
+        details: getReadableError(err),
+      });
     }
 
     this.status = 'ready';

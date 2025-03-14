@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BotStatus, Contract } from '@prisma/client';
 import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
+import { PubSub } from 'graphql-subscriptions';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { ChainsService } from 'src/global/chains.service';
@@ -13,7 +14,11 @@ import {
 } from './dto/bot.input';
 
 import { ActionContext, BotContext } from 'src/types';
-import { BotDetails, BotWithMissions } from './entities/bot.entity';
+import {
+  BotConnection,
+  BotDetails,
+  BotBackwardDetails,
+} from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
 import { ActionsService } from 'src/actions/actions.service';
@@ -23,6 +28,10 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/strategy/strategy.service';
+import { LogsService } from 'src/loggers/logs.service';
+
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { PUB_SUB } from 'src/global/global.module';
 
 @Injectable()
 export class BotsService {
@@ -30,6 +39,7 @@ export class BotsService {
   status: 'ready' | 'progress' = 'ready';
 
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
     private chainsService: ChainsService,
     private missionsService: MissionsService,
@@ -37,12 +47,12 @@ export class BotsService {
     private actionsService: ActionsService,
     private tradingVariableService: TradingVariableService,
     private strategyService: StrategyService,
-    private logger: Logger,
+    private logger: LogsService,
   ) {
     this.loadBots();
   }
 
-  async create(input: CreateBotInput) {
+  async create(input: CreateBotInput): Promise<BotBackwardDetails> {
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
@@ -55,16 +65,27 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        plan: true,
       },
     });
 
     this.bots.push(newBot);
 
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+      [SUBSCRIPTION_TOKEN.botCreated]: [newBot],
+    });
+
     return newBot;
   }
 
-  async batchCreateBots(inputs: CreateBotAndStrategyInput[]) {
-    const bots: BotDetails[] = [];
+  async batchCreateBots(
+    inputs: CreateBotAndStrategyInput[],
+  ): Promise<BotBackwardDetails[]> {
+    if (inputs.length === 0) {
+      return [];
+    }
+
+    const bots: BotBackwardDetails[] = [];
 
     const followers = await this.followersService.getAvailableFollowers(
       inputs.length,
@@ -93,10 +114,14 @@ export class BotsService {
       bots.push(bot);
     }
 
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+      [SUBSCRIPTION_TOKEN.botCreated]: bots,
+    });
+
     return bots;
   }
 
-  async delete(id: number) {
+  async delete(id: number): Promise<BotBackwardDetails> {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
     });
@@ -111,6 +136,13 @@ export class BotsService {
 
     const deletedBot = await this.prismaService.bot.delete({
       where: { id },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        plan: true,
+      },
     });
 
     if (!deletedBot) {
@@ -119,11 +151,17 @@ export class BotsService {
 
     this.bots = this.bots.filter((item) => item.id !== id);
 
-    return id;
+    return deletedBot;
   }
 
-  async reBalanceAsset(bot: BotDetails) {
+  private async reBalanceAsset(bot: BotDetails) {
     try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'BotsService>reBalanceAsset',
+        details: `BotId: ${bot.id}`,
+      });
+
       const { followerContract, follower } = bot;
 
       const publicClient = this.chainsService.publicClient(
@@ -135,15 +173,19 @@ export class BotsService {
       });
 
       if (ethBalance < MIN_GAS) {
-        await this.followersService.moveAsset({
+        await this.followersService.depositAsset({
           address: follower.address,
           contract: followerContract,
           amount: MAX_GAS - ethBalance,
-          kind: 'ethDeposit',
+          kind: 'eth',
         });
       }
     } catch (err) {
-      this.logger.error('BotsService>reBalanceAsset> ', getReadableError(err));
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'BotsService>reBalanceAsset',
+        details: getReadableError(err),
+      });
     }
   }
 
@@ -151,11 +193,14 @@ export class BotsService {
     this.status = 'progress';
 
     try {
-      this.logger.log('BotsService>: Rebalancing Bots');
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'BotsService>checkAndUpdateAllBots',
+      });
 
-      const promises = this.bots.map(async (bot) => {
+      for (const bot of this.bots) {
         if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
-          return;
+          continue;
         }
 
         if (bot.status === BotStatus.Live && bot.startedAt) {
@@ -178,19 +223,19 @@ export class BotsService {
         }
 
         await this.reBalanceAsset(bot);
-      });
-
-      await Promise.all(promises);
+      }
     } catch (err) {
-      this.logger.error(
-        `BotsService>checkAndUpdateAllBots> ${getReadableError(err)}`,
-      );
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'BotsService>checkAndUpdateAllBots',
+        details: getReadableError(err),
+      });
     }
 
     this.status = 'ready';
   }
 
-  async update(input: BotUpdateInput) {
+  async update(input: BotUpdateInput): Promise<BotBackwardDetails> {
     const updatedBot = await this.prismaService.bot.update({
       where: {
         id: input.id,
@@ -201,6 +246,7 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        plan: true,
       },
     });
 
@@ -212,58 +258,67 @@ export class BotsService {
       this.bots.push(updatedBot);
     }
 
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botUpdated, {
+      [SUBSCRIPTION_TOKEN.botUpdated]: [updatedBot],
+    });
+
     return updatedBot;
   }
 
-  async findAll(): Promise<BotDetails[]> {
-    return this.prismaService.bot.findMany({
-      include: {
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-      },
-    });
-  }
-
-  async findByStatus(status: BotStatus): Promise<BotDetails[]> {
-    return this.prismaService.bot.findMany({
+  async findByStatus(
+    status: BotStatus,
+    first: number,
+    after: number | null,
+  ): Promise<BotConnection> {
+    const records = await this.prismaService.bot.findMany({
+      skip: after ? 1 : undefined,
+      take: first,
+      cursor: after
+        ? {
+            id: after,
+          }
+        : undefined,
       where: { status },
+      orderBy: { id: 'desc' },
       include: {
         follower: true,
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        missions: {
+          include: {
+            targetPosition: true,
+            achievePosition: true,
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
-  }
 
-  find(status: BotStatus) {
-    return this.prismaService.bot.findMany({
-      where: { status },
-      include: {
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
+    const edges = records.map((record) => ({
+      cursor: record.id,
+      node: record,
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
-    });
+    };
   }
 
-  findBotWithMissions(id: number): Promise<BotWithMissions | null> {
-    return this.prismaService.bot.findUnique({
-      where: { id },
-      include: {
-        missions: true,
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-      },
-    });
-  }
-
-  async findOne(id: number) {
+  private async findOne(id: number) {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
       include: {
@@ -286,7 +341,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  async live(id: number) {
+  async live(id: number): Promise<boolean> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -348,13 +403,15 @@ export class BotsService {
       .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
-    return await this.update({
+    await this.update({
       id,
       leaderStartedBlock: Number(leaderBlockNumber),
       followerStartedBlock: Number(followerBlockNumber),
       startedAt: new Date(),
       status: BotStatus.Live,
     });
+
+    return true;
   }
 
   private async _stop(bot: BotDetails) {
@@ -379,14 +436,16 @@ export class BotsService {
     });
   }
 
-  async stop(id: number) {
+  async stop(id: number): Promise<boolean> {
     const bot = await this.findOne(id);
 
     if (!bot) {
       throw new Error('Invalid bot id');
     }
 
-    return this._stop(bot);
+    await this._stop(bot);
+
+    return true;
   }
 
   private async _kill(bot: BotDetails) {
@@ -410,7 +469,7 @@ export class BotsService {
     });
   }
 
-  async kill(id: number) {
+  async kill(id: number): Promise<BotBackwardDetails> {
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -420,11 +479,18 @@ export class BotsService {
     return this._kill(bot);
   }
 
-  async loadBots() {
-    this.bots = await this.findAll();
+  private async loadBots() {
+    this.bots = await this.prismaService.bot.findMany({
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+      },
+    });
   }
 
-  filterBots(contractId: number, blockNumber: number) {
+  private filterBots(contractId: number, blockNumber: number) {
     const leaderBots: BotDetails[] = [];
     const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];

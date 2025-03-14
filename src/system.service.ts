@@ -9,6 +9,7 @@ import { PlansService } from './plans/plans.service';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
+import { FollowerService } from './follower/follower.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -24,6 +25,7 @@ export class SystemService {
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
     private plansService: PlansService,
+    private followerService: FollowerService,
   ) {
     this.isPaused = false;
 
@@ -61,7 +63,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_SECOND)
   async executeTaskCron() {
     if (this.isPaused) {
       return;
@@ -114,16 +116,11 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
     if (this.pnlSnapshotService.status === 'ready') {
-      await this.pnlSnapshotService.buildSnapshots(
-        dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD'),
-        true,
-      );
-      await this.pnlSnapshotService.buildSnapshots(
+      await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
-        true,
       );
     }
   }
