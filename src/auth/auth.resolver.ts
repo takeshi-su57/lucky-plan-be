@@ -1,23 +1,36 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
+import { UserPermission } from '@prisma/client';
+import { UseGuards } from '@nestjs/common';
 
+import { GqlAuthGuard } from './gql-auth.guard';
 import { AuthService } from './auth.service';
-import { GetTokenResponse } from './dto/auth.response';
-import { GetTokenInput, ChangePasswordInput } from './dto/auth.input';
+import { AccessToken, User } from './entities/auth.entity';
 
 @Resolver()
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
-  @Mutation(() => GetTokenResponse)
-  getToken(@Args('input') input: GetTokenInput) {
-    return this.authService.getToken(input.password);
+  @Query(() => [User])
+  @UseGuards(GqlAuthGuard)
+  getAllUsers() {
+    return this.authService.getAllUsers();
   }
 
-  @Mutation(() => Boolean)
-  changePassword(@Args('input') input: ChangePasswordInput) {
-    return this.authService.changePassword(
-      input.oldPassword,
-      input.newPassword,
-    );
+  @Mutation(() => User)
+  @UseGuards(GqlAuthGuard)
+  changeUserPermission(
+    @Args('address') address: string,
+    @Args('permission') permission: UserPermission,
+  ) {
+    return this.authService.changePermission(address, permission);
+  }
+
+  @Mutation(() => AccessToken)
+  getToken(
+    @Args('walletAddress') walletAddress: `0x${string}`,
+    @Args('signature') signature: `0x${string}`,
+    @Args('timestamp') timestamp: string,
+  ) {
+    return this.authService.getToken(walletAddress, signature, +timestamp);
   }
 }

@@ -5,11 +5,11 @@ import { PrismaService } from 'src/global/prisma.service';
 import { ChangeUserTagInput } from './dto/user.input';
 
 @Injectable()
-export class UsersService {
+export class WalletAccountsService {
   constructor(private prismaService: PrismaService) {}
 
-  addUser(address: string) {
-    return this.prismaService.user.upsert({
+  addWalletAccount(address: string) {
+    return this.prismaService.walletAccount.upsert({
       where: { address: address.toLowerCase() },
       update: {},
       create: {
@@ -22,7 +22,7 @@ export class UsersService {
   }
 
   addFollower(address: string) {
-    return this.prismaService.user.upsert({
+    return this.prismaService.walletAccount.upsert({
       where: { address: address.toLowerCase() },
       update: {
         tags: {
@@ -60,7 +60,7 @@ export class UsersService {
   }
 
   addTag(input: ChangeUserTagInput) {
-    return this.prismaService.user.upsert({
+    return this.prismaService.walletAccount.upsert({
       where: {
         address: input.address.toLowerCase(),
       },
@@ -86,7 +86,7 @@ export class UsersService {
   }
 
   removeTag(input: ChangeUserTagInput) {
-    return this.prismaService.user.update({
+    return this.prismaService.walletAccount.update({
       where: {
         address: input.address.toLowerCase(),
       },
@@ -103,8 +103,8 @@ export class UsersService {
     });
   }
 
-  getUserByAddress(address: string) {
-    return this.prismaService.user.findUnique({
+  getWalletAccountByAddress(address: string) {
+    return this.prismaService.walletAccount.findUnique({
       where: {
         address: address.toLowerCase(),
       },
@@ -114,7 +114,9 @@ export class UsersService {
     });
   }
 
-  getAllUsers() {
-    return this.prismaService.user.findMany({ include: { tags: true } });
+  getAllWalletAccounts() {
+    return this.prismaService.walletAccount.findMany({
+      include: { tags: true },
+    });
   }
 }

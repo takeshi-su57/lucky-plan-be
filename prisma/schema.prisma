@@ -13,50 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// system level models
+
 model Metadata {
   id        Int      @id @default(autoincrement())
   key       String   @unique @db.VarChar(255)
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum BotStatus {
-  Created
-  Live
-  Stop
-  Dead
-}
-
-model TagCategory {
-  id          Int    @id @default(autoincrement())
-  category    String @unique()
-  description String
-
-  Tag Tag[]
-}
-
-model Tag {
-  tag         String @id @db.VarChar(255)
-  description String
-  color       String
-  categoryId  Int?
-
-  category TagCategory? @relation(fields: [categoryId], references: [id])
-  users    User[]
-}
-
-model User {
-  address String @id @db.VarChar(255)
-  tags    Tag[]
-}
-
-model Follower {
-  address      String @id @db.VarChar(255)
-  publicKey    String @unique
-  accountIndex Int    @unique // this is master follower
-
-  bots Bot[]
 }
 
 model StrategyMetadata {
@@ -105,6 +69,148 @@ model Contract {
   positions    Position[]
 
   @@unique([chainId, address])
+}
+
+enum TradeActionType {
+  TradeOpenedMarket
+  TradeOpenedLimit
+  TradeClosedMarket
+  TradeClosedLIQ
+  TradeClosedSL
+  TradeClosedTP
+  TradeLeverageUpdate
+  TradePosSizeIncrease
+  TradePosSizeDecrease
+}
+
+model TradeHistory {
+  id                 Int             @id @default(autoincrement())
+  address            String
+  action             TradeActionType
+  contractId         Int
+  pair               String
+  price              String
+  collateralPriceUsd String
+  long               Int
+  size               String
+  leverage           Int
+  pnl                String
+  collateralIndex    Int
+  tradeIndex         Int
+  collateralDelta    String?
+  leverageDelta      Int?
+  marketPrice        String?
+  tradeId            String?
+  block              Int
+  date               DateTime
+
+  @@index([address, contractId, block(sort: Asc)])
+}
+
+enum PnlSnapshotKind {
+  DAY
+  TWO_DAY
+  THREE_DAY
+  WEEK
+  TWO_WEEK
+  MONTH
+  THREE_MONTH
+  HALF_YEAR
+  YEAR
+  ALL_TIME
+}
+
+model PnlSnapshot {
+  id         Int             @id @default(autoincrement())
+  address    String
+  contractId Int
+  dateStr    String // YYYY-MM-DD
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
+
+  @@unique([address, contractId, dateStr, kind])
+  @@index([accUSDPnl(sort: Desc)])
+}
+
+model PnlSnapshotInitializedFlag {
+  id      Int     @id @default(autoincrement())
+  dateStr String  @unique // YYYY-MM-DD
+  isInit  Boolean @default(false)
+}
+
+enum LogSeverity {
+  Emergency
+  Alert
+  Critical
+  Error
+  Warning
+  Notice
+  Info
+  Debug
+  Default
+}
+
+model Log {
+  id        Int         @id @default(autoincrement())
+  severity  LogSeverity
+  timestamp DateTime    @default(now())
+  summary   String
+  details   String?
+  checked   Boolean     @default(false)
+
+  @@index([severity, timestamp(sort: Desc)])
+}
+
+// bot level models
+
+enum UserPermission {
+  Admin
+  Trader
+  Trial
+}
+
+model User {
+  address    String         @unique
+  mnemonic   String
+  permission UserPermission
+}
+
+enum BotStatus {
+  Created
+  Live
+  Stop
+  Dead
+}
+
+model TagCategory {
+  id          Int    @id @default(autoincrement())
+  category    String @unique()
+  description String
+
+  Tag Tag[]
+}
+
+model Tag {
+  tag         String @id @db.VarChar(255)
+  description String
+  color       String
+  categoryId  Int?
+
+  category TagCategory?    @relation(fields: [categoryId], references: [id])
+  wallets  WalletAccount[]
+}
+
+model WalletAccount {
+  address String @id @db.VarChar(255)
+  tags    Tag[]
+}
+
+model Follower {
+  address      String @id @db.VarChar(255)
+  publicKey    String @unique
+  accountIndex Int    @unique // this is master follower
+
+  bots Bot[]
 }
 
 enum PlanStatus {
@@ -239,94 +345,4 @@ model FollowerAction {
   task   Task   @relation(fields: [taskId], references: [id])
 
   @@unique([actionId, taskId])
-}
-
-enum TradeActionType {
-  TradeOpenedMarket
-  TradeOpenedLimit
-  TradeClosedMarket
-  TradeClosedLIQ
-  TradeClosedSL
-  TradeClosedTP
-  TradeLeverageUpdate
-  TradePosSizeIncrease
-  TradePosSizeDecrease
-}
-
-model TradeHistory {
-  id                 Int             @id @default(autoincrement())
-  address            String
-  action             TradeActionType
-  contractId         Int
-  pair               String
-  price              String
-  collateralPriceUsd String
-  long               Int
-  size               String
-  leverage           Int
-  pnl                String
-  collateralIndex    Int
-  tradeIndex         Int
-  collateralDelta    String?
-  leverageDelta      Int?
-  marketPrice        String?
-  tradeId            String?
-  block              Int
-  date               DateTime
-
-  @@index([address, contractId, block(sort: Asc)])
-}
-
-enum PnlSnapshotKind {
-  DAY
-  TWO_DAY
-  THREE_DAY
-  WEEK
-  TWO_WEEK
-  MONTH
-  THREE_MONTH
-  HALF_YEAR
-  YEAR
-  ALL_TIME
-}
-
-model PnlSnapshot {
-  id         Int             @id @default(autoincrement())
-  address    String
-  contractId Int
-  dateStr    String // YYYY-MM-DD
-  kind       PnlSnapshotKind
-  accUSDPnl  Float
-
-  @@unique([address, contractId, dateStr, kind])
-  @@index([accUSDPnl(sort: Desc)])
-}
-
-model PnlSnapshotInitializedFlag {
-  id      Int     @id @default(autoincrement())
-  dateStr String  @unique // YYYY-MM-DD
-  isInit  Boolean @default(false)
-}
-
-enum LogSeverity {
-  Emergency
-  Alert
-  Critical
-  Error
-  Warning
-  Notice
-  Info
-  Debug
-  Default
-}
-
-model Log {
-  id        Int         @id @default(autoincrement())
-  severity  LogSeverity
-  timestamp DateTime    @default(now())
-  summary   String
-  details   String?
-  checked   Boolean     @default(false)
-
-  @@index([severity, timestamp(sort: Desc)])
 }

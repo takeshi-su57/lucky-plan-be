@@ -9,7 +9,7 @@ import { BotStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
-import { UsersService } from 'src/users/users.service';
+import { WalletAccountsService } from 'src/wallet-accounts/wallet-accounts.service';
 import { ContractsService } from 'src/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
 
@@ -42,7 +42,7 @@ export class FollowerService {
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
-    private usersService: UsersService,
+    private walletAccountsService: WalletAccountsService,
     private contractService: ContractsService,
     private chainsService: ChainsService,
     private tradingVariableService: TradingVariableService,
@@ -406,12 +406,14 @@ export class FollowerService {
 
       // find new account
       if (!followerRecord) {
-        const user = await this.usersService.getUserByAddress(
+        const user = await this.walletAccountsService.getWalletAccountByAddress(
           account.address.toLowerCase(),
         );
 
         if (!user) {
-          await this.usersService.addFollower(account.address.toLowerCase());
+          await this.walletAccountsService.addFollower(
+            account.address.toLowerCase(),
+          );
         }
 
         return await this.prismaService.follower.create({
