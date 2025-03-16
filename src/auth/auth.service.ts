@@ -130,7 +130,7 @@ export class AuthService {
   }
 
   async changePermission(address: string, permission: UserPermission) {
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       select: {
         address: true,
         permission: true,

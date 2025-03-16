@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Args,
@@ -14,6 +14,7 @@ import { TaskBackwardDetails } from './entities/task.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 
 @Resolver()
 export class TasksResolver {
@@ -23,11 +24,13 @@ export class TasksResolver {
   ) {}
 
   @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
   stopTask(@Args('id', { type: () => Int }) id: number) {
     return this.tasksService.stopTask(id);
   }
 
   @Query(() => [TaskBackwardDetails])
+  @UseGuards(GqlAuthGuard)
   async getAlertTasks() {
     return this.tasksService.getAlertTasks();
   }
@@ -35,6 +38,7 @@ export class TasksResolver {
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskCreated,
   })
+  @UseGuards(GqlAuthGuard)
   subscribeToTaskCreated() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskCreated);
   }
@@ -42,6 +46,7 @@ export class TasksResolver {
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskUpdated,
   })
+  @UseGuards(GqlAuthGuard)
   subscribeToTaskUpdated() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskUpdated);
   }

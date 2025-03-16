@@ -6,7 +6,7 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -26,6 +26,7 @@ import {
   GetFollowerByAddressInput,
   WithdrawAllInput,
 } from './dto/follower.input';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 
 @Resolver(() => FollowerDetail)
 export class FollowerResolver {
@@ -35,11 +36,13 @@ export class FollowerResolver {
   ) {}
 
   @Mutation(() => Follower)
+  @UseGuards(GqlAuthGuard)
   generateNewFollower() {
     return this.followerService.generateNewFollower();
   }
 
   @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
   withdrawAllUSDC(@Args('input') input: WithdrawAllInput) {
     return this.followerService.withdrawAllUSDC(
       input.address,
@@ -48,16 +51,19 @@ export class FollowerResolver {
   }
 
   @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
   withdrawAllETH(@Args('input') input: WithdrawAllInput) {
     return this.followerService.withdrawAllETH(input.address, input.contractId);
   }
 
   @Mutation(() => ContractExecutionResult)
+  @UseGuards(GqlAuthGuard)
   closeTradeMarket(@Args('input') input: CloseTradeInput) {
     return this.followerService.closeTradeMarket(input);
   }
 
   @Mutation(() => ContractExecutionResult)
+  @UseGuards(GqlAuthGuard)
   cancelOrderAfterTimeout(@Args('input') input: CancelOrderAfterTimeoutInput) {
     return this.followerService.cancelOrderAfterTimeout(input);
   }
@@ -79,16 +85,19 @@ export class FollowerResolver {
   }
 
   @Query(() => String)
+  @UseGuards(GqlAuthGuard)
   getFollowerPrivateKey(@Args('input') input: GetFollowerByAddressInput) {
     return this.followerService.getPrivateKey(input.address);
   }
 
   @Query(() => [Follower])
+  @UseGuards(GqlAuthGuard)
   getAllFollowers() {
     return this.followerService.findAll();
   }
 
   @Query(() => [FollowerDetail])
+  @UseGuards(GqlAuthGuard)
   getAllFollowerDetails(
     @Args('contractId', { type: () => Int }) contractId: number,
   ) {
@@ -100,6 +109,7 @@ export class FollowerResolver {
     filter: (payload, variables) =>
       payload.followerDetailsUpdated.contractId === variables.contractId,
   })
+  @UseGuards(GqlAuthGuard)
   subscribeToMissionUpdated(
     @Args('contractId', { type: () => Int }) _contractId: number,
   ) {

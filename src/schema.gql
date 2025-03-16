@@ -116,11 +116,6 @@ input CancelOrderAfterTimeoutInput {
   index: Int!
 }
 
-input ChangeContractStatusInput {
-  id: Int!
-  status: String!
-}
-
 input ChangeUserTagInput {
   address: String!
   tag: String!
@@ -173,13 +168,6 @@ input CreateBotInput {
   leaderContractId: Int!
   planId: Int
   strategyId: Int!
-}
-
-input CreateContractInput {
-  address: String!
-  chainId: Int!
-  description: String!
-  lastBlockNumber: Int!
 }
 
 input CreatePlanInput {
@@ -358,13 +346,11 @@ type Mutation {
   batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotBackwardDetails!]!
   buildPnlSnapshots(dateStr: String!, isForceBuild: Boolean!): PnlSnapshotInitializedFlag
   cancelOrderAfterTimeout(input: CancelOrderAfterTimeoutInput!): ContractExecutionResult!
-  changeContractStatus(input: ChangeContractStatusInput!): Contract!
   changeUserPermission(address: String!, permission: String!): User!
   checkLog(id: Int!): Log!
   closeMission(id: Int!, isForce: Boolean!): Boolean!
   closeTradeMarket(input: CloseTradeInput!): ContractExecutionResult!
   createBot(input: CreateBotInput!): BotBackwardDetails!
-  createContract(input: CreateContractInput!): Contract!
   createPlan(createPlanInput: CreatePlanInput!): Plan!
   createStrategy(input: CreateStrategyInput!): Strategy!
   deleteBot(id: Int!): BotBackwardDetails!

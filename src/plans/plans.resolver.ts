@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Query,
@@ -20,6 +20,7 @@ import {
   PlanForwardDetails,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 
 @Resolver()
 export class PlansResolver {
@@ -29,31 +30,37 @@ export class PlansResolver {
   ) {}
 
   @Mutation(() => Plan)
+  @UseGuards(GqlAuthGuard)
   createPlan(@Args('createPlanInput') createPlanInput: CreatePlanInput) {
     return this.plansService.create(createPlanInput);
   }
 
   @Mutation(() => Int)
+  @UseGuards(GqlAuthGuard)
   deletePlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.delete(id);
   }
 
   @Mutation(() => Plan)
+  @UseGuards(GqlAuthGuard)
   updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
     return this.plansService.update(updatePlanInput);
   }
 
   @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
   startPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.start(id);
   }
 
   @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
   endPlan(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.end(id);
   }
 
   @Mutation(() => PlanForwardDetails)
+  @UseGuards(GqlAuthGuard)
   addBotsToPlan(
     @Args('planId', { type: () => Int }) planId: number,
     @Args('botIds', { type: () => [Int] }) botIds: number[],
@@ -64,6 +71,7 @@ export class PlansResolver {
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planCreated,
   })
+  @UseGuards(GqlAuthGuard)
   subscribeToPlanCreated() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planCreated);
   }
@@ -71,11 +79,13 @@ export class PlansResolver {
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planUpdated,
   })
+  @UseGuards(GqlAuthGuard)
   subscribeToPlanUpdated() {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
   }
 
   @Query(() => PlanConnection)
+  @UseGuards(GqlAuthGuard)
   getPlansByStatus(
     @Args('status', { type: () => PlanStatus })
     status: PlanStatus,
@@ -86,6 +96,7 @@ export class PlansResolver {
   }
 
   @Query(() => PlanForwardDetails, { nullable: true })
+  @UseGuards(GqlAuthGuard)
   getPlanById(@Args('id', { type: () => Int }) id: number) {
     return this.plansService.getPlanById(id);
   }
