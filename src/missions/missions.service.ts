@@ -201,10 +201,19 @@ export class MissionsService {
     });
   }
 
-  async closeMission(id: number, isForce: boolean): Promise<boolean> {
+  async closeMission(
+    userId: string,
+    id: number,
+    isForce: boolean,
+  ): Promise<boolean> {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
+        bot: {
+          plan: {
+            userId,
+          },
+        },
       },
       include: {
         targetPosition: true,
@@ -274,7 +283,22 @@ export class MissionsService {
     return true;
   }
 
-  async ignoreMission(id: number): Promise<boolean> {
+  async ignoreMission(userId: string, id: number): Promise<boolean> {
+    const currentMission = await this.prismaService.mission.findUnique({
+      where: {
+        id,
+        bot: {
+          plan: {
+            userId,
+          },
+        },
+      },
+    });
+
+    if (!currentMission) {
+      throw new Error('Invalid mission id!');
+    }
+
     const ignoredMissions = await this.updateMany([
       { id, status: MissionStatus.Ignored },
     ]);
