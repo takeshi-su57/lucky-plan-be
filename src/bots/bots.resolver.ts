@@ -8,7 +8,7 @@ import {
 } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { BotStatus } from '@prisma/client';
+import { BotStatus, User, UserPermission } from '@prisma/client';
 
 import { BotsService } from './bots.service';
 import { BotBackwardDetails, BotConnection } from './entities/bot.entity';
@@ -17,6 +17,9 @@ import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
+import { RolesGuard } from 'src/auth/gql-role.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 @Resolver()
 export class BotsResolver {
@@ -26,61 +29,80 @@ export class BotsResolver {
   ) {}
 
   @Mutation(() => BotBackwardDetails)
-  @UseGuards(GqlAuthGuard)
-  createBot(@Args('input') input: CreateBotInput) {
-    return this.botsService.create(input);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  createBot(@Args('input') input: CreateBotInput, @CurrentUser() user: User) {
+    return this.botsService.create(user.address, input);
   }
 
   @Mutation(() => [BotBackwardDetails])
-  @UseGuards(GqlAuthGuard)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   batchCreateBots(
     @Args('input', { type: () => [CreateBotAndStrategyInput] })
     inputs: CreateBotAndStrategyInput[],
+    @CurrentUser() user: User,
   ) {
-    return this.botsService.batchCreateBots(inputs);
+    return this.botsService.batchCreateBots(user.address, inputs);
   }
 
   @Mutation(() => BotBackwardDetails)
-  @UseGuards(GqlAuthGuard)
-  deleteBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.delete(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  deleteBot(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.botsService.delete(user.address, id);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
-  liveBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.live(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  liveBot(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.botsService.live(user.address, id);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
-  stopBot(@Args('id', { type: () => Int }) id: number) {
-    return this.botsService.stop(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  stopBot(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.botsService.stop(user.address, id);
   }
 
   @Subscription(() => [BotBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.botCreated,
   })
-  @UseGuards(GqlAuthGuard)
-  subscribeToBotCreated() {
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  subscribeToBotCreated(@CurrentUser() _user: User) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botCreated);
   }
 
   @Subscription(() => [BotBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.botUpdated,
   })
-  @UseGuards(GqlAuthGuard)
-  subscribeToBotUpdated() {
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  subscribeToBotUpdated(@CurrentUser() _user: User) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botUpdated);
   }
 
   @Query(() => BotConnection)
-  @UseGuards(GqlAuthGuard)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   getBotsByStatus(
     @Args('status', { type: () => BotStatus }) status: BotStatus,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @CurrentUser() user: User,
   ) {
-    return this.botsService.findByStatus(status, first, after);
+    return this.botsService.findByStatus(user.address, status, first, after);
   }
 }
