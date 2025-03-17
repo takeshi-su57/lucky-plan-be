@@ -28,10 +28,14 @@ export class PlansService {
     private logger: LogsService,
   ) {}
 
-  async create(createPlanInput: CreatePlanInput): Promise<Plan> {
+  async create(
+    userId: string,
+    createPlanInput: CreatePlanInput,
+  ): Promise<Plan> {
     const plan = await this.prisma.plan.create({
       data: {
         ...createPlanInput,
+        userId,
         status: PlanStatus.Created,
       },
     });
@@ -43,7 +47,21 @@ export class PlansService {
     return plan;
   }
 
-  async delete(id: number): Promise<number> {
+  private async checkAuthorization(userId: string, planId: number) {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    if (plan.userId !== userId) {
+      throw new Error('Unauthorized User');
+    }
+  }
+
+  private async _delete(id: number): Promise<number> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
     });
@@ -63,7 +81,13 @@ export class PlansService {
     return id;
   }
 
-  async update(input: UpdatePlanInput): Promise<Plan> {
+  async delete(userId: string, id: number): Promise<number> {
+    await this.checkAuthorization(userId, id);
+
+    return await this._delete(id);
+  }
+
+  private async _update(input: UpdatePlanInput): Promise<Plan> {
     const plan = await this.prisma.plan.update({
       where: { id: input.id },
       data: input,
@@ -77,67 +101,14 @@ export class PlansService {
     return plan;
   }
 
-  async addBotsToPlan(
-    planId: number,
-    botIds: number[],
-  ): Promise<PlanForwardDetails> {
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: planId },
-    });
+  async update(userId: string, input: UpdatePlanInput): Promise<Plan> {
+    await this.checkAuthorization(userId, input.id);
 
-    if (!plan) {
-      throw new Error('Plan not found');
-    }
-
-    if (plan.status === PlanStatus.Started) {
-      const botsPromises = botIds.map(async (botId) => {
-        await this.botService.live(botId);
-      });
-
-      await Promise.allSettled(botsPromises);
-    }
-
-    if (plan.status === PlanStatus.Stopped) {
-      const botsPromises = botIds.map(async (botId) => {
-        await this.botService.stop(botId);
-      });
-
-      await Promise.allSettled(botsPromises);
-    }
-
-    return await this.prisma.plan.update({
-      where: { id: planId },
-      data: { bots: { connect: botIds.map((botId) => ({ id: botId })) } },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                targetPosition: true,
-                achievePosition: true,
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    return await this._update(input);
   }
 
   async getPlansByStatus(
+    userId: string,
     status: PlanStatus,
     first: number,
     after: number | null,
@@ -150,7 +121,7 @@ export class PlansService {
             id: after,
           }
         : undefined,
-      where: { status },
+      where: { status, userId },
       orderBy: { startedAt: 'desc' },
       include: {
         bots: {
@@ -194,8 +165,11 @@ export class PlansService {
     };
   }
 
-  async getPlanById(id: number): Promise<PlanForwardDetails | null> {
-    return await this.prisma.plan.findUnique({
+  async getPlanById(
+    userId: string,
+    id: number,
+  ): Promise<PlanForwardDetails | null> {
+    const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
         bots: {
@@ -224,9 +198,19 @@ export class PlansService {
         },
       },
     });
+
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    if (plan.userId !== userId) {
+      throw new Error('Unauthorized User');
+    }
+
+    return plan;
   }
 
-  async start(id: number): Promise<boolean> {
+  private async _start(id: number): Promise<boolean> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -240,11 +224,11 @@ export class PlansService {
 
     for (const bot of plan.bots) {
       if (bot.status === BotStatus.Created) {
-        await this.botService.live(bot.id);
+        await this.botService.live(plan.userId, bot.id);
       }
     }
 
-    await this.update({
+    await this._update({
       id,
       status: PlanStatus.Started,
       startedAt: new Date(),
@@ -253,7 +237,13 @@ export class PlansService {
     return true;
   }
 
-  async end(id: number): Promise<boolean> {
+  async start(userId: string, id: number): Promise<boolean> {
+    await this.checkAuthorization(userId, id);
+
+    return await this._start(id);
+  }
+
+  private async _end(id: number): Promise<boolean> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
@@ -267,17 +257,23 @@ export class PlansService {
 
     for (const bot of plan.bots) {
       if (bot.status === BotStatus.Live) {
-        await this.botService.stop(bot.id);
+        await this.botService.stop(plan.userId, bot.id);
       }
     }
 
-    await this.update({
+    await this._update({
       id,
       status: PlanStatus.Stopped,
       endedAt: new Date(),
     });
 
     return true;
+  }
+
+  async end(userId: string, id: number): Promise<boolean> {
+    await this.checkAuthorization(userId, id);
+
+    return await this._end(id);
   }
 
   async checkAndUpdateAllPlans() {
@@ -304,18 +300,18 @@ export class PlansService {
           );
 
           if (allBotsDead) {
-            await this.update({
+            await this._update({
               id: plan.id,
               status: PlanStatus.Finished,
             });
           }
         } else if (plan.status === PlanStatus.Started) {
           if (now > plan.scheduledEnd.getTime()) {
-            await this.end(plan.id);
+            await this._end(plan.id);
           }
         } else if (plan.status === PlanStatus.Created) {
           if (now > plan.scheduledStart.getTime()) {
-            await this.start(plan.id);
+            await this._start(plan.id);
           }
         }
       }

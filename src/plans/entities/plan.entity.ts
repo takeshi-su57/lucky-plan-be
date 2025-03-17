@@ -12,6 +12,9 @@ export class Plan {
   @Field(() => Int)
   id: number;
 
+  @Field(() => String)
+  userId: string;
+
   @Field()
   title: string;
 
