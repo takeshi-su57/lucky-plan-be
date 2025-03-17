@@ -8,15 +8,16 @@ import { TagInput } from './dto/tag.input';
 export class TagsService {
   constructor(private prismaService: PrismaService) {}
 
-  upsert(tagInput: TagInput) {
+  upsert(userId: string, tagInput: TagInput) {
     return this.prismaService.tag.upsert({
-      where: { tag: tagInput.tag.toUpperCase() },
+      where: { userId_tag: { userId, tag: tagInput.tag.toUpperCase() } },
       update: {
         description: tagInput.description,
         color: tagInput.color,
         categoryId: tagInput.categoryId,
       },
       create: {
+        userId,
         tag: tagInput.tag.toUpperCase(),
         description: tagInput.description,
         color: tagInput.color,
@@ -25,24 +26,28 @@ export class TagsService {
     });
   }
 
-  delete(tag: string) {
+  delete(userId: string, tag: string) {
     return this.prismaService.tag.delete({
       where: {
-        tag: tag.toUpperCase(),
+        userId_tag: { userId, tag: tag.toUpperCase() },
       },
     });
   }
 
-  async removeCategory(categoryId: number) {
+  async removeCategory(userId: string, categoryId: number) {
     await this.prismaService.tag.updateMany({
-      where: { categoryId },
+      where: { categoryId, userId },
       data: {
         categoryId: null,
       },
     });
   }
 
-  findAll() {
-    return this.prismaService.tag.findMany();
+  findAll(userId: string) {
+    return this.prismaService.tag.findMany({
+      where: {
+        userId,
+      },
+    });
   }
 }

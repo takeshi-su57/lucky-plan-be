@@ -12,30 +12,38 @@ export class TagCategoriesService {
     private tagsService: TagsService,
   ) {}
 
-  upsert(input: TagCategoryInput) {
+  upsert(userId: string, input: TagCategoryInput) {
     return this.prismaService.tagCategory.upsert({
-      where: { category: input.category.toUpperCase() },
+      where: {
+        userId_category: { userId, category: input.category.toUpperCase() },
+      },
       update: {
         description: input.description,
       },
       create: {
+        userId,
         category: input.category.toUpperCase(),
         description: input.description,
       },
     });
   }
 
-  async delete(id: number) {
-    await this.tagsService.removeCategory(id);
+  async delete(userId: string, id: number) {
+    await this.tagsService.removeCategory(userId, id);
 
     return this.prismaService.tagCategory.delete({
       where: {
         id,
+        userId,
       },
     });
   }
 
-  findAll() {
-    return this.prismaService.tagCategory.findMany();
+  findAll(userId: string) {
+    return this.prismaService.tagCategory.findMany({
+      where: {
+        userId,
+      },
+    });
   }
 }
