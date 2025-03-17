@@ -15,6 +15,12 @@ import { TaskBackwardDetails } from './entities/task.entity';
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
+
+import { User } from 'src/auth/entities/auth.entity';
+import { Roles } from 'src/auth/roles.decorator';
+import { UserPermission } from '@prisma/client';
+import { RolesGuard } from 'src/auth/gql-role.guard';
 
 @Resolver()
 export class TasksResolver {
@@ -24,30 +30,37 @@ export class TasksResolver {
   ) {}
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
-  stopTask(@Args('id', { type: () => Int }) id: number) {
-    return this.tasksService.stopTask(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  stopTask(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.tasksService.stopTask(user.address, id);
   }
 
   @Query(() => [TaskBackwardDetails])
-  @UseGuards(GqlAuthGuard)
-  async getAlertTasks() {
-    return this.tasksService.getAlertTasks();
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async getAlertTasks(@CurrentUser() user: User) {
+    return this.tasksService.getAlertTasks(user.address);
   }
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskCreated,
   })
-  @UseGuards(GqlAuthGuard)
-  subscribeToTaskCreated() {
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  subscribeToTaskCreated(@CurrentUser() _user: User) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskCreated);
   }
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskUpdated,
   })
-  @UseGuards(GqlAuthGuard)
-  subscribeToTaskUpdated() {
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  subscribeToTaskUpdated(@CurrentUser() _user: User) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskUpdated);
   }
 }
