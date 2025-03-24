@@ -677,10 +677,12 @@ export class PnlSnapshotsService {
     }
   }
 
-  async initializePnlSnapshot() {
-    let startDate = dayjs('2024-11-02').toDate();
+  async initializePnlSnapshot(beginingDate: Date, isForceBuild: boolean) {
+    if (!isForceBuild) {
+      await this.buildSnapshots(dayjs(beginingDate).format('YYYY-MM-DD'), true);
+    }
 
-    await this.buildSnapshots('2024-11-01', true);
+    let startDate = dayjs(beginingDate).add(1, 'day').toDate();
 
     while (
       startDate.getTime() < dayjs(new Date()).endOf('day').toDate().getTime()

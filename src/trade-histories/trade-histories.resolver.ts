@@ -44,8 +44,14 @@ export class TradeHistoriesResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  initializePnlSnapshot() {
-    return this.pnlSnapshotsService.initializePnlSnapshot();
+  initializePnlSnapshot(
+    @Args('beginingDate', { type: () => Date }) beginingDate: Date,
+    @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
+  ) {
+    return this.pnlSnapshotsService.initializePnlSnapshot(
+      beginingDate,
+      isForceBuild,
+    );
   }
 
   @Query(() => PnlSnapshotInitializedFlag, { nullable: true })

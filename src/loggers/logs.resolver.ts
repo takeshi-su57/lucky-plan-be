@@ -68,8 +68,6 @@ export class LogsResolver {
       return true;
     },
   })
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
   subscribeToNewLog(
     @Args('severity', { type: () => LogSeverity, nullable: true })
     _severity: LogSeverity | null,

@@ -78,19 +78,33 @@ export class BotsResolver {
 
   @Subscription(() => [BotBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.botCreated,
+    filter: (payload, variables) => {
+      if (payload.botCreated.length > 0) {
+        return payload.botCreated[0].plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToBotCreated(@CurrentUser() _user: User) {
+  subscribeToBotCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botCreated);
   }
 
   @Subscription(() => [BotBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.botUpdated,
+    filter: (payload, variables) => {
+      if (payload.botUpdated.length > 0) {
+        return payload.botUpdated[0].plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToBotUpdated(@CurrentUser() _user: User) {
+  subscribeToBotUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.botUpdated);
   }
 

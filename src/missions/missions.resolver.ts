@@ -43,19 +43,33 @@ export class MissionsResolver {
 
   @Subscription(() => [MissionBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.missionCreated,
+    filter: (payload, variables) => {
+      if (payload.missionCreated.length > 0) {
+        return payload.missionCreated[0].bot.plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToMissionCreated(@CurrentUser() _user: User) {
+  subscribeToMissionCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionCreated);
   }
 
   @Subscription(() => [MissionBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.missionUpdated,
+    filter: (payload, variables) => {
+      if (payload.missionUpdated.length > 0) {
+        return payload.missionUpdated[0].bot.plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToMissionUpdated(@CurrentUser() _user: User) {
+  subscribeToMissionUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionUpdated);
   }
 }

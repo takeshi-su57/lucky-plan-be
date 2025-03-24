@@ -84,19 +84,25 @@ export class PlansResolver {
 
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planCreated,
+    filter: (payload, variables) => {
+      return payload.planCreated.userId === variables.userId;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToPlanCreated() {
+  subscribeToPlanCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planCreated);
   }
 
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planUpdated,
+    filter: (payload, variables) => {
+      return payload.planUpdated.userId === variables.userId;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToPlanUpdated() {
+  subscribeToPlanUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
   }
 

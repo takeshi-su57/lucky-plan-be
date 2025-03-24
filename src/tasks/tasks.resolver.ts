@@ -48,19 +48,37 @@ export class TasksResolver {
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskCreated,
+    filter: (payload, variables) => {
+      if (payload.taskCreated.length > 0) {
+        return (
+          payload.taskCreated[0].mission.bot.plan.userId === variables.userId
+        );
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToTaskCreated(@CurrentUser() _user: User) {
+  subscribeToTaskCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskCreated);
   }
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskUpdated,
+    filter: (payload, variables) => {
+      if (payload.taskUpdated.length > 0) {
+        return (
+          payload.taskUpdated[0].mission.bot.plan.userId === variables.userId
+        );
+      }
+
+      return false;
+    },
   })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  subscribeToTaskUpdated(@CurrentUser() _user: User) {
+  subscribeToTaskUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskUpdated);
   }
 }
