@@ -6,10 +6,15 @@ import {
   TradeHistory,
   TradeTransactionCount,
 } from './entities/trade-history.entity';
-import { PnlSnapshotKind } from '@prisma/client';
+import { PnlSnapshotKind, UserPermission } from '@prisma/client';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { PnlSnapshot } from './entities/trade-history.entity';
 import { GetUserTransactionCountsInput } from './dto/trade-history.input';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from 'src/auth/gql-role.guard';
+import { Roles } from 'src/auth/roles.decorator';
+
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
@@ -18,6 +23,8 @@ export class TradeHistoriesResolver {
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   buildPnlSnapshots(
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
@@ -26,6 +33,8 @@ export class TradeHistoriesResolver {
   }
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   dynamicSnapshotBuild(
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
@@ -33,8 +42,16 @@ export class TradeHistoriesResolver {
   }
 
   @Mutation(() => Boolean)
-  initializePnlSnapshot() {
-    return this.pnlSnapshotsService.initializePnlSnapshot();
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  initializePnlSnapshot(
+    @Args('beginingDate', { type: () => Date }) beginingDate: Date,
+    @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
+  ) {
+    return this.pnlSnapshotsService.initializePnlSnapshot(
+      beginingDate,
+      isForceBuild,
+    );
   }
 
   @Query(() => PnlSnapshotInitializedFlag, { nullable: true })

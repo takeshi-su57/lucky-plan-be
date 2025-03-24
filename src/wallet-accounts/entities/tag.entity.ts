@@ -2,6 +2,12 @@ import { ObjectType, Field, Int } from '@nestjs/graphql';
 
 @ObjectType()
 export class Tag {
+  @Field(() => Int)
+  id: number;
+
+  @Field()
+  userId: string;
+
   @Field()
   tag: string;
 

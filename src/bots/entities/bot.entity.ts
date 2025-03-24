@@ -25,8 +25,8 @@ export class Bot {
   @Field(() => Int)
   strategyId: number;
 
-  @Field(() => Int, { nullable: true })
-  planId: number | null;
+  @Field(() => Int)
+  planId: number;
 
   @Field(() => Int)
   leaderContractId: number;
@@ -82,8 +82,8 @@ export class BotForwardDetails extends BotDetails {
 
 @ObjectType()
 export class BotBackwardDetails extends BotDetails {
-  @Field(() => Plan, { nullable: true })
-  plan: Plan | null;
+  @Field(() => Plan)
+  plan: Plan;
 }
 
 @ObjectType()

@@ -61,7 +61,6 @@ export class ChainsService {
   readonly availableChains: Chain[];
   readonly publicClients: Record<number, PublicClient>;
   private walletClients: Record<number, Record<string, WalletClient>>;
-  private mnemonic: string;
 
   constructor(private prismaService: PrismaService) {
     this.availableChains = [arbitrum, polygon, base, arbitrumSepolia, apeChain];
@@ -89,24 +88,6 @@ export class ChainsService {
         },
       }) as unknown as PublicClient;
     });
-
-    this.loadMnemonic();
-  }
-
-  async loadMnemonic() {
-    const mnemonicMetadata = await this.prismaService.metadata.findUnique({
-      where: {
-        key: this.prismaService.metadataKeys.mnemonic.key,
-      },
-    });
-
-    const mnemonicValue = mnemonicMetadata?.value || '';
-
-    if (!validateMnemonic(mnemonicValue, english)) {
-      throw new Error('Wrong mnemonic, plz check seed the db metadata');
-    }
-
-    this.mnemonic = mnemonicValue;
   }
 
   publicClient(chainId: number): PublicClient {
@@ -125,7 +106,11 @@ export class ChainsService {
     return !!this.getChainByChainId(chainId);
   }
 
-  walletClient(chainId: number, follower: Follower): WalletClient {
+  walletClient(
+    mnemonic: string,
+    chainId: number,
+    follower: Follower,
+  ): WalletClient {
     if (this.walletClients[chainId]?.[follower.address]) {
       return this.walletClients[chainId][follower.address];
     }
@@ -136,11 +121,11 @@ export class ChainsService {
       throw new Error('Invalid chain id');
     }
 
-    if (!this.mnemonic) {
-      throw new Error('Not loaded Mnemonic');
+    if (!validateMnemonic(mnemonic, english)) {
+      throw new Error('Wrong mnemonic, plz check seed the db metadata');
     }
 
-    const account = mnemonicToAccount(this.mnemonic, {
+    const account = mnemonicToAccount(mnemonic, {
       accountIndex: follower.accountIndex,
     });
 

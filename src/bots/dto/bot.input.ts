@@ -17,8 +17,8 @@ export class CreateBotInput {
   @Field()
   followerAddress: string;
 
-  @Field(() => Int, { nullable: true })
-  planId: number | null;
+  @Field(() => Int)
+  planId: number;
 
   @IsNotEmpty()
   @Field(() => Int)
@@ -75,8 +75,8 @@ export class CreateBotAndStrategyInput {
   @Field(() => CreateStrategyInput)
   strategy: CreateStrategyInput;
 
-  @Field(() => Int, { nullable: true })
-  planId: number | null;
+  @Field(() => Int)
+  planId: number;
 
   @IsNotEmpty()
   @Field(() => Int)

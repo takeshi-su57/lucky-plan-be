@@ -1,4 +1,3 @@
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { Inject, Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
@@ -9,14 +8,14 @@ import { BotStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
-import { WalletAccountsService } from 'src/wallet-accounts/wallet-accounts.service';
+
 import { ContractsService } from 'src/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
 
 import { ChainsService } from 'src/global/chains.service';
 import { Contract } from 'src/contracts/entities/contract.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
-import { SUBSCRIPTION_TOKEN, USDCCollateralIndex } from 'src/utils/constants';
+import { USDCCollateralIndex } from 'src/utils/constants';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { Mission } from 'src/missions/entities/mission.entity';
 import {
@@ -37,12 +36,11 @@ import { TaskQueue } from 'src/utils/TaskQueue';
 
 @Injectable()
 export class FollowerService {
-  private depositAssetQueue: TaskQueue;
+  private depositAssetQueue: Record<string, TaskQueue>;
 
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
-    private walletAccountsService: WalletAccountsService,
     private contractService: ContractsService,
     private chainsService: ChainsService,
     private tradingVariableService: TradingVariableService,
@@ -50,41 +48,59 @@ export class FollowerService {
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
   ) {
-    this.depositAssetQueue = new TaskQueue();
+    this.depositAssetQueue = {};
   }
 
-  async depositAsset({
-    address,
-    contract,
-    amount,
-    kind,
-  }: {
-    address: string;
-    contract: Contract;
-    amount: bigint;
-    kind: 'usdc' | 'eth';
-  }) {
-    return await this.depositAssetQueue.add(
+  async depositAsset(
+    userId: string,
+    {
+      address,
+      contract,
+      amount,
+      kind,
+    }: {
+      address: string;
+      contract: Contract;
+      amount: bigint;
+      kind: 'usdc' | 'eth';
+    },
+  ) {
+    if (!this.depositAssetQueue[userId]) {
+      this.depositAssetQueue[userId] = new TaskQueue();
+    }
+
+    return await this.depositAssetQueue[userId].add(
       async () =>
-        await this.depositAssetCore({ address, contract, amount, kind }),
+        await this.depositAssetCore(userId, {
+          address,
+          contract,
+          amount,
+          kind,
+        }),
     );
   }
 
-  private async depositAssetCore({
-    address,
-    contract,
-    amount,
-    kind,
-  }: {
-    address: string;
-    contract: Contract;
-    amount: bigint;
-    kind: 'usdc' | 'eth';
-  }) {
+  private async depositAssetCore(
+    userId: string,
+    {
+      address,
+      contract,
+      amount,
+      kind,
+    }: {
+      address: string;
+      contract: Contract;
+      amount: bigint;
+      kind: 'usdc' | 'eth';
+    },
+  ) {
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
-          accountIndex: 1,
+          userId_accountIndex: {
+            userId,
+            accountIndex: 1,
+          },
         },
       });
 
@@ -94,7 +110,19 @@ export class FollowerService {
         },
       });
 
-      if (!follower || !masterFollower) {
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
+      if (!follower || !masterFollower || follower.userId !== userId) {
         throw new Error('Wrong address');
       }
 
@@ -108,6 +136,7 @@ export class FollowerService {
       );
 
       const masterWallet = this.chainsService.walletClient(
+        mnemonic,
         contract.chainId,
         masterFollower,
       );
@@ -172,21 +201,27 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAsset({
-    address,
-    contract,
-    amount,
-    kind,
-  }: {
-    address: string;
-    contract: Contract;
-    amount: bigint;
-    kind: 'usdc' | 'eth';
-  }) {
+  async withdrawAsset(
+    userId: string,
+    {
+      address,
+      contract,
+      amount,
+      kind,
+    }: {
+      address: string;
+      contract: Contract;
+      amount: bigint;
+      kind: 'usdc' | 'eth';
+    },
+  ) {
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
-          accountIndex: 1,
+          userId_accountIndex: {
+            userId,
+            accountIndex: 1,
+          },
         },
       });
 
@@ -196,8 +231,24 @@ export class FollowerService {
         },
       });
 
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
       if (!follower || !masterFollower) {
         throw new Error('Wrong address');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
       }
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
@@ -210,6 +261,7 @@ export class FollowerService {
       );
 
       const followerWallet = this.chainsService.walletClient(
+        mnemonic,
         contract.chainId,
         follower,
       );
@@ -282,7 +334,11 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAllUSDC(address: string, contractId: number): Promise<boolean> {
+  async withdrawAllUSDC(
+    userId: string,
+    address: string,
+    contractId: number,
+  ): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
@@ -302,7 +358,7 @@ export class FollowerService {
         args: [address as Address],
       });
 
-      await this.withdrawAsset({
+      await this.withdrawAsset(userId, {
         address,
         contract: contract,
         amount: usdcBalance,
@@ -321,7 +377,11 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAllETH(address: string, contractId: number): Promise<boolean> {
+  async withdrawAllETH(
+    userId: string,
+    address: string,
+    contractId: number,
+  ): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
@@ -331,7 +391,7 @@ export class FollowerService {
         address: address as Address,
       });
 
-      await this.withdrawAsset({
+      await this.withdrawAsset(userId, {
         address,
         contract: contract,
         amount: ethBalance,
@@ -350,29 +410,37 @@ export class FollowerService {
     return false;
   }
 
-  async getPrivateKey(address: string) {
-    const mnemonicMetadata = await this.prismaService.metadata.findUnique({
+  async getPrivateKey(userId: string, address: string) {
+    const user = await this.prismaService.user.findUnique({
       where: {
-        key: this.prismaService.metadataKeys.mnemonic.key,
+        address: userId,
       },
     });
 
-    const mnemonic = mnemonicMetadata?.value || '';
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const follower = await this.prismaService.follower.findUnique({
+      where: { address },
+    });
+
+    if (!follower) {
+      throw new Error('Wrong address');
+    }
+
+    if (follower.userId !== userId) {
+      throw new Error('Unauthorized User');
+    }
+
+    const mnemonic = user.mnemonic || '';
 
     if (!validateMnemonic(mnemonic, english)) {
       throw new Error('Wrong mnemonic, plz check seed the db metadata');
     }
 
-    const record = await this.prismaService.follower.findUnique({
-      where: { address },
-    });
-
-    if (!record) {
-      throw new Error('Wrong address');
-    }
-
     const account = mnemonicToAccount(mnemonic, {
-      accountIndex: record.accountIndex,
+      accountIndex: follower.accountIndex,
     });
 
     return `0x${Array.from(account.getHdKey().privateKey!)
@@ -380,14 +448,18 @@ export class FollowerService {
       .join('')}`;
   }
 
-  async generateNewFollower() {
-    const mnemonicMetadata = await this.prismaService.metadata.findUnique({
+  async generateNewFollower(userId: string) {
+    const user = await this.prismaService.user.findUnique({
       where: {
-        key: this.prismaService.metadataKeys.mnemonic.key,
+        address: userId,
       },
     });
 
-    const mnemonic = mnemonicMetadata?.value || '';
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const mnemonic = user.mnemonic || '';
 
     if (!validateMnemonic(mnemonic, english)) {
       throw new Error('Wrong mnemonic, plz check seed the db metadata');
@@ -406,54 +478,39 @@ export class FollowerService {
 
       // find new account
       if (!followerRecord) {
-        const user = await this.walletAccountsService.getWalletAccountByAddress(
-          account.address.toLowerCase(),
-        );
-
-        if (!user) {
-          await this.walletAccountsService.addFollower(
-            account.address.toLowerCase(),
-          );
-        }
-
         return await this.prismaService.follower.create({
           data: {
             address: account.address.toLowerCase(),
             publicKey: account.publicKey,
             accountIndex,
+            userId,
           },
         });
       }
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async followerAssetBalanceUpdateCron() {
-    try {
-      const contracts = await this.contractService.findAll();
-
-      for (const contract of contracts) {
-        const updatedFollowers = await this.loadFollowers(contract.id);
-
-        this.pubSub.publish(SUBSCRIPTION_TOKEN.followerDetailsUpdated, {
-          [SUBSCRIPTION_TOKEN.followerDetailsUpdated]: updatedFollowers,
-        });
-      }
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: `FollowerService>followerAssetBalanceUpdateCron`,
-        details: getReadableError(err),
-      });
-    }
-  }
-
   async getPendingOrders(
+    userId: string,
     address: string,
     contractId: number,
   ): Promise<FollowerPendingOrder[]> {
     try {
       const contract = await this.contractService.findOne(contractId);
+
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address,
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
@@ -483,10 +540,25 @@ export class FollowerService {
   }
 
   async getTrades(
+    userId: string,
     address: string,
     contractId: number,
   ): Promise<FollowerTrade[]> {
     try {
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address,
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
       const contract = await this.contractService.findOne(contractId);
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
@@ -573,6 +645,7 @@ export class FollowerService {
   }
 
   async closeTradeMarket(
+    userId: string,
     input: CloseTradeInput,
   ): Promise<ContractExecutionResult> {
     try {
@@ -583,11 +656,28 @@ export class FollowerService {
         },
       });
 
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
       if (!follower) {
         throw new Error('Follower not found');
       }
 
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
       const walletClient = this.chainsService.walletClient(
+        mnemonic,
         contract.chainId,
         follower,
       );
@@ -668,6 +758,7 @@ export class FollowerService {
   }
 
   async cancelOrderAfterTimeout(
+    userId: string,
     input: CancelOrderAfterTimeoutInput,
   ): Promise<ContractExecutionResult> {
     try {
@@ -677,12 +768,28 @@ export class FollowerService {
           address: input.address,
         },
       });
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
 
       if (!follower) {
         throw new Error('Follower not found');
       }
 
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
       const walletClient = this.chainsService.walletClient(
+        mnemonic,
         contract.chainId,
         follower,
       );
@@ -757,7 +864,10 @@ export class FollowerService {
     }
   }
 
-  private async loadFollowers(contractId: number): Promise<FollowerDetail[]> {
+  private async loadFollowers(
+    userId: string,
+    contractId: number,
+  ): Promise<FollowerDetail[]> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
@@ -770,7 +880,11 @@ export class FollowerService {
         ],
       );
 
-      const followerEntities = await this.prismaService.follower.findMany();
+      const followerEntities = await this.prismaService.follower.findMany({
+        where: {
+          userId,
+        },
+      });
 
       const ethMap: Record<string, bigint> = {};
       const usdcMap: Record<string, bigint> = {};
@@ -821,9 +935,12 @@ export class FollowerService {
     return [];
   }
 
-  async getAvailableFollowers(counts: number) {
+  async getAvailableFollowers(userId: string, counts: number) {
     const activeBots = await this.prismaService.bot.findMany({
       where: {
+        plan: {
+          userId,
+        },
         status: {
           not: BotStatus.Dead,
         },
@@ -847,7 +964,7 @@ export class FollowerService {
     const validFollowers = [...availableFollowers];
 
     while (validFollowers.length < counts) {
-      const newFollower = await this.generateNewFollower();
+      const newFollower = await this.generateNewFollower(userId);
 
       validFollowers.push(newFollower);
     }
@@ -855,11 +972,15 @@ export class FollowerService {
     return validFollowers.slice(0, counts);
   }
 
-  findAllDetails(contractId: number) {
-    return this.loadFollowers(contractId);
+  findAllDetails(userId: string, contractId: number) {
+    return this.loadFollowers(userId, contractId);
   }
 
-  findAll() {
-    return this.prismaService.follower.findMany();
+  findAll(userId: string) {
+    return this.prismaService.follower.findMany({
+      where: {
+        userId,
+      },
+    });
   }
 }

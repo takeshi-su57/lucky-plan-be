@@ -5,6 +5,9 @@ import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
 @ObjectType()
 export class Follower {
   @Field()
+  userId: string;
+
+  @Field()
   address: string;
 
   @Field()

@@ -3,21 +3,25 @@ import { UserPermission } from '@prisma/client';
 import { UseGuards } from '@nestjs/common';
 
 import { GqlAuthGuard } from './gql-auth.guard';
+import { RolesGuard } from './gql-role.guard';
+import { Roles } from './roles.decorator';
+
 import { AuthService } from './auth.service';
 import { AccessToken, User } from './entities/auth.entity';
-
 @Resolver()
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
   @Query(() => [User])
-  @UseGuards(GqlAuthGuard)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   getAllUsers() {
     return this.authService.getAllUsers();
   }
 
   @Mutation(() => User)
-  @UseGuards(GqlAuthGuard)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   changeUserPermission(
     @Args('address') address: string,
     @Args('permission') permission: UserPermission,

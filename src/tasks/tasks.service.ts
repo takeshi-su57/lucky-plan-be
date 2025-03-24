@@ -48,7 +48,7 @@ export class TasksService {
     private readonly logger: LogsService,
   ) {}
 
-  async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
+  private async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
     return await this.prismaService.task.findMany({
       where: {
         id: { in: ids },
@@ -246,10 +246,17 @@ export class TasksService {
     });
   }
 
-  async stopTask(id: number): Promise<boolean> {
+  async stopTask(userId: string, id: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id,
+        mission: {
+          bot: {
+            plan: {
+              userId,
+            },
+          },
+        },
       },
     });
 
@@ -663,7 +670,7 @@ export class TasksService {
     );
   }
 
-  async getAlertTasks(): Promise<TaskBackwardDetails[]> {
+  async getAlertTasks(userId: string): Promise<TaskBackwardDetails[]> {
     return await this.prismaService.task.findMany({
       where: {
         status: {
@@ -672,6 +679,11 @@ export class TasksService {
         mission: {
           status: {
             notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+          },
+          bot: {
+            plan: {
+              userId,
+            },
           },
         },
       },
