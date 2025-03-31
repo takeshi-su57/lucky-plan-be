@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Query,
@@ -7,7 +7,7 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { PlanStatus } from '@prisma/client';
+import { PlanStatus, User, UserPermission } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import { PUB_SUB } from 'src/global/global.module';
@@ -20,6 +20,10 @@ import {
   PlanForwardDetails,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/gql-role.guard';
 
 @Resolver()
 export class PlansResolver {
@@ -29,64 +33,104 @@ export class PlansResolver {
   ) {}
 
   @Mutation(() => Plan)
-  createPlan(@Args('createPlanInput') createPlanInput: CreatePlanInput) {
-    return this.plansService.create(createPlanInput);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  createPlan(
+    @Args('createPlanInput') createPlanInput: CreatePlanInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.create(user.address, createPlanInput);
   }
 
   @Mutation(() => Int)
-  deletePlan(@Args('id', { type: () => Int }) id: number) {
-    return this.plansService.delete(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  deletePlan(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.delete(user.address, id);
   }
 
   @Mutation(() => Plan)
-  updatePlan(@Args('updatePlanInput') updatePlanInput: UpdatePlanInput) {
-    return this.plansService.update(updatePlanInput);
-  }
-
-  @Mutation(() => Boolean)
-  startPlan(@Args('id', { type: () => Int }) id: number) {
-    return this.plansService.start(id);
-  }
-
-  @Mutation(() => Boolean)
-  endPlan(@Args('id', { type: () => Int }) id: number) {
-    return this.plansService.end(id);
-  }
-
-  @Mutation(() => PlanForwardDetails)
-  addBotsToPlan(
-    @Args('planId', { type: () => Int }) planId: number,
-    @Args('botIds', { type: () => [Int] }) botIds: number[],
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updatePlan(
+    @Args('updatePlanInput') updatePlanInput: UpdatePlanInput,
+    @CurrentUser() user: User,
   ) {
-    return this.plansService.addBotsToPlan(planId, botIds);
+    return this.plansService.update(user.address, updatePlanInput);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  startPlan(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.start(user.address, id);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  endPlan(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.end(user.address, id);
   }
 
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planCreated,
+    filter: (payload, variables) => {
+      return payload.planCreated.userId === variables.userId;
+    },
   })
-  subscribeToPlanCreated() {
+  subscribeToPlanCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planCreated);
   }
 
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planUpdated,
+    filter: (payload, variables) => {
+      return payload.planUpdated.userId === variables.userId;
+    },
   })
-  subscribeToPlanUpdated() {
+  subscribeToPlanUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
   }
 
   @Query(() => PlanConnection)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   getPlansByStatus(
     @Args('status', { type: () => PlanStatus })
     status: PlanStatus,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @CurrentUser() user: User,
   ) {
-    return this.plansService.getPlansByStatus(status, first, after);
+    return this.plansService.getPlansByStatus(
+      user.address,
+      status,
+      first,
+      after,
+    );
   }
 
   @Query(() => PlanForwardDetails, { nullable: true })
-  getPlanById(@Args('id', { type: () => Int }) id: number) {
-    return this.plansService.getPlanById(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getPlanById(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.getPlanById(user.address, id);
   }
 }

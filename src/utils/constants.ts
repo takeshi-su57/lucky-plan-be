@@ -17,7 +17,6 @@ export const SUBSCRIPTION_TOKEN = {
   missionUpdated: 'missionUpdated',
   taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',
-  followerDetailsUpdated: 'followerDetailsUpdated',
   newLog: 'newLog',
 };
 

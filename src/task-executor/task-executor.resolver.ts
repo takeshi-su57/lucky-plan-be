@@ -1,12 +1,23 @@
 import { Resolver, Mutation, Args, Int } from '@nestjs/graphql';
 import { TaskExecutorService } from './task-executor.service';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { UseGuards } from '@nestjs/common';
+import { CurrentUser } from 'src/auth/user.decorator';
+import { User, UserPermission } from '@prisma/client';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/gql-role.guard';
 
 @Resolver()
 export class TaskExecutorResolver {
   constructor(private readonly taskExecutorService: TaskExecutorService) {}
 
   @Mutation(() => Boolean)
-  performTask(@Args('id', { type: () => Int }) id: number) {
-    return this.taskExecutorService.performTaskById(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  performTask(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.taskExecutorService.performTaskById(user.address, id);
   }
 }

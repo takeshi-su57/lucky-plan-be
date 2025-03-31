@@ -9,5 +9,8 @@ export class TagCategory {
   category: string;
 
   @Field()
+  userId: string;
+
+  @Field()
   description: string;
 }

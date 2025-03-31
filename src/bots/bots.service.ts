@@ -35,7 +35,7 @@ import { PUB_SUB } from 'src/global/global.module';
 
 @Injectable()
 export class BotsService {
-  private bots: BotDetails[] = [];
+  private bots: BotBackwardDetails[] = [];
   status: 'ready' | 'progress' = 'ready';
 
   constructor(
@@ -52,7 +52,24 @@ export class BotsService {
     this.loadBots();
   }
 
-  async create(input: CreateBotInput): Promise<BotBackwardDetails> {
+  async create(
+    userId: string,
+    input: CreateBotInput,
+  ): Promise<BotBackwardDetails> {
+    const plan = await this.prismaService.plan.findUnique({
+      where: {
+        id: input.planId,
+      },
+    });
+
+    if (!plan) {
+      throw new Error('Invalid plan id');
+    }
+
+    if (plan.userId !== userId) {
+      throw new Error('Invalid plan id');
+    }
+
     const newBot = await this.prismaService.bot.create({
       data: {
         ...input,
@@ -79,6 +96,7 @@ export class BotsService {
   }
 
   async batchCreateBots(
+    userId: string,
     inputs: CreateBotAndStrategyInput[],
   ): Promise<BotBackwardDetails[]> {
     if (inputs.length === 0) {
@@ -88,6 +106,7 @@ export class BotsService {
     const bots: BotBackwardDetails[] = [];
 
     const followers = await this.followersService.getAvailableFollowers(
+      userId,
       inputs.length,
     );
 
@@ -101,7 +120,7 @@ export class BotsService {
 
       const strategy = await this.strategyService.create(input.strategy);
 
-      const bot = await this.create({
+      const bot = await this.create(userId, {
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
@@ -121,7 +140,15 @@ export class BotsService {
     return bots;
   }
 
-  async delete(id: number): Promise<BotBackwardDetails> {
+  private async checkAuthorization(userId: string, id: number) {
+    const bot = await this.prismaService.bot.findUnique({
+      where: { id, plan: { userId } },
+    });
+
+    return !!bot;
+  }
+
+  private async _delete(id: number): Promise<BotBackwardDetails> {
     const bot = await this.prismaService.bot.findUnique({
       where: { id },
     });
@@ -154,7 +181,17 @@ export class BotsService {
     return deletedBot;
   }
 
-  private async reBalanceAsset(bot: BotDetails) {
+  async delete(userId: string, id: number): Promise<BotBackwardDetails> {
+    const authorized = await this.checkAuthorization(userId, id);
+
+    if (!authorized) {
+      throw new Error('Invalid bot id');
+    }
+
+    return await this._delete(id);
+  }
+
+  private async reBalanceAsset(bot: BotBackwardDetails) {
     try {
       await this.logger.log({
         severity: 'Info',
@@ -162,7 +199,11 @@ export class BotsService {
         details: `BotId: ${bot.id}`,
       });
 
-      const { followerContract, follower } = bot;
+      const {
+        followerContract,
+        follower,
+        plan: { userId },
+      } = bot;
 
       const publicClient = this.chainsService.publicClient(
         followerContract.chainId,
@@ -173,7 +214,7 @@ export class BotsService {
       });
 
       if (ethBalance < MIN_GAS) {
-        await this.followersService.depositAsset({
+        await this.followersService.depositAsset(userId, {
           address: follower.address,
           contract: followerContract,
           amount: MAX_GAS - ethBalance,
@@ -203,18 +244,6 @@ export class BotsService {
           continue;
         }
 
-        if (bot.status === BotStatus.Live && bot.startedAt) {
-          const startedTimestamp = new Date(bot.startedAt).getTime();
-          const currentTimestamp = Date.now();
-
-          if (
-            currentTimestamp - startedTimestamp >
-            bot.strategy.lifeTime * 60 * 1000
-          ) {
-            await this._stop(bot);
-          }
-        }
-
         if (
           bot.status === BotStatus.Stop &&
           this.missionsService.getMissionsByBotId(bot.id).length === 0
@@ -235,7 +264,7 @@ export class BotsService {
     this.status = 'ready';
   }
 
-  async update(input: BotUpdateInput): Promise<BotBackwardDetails> {
+  private async _update(input: BotUpdateInput): Promise<BotBackwardDetails> {
     const updatedBot = await this.prismaService.bot.update({
       where: {
         id: input.id,
@@ -253,7 +282,7 @@ export class BotsService {
     const index = this.bots.findIndex((bot) => bot.id === updatedBot.id);
 
     if (index !== -1) {
-      this.bots[index] = updatedBot as BotDetails;
+      this.bots[index] = updatedBot;
     } else {
       this.bots.push(updatedBot);
     }
@@ -265,7 +294,21 @@ export class BotsService {
     return updatedBot;
   }
 
+  async update(
+    userId: string,
+    input: BotUpdateInput,
+  ): Promise<BotBackwardDetails> {
+    const authorized = await this.checkAuthorization(userId, input.id);
+
+    if (!authorized) {
+      throw new Error('Invalid bot id');
+    }
+
+    return this._update(input);
+  }
+
   async findByStatus(
+    userId: string,
     status: BotStatus,
     first: number,
     after: number | null,
@@ -278,7 +321,7 @@ export class BotsService {
             id: after,
           }
         : undefined,
-      where: { status },
+      where: { status, plan: { userId } },
       orderBy: { id: 'desc' },
       include: {
         follower: true,
@@ -326,6 +369,7 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        plan: true,
       },
     });
 
@@ -333,7 +377,7 @@ export class BotsService {
       throw new Error('Invalid bot id');
     }
 
-    return bot as BotDetails;
+    return bot;
   }
 
   /**
@@ -341,13 +385,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  async live(id: number): Promise<boolean> {
-    const bot = await this.findOne(id);
-
-    if (!bot) {
-      throw new Error('Invalid bot id');
-    }
-
+  private async _live(bot: BotBackwardDetails): Promise<boolean> {
     if (bot.status !== BotStatus.Created) {
       throw new Error('Invalid bot status');
     }
@@ -368,12 +406,27 @@ export class BotsService {
 
     await this.reBalanceAsset(bot);
 
-    const { followerContract, follower } = bot;
+    const {
+      followerContract,
+      follower,
+      plan: { userId },
+    } = bot;
+
+    const user = await this.prismaService.user.findUnique({
+      where: { address: userId },
+    });
+
+    if (!user) {
+      throw new Error('Invalid user id');
+    }
+
+    const mnemonic = user.mnemonic;
 
     const publicClient = this.chainsService.publicClient(
       followerContract.chainId,
     );
     const walletClient = this.chainsService.walletClient(
+      mnemonic,
       followerContract.chainId,
       follower,
     );
@@ -403,8 +456,8 @@ export class BotsService {
       .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
-    await this.update({
-      id,
+    await this._update({
+      id: bot.id,
       leaderStartedBlock: Number(leaderBlockNumber),
       followerStartedBlock: Number(followerBlockNumber),
       startedAt: new Date(),
@@ -414,7 +467,25 @@ export class BotsService {
     return true;
   }
 
-  private async _stop(bot: BotDetails) {
+  async live(userId: string, id: number): Promise<boolean> {
+    const authorized = await this.checkAuthorization(userId, id);
+
+    if (!authorized) {
+      throw new Error('Invalid bot id');
+    }
+
+    const bot = await this.findOne(id);
+
+    if (!bot) {
+      throw new Error('Invalid bot id');
+    }
+
+    await this._live(bot);
+
+    return true;
+  }
+
+  private async _stop(bot: BotBackwardDetails) {
     if (bot.status !== BotStatus.Live) {
       throw new Error('Invalid bot status');
     }
@@ -427,7 +498,7 @@ export class BotsService {
       .publicClient(bot.followerContract.chainId)
       .getBlockNumber();
 
-    return await this.update({
+    return await this._update({
       id: bot.id,
       leaderEndedBlock: Number(leaderBlockNumber),
       followerEndedBlock: Number(followerBlockNumber),
@@ -436,7 +507,13 @@ export class BotsService {
     });
   }
 
-  async stop(id: number): Promise<boolean> {
+  async stop(userId: string, id: number): Promise<boolean> {
+    const authorized = await this.checkAuthorization(userId, id);
+
+    if (!authorized) {
+      throw new Error('Invalid bot id');
+    }
+
     const bot = await this.findOne(id);
 
     if (!bot) {
@@ -448,35 +525,27 @@ export class BotsService {
     return true;
   }
 
-  private async _kill(bot: BotDetails) {
+  private async _kill(bot: BotBackwardDetails) {
     if (BotStatus.Live !== bot.status && BotStatus.Stop !== bot.status) {
       throw new Error('Invalid bot status');
     }
 
     await this.followersService.withdrawAllUSDC(
+      bot.plan.userId,
       bot.followerAddress,
       bot.followerContractId,
     );
 
     await this.followersService.withdrawAllETH(
+      bot.plan.userId,
       bot.followerAddress,
       bot.followerContractId,
     );
 
-    return await this.update({
+    return await this._update({
       id: bot.id,
       status: BotStatus.Dead,
     });
-  }
-
-  async kill(id: number): Promise<BotBackwardDetails> {
-    const bot = await this.findOne(id);
-
-    if (!bot) {
-      throw new Error('Invalid bot id');
-    }
-
-    return this._kill(bot);
   }
 
   private async loadBots() {
@@ -486,6 +555,7 @@ export class BotsService {
         strategy: true,
         leaderContract: true,
         followerContract: true,
+        plan: true,
       },
     });
   }

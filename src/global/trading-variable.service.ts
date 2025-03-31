@@ -149,14 +149,16 @@ export class TradingVariableService {
 
   getCollateral(contractId: number, collateralIndex: number) {
     if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+      throw new Error(`Failed at getting trading variable ${contractId}`);
     }
 
     if (
       this.tradingVariable[contractId].collaterals.length < collateralIndex ||
       collateralIndex === 0
     ) {
-      throw new Error('Invalid collateral index');
+      throw new Error(
+        `Invalid collateral index collateralIndex:${collateralIndex}, collateralsLength: ${this.tradingVariable[contractId].collaterals.length}`,
+      );
     }
 
     return this.tradingVariable[contractId].collaterals[collateralIndex - 1];
