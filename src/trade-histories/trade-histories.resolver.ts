@@ -1,25 +1,33 @@
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { TradeHistoriesService } from './trade-histories.service';
 import {
+  AccPnl,
   PnlSnapshotDetailsConnection,
+  PnlSnapshotDevDetails,
   PnlSnapshotInitializedFlag,
   TradeHistory,
   TradeTransactionCount,
+  WholeCompressedHistories,
 } from './entities/trade-history.entity';
 import { PnlSnapshotKind, UserPermission } from '@prisma/client';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { PnlSnapshot } from './entities/trade-history.entity';
-import { GetUserTransactionCountsInput } from './dto/trade-history.input';
+import {
+  ExportFilter,
+  GetUserTransactionCountsInput,
+} from './dto/trade-history.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from 'src/auth/gql-role.guard';
 import { Roles } from 'src/auth/roles.decorator';
+import { BacktestService } from './backtest.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
+    private readonly backtestService: BacktestService,
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
@@ -119,5 +127,42 @@ export class TradeHistoriesResolver {
       first,
       after,
     );
+  }
+
+  @Query(() => [PnlSnapshotDevDetails])
+  getDevPnlSnapshots(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('filterParams', { type: () => ExportFilter })
+    filterParams: ExportFilter,
+  ) {
+    return this.backtestService.getDevPnlSnapshots(dateStr, filterParams);
+  }
+
+  @Query(() => [TradeHistory])
+  getMonthlyDevPnlSnapshots(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('filterParams', { type: () => ExportFilter })
+    filterParams: ExportFilter,
+  ) {
+    return this.backtestService.getMonthlyDevPnlSnapshots(
+      dateStr,
+      filterParams,
+    );
+  }
+
+  @Query(() => [TradeHistory])
+  getWholeResultHistories(
+    @Args('filterParams', { type: () => ExportFilter })
+    filterParams: ExportFilter,
+  ) {
+    return this.backtestService.getWholeResultHistories(filterParams);
+  }
+
+  @Query(() => WholeCompressedHistories)
+  getWholeCompressedHistories(
+    @Args('filterParams', { type: () => ExportFilter })
+    filterParams: ExportFilter,
+  ) {
+    return this.backtestService.getWholeCompressedHistories(filterParams);
   }
 }

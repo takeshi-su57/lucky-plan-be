@@ -103,6 +103,91 @@ export class PnlSnapshotDetails extends PnlSnapshot {
 }
 
 @ObjectType()
+export class AccPnl {
+  @Field(() => Date)
+  date: Date;
+
+  @Field(() => Float)
+  pnl: number;
+
+  @Field(() => Float)
+  inOut: number;
+
+  @Field(() => Int)
+  taskCount: number;
+
+  @Field(() => Int)
+  positionCount: number;
+
+
+  @Field(() => Int)
+  traderCount: number;
+}
+
+@ObjectType()
+export class BotCount {
+  @Field(() => Date)
+  date: Date;
+
+  @Field(() => Int)
+  botCount: number;
+}
+
+@ObjectType()
+export class WholeCompressedHistories {
+  @Field(() => [AccPnl])
+  accPnls: AccPnl[];
+
+  @Field(() => [BotCount])
+  botCounts: BotCount[];
+
+  @Field(() => Float)
+  maxInvested: number;
+}
+
+@ObjectType()
+export class Regression {
+  @Field(() => Float)
+  slope: number;
+
+  @Field(() => Float)
+  intercept: number;
+
+  @Field(() => Float)
+  r: number;
+
+  @Field(() => Float)
+  r2: number;
+
+  @Field(() => Float)
+  chi2: number;
+
+  @Field(() => Float)
+  rmsd: number;
+}
+
+@ObjectType()
+export class Statistic {
+  @Field(() => Float)
+  averageIn: number;
+
+  @Field(() => Int)
+  countIn: number;
+}
+
+@ObjectType()
+export class PnlSnapshotDevDetails extends PnlSnapshot {
+  @Field(() => [TradeHistory])
+  histories: TradeHistory[];
+
+  @Field(() => Regression)
+  regression: Regression;
+
+  @Field(() => Statistic)
+  statistic: Statistic;
+}
+
+@ObjectType()
 export class PnlSnapshotDetailsEdge {
   @Field(() => Int) cursor: number;
   @Field(() => PnlSnapshotDetails) node: PnlSnapshotDetails;

@@ -1,4 +1,4 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
+import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { TradeActionType } from '@prisma/client';
 import { IsNotEmpty, IsNumber, IsDate } from 'class-validator';
 
@@ -61,4 +61,25 @@ export class GetUserTransactionCountsInput {
   @IsDate()
   @Field(() => Date, { nullable: true })
   endedAt: Date | null;
+}
+
+@InputType()
+export class ExportFilter {
+  @Field(() => Int)
+  recentTradedDays: number;
+
+  @Field(() => String)
+  closePositionCountsByPnlSnapshotKind: string;
+
+  @Field(() => Float)
+  minR2: number;
+
+  @Field(() => Float)
+  maxR2: number;
+
+  @Field(() => Float)
+  minSlope: number;
+
+  @Field(() => Float)
+  maxSlope: number;
 }

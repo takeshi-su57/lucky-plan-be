@@ -2,6 +2,15 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AccPnl {
+  date: DateTime!
+  inOut: Float!
+  pnl: Float!
+  positionCount: Int!
+  taskCount: Int!
+  traderCount: Int!
+}
+
 type AccessToken {
   accessToken: String!
 }
@@ -46,6 +55,11 @@ type BotBackwardDetails {
 type BotConnection {
   edges: [BotEdge!]!
   pageInfo: BotPageInfo!
+}
+
+type BotCount {
+  botCount: Int!
+  date: DateTime!
 }
 
 type BotDetails {
@@ -193,6 +207,15 @@ input CreateStrategyInput {
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+input ExportFilter {
+  closePositionCountsByPnlSnapshotKind: String!
+  maxR2: Float!
+  maxSlope: Float!
+  minR2: Float!
+  minSlope: Float!
+  recentTradedDays: Int!
+}
 
 type Follower {
   accountIndex: Int!
@@ -459,6 +482,18 @@ type PnlSnapshotDetailsPageInfo {
   hasNextPage: Boolean!
 }
 
+type PnlSnapshotDevDetails {
+  accUSDPnl: Float!
+  address: String!
+  contractId: Int!
+  dateStr: String!
+  histories: [TradeHistory!]!
+  id: Int!
+  kind: PnlSnapshotKind!
+  regression: Regression!
+  statistic: Statistic!
+}
+
 type PnlSnapshotInitializedFlag {
   dateStr: String!
   id: Int!
@@ -507,8 +542,10 @@ type Query {
   getAllUsers: [User!]!
   getAllWalletAccounts: [WalletAccount!]!
   getBotsByStatus(after: Int, first: Int!, status: BotStatus!): BotConnection!
+  getDevPnlSnapshots(dateStr: String!, filterParams: ExportFilter!): [PnlSnapshotDevDetails!]!
   getFollowerPrivateKey(input: GetFollowerByAddressInput!): String!
   getLogsSeverityCounts: [SeverityCount!]!
+  getMonthlyDevPnlSnapshots(dateStr: String!, filterParams: ExportFilter!): [TradeHistory!]!
   getPendingOrders(address: String!, contractId: Int!): [FollowerPendingOrder!]!
   getPlanById(id: Int!): PlanForwardDetails
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
@@ -523,8 +560,19 @@ type Query {
   getTrades(address: String!, contractId: Int!): [FollowerTrade!]!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
+  getWholeCompressedHistories(filterParams: ExportFilter!): WholeCompressedHistories!
+  getWholeResultHistories(filterParams: ExportFilter!): [TradeHistory!]!
   isPnlSnapshotInitialized(dateStr: String!): PnlSnapshotInitializedFlag
   systemStatus: Boolean!
+}
+
+type Regression {
+  chi2: Float!
+  intercept: Float!
+  r: Float!
+  r2: Float!
+  rmsd: Float!
+  slope: Float!
 }
 
 type ServerTime {
@@ -535,6 +583,11 @@ type ServerTime {
 type SeverityCount {
   counts: Int!
   severity: LogSeverity!
+}
+
+type Statistic {
+  averageIn: Float!
+  countIn: Int!
 }
 
 type Strategy {
@@ -709,6 +762,12 @@ type WalletAccount {
   id: Int!
   tags: [Tag!]!
   userId: String!
+}
+
+type WholeCompressedHistories {
+  accPnls: [AccPnl!]!
+  botCounts: [BotCount!]!
+  maxInvested: Float!
 }
 
 input WithdrawAllInput {

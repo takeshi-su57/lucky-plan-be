@@ -132,6 +132,31 @@ model PnlSnapshot {
   @@index([accUSDPnl(sort: Desc)])
 }
 
+model TestingReport {
+  id                                   Int     @id @default(autoincrement())
+  minSlope                             Int
+  maxSlope                             Int
+  minR2                                Float
+  maxR2                                Float
+  recentTradedDay                      Int
+  closePositionCountsByPnlSnapshotKind String
+  investedUSD                          Float
+  totalUSDPnl                          Float
+  totalTasks                           Int
+  totalPositions                       Int
+  totalTraders                         Int
+  totalUniqueTraders                   Int
+  accUSDPnls                           Float[]
+  calculatedR2                         Float
+  calculatedSlope                      Float
+  maxLoss                              Float
+  avgLoss                              Float
+  maxProfit                            Float
+  avgProfit                            Float
+  peakAccProfit                        Float
+  bottomAccProfit                      Float
+}
+
 model PnlSnapshotInitializedFlag {
   id      Int     @id @default(autoincrement())
   dateStr String  @unique // YYYY-MM-DD

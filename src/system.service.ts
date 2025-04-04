@@ -27,7 +27,7 @@ export class SystemService {
     private plansService: PlansService,
     private followerService: FollowerService,
   ) {
-    this.isPaused = false;
+    this.isPaused = true;
 
     console.log(this.getServerTime());
   }
@@ -118,6 +118,10 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (this.pnlSnapshotService.status === 'ready') {
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
