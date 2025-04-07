@@ -138,7 +138,7 @@ model TestingReport {
   maxSlope                             Int
   minR2                                Float
   maxR2                                Float
-  recentTradedDay                      Int
+  recentTradedDays                     Int
   closePositionCountsByPnlSnapshotKind String
   investedUSD                          Float
   totalUSDPnl                          Float
@@ -146,15 +146,41 @@ model TestingReport {
   totalPositions                       Int
   totalTraders                         Int
   totalUniqueTraders                   Int
-  accUSDPnls                           Float[]
+  usdPnls                              Float[]
   calculatedR2                         Float
   calculatedSlope                      Float
   maxLoss                              Float
+  lossCount                            Int
   avgLoss                              Float
   maxProfit                            Float
+  profitCount                          Int
   avgProfit                            Float
   peakAccProfit                        Float
   bottomAccProfit                      Float
+}
+
+model TestingReportV2 {
+  id                      Int     @id @default(autoincrement())
+  minSlope                Int
+  maxSlope                Int
+  r2MinsByPnlSnapshotKind String
+  investedUSD             Float
+  totalUSDPnl             Float
+  totalTasks              Int
+  totalPositions          Int
+  totalTraders            Int
+  totalUniqueTraders      Int
+  usdPnls                 Float[]
+  calculatedR2            Float
+  calculatedSlope         Float
+  maxLoss                 Float
+  lossCount               Int
+  avgLoss                 Float
+  maxProfit               Float
+  profitCount             Int
+  avgProfit               Float
+  peakAccProfit           Float
+  bottomAccProfit         Float
 }
 
 model PnlSnapshotInitializedFlag {

@@ -119,7 +119,6 @@ export class AccPnl {
   @Field(() => Int)
   positionCount: number;
 
-
   @Field(() => Int)
   traderCount: number;
 }
@@ -228,4 +227,183 @@ export class PnlSnapshotInitializedFlag {
 
   @Field(() => Boolean)
   isInit: boolean;
+}
+
+@ObjectType()
+export class TestingReport {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Int)
+  minSlope: number;
+
+  @Field(() => Int)
+  maxSlope: number;
+
+  @Field(() => Float)
+  minR2: number;
+
+  @Field(() => Float)
+  maxR2: number;
+
+  @Field(() => Int)
+  recentTradedDays: number;
+
+  @Field(() => String)
+  closePositionCountsByPnlSnapshotKind: string;
+
+  @Field(() => Float)
+  investedUSD: number;
+
+  @Field(() => Float)
+  totalUSDPnl: number;
+
+  @Field(() => Int)
+  totalTasks: number;
+
+  @Field(() => Int)
+  totalPositions: number;
+
+  @Field(() => Int)
+  totalTraders: number;
+
+  @Field(() => Int)
+  totalUniqueTraders: number;
+
+  @Field(() => [Float])
+  usdPnls: number[];
+
+  @Field(() => Float)
+  calculatedR2: number;
+
+  @Field(() => Float)
+  calculatedSlope: number;
+
+  @Field(() => Float)
+  maxLoss: number;
+
+  @Field(() => Int)
+  lossCount: number;
+
+  @Field(() => Float)
+  avgLoss: number;
+
+  @Field(() => Float)
+  avgProfit: number;
+
+  @Field(() => Float)
+  maxProfit: number;
+
+  @Field(() => Int)
+  profitCount: number;
+
+  @Field(() => Float)
+  peakAccProfit: number;
+
+  @Field(() => Float)
+  bottomAccProfit: number;
+}
+
+@ObjectType()
+export class TestingReportEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => TestingReport) node: TestingReport;
+}
+
+@ObjectType()
+export class TestingReportPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class TestingReportConnection {
+  @Field(() => [TestingReportEdge])
+  edges: TestingReportEdge[];
+  @Field(() => TestingReportPageInfo) pageInfo: TestingReportPageInfo;
+}
+
+@ObjectType()
+export class TestingReportV2 {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Int)
+  minSlope: number;
+
+  @Field(() => Int)
+  maxSlope: number;
+
+  @Field(() => String)
+  r2MinsByPnlSnapshotKind: string;
+
+  @Field(() => Float)
+  investedUSD: number;
+
+  @Field(() => Float)
+  totalUSDPnl: number;
+
+  @Field(() => Int)
+  totalTasks: number;
+
+  @Field(() => Int)
+  totalPositions: number;
+
+  @Field(() => Int)
+  totalTraders: number;
+
+  @Field(() => Int)
+  totalUniqueTraders: number;
+
+  @Field(() => [Float])
+  usdPnls: number[];
+
+  @Field(() => Float)
+  calculatedR2: number;
+
+  @Field(() => Float)
+  calculatedSlope: number;
+
+  @Field(() => Float)
+  maxLoss: number;
+
+  @Field(() => Int)
+  lossCount: number;
+
+  @Field(() => Float)
+  avgLoss: number;
+
+  @Field(() => Float)
+  avgProfit: number;
+
+  @Field(() => Float)
+  maxProfit: number;
+
+  @Field(() => Int)
+  profitCount: number;
+
+  @Field(() => Float)
+  peakAccProfit: number;
+
+  @Field(() => Float)
+  bottomAccProfit: number;
+}
+
+@ObjectType()
+export class TestingReportV2Edge {
+  @Field(() => Int) cursor: number;
+  @Field(() => TestingReportV2) node: TestingReportV2;
+}
+
+@ObjectType()
+export class TestingReportV2PageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class TestingReportV2Connection {
+  @Field(() => [TestingReportV2Edge])
+  edges: TestingReportV2Edge[];
+  @Field(() => TestingReportV2PageInfo) pageInfo: TestingReportV2PageInfo;
 }

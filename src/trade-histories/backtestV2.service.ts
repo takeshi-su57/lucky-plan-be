@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   PnlSnapshotKind,
   TestingReport,
+  TestingReportV2,
   TradeActionType,
   TradeHistory,
 } from '@prisma/client';
@@ -17,8 +18,9 @@ import {
   PnlSnapshot,
   BotCount,
   TestingReportEdge,
+  TestingReportV2Edge,
 } from './entities/trade-history.entity';
-import { ExportFilter } from './dto/trade-history.input';
+import { ExportFilter, ExportFilterV2 } from './dto/trade-history.input';
 
 const pnlSnapshotKinds = [
   PnlSnapshotKind.DAY,
@@ -43,17 +45,17 @@ const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
-type ExportFilterParams = {
-  recentTradedDays: number;
-  closePositionCountsByPnlSnapshotKind: Record<PnlSnapshotKind, number>;
-  minR2: number;
-  maxR2: number;
+const recentTradedDays = 21;
+const closeHistoriesCount = 7;
+
+type ExportFilterV2Params = {
+  r2MinsByPnlSnapshotKind: Record<PnlSnapshotKind, number>;
   minSlope: number;
   maxSlope: number;
 };
 
 @Injectable()
-export class BacktestService {
+export class BacktestV2Service {
   status: 'processing' | 'ready' = 'ready';
 
   constructor(private prismaService: PrismaService) {
@@ -63,7 +65,7 @@ export class BacktestService {
   private getPnlSnapshotDevDetails(
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
-    params: ExportFilterParams,
+    params: ExportFilterV2Params[],
   ): PnlSnapshotDevDetails | null {
     const currentKindIndex = pnlSnapshotKinds.findIndex(
       (kind) => kind === snapshot.kind,
@@ -89,7 +91,7 @@ export class BacktestService {
 
       if (
         historyDate.getTime() >=
-          endDate.getTime() - params.recentTradedDays * 24 * 3600 * 1000 &&
+          endDate.getTime() - recentTradedDays * 24 * 3600 * 1000 &&
         historyDate.getTime() <= endDate.getTime()
       ) {
         recentTraded = true;
@@ -130,10 +132,7 @@ export class BacktestService {
       );
     });
 
-    if (
-      filteredCloseHistories.length <
-      params.closePositionCountsByPnlSnapshotKind[snapshot.kind]
-    ) {
+    if (filteredCloseHistories.length < closeHistoriesCount) {
       return null;
     }
 
@@ -168,14 +167,20 @@ export class BacktestService {
     const regression = new SimpleLinearRegression(xs, pnlArrs);
     const score = regression.score(xs, pnlArrs);
 
-    if (score.r2 < params.minR2 || score.r2 > params.maxR2) {
+    const filterParam = params.find(
+      (item) =>
+        item.minSlope <= regression.slope && item.maxSlope >= regression.slope,
+    );
+
+    if (!filterParam) {
       return null;
     }
 
-    if (
-      regression.slope < params.minSlope ||
-      regression.slope > params.maxSlope
-    ) {
+    if (Number.isNaN(score.r2)) {
+      return null;
+    }
+
+    if (score.r2 < filterParam.r2MinsByPnlSnapshotKind[snapshot.kind]) {
       return null;
     }
 
@@ -244,98 +249,10 @@ export class BacktestService {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
-  private async getDayDevPnlSnapshots(
-    dateStr: string,
-    params: ExportFilterParams,
-  ): Promise<PnlSnapshotDetails[]> {
-    const pnlRecords: PnlSnapshot[] =
-      await this.prismaService.pnlSnapshot.findMany({
-        where: {
-          dateStr,
-          accUSDPnl: {
-            gt: 0,
-          },
-          kind: {
-            notIn: [PnlSnapshotKind.ALL_TIME, PnlSnapshotKind.YEAR],
-          },
-        },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
-      });
-
-    console.log('pnlRecords ==>', pnlRecords.length);
-
-    const CHUNK = 100;
-
-    const nodes: PnlSnapshotDevDetails[] = [];
-
-    for (let i = 0; i < pnlRecords.length; i += CHUNK) {
-      console.log(
-        `Processing chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
-      );
-
-      const chunk = pnlRecords.slice(i, i + CHUNK);
-
-      const historyRecords = await this.prismaService.tradeHistory.findMany({
-        where: {
-          OR: [
-            ...chunk.map((item) => ({
-              address: item.address,
-              ...(item.contractId !== 0 ? { contractId: item.contractId } : {}),
-            })),
-          ],
-        },
-        orderBy: {
-          date: 'asc',
-        },
-      });
-
-      const historyRecordsMap = new Map<string, TradeHistory[]>();
-
-      historyRecords.forEach((record) => {
-        const arr = historyRecordsMap.get(
-          `${record.address}-${record.contractId}`,
-        );
-
-        if (arr) {
-          arr.push(record);
-        } else {
-          historyRecordsMap.set(`${record.address}-${record.contractId}`, [
-            record,
-          ]);
-        }
-      });
-
-      pnlRecords.forEach((record) => {
-        const allHistories =
-          historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
-
-        const detail = this.getPnlSnapshotDevDetails(
-          record,
-          allHistories,
-          params,
-        );
-
-        if (detail) {
-          nodes.push(detail);
-        }
-      });
-
-      console.log(
-        `Ended chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
-      );
-    }
-
-    console.log('total leaders ==>', nodes.length);
-
-    return nodes;
-  }
-
   private async getRangeHistories(
     dateStr: string,
     days: number,
-    params: ExportFilterParams,
+    params: ExportFilterV2Params[],
   ): Promise<{
     accPnls: AccPnl[];
     botCounts: BotCount[];
@@ -401,6 +318,8 @@ export class BacktestService {
 
     const CHUNK = 50;
     const totalResultHistories: TradeHistory[] = [];
+    const countStatistics: Record<string, Record<number, number>> = {};
+    const sizeStatistics: Record<string, Record<number, number>> = {};
 
     const botCountData: Record<string, number> = {};
 
@@ -449,6 +368,17 @@ export class BacktestService {
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(key) || [];
 
+        const openHistories = allHistories.filter(
+          (history) =>
+            history.action === TradeActionType.TradeOpenedMarket ||
+            history.action === TradeActionType.TradeOpenedLimit,
+        );
+
+        const openAverageIn =
+          openHistories.reduce((acc, history) => {
+            return acc + +history.size;
+          }, 0) / openHistories.length;
+
         const nodes: PnlSnapshotDevDetails[] = [];
 
         subPnlRecords.forEach((record) => {
@@ -457,6 +387,28 @@ export class BacktestService {
             allHistories,
             params,
           );
+
+          const countObj = countStatistics[record.kind];
+
+          if (countObj) {
+            const count = countObj[allHistories.length] || 0;
+            countObj[allHistories.length] = count + 1;
+          } else {
+            countStatistics[record.kind] = {
+              [allHistories.length]: 1,
+            };
+          }
+
+          const sizeObj = sizeStatistics[record.kind];
+
+          if (sizeObj) {
+            const size = sizeObj[Math.floor(openAverageIn)] || 0;
+            sizeObj[Math.floor(openAverageIn)] = size + 1;
+          } else {
+            sizeStatistics[record.kind] = {
+              [Math.floor(openAverageIn)]: 1,
+            };
+          }
 
           if (detail) {
             nodes.push(detail);
@@ -652,6 +604,19 @@ export class BacktestService {
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+    const fs = require('fs');
+    fs.writeFileSync(
+      'statistics.json',
+      JSON.stringify(
+        {
+          countStatistics,
+          sizeStatistics,
+        },
+        null,
+        2,
+      ),
+    );
+
     return {
       accPnls,
       botCounts,
@@ -671,44 +636,17 @@ export class BacktestService {
   }
 
   // initial params for test case 1
-  private getTestParam(filterParams: ExportFilter): ExportFilterParams {
-    return {
-      recentTradedDays: filterParams.recentTradedDays,
-      closePositionCountsByPnlSnapshotKind: JSON.parse(
-        filterParams.closePositionCountsByPnlSnapshotKind,
+  private getTestParam(filterParams: ExportFilterV2[]): ExportFilterV2Params[] {
+    return filterParams.map((item) => ({
+      r2MinsByPnlSnapshotKind: JSON.parse(
+        item.r2MinsByPnlSnapshotKind,
       ) as Record<PnlSnapshotKind, number>,
-      minR2: filterParams.minR2,
-      maxR2: filterParams.maxR2,
-      minSlope: filterParams.minSlope,
-      maxSlope: filterParams.maxSlope,
-    };
+      minSlope: item.minSlope,
+      maxSlope: item.maxSlope,
+    }));
   }
 
-  async getDevPnlSnapshots(dateStr: string, filterParams: ExportFilter) {
-    return this.getDayDevPnlSnapshots(dateStr, this.getTestParam(filterParams));
-  }
-
-  async getMonthlyDevPnlSnapshots(
-    dateStr: string,
-    filterParams: ExportFilter,
-  ): Promise<TradeHistory[]> {
-    const params = this.getTestParam(filterParams);
-    const { histories } = await this.getRangeHistories(dateStr, 31, params);
-
-    return histories;
-  }
-
-  async getWholeResultHistories(filterParams: ExportFilter) {
-    const { histories } = await this.getRangeHistories(
-      '2024-11-01',
-      150,
-      this.getTestParam(filterParams),
-    );
-
-    return histories;
-  }
-
-  async getWholeCompressedHistories(filterParams: ExportFilter) {
+  async getWholeCompressedHistoriesV2(filterParams: ExportFilterV2[]) {
     console.time('getWholeCompressedHistories==============>');
 
     const { accPnls, botCounts, maxInvested } = await this.getRangeHistories(
@@ -769,44 +707,33 @@ export class BacktestService {
   private async autoTesting() {
     const initialSlope = 100;
     const power = 1.5;
-    const inifinite = 1000_000_000;
 
     for (let base = 1; ; base *= power) {
       const minSlope = Math.floor(base === 1 ? 0 : initialSlope * base);
-      const maxSlope = Math.floor(
-        base === 1 ? initialSlope : initialSlope * base * power,
-      );
-
-      const minR2 = 0.9;
-      const maxR2 = 1;
-      const recentTradedDays = 21;
+      const maxSlope = Math.floor(initialSlope * base * power);
 
       console.time(`${minSlope}-${maxSlope}`);
 
       for (let pnlSnapshotKind of pnlSnapshotKinds) {
-        const closePositionCountsByPnlSnapshotKind = {
-          [PnlSnapshotKind.DAY]: inifinite,
-          [PnlSnapshotKind.TWO_DAY]: inifinite,
-          [PnlSnapshotKind.THREE_DAY]: inifinite,
-          [PnlSnapshotKind.WEEK]: inifinite,
-          [PnlSnapshotKind.TWO_WEEK]: inifinite,
-          [PnlSnapshotKind.MONTH]: inifinite,
-          [PnlSnapshotKind.THREE_MONTH]: inifinite,
-          [PnlSnapshotKind.HALF_YEAR]: inifinite,
-          [PnlSnapshotKind.YEAR]: inifinite,
-          [PnlSnapshotKind.ALL_TIME]: inifinite,
+        const r2MinsByPnlSnapshotKind = {
+          [PnlSnapshotKind.DAY]: 1,
+          [PnlSnapshotKind.TWO_DAY]: 1,
+          [PnlSnapshotKind.THREE_DAY]: 1,
+          [PnlSnapshotKind.WEEK]: 1,
+          [PnlSnapshotKind.TWO_WEEK]: 1,
+          [PnlSnapshotKind.MONTH]: 1,
+          [PnlSnapshotKind.THREE_MONTH]: 1,
+          [PnlSnapshotKind.HALF_YEAR]: 1,
+          [PnlSnapshotKind.YEAR]: 1,
+          [PnlSnapshotKind.ALL_TIME]: 1,
         };
 
         console.time(`${minSlope}-${maxSlope}-${pnlSnapshotKind}`);
 
-        const daysScales = [3, 4, 5, 7, 10, 15, 23, 36, 57];
-
-        for (const daysScale of daysScales) {
-          console.time(
-            `${minSlope}-${maxSlope}-${pnlSnapshotKind}-${daysScale}`,
-          );
+        for (let r2Min = 0.8; r2Min < 1; r2Min += 0.01) {
+          console.time(`${minSlope}-${maxSlope}-${pnlSnapshotKind}-${r2Min}`);
           try {
-            closePositionCountsByPnlSnapshotKind[pnlSnapshotKind] = daysScale;
+            r2MinsByPnlSnapshotKind[pnlSnapshotKind] = r2Min;
 
             const {
               accPnls,
@@ -821,14 +748,13 @@ export class BacktestService {
               bottomPnl,
               maxProfit,
               totalPnls,
-            } = await this.getRangeHistories('2024-11-01', 150, {
-              recentTradedDays,
-              closePositionCountsByPnlSnapshotKind,
-              minR2,
-              maxR2,
-              minSlope,
-              maxSlope,
-            });
+            } = await this.getRangeHistories('2024-11-01', 150, [
+              {
+                r2MinsByPnlSnapshotKind,
+                minSlope,
+                maxSlope,
+              },
+            ]);
 
             const investedUSD = maxInvested;
 
@@ -897,15 +823,12 @@ export class BacktestService {
             const regression = new SimpleLinearRegression(xs, usdArr);
             const score = regression.score(xs, usdArr);
 
-            await this.prismaService.testingReport.create({
+            await this.prismaService.testingReportV2.create({
               data: {
                 minSlope,
                 maxSlope,
-                minR2,
-                maxR2,
-                recentTradedDays,
-                closePositionCountsByPnlSnapshotKind: JSON.stringify(
-                  closePositionCountsByPnlSnapshotKind,
+                r2MinsByPnlSnapshotKind: JSON.stringify(
+                  r2MinsByPnlSnapshotKind,
                 ),
                 investedUSD,
                 totalUSDPnl: totalPnls,
@@ -928,7 +851,7 @@ export class BacktestService {
             });
 
             console.timeEnd(
-              `${minSlope}-${maxSlope}-${pnlSnapshotKind}-${daysScale}`,
+              `${minSlope}-${maxSlope}-${pnlSnapshotKind}-${r2Min}`,
             );
           } catch (error) {
             console.error(error);
@@ -948,20 +871,20 @@ export class BacktestService {
     }
   }
 
-  async getTestingReport(first: number, after: number | null) {
-    const records: TestingReport[] = after
-      ? await this.prismaService.testingReport.findMany({
+  async getTestingReportV2(first: number, after: number | null) {
+    const records: TestingReportV2[] = after
+      ? await this.prismaService.testingReportV2.findMany({
           skip: after ? 1 : undefined,
           take: first,
           cursor: {
             id: after,
           },
         })
-      : await this.prismaService.testingReport.findMany({
+      : await this.prismaService.testingReportV2.findMany({
           take: first,
         });
 
-    const edges: TestingReportEdge[] = records.map((record) => ({
+    const edges: TestingReportV2Edge[] = records.map((record) => ({
       cursor: record.id,
       node: record,
     }));

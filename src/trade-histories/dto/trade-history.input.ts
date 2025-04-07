@@ -83,3 +83,16 @@ export class ExportFilter {
   @Field(() => Float)
   maxSlope: number;
 }
+
+
+@InputType()
+export class ExportFilterV2 {
+  @Field(() => String)
+  r2MinsByPnlSnapshotKind: string;
+
+  @Field(() => Float)
+  minSlope: number;
+
+  @Field(() => Float)
+  maxSlope: number;
+}

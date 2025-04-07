@@ -217,6 +217,12 @@ input ExportFilter {
   recentTradedDays: Int!
 }
 
+input ExportFilterV2 {
+  maxSlope: Float!
+  minSlope: Float!
+  r2MinsByPnlSnapshotKind: String!
+}
+
 type Follower {
   accountIndex: Int!
   address: String!
@@ -553,6 +559,8 @@ type Query {
   getPnlSnapshots(after: Int, contractId: Int!, dateStr: String!, first: Int!, kind: PnlSnapshotKind!): PnlSnapshotDetailsConnection!
   getPnlSnapshotsByAddress(address: String!, dateStr: String!): [PnlSnapshot!]!
   getServerTime: ServerTime!
+  getTestingReport(after: Int, first: Int!): TestingReportConnection!
+  getTestingReportV2(after: Int, first: Int!): TestingReportV2Connection!
   getTradeCollaterals(contractId: Int!): [TradeCollateral!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getTradePairs(contractId: Int!): [TradePair!]!
@@ -561,6 +569,7 @@ type Query {
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
   getWholeCompressedHistories(filterParams: ExportFilter!): WholeCompressedHistories!
+  getWholeCompressedHistoriesV2(filterParams: [ExportFilterV2!]!): WholeCompressedHistories!
   getWholeResultHistories(filterParams: ExportFilter!): [TradeHistory!]!
   isPnlSnapshotInitialized(dateStr: String!): PnlSnapshotInitializedFlag
   systemStatus: Boolean!
@@ -679,6 +688,87 @@ enum TaskStatus {
   Failed
   Initiated
   Stopped
+}
+
+type TestingReport {
+  avgLoss: Float!
+  avgProfit: Float!
+  bottomAccProfit: Float!
+  calculatedR2: Float!
+  calculatedSlope: Float!
+  closePositionCountsByPnlSnapshotKind: String!
+  id: Int!
+  investedUSD: Float!
+  lossCount: Int!
+  maxLoss: Float!
+  maxProfit: Float!
+  maxR2: Float!
+  maxSlope: Int!
+  minR2: Float!
+  minSlope: Int!
+  peakAccProfit: Float!
+  profitCount: Int!
+  recentTradedDays: Int!
+  totalPositions: Int!
+  totalTasks: Int!
+  totalTraders: Int!
+  totalUSDPnl: Float!
+  totalUniqueTraders: Int!
+  usdPnls: [Float!]!
+}
+
+type TestingReportConnection {
+  edges: [TestingReportEdge!]!
+  pageInfo: TestingReportPageInfo!
+}
+
+type TestingReportEdge {
+  cursor: Int!
+  node: TestingReport!
+}
+
+type TestingReportPageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
+}
+
+type TestingReportV2 {
+  avgLoss: Float!
+  avgProfit: Float!
+  bottomAccProfit: Float!
+  calculatedR2: Float!
+  calculatedSlope: Float!
+  id: Int!
+  investedUSD: Float!
+  lossCount: Int!
+  maxLoss: Float!
+  maxProfit: Float!
+  maxSlope: Int!
+  minSlope: Int!
+  peakAccProfit: Float!
+  profitCount: Int!
+  r2MinsByPnlSnapshotKind: String!
+  totalPositions: Int!
+  totalTasks: Int!
+  totalTraders: Int!
+  totalUSDPnl: Float!
+  totalUniqueTraders: Int!
+  usdPnls: [Float!]!
+}
+
+type TestingReportV2Connection {
+  edges: [TestingReportV2Edge!]!
+  pageInfo: TestingReportV2PageInfo!
+}
+
+type TestingReportV2Edge {
+  cursor: Int!
+  node: TestingReportV2!
+}
+
+type TestingReportV2PageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
 }
 
 enum TradeActionType {

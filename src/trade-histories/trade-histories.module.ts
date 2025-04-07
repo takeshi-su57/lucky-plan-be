@@ -6,6 +6,7 @@ import { TradeHistoriesService } from './trade-histories.service';
 import { TradeHistoriesResolver } from './trade-histories.resolver';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { BacktestService } from './backtest.service';
+import { BacktestV2Service } from './backtestV2.service';
 
 @Module({
   imports: [LogsModule],
@@ -14,6 +15,7 @@ import { BacktestService } from './backtest.service';
     TradeHistoriesService,
     PnlSnapshotsService,
     BacktestService,
+    BacktestV2Service,
   ],
   exports: [TradeHistoriesService, PnlSnapshotsService, BacktestService],
 })

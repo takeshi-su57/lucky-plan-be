@@ -5,6 +5,9 @@ import {
   PnlSnapshotDetailsConnection,
   PnlSnapshotDevDetails,
   PnlSnapshotInitializedFlag,
+  TestingReport,
+  TestingReportConnection,
+  TestingReportV2Connection,
   TradeHistory,
   TradeTransactionCount,
   WholeCompressedHistories,
@@ -14,6 +17,7 @@ import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { PnlSnapshot } from './entities/trade-history.entity';
 import {
   ExportFilter,
+  ExportFilterV2,
   GetUserTransactionCountsInput,
 } from './dto/trade-history.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
@@ -21,6 +25,7 @@ import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from 'src/auth/gql-role.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { BacktestService } from './backtest.service';
+import { BacktestV2Service } from './backtestV2.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
@@ -28,6 +33,7 @@ export class TradeHistoriesResolver {
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
     private readonly backtestService: BacktestService,
+    private readonly backtestServiceV2: BacktestV2Service,
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
@@ -164,5 +170,29 @@ export class TradeHistoriesResolver {
     filterParams: ExportFilter,
   ) {
     return this.backtestService.getWholeCompressedHistories(filterParams);
+  }
+
+  @Query(() => TestingReportConnection)
+  getTestingReport(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.backtestService.getTestingReport(first, after);
+  }
+
+  @Query(() => WholeCompressedHistories)
+  getWholeCompressedHistoriesV2(
+    @Args('filterParams', { type: () => [ExportFilterV2] })
+    filterParams: ExportFilterV2[],
+  ) {
+    return this.backtestServiceV2.getWholeCompressedHistoriesV2(filterParams);
+  }
+
+  @Query(() => TestingReportV2Connection)
+  getTestingReportV2(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.backtestServiceV2.getTestingReportV2(first, after);
   }
 }
