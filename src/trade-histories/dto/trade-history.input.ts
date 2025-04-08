@@ -84,7 +84,6 @@ export class ExportFilter {
   maxSlope: number;
 }
 
-
 @InputType()
 export class ExportFilterV2 {
   @Field(() => String)
@@ -95,4 +94,22 @@ export class ExportFilterV2 {
 
   @Field(() => Float)
   maxSlope: number;
+}
+
+@InputType()
+export class ExportFilterV3 {
+  @Field(() => Float)
+  minCount: number;
+
+  @Field(() => Float)
+  maxCount: number;
+
+  @Field(() => Float)
+  minSize: number;
+
+  @Field(() => Float)
+  maxSize: number;
+
+  @Field(() => Float)
+  minR2: number;
 }

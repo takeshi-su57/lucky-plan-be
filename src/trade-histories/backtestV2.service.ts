@@ -158,7 +158,7 @@ export class BacktestV2Service {
     for (let i = 0; i < filteredCloseHistories.length; i++) {
       const history = filteredCloseHistories[i];
 
-      pnlSum += +history.pnl;
+      pnlSum += +history.pnl * +history.collateralPriceUsd;
 
       pnlArrs.push(pnlSum);
       xs.push(i);
@@ -436,6 +436,8 @@ export class BacktestV2Service {
       });
     }
 
+    const accInData: Record<string, number> = {};
+    const accOutData: Record<string, number> = {};
     const accPnlData: Record<string, number> = {};
     const accInOutData: Record<string, number> = {};
     const taskCountData: Record<string, number> = {};
@@ -497,6 +499,8 @@ export class BacktestV2Service {
             accInOutData[date] = (accInOutData[date] ?? 0) + -inOut;
             accInOut = accInOut + -inOut;
 
+            accInData[date] = (accInData[date] ?? 0) + inOut;
+
             break;
           }
           case TradeActionType.TradeOpenedLimit: {
@@ -505,6 +509,8 @@ export class BacktestV2Service {
             accInOutData[date] = (accInOutData[date] ?? 0) + -inOut;
 
             accInOut = accInOut + -inOut;
+
+            accInData[date] = (accInData[date] ?? 0) + inOut;
 
             break;
           }
@@ -516,6 +522,8 @@ export class BacktestV2Service {
 
             accInOut = accInOut + inOut;
 
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
             break;
           }
           case TradeActionType.TradeClosedLIQ: {
@@ -525,6 +533,8 @@ export class BacktestV2Service {
             accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
 
             accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
 
             break;
           }
@@ -536,6 +546,8 @@ export class BacktestV2Service {
 
             accInOut = accInOut + inOut;
 
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
             break;
           }
           case TradeActionType.TradeClosedTP: {
@@ -545,6 +557,8 @@ export class BacktestV2Service {
             accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
 
             accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
 
             break;
           }
@@ -557,6 +571,12 @@ export class BacktestV2Service {
 
             accInOut = accInOut + delta;
 
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
+
             break;
           }
           case TradeActionType.TradePosSizeIncrease: {
@@ -567,6 +587,12 @@ export class BacktestV2Service {
             accInOutData[date] = (accInOutData[date] ?? 0) + delta;
 
             accInOut = accInOut + delta;
+
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
 
             break;
           }
@@ -579,6 +605,12 @@ export class BacktestV2Service {
 
             accInOut = accInOut + delta;
 
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
+
             break;
           }
         }
@@ -590,6 +622,8 @@ export class BacktestV2Service {
       .map(([date, pnl]) => ({
         date: dayjs(date).toDate(),
         pnl,
+        in: accInData[date] ?? 0,
+        out: accOutData[date] ?? 0,
         inOut: accInOutData[date] ?? 0,
         taskCount: taskCountData[date] ?? 0,
         positionCount: Object.keys(positionCountData[date] ?? {}).length,

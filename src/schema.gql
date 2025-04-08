@@ -4,7 +4,9 @@
 
 type AccPnl {
   date: DateTime!
+  in: Float!
   inOut: Float!
+  out: Float!
   pnl: Float!
   positionCount: Int!
   taskCount: Int!
@@ -221,6 +223,14 @@ input ExportFilterV2 {
   maxSlope: Float!
   minSlope: Float!
   r2MinsByPnlSnapshotKind: String!
+}
+
+input ExportFilterV3 {
+  maxCount: Float!
+  maxSize: Float!
+  minCount: Float!
+  minR2: Float!
+  minSize: Float!
 }
 
 type Follower {
@@ -561,6 +571,7 @@ type Query {
   getServerTime: ServerTime!
   getTestingReport(after: Int, first: Int!): TestingReportConnection!
   getTestingReportV2(after: Int, first: Int!): TestingReportV2Connection!
+  getTestingReportV3(after: Int, first: Int!): TestingReportV3Connection!
   getTradeCollaterals(contractId: Int!): [TradeCollateral!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getTradePairs(contractId: Int!): [TradePair!]!
@@ -570,6 +581,7 @@ type Query {
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
   getWholeCompressedHistories(filterParams: ExportFilter!): WholeCompressedHistories!
   getWholeCompressedHistoriesV2(filterParams: [ExportFilterV2!]!): WholeCompressedHistories!
+  getWholeCompressedHistoriesV3(filterParams: [ExportFilterV3!]!): WholeCompressedHistories!
   getWholeResultHistories(filterParams: ExportFilter!): [TradeHistory!]!
   isPnlSnapshotInitialized(dateStr: String!): PnlSnapshotInitializedFlag
   systemStatus: Boolean!
@@ -771,6 +783,47 @@ type TestingReportV2PageInfo {
   hasNextPage: Boolean!
 }
 
+type TestingReportV3 {
+  avgLoss: Float!
+  avgProfit: Float!
+  bottomAccProfit: Float!
+  calculatedR2: Float!
+  calculatedSlope: Float!
+  id: Int!
+  investedUSD: Float!
+  lossCount: Int!
+  maxCount: Int!
+  maxLoss: Float!
+  maxProfit: Float!
+  maxSize: Int!
+  minCount: Int!
+  minR2: String!
+  minSize: Int!
+  peakAccProfit: Float!
+  profitCount: Int!
+  totalPositions: Int!
+  totalTasks: Int!
+  totalTraders: Int!
+  totalUSDPnl: Float!
+  totalUniqueTraders: Int!
+  usdPnls: [Float!]!
+}
+
+type TestingReportV3Connection {
+  edges: [TestingReportV3Edge!]!
+  pageInfo: TestingReportV3PageInfo!
+}
+
+type TestingReportV3Edge {
+  cursor: Int!
+  node: TestingReportV3!
+}
+
+type TestingReportV3PageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
+}
+
 enum TradeActionType {
   TradeClosedLIQ
   TradeClosedMarket
@@ -856,8 +909,10 @@ type WalletAccount {
 
 type WholeCompressedHistories {
   accPnls: [AccPnl!]!
+  actionTypeCount: String
   botCounts: [BotCount!]!
   maxInvested: Float!
+  uniqueTraders: [String!]
 }
 
 input WithdrawAllInput {

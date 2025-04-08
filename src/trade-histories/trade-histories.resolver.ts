@@ -8,6 +8,7 @@ import {
   TestingReport,
   TestingReportConnection,
   TestingReportV2Connection,
+  TestingReportV3Connection,
   TradeHistory,
   TradeTransactionCount,
   WholeCompressedHistories,
@@ -18,6 +19,7 @@ import { PnlSnapshot } from './entities/trade-history.entity';
 import {
   ExportFilter,
   ExportFilterV2,
+  ExportFilterV3,
   GetUserTransactionCountsInput,
 } from './dto/trade-history.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
@@ -26,6 +28,7 @@ import { RolesGuard } from 'src/auth/gql-role.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { BacktestService } from './backtest.service';
 import { BacktestV2Service } from './backtestV2.service';
+import { BacktestV3Service } from './backtestV3.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
@@ -34,6 +37,7 @@ export class TradeHistoriesResolver {
     private readonly pnlSnapshotsService: PnlSnapshotsService,
     private readonly backtestService: BacktestService,
     private readonly backtestServiceV2: BacktestV2Service,
+    private readonly backtestServiceV3: BacktestV3Service,
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
@@ -194,5 +198,21 @@ export class TradeHistoriesResolver {
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.backtestServiceV2.getTestingReportV2(first, after);
+  }
+
+  @Query(() => WholeCompressedHistories)
+  getWholeCompressedHistoriesV3(
+    @Args('filterParams', { type: () => [ExportFilterV3] })
+    filterParams: ExportFilterV3[],
+  ) {
+    return this.backtestServiceV3.getWholeCompressedHistoriesV3(filterParams);
+  }
+
+  @Query(() => TestingReportV3Connection)
+  getTestingReportV3(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.backtestServiceV3.getTestingReportV3(first, after);
   }
 }

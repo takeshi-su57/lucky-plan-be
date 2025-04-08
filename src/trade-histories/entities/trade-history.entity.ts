@@ -111,6 +111,12 @@ export class AccPnl {
   pnl: number;
 
   @Field(() => Float)
+  in: number;
+
+  @Field(() => Float)
+  out: number;
+
+  @Field(() => Float)
   inOut: number;
 
   @Field(() => Int)
@@ -142,6 +148,12 @@ export class WholeCompressedHistories {
 
   @Field(() => Float)
   maxInvested: number;
+
+  @Field(() => [String], { nullable: true })
+  uniqueTraders: string[] | null;
+
+  @Field(() => String, { nullable: true })
+  actionTypeCount: string | null;
 }
 
 @ObjectType()
@@ -406,4 +418,95 @@ export class TestingReportV2Connection {
   @Field(() => [TestingReportV2Edge])
   edges: TestingReportV2Edge[];
   @Field(() => TestingReportV2PageInfo) pageInfo: TestingReportV2PageInfo;
+}
+
+@ObjectType()
+export class TestingReportV3 {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Int)
+  minSize: number;
+
+  @Field(() => Int)
+  maxSize: number;
+
+  @Field(() => Int)
+  minCount: number;
+
+  @Field(() => Int)
+  maxCount: number;
+
+  @Field(() => String)
+  minR2: string;
+
+  @Field(() => Float)
+  investedUSD: number;
+
+  @Field(() => Float)
+  totalUSDPnl: number;
+
+  @Field(() => Int)
+  totalTasks: number;
+
+  @Field(() => Int)
+  totalPositions: number;
+
+  @Field(() => Int)
+  totalTraders: number;
+
+  @Field(() => Int)
+  totalUniqueTraders: number;
+
+  @Field(() => [Float])
+  usdPnls: number[];
+
+  @Field(() => Float)
+  calculatedR2: number;
+
+  @Field(() => Float)
+  calculatedSlope: number;
+
+  @Field(() => Float)
+  maxLoss: number;
+
+  @Field(() => Int)
+  lossCount: number;
+
+  @Field(() => Float)
+  avgLoss: number;
+
+  @Field(() => Float)
+  avgProfit: number;
+
+  @Field(() => Float)
+  maxProfit: number;
+
+  @Field(() => Int)
+  profitCount: number;
+
+  @Field(() => Float)
+  peakAccProfit: number;
+
+  @Field(() => Float)
+  bottomAccProfit: number;
+}
+
+@ObjectType()
+export class TestingReportV3Edge {
+  @Field(() => Int) cursor: number;
+  @Field(() => TestingReportV3) node: TestingReportV3;
+}
+
+@ObjectType()
+export class TestingReportV3PageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class TestingReportV3Connection {
+  @Field(() => [TestingReportV3Edge])
+  edges: TestingReportV3Edge[];
+  @Field(() => TestingReportV3PageInfo) pageInfo: TestingReportV3PageInfo;
 }
