@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation, Float } from '@nestjs/graphql';
 import { TradeHistoriesService } from './trade-histories.service';
 import {
   AccPnl,
@@ -29,6 +29,7 @@ import { Roles } from 'src/auth/roles.decorator';
 import { BacktestService } from './backtest.service';
 import { BacktestV2Service } from './backtestV2.service';
 import { BacktestV3Service } from './backtestV3.service';
+import { BacktestV4Service } from './backtestV4.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
@@ -38,6 +39,7 @@ export class TradeHistoriesResolver {
     private readonly backtestService: BacktestService,
     private readonly backtestServiceV2: BacktestV2Service,
     private readonly backtestServiceV3: BacktestV3Service,
+    private readonly backtestServiceV4: BacktestV4Service,
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
@@ -214,5 +216,25 @@ export class TradeHistoriesResolver {
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.backtestServiceV3.getTestingReportV3(first, after);
+  }
+
+  @Query(() => WholeCompressedHistories)
+  getWholeCompressedHistoriesV4(
+    @Args('filterParams', { type: () => [ExportFilterV3] })
+    filterParams: ExportFilterV3[],
+    @Args('ratio', { type: () => Float }) ratio: number,
+  ) {
+    return this.backtestServiceV4.getWholeCompressedHistoriesV4(
+      filterParams,
+      ratio,
+    );
+  }
+
+  @Query(() => TestingReportV3Connection)
+  getTestingReportV4(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.backtestServiceV4.getTestingReportV4(first, after);
   }
 }

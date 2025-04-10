@@ -139,6 +139,18 @@ export class BotCount {
 }
 
 @ObjectType()
+export class TotalBot {
+  @Field(() => String)
+  dateStr: string;
+
+  @Field(() => Int)
+  contractId: number;
+
+  @Field(() => String)
+  address: string;
+}
+
+@ObjectType()
 export class WholeCompressedHistories {
   @Field(() => [AccPnl])
   accPnls: AccPnl[];
@@ -154,6 +166,9 @@ export class WholeCompressedHistories {
 
   @Field(() => String, { nullable: true })
   actionTypeCount: string | null;
+
+  @Field(() => [TotalBot])
+  totalBots: TotalBot[];
 }
 
 @ObjectType()

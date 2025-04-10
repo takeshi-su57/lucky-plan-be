@@ -21,6 +21,16 @@ export function getPositionIncreaseParams(
     };
   }
 
+  if (strategy.strategyKey === 'ratioCopy') {
+    return {
+      collateralDelta: BigInt(
+        Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio),
+      ),
+      leverageDelta: Number(increaseEventArgs.leverageDelta),
+      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+    };
+  }
+
   return {
     collateralDelta: BigInt(
       (BigInt(trade.collateralAmount) * BigInt(levF - levL)) /
