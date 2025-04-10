@@ -132,6 +132,109 @@ model PnlSnapshot {
   @@index([accUSDPnl(sort: Desc)])
 }
 
+model TestingReport {
+  id                                   Int     @id @default(autoincrement())
+  minSlope                             Int
+  maxSlope                             Int
+  minR2                                Float
+  maxR2                                Float
+  recentTradedDays                     Int
+  closePositionCountsByPnlSnapshotKind String
+  investedUSD                          Float
+  totalUSDPnl                          Float
+  totalTasks                           Int
+  totalPositions                       Int
+  totalTraders                         Int
+  totalUniqueTraders                   Int
+  usdPnls                              Float[]
+  calculatedR2                         Float
+  calculatedSlope                      Float
+  maxLoss                              Float
+  lossCount                            Int
+  avgLoss                              Float
+  maxProfit                            Float
+  profitCount                          Int
+  avgProfit                            Float
+  peakAccProfit                        Float
+  bottomAccProfit                      Float
+}
+
+model TestingReportV2 {
+  id                      Int     @id @default(autoincrement())
+  minSlope                Int
+  maxSlope                Int
+  r2MinsByPnlSnapshotKind String
+  investedUSD             Float
+  totalUSDPnl             Float
+  totalTasks              Int
+  totalPositions          Int
+  totalTraders            Int
+  totalUniqueTraders      Int
+  usdPnls                 Float[]
+  calculatedR2            Float
+  calculatedSlope         Float
+  maxLoss                 Float
+  lossCount               Int
+  avgLoss                 Float
+  maxProfit               Float
+  profitCount             Int
+  avgProfit               Float
+  peakAccProfit           Float
+  bottomAccProfit         Float
+}
+
+model TestingReportV3 {
+  id                 Int     @id @default(autoincrement())
+  minSize            Int
+  maxSize            Int
+  minCount           Int
+  maxCount           Int
+  minR2              String
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  usdPnls            Float[]
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  lossCount          Int
+  avgLoss            Float
+  maxProfit          Float
+  profitCount        Int
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+}
+
+model TestingReportV4 {
+  id                 Int     @id @default(autoincrement())
+  minSize            Int
+  maxSize            Int
+  minCount           Int
+  maxCount           Int
+  minR2              String
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  usdPnls            Float[]
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  lossCount          Int
+  avgLoss            Float
+  maxProfit          Float
+  profitCount        Int
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+}
+
 model PnlSnapshotInitializedFlag {
   id      Int     @id @default(autoincrement())
   dateStr String  @unique // YYYY-MM-DD

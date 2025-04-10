@@ -40,6 +40,7 @@
     "dayjs": "^1.11.13",
     "graphql": "^16.9.0",
     "graphql-subscriptions": "^3.0.0",
+    "ml-regression-simple-linear": "^3.0.1",
     "nest-winston": "^1.9.7",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
