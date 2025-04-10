@@ -27,7 +27,7 @@ export class SystemService {
     private plansService: PlansService,
     private followerService: FollowerService,
   ) {
-    this.isPaused = true;
+    this.isPaused = false;
 
     console.log(this.getServerTime());
   }
