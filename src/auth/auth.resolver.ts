@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int, Float } from '@nestjs/graphql';
 import { UserPermission } from '@prisma/client';
 import { UseGuards } from '@nestjs/common';
 
@@ -27,6 +27,26 @@ export class AuthResolver {
     @Args('permission') permission: UserPermission,
   ) {
     return this.authService.changePermission(address, permission);
+  }
+
+  @Mutation(() => User)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  allowAuto(
+    @Args('address') address: string,
+    @Args('allowAuto', { type: () => Boolean }) allowAuto: boolean,
+    @Args('budget', { type: () => Float }) budget: number,
+    @Args('ratio', { type: () => Float }) ratio: number,
+    @Args('followerContractId', { type: () => Int })
+    followerContractId: number,
+  ) {
+    return this.authService.allowAuto(
+      address,
+      allowAuto,
+      budget,
+      ratio,
+      followerContractId,
+    );
   }
 
   @Mutation(() => AccessToken)

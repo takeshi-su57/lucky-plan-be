@@ -273,9 +273,13 @@ enum UserPermission {
 }
 
 model User {
-  address    String         @unique
-  mnemonic   String
-  permission UserPermission
+  address            String         @unique
+  mnemonic           String
+  permission         UserPermission
+  allowAuto          Boolean        @default(false)
+  budget             Float          @default(0)
+  ratio              Float          @default(1)
+  followerContractId Int            @default(0)
 }
 
 enum BotStatus {
