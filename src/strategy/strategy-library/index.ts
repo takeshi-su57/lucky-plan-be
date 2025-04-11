@@ -54,14 +54,6 @@ export function getPositionDecreaseParams(
     decreaseEventArgs.values.positionSizeCollateralDelta,
   );
 
-  if (deltaLevL > 0) {
-    return {
-      collateralDelta: 0n,
-      leverageDelta: Math.min(deltaLevL, trade.leverage - strategy.minLeverage),
-      expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
-    };
-  }
-
   return {
     collateralDelta: BigInt(
       Math.floor(
@@ -70,7 +62,7 @@ export function getPositionDecreaseParams(
           Number(trade.collateralAmount),
       ),
     ),
-    leverageDelta: 0,
+    leverageDelta: Math.min(deltaLevL, trade.leverage - strategy.minLeverage),
     expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
   };
 }
@@ -94,13 +86,7 @@ export function getOpenMissionParams(
   let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
 
   if (strategy.strategyKey === 'ratioCopy') {
-    const deltaCollateral = collateralUSDCAmount - leaderCollateralBaseline;
-
-    const deltaFollower = (deltaCollateral * strategy.ratio) / 100;
-
-    ratioAmount = BigInt(
-      Math.floor((strategy.collateralBaseline + deltaFollower) * 1e6),
-    );
+    ratioAmount = BigInt(Math.floor(collateralUSDCAmount * strategy.ratio));
   }
 
   if (strategy.strategyKey === 'scaleCopy') {

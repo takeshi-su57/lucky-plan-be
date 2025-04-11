@@ -223,8 +223,24 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => [ExportFilterV3] })
     filterParams: ExportFilterV3[],
     @Args('ratio', { type: () => Float }) ratio: number,
+    @Args('startDate', { type: () => String }) startDate: string,
   ) {
     return this.backtestServiceV4.getWholeCompressedHistoriesV4(
+      startDate,
+      filterParams,
+      ratio,
+    );
+  }
+
+  @Query(() => [PnlSnapshotDevDetails])
+  getDevPnlSnapshotsV4(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('filterParams', { type: () => [ExportFilterV3] })
+    filterParams: ExportFilterV3[],
+    @Args('ratio', { type: () => Float }) ratio: number,
+  ) {
+    return this.backtestServiceV4.getDevPnlSnapshotsV4(
+      dateStr,
       filterParams,
       ratio,
     );
@@ -236,5 +252,12 @@ export class TradeHistoriesResolver {
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.backtestServiceV4.getTestingReportV4(first, after);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  autoTesting(@Args('startDate', { type: () => String }) startDate: string) {
+    return this.backtestServiceV4.autoTesting(startDate);
   }
 }

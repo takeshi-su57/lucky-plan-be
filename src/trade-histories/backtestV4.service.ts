@@ -18,6 +18,7 @@ import {
   TestingReportV3,
   TestingReportV3Edge,
   TotalBot,
+  PnlSnapshotDetails,
 } from './entities/trade-history.entity';
 import { ExportFilterV3 } from './dto/trade-history.input';
 
@@ -163,7 +164,7 @@ export class BacktestV4Service {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
-    const valideTradeIndexMap: Record<number, boolean> = {};
+    const valideTradeIndexMap: Record<string, boolean> = {};
 
     sortedHistories.forEach((history) => {
       if (startDate && startDate > new Date(history.date)) {
@@ -178,27 +179,143 @@ export class BacktestV4Service {
         history.action === TradeActionType.TradeOpenedMarket ||
         history.action === TradeActionType.TradeOpenedLimit
       ) {
-        valideTradeIndexMap[history.tradeIndex] = true;
+        valideTradeIndexMap[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ] = true;
       }
     });
 
-    const historiesByTradeIndex: Record<number, TradeHistory[]> = {};
+    const historiesByTradeIndex: Record<string, TradeHistory[]> = {};
 
     sortedHistories.forEach((history) => {
-      if (!valideTradeIndexMap[history.tradeIndex]) {
+      if (
+        !valideTradeIndexMap[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ]
+      ) {
         return;
       }
 
-      if (!historiesByTradeIndex[history.tradeIndex]) {
-        historiesByTradeIndex[history.tradeIndex] = [];
+      if (
+        !historiesByTradeIndex[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ]
+      ) {
+        historiesByTradeIndex[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ] = [];
       }
 
-      historiesByTradeIndex[history.tradeIndex].push(history);
+      historiesByTradeIndex[
+        `${history.contractId}-${history.address}-${history.tradeIndex}`
+      ].push(history);
     });
 
     return Object.values(historiesByTradeIndex)
       .flat()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  private async getDayDevPnlSnapshots(
+    dateStr: string,
+    params: ExportFilterV4Params[],
+    ratio: number,
+  ): Promise<PnlSnapshotDetails[]> {
+    const pnlRecords: PnlSnapshot[] =
+      await this.prismaService.pnlSnapshot.findMany({
+        where: {
+          dateStr,
+          accUSDPnl: {
+            gt: 0,
+          },
+          kind: PnlSnapshotKind.MONTH,
+          contractId: {
+            not: 4,
+          },
+        },
+        orderBy: {
+          accUSDPnl: 'desc',
+        },
+      });
+
+    console.log('pnlRecords ==>', pnlRecords.length);
+
+    const CHUNK = 100;
+
+    const nodes: PnlSnapshotDevDetails[] = [];
+
+    for (let i = 0; i < pnlRecords.length; i += CHUNK) {
+      console.log(
+        `Processing chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
+      );
+
+      const chunk = pnlRecords.slice(i, i + CHUNK);
+
+      const historyRecords = await this.prismaService.tradeHistory.findMany({
+        where: {
+          OR: [
+            ...chunk.map((item) => ({
+              address: item.address,
+              ...(item.contractId !== 0 ? { contractId: item.contractId } : {}),
+            })),
+          ],
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+
+      const historyRecordsMap = new Map<string, TradeHistory[]>();
+
+      historyRecords.forEach((record) => {
+        const arr = historyRecordsMap.get(
+          `${record.address}-${record.contractId}`,
+        );
+
+        if (arr) {
+          arr.push(record);
+        } else {
+          historyRecordsMap.set(`${record.address}-${record.contractId}`, [
+            record,
+          ]);
+        }
+      });
+
+      pnlRecords.forEach((record) => {
+        const allHistories =
+          historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
+
+        const detail = this.getPnlSnapshotDevDetails(
+          record,
+          allHistories,
+          params,
+        );
+
+        if (detail) {
+          nodes.push({
+            ...detail,
+            histories: allHistories.map((history) => {
+              return {
+                ...history,
+                size: `${Number(history.size) * ratio}`,
+                pnl: `${Number(history.pnl) * ratio}`,
+                collateralDelta: history.collateralDelta
+                  ? `${Number(history.collateralDelta) * ratio}`
+                  : null,
+              };
+            }),
+          });
+        }
+      });
+
+      console.log(
+        `Ended chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
+      );
+    }
+
+    console.log('total leaders ==>', nodes.length);
+
+    return nodes;
   }
 
   private async getRangeHistories(
@@ -614,11 +731,26 @@ export class BacktestV4Service {
     }));
   }
 
+  async getDevPnlSnapshotsV4(
+    dateStr: string,
+    filterParams: ExportFilterV3[],
+    ratio: number,
+  ) {
+    return this.getDayDevPnlSnapshots(
+      dateStr,
+      this.getTestParam(filterParams),
+      ratio,
+    );
+  }
+
   async getWholeCompressedHistoriesV4(
+    startDate: string,
     filterParams: ExportFilterV3[],
     ratio: number,
   ) {
     console.time('getWholeCompressedHistories==============>');
+
+    const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
 
     const {
       accPnls,
@@ -628,8 +760,8 @@ export class BacktestV4Service {
       maxInvested,
       totalBots,
     } = await this.getRangeHistories(
-      '2025-02-01',
-      170,
+      startDate,
+      dayGaps,
       this.getTestParam(filterParams),
       ratio,
     );
@@ -688,18 +820,15 @@ export class BacktestV4Service {
 
   async getTestingReportV4(first: number, after: number | null) {
     const records: TestingReportV4[] = after
-      ? await this.prismaService.testingReportV3.findMany({
+      ? await this.prismaService.testingReportV4.findMany({
           skip: after ? 1 : undefined,
           take: first,
           cursor: {
             id: after,
           },
         })
-      : await this.prismaService.testingReportV3.findMany({
+      : await this.prismaService.testingReportV4.findMany({
           take: first,
-          cursor: {
-            id: 3906,
-          },
         });
 
     const edges: TestingReportV3Edge[] = records.map((record) => ({
@@ -716,14 +845,15 @@ export class BacktestV4Service {
     };
   }
 
-  private async autoTesting() {
+  async autoTesting(startDate: string): Promise<boolean> {
     const sizeScales = [
-      0, 26, 37, 49, 68, 84, 103, 130, 168, 215, 285, 347, 465, 560, 714, 928,
-      1189, 1567, 2248, 3500, 4903, 8868, 100000000,
+      714, 928, 1189, 1567, 2248, 3500, 4903, 8868, 100000000,
     ];
-    const countScales = [
-      0, 4, 6, 9, 13, 19, 28, 39, 56, 89, 152, 351, 1000000000,
-    ];
+    const countScales = [4, 6, 9, 13, 19, 28, 39, 56, 89, 152, 351, 1000000000];
+
+    const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+
+    await this.prismaService.testingReportV4.deleteMany();
 
     for (let i = 1; i < countScales.length; i++) {
       const minCount = countScales[i - 1];
@@ -754,8 +884,8 @@ export class BacktestV4Service {
               maxProfit,
               totalPnls,
             } = await this.getRangeHistories(
-              '2024-11-01',
-              150,
+              startDate,
+              dayGaps,
               [
                 {
                   minR2: r2Min,
@@ -770,8 +900,9 @@ export class BacktestV4Service {
 
             const investedUSD = maxInvested;
 
-            const startTimestamp = new Date('2024-11-01').getTime();
-            const endTimestamp = new Date('2025-03-31').getTime();
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp =
+              new Date(startDate).getTime() + dayGaps * 1000 * 60 * 60 * 24;
 
             const dailyScales: string[] = [];
 
@@ -835,7 +966,7 @@ export class BacktestV4Service {
             const regression = new SimpleLinearRegression(xs, usdArr);
             const score = regression.score(xs, usdArr);
 
-            await this.prismaService.testingReportV3.create({
+            await this.prismaService.testingReportV4.create({
               data: {
                 minSize,
                 maxSize,
@@ -877,5 +1008,7 @@ export class BacktestV4Service {
     }
 
     console.log('Finished');
+
+    return true;
   }
 }

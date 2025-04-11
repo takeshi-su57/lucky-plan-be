@@ -1,4 +1,10 @@
-import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  registerEnumType,
+  Float,
+  Int,
+} from '@nestjs/graphql';
 import { UserPermission } from '@prisma/client';
 
 registerEnumType(UserPermission, {
@@ -12,6 +18,18 @@ export class User {
 
   @Field(() => UserPermission)
   permission: UserPermission;
+
+  @Field(() => Boolean)
+  allowAuto: boolean;
+
+  @Field(() => Float)
+  budget: number;
+
+  @Field(() => Float)
+  ratio: number;
+
+  @Field(() => Int)
+  followerContractId: number;
 }
 
 @ObjectType()
