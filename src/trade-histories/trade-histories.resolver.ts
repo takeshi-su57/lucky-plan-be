@@ -224,11 +224,13 @@ export class TradeHistoriesResolver {
     filterParams: ExportFilterV3[],
     @Args('ratio', { type: () => Float }) ratio: number,
     @Args('startDate', { type: () => String }) startDate: string,
+    @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
   ) {
     return this.backtestServiceV4.getWholeCompressedHistoriesV4(
       startDate,
       filterParams,
       ratio,
+      isTestnet,
     );
   }
 

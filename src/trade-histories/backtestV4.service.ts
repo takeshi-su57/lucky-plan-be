@@ -21,6 +21,7 @@ import {
   PnlSnapshotDetails,
 } from './entities/trade-history.entity';
 import { ExportFilterV3 } from './dto/trade-history.input';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 
 const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
@@ -49,7 +50,10 @@ type ExportFilterV4Params = {
 export class BacktestV4Service {
   status: 'processing' | 'ready' = 'ready';
 
-  constructor(private prismaService: PrismaService) {
+  constructor(
+    private prismaService: PrismaService,
+    private tradingVariableService: TradingVariableService,
+  ) {
     // this.autoTesting();
   }
 
@@ -323,6 +327,7 @@ export class BacktestV4Service {
     days: number,
     params: ExportFilterV4Params[],
     ratio: number,
+    isTestnet: boolean,
   ): Promise<{
     accPnls: AccPnl[];
     botCounts: BotCount[];
@@ -346,6 +351,10 @@ export class BacktestV4Service {
     for (let i = 0; i < days; i++) {
       dateStrs.push(dayjs(dateStr).add(i, 'days').format('YYYY-MM-DD'));
     }
+
+    const allPairs = isTestnet
+      ? await this.tradingVariableService.getTradePairs(isTestnet ? 4 : 0)
+      : [];
 
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
@@ -478,16 +487,30 @@ export class BacktestV4Service {
             endDate,
           );
 
-          const transformedHistories = histories.map((history) => {
-            return {
-              ...history,
-              size: `${Number(history.size) * ratio}`,
-              pnl: `${Number(history.pnl) * ratio}`,
-              collateralDelta: history.collateralDelta
-                ? `${Number(history.collateralDelta) * ratio}`
-                : null,
-            };
+          const availablePairNames = allPairs.map((pair) =>
+            `${pair.from}/${pair.to}`.toLowerCase(),
+          );
+
+          const supportedPairsMap: Record<string, boolean> = {};
+
+          availablePairNames.forEach((pair) => {
+            supportedPairsMap[pair.toLowerCase()] = true;
           });
+
+          const transformedHistories = histories
+            .filter((history) =>
+              isTestnet ? supportedPairsMap[history.pair.toLowerCase()] : true,
+            )
+            .map((history) => {
+              return {
+                ...history,
+                size: `${Number(history.size) * ratio}`,
+                pnl: `${Number(history.pnl) * ratio}`,
+                collateralDelta: history.collateralDelta
+                  ? `${Number(history.collateralDelta) * ratio}`
+                  : null,
+              };
+            });
 
           totalResultHistories.push(...transformedHistories);
         });
@@ -747,6 +770,7 @@ export class BacktestV4Service {
     startDate: string,
     filterParams: ExportFilterV3[],
     ratio: number,
+    isTestnet: boolean,
   ) {
     console.time('getWholeCompressedHistories==============>');
 
@@ -764,6 +788,7 @@ export class BacktestV4Service {
       dayGaps,
       this.getTestParam(filterParams),
       ratio,
+      isTestnet,
     );
 
     console.timeEnd('getWholeCompressedHistories==============>');
@@ -896,6 +921,7 @@ export class BacktestV4Service {
                 },
               ],
               1,
+              false,
             );
 
             const investedUSD = maxInvested;
