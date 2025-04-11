@@ -130,7 +130,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  @Cron(CronExpression.EVERY_DAY_AT_7AM)
   async executeCronForAutoPlans() {
     if (this.isPaused) {
       return;
