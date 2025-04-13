@@ -21,6 +21,16 @@ export function getPositionIncreaseParams(
     };
   }
 
+  if (strategy.strategyKey === 'ratioCopy') {
+    return {
+      collateralDelta: BigInt(
+        Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio),
+      ),
+      leverageDelta: Number(increaseEventArgs.leverageDelta),
+      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+    };
+  }
+
   return {
     collateralDelta: BigInt(
       (BigInt(trade.collateralAmount) * BigInt(levF - levL)) /
@@ -84,13 +94,7 @@ export function getOpenMissionParams(
   let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
 
   if (strategy.strategyKey === 'ratioCopy') {
-    const deltaCollateral = collateralUSDCAmount - leaderCollateralBaseline;
-
-    const deltaFollower = (deltaCollateral * strategy.ratio) / 100;
-
-    ratioAmount = BigInt(
-      Math.floor((strategy.collateralBaseline + deltaFollower) * 1e6),
-    );
+    ratioAmount = BigInt(Math.floor(collateralUSDCAmount * strategy.ratio));
   }
 
   if (strategy.strategyKey === 'scaleCopy') {

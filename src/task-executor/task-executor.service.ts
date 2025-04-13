@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
-import { MissionStatus, TaskStatus } from '@prisma/client';
+import { MissionStatus, TaskStatus, UserPermission } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TradeService } from 'src/global/trade.service';
@@ -29,13 +29,14 @@ import {
 } from 'src/strategy/strategy-library';
 import { CloseMissionActionArgs, TradeType } from 'src/types';
 
-import { TaskShallowBackwardDetails } from 'src/tasks/entities/task.entity';
+import { TaskBackwardDetails } from 'src/tasks/entities/task.entity';
 
 import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
 import { FollowerService } from 'src/follower/follower.service';
 import { LogsService } from 'src/loggers/logs.service';
+import { TaskUpdateInput } from 'src/tasks/dto/task.input';
 
 @Injectable()
 export class TaskExecutorService {
@@ -53,7 +54,7 @@ export class TaskExecutorService {
   ) {}
 
   private async performTask(
-    task: TaskShallowBackwardDetails,
+    task: TaskBackwardDetails,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const { action, mission } = task;
@@ -73,7 +74,24 @@ export class TaskExecutorService {
         );
       }
 
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: task.mission.bot.plan.userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic;
+
+      if (!mnemonic) {
+        throw new Error('User does not have mnemonic');
+      }
+
       const walletClient = this.chainsService.walletClient(
+        mnemonic,
         followerContract.chainId,
         follower,
       );
@@ -119,12 +137,15 @@ export class TaskExecutorService {
               BigInt(followerTradeData.collateralAmount);
 
             if (collateralDelta > 0n) {
-              const result = await this.followerService.depositAsset({
-                address: follower.address,
-                contract: followerContract,
-                amount: collateralDelta + collateralDelta / 100n,
-                kind: 'usdc',
-              });
+              const result = await this.followerService.depositAsset(
+                task.mission.bot.plan.userId,
+                {
+                  address: follower.address,
+                  contract: followerContract,
+                  amount: collateralDelta + collateralDelta / 100n,
+                  kind: 'usdc',
+                },
+              );
 
               if (!result) {
                 await this.logger.log({
@@ -183,12 +204,15 @@ export class TaskExecutorService {
               };
             }
 
-            const result = await this.followerService.depositAsset({
-              address: follower.address,
-              contract: followerContract,
-              amount: increaseParams.collateralDelta,
-              kind: 'usdc',
-            });
+            const result = await this.followerService.depositAsset(
+              task.mission.bot.plan.userId,
+              {
+                address: follower.address,
+                contract: followerContract,
+                amount: increaseParams.collateralDelta,
+                kind: 'usdc',
+              },
+            );
 
             if (!result) {
               await this.logger.log({
@@ -245,6 +269,7 @@ export class TaskExecutorService {
 
             if (transaction.status === 'success') {
               await this.followerService.withdrawAllUSDC(
+                task.mission.bot.plan.userId,
                 follower.address,
                 followerContract.id,
               );
@@ -293,6 +318,7 @@ export class TaskExecutorService {
 
             if (transaction.status === 'success') {
               await this.followerService.withdrawAllUSDC(
+                task.mission.bot.plan.userId,
                 follower.address,
                 followerContract.id,
               );
@@ -367,12 +393,15 @@ export class TaskExecutorService {
               );
 
               if (openMissionParams.collateralAmount > 0n) {
-                const result = await this.followerService.depositAsset({
-                  address: follower.address,
-                  contract: followerContract,
-                  amount: openMissionParams.collateralAmount,
-                  kind: 'usdc',
-                });
+                const result = await this.followerService.depositAsset(
+                  task.mission.bot.plan.userId,
+                  {
+                    address: follower.address,
+                    contract: followerContract,
+                    amount: openMissionParams.collateralAmount,
+                    kind: 'usdc',
+                  },
+                );
 
                 if (!result) {
                   await this.logger.log({
@@ -434,6 +463,7 @@ export class TaskExecutorService {
 
                 if (transaction.status === 'success') {
                   await this.followerService.withdrawAllUSDC(
+                    task.mission.bot.plan.userId,
                     follower.address,
                     followerContract.id,
                   );
@@ -509,10 +539,17 @@ export class TaskExecutorService {
     }
   }
 
-  async performTaskById(taskId: number): Promise<boolean> {
+  async performTaskById(userId: string, taskId: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id: taskId,
+        mission: {
+          bot: {
+            plan: {
+              userId,
+            },
+          },
+        },
       },
       include: {
         action: true,
@@ -527,12 +564,13 @@ export class TaskExecutorService {
               include: {
                 follower: true,
                 strategy: true,
-                followerContract: true,
                 leaderContract: true,
+                followerContract: true,
+                plan: true,
               },
             },
-            achievePosition: true,
             targetPosition: true,
+            achievePosition: true,
           },
         },
       },
@@ -575,9 +613,7 @@ export class TaskExecutorService {
     return true;
   }
 
-  async performAvailableTasks() {
-    this.status = 'process';
-
+  private async performAvailableTasksByUser(userId: string) {
     try {
       await this.logger.log({
         severity: 'Info',
@@ -592,6 +628,11 @@ export class TaskExecutorService {
           mission: {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+            bot: {
+              plan: {
+                userId,
+              },
             },
           },
         },
@@ -610,6 +651,7 @@ export class TaskExecutorService {
                   strategy: true,
                   followerContract: true,
                   leaderContract: true,
+                  plan: true,
                 },
               },
               achievePosition: true,
@@ -621,7 +663,7 @@ export class TaskExecutorService {
 
       const allTasksByBotMap = new Map<
         number,
-        Map<number, TaskShallowBackwardDetails[]>
+        Map<number, TaskBackwardDetails[]>
       >();
       const awaitBotsMap = new Map<number, boolean>();
 
@@ -641,20 +683,20 @@ export class TaskExecutorService {
             tasksByMissionMap.set(task.missionId, [task]);
           }
         } else {
-          const tempMap = new Map<number, TaskShallowBackwardDetails[]>();
+          const tempMap = new Map<number, TaskBackwardDetails[]>();
           tempMap.set(task.missionId, [task]);
           allTasksByBotMap.set(task.mission.botId, tempMap);
         }
       });
 
-      const botTasks: TaskShallowBackwardDetails[] = [];
+      const taskUpdateInputs: TaskUpdateInput[] = [];
 
       for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
         if (awaitBotsMap.get(botId)) {
           continue;
         }
 
-        let botTask: TaskShallowBackwardDetails | null = null;
+        let botTask: TaskBackwardDetails | null = null;
 
         for (const tasks of tasksByMissionMap.values()) {
           if (botTask) {
@@ -686,37 +728,54 @@ export class TaskExecutorService {
         }
 
         if (botTask) {
-          botTasks.push(botTask);
+          const { success, message } = await this.performTask(botTask);
+
+          taskUpdateInputs.push({
+            id: botTask.id,
+            status: success ? TaskStatus.Await : TaskStatus.Failed,
+            logs: [
+              ...botTask.logs,
+              JSON.stringify({
+                timestamp: Date.now(),
+                message,
+              }),
+            ],
+          });
         }
       }
 
-      const promises = botTasks.map(async (task) => {
-        const { success, message } = await this.performTask(task);
+      await this.tasksService.updateMany(taskUpdateInputs);
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performAvailableTasks',
+        details: getReadableError(err),
+      });
+    }
+  }
 
-        return {
-          ...task,
-          status: success ? TaskStatus.Await : TaskStatus.Failed,
-          logs: [
-            ...task.logs,
-            JSON.stringify({
-              timestamp: Date.now(),
-              message,
-            }),
-          ],
-        };
+  async performAvailableTasks() {
+    this.status = 'process';
+
+    try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>performAvailableTasks',
       });
 
-      const updatedTasks = await Promise.allSettled(promises);
+      const allUsers = await this.prismaService.user.findMany({
+        where: {
+          permission: {
+            in: [UserPermission.Admin, UserPermission.Trader],
+          },
+        },
+      });
 
-      await this.tasksService.updateMany(
-        updatedTasks
-          .filter((result) => result.status === 'fulfilled')
-          .map((result) => ({
-            id: result.value.id,
-            status: result.value.status,
-            logs: result.value.logs,
-          })),
-      );
+      const promises = allUsers.map(async (user) => {
+        await this.performAvailableTasksByUser(user.address.toLowerCase());
+      });
+
+      await Promise.allSettled(promises);
     } catch (err) {
       await this.logger.log({
         severity: 'Error',

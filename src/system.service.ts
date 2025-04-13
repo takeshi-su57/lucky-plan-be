@@ -9,7 +9,7 @@ import { PlansService } from './plans/plans.service';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-import { FollowerService } from './follower/follower.service';
+import { AutoPlansService } from './plans/autoplans.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -17,6 +17,7 @@ dayjs.extend(timezone);
 @Injectable()
 export class SystemService {
   private isPaused = false;
+  private count = 0;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
@@ -25,9 +26,10 @@ export class SystemService {
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
     private plansService: PlansService,
-    private followerService: FollowerService,
+    private autoPlansService: AutoPlansService,
   ) {
     this.isPaused = false;
+    this.count = 0;
 
     console.log(this.getServerTime());
   }
@@ -60,20 +62,13 @@ export class SystemService {
       this.taskExecutorService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_SECOND)
-  async executeTaskCron() {
-    if (this.isPaused) {
-      return;
-    }
-
-    if (
-      this.taskExecutorService.status === 'ready' &&
-      this.tradingVariableService.status === 'ready'
-    ) {
       await this.taskExecutorService.performAvailableTasks();
+
+      if (this.botsService.status === 'ready' && this.count % 60 === 0) {
+        await this.botsService.checkAndUpdateAllBots();
+      }
+
+      this.count = this.count + 1;
     }
   }
 
@@ -91,20 +86,6 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_30_SECONDS)
-  async executeCronForBots() {
-    if (this.isPaused) {
-      return;
-    }
-
-    if (
-      this.tradingVariableService.status === 'ready' &&
-      this.botsService.status === 'ready'
-    ) {
-      await this.botsService.checkAndUpdateAllBots();
-    }
-  }
-
   @Cron(CronExpression.EVERY_5_MINUTES)
   async executeCronForPlans() {
     if (this.isPaused) {
@@ -118,10 +99,25 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
+    if (this.isPaused) {
+      return;
+    }
+
     if (this.pnlSnapshotService.status === 'ready') {
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
+    }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_7AM)
+  async executeCronForAutoPlans() {
+    if (this.isPaused) {
+      return;
+    }
+
+    if (this.autoPlansService.status === 'ready') {
+      await this.autoPlansService.createAutoPlans();
     }
   }
 

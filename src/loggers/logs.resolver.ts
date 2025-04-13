@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Query,
@@ -7,7 +7,7 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { LogSeverity } from '@prisma/client';
+import { LogSeverity, UserPermission } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import { LogsService } from './logs.service';
@@ -15,6 +15,9 @@ import { Log, LogsConnection, SeverityCount } from './entities/log.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { RolesGuard } from 'src/auth/gql-role.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 @Resolver(() => Log)
 export class LogsResolver {
@@ -24,11 +27,15 @@ export class LogsResolver {
   ) {}
 
   @Query(() => [SeverityCount])
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   getLogsSeverityCounts() {
     return this.logsService.getSeverityCounts();
   }
 
   @Query(() => LogsConnection)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   allLogs(
     @Args('severity', { type: () => LogSeverity, nullable: true })
     severity: LogSeverity | null,
@@ -41,6 +48,8 @@ export class LogsResolver {
   }
 
   @Mutation(() => Log)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   checkLog(@Args('id', { type: () => Int }) id: number) {
     return this.logsService.check(id);
   }

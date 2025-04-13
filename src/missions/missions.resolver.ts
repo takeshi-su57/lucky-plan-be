@@ -1,12 +1,17 @@
 import { Resolver, Args, Int, Mutation, Subscription } from '@nestjs/graphql';
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
+import { User, UserPermission } from '@prisma/client';
 
 import { MissionsService } from './missions.service';
 import { MissionBackwardDetails } from './entities/mission.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/gql-role.guard';
 
 @Resolver()
 export class MissionsResolver {
@@ -16,29 +21,55 @@ export class MissionsResolver {
   ) {}
 
   @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   closeMission(
     @Args('id', { type: () => Int }) id: number,
     @Args('isForce', { type: () => Boolean }) isForce: boolean,
+    @CurrentUser() user: User,
   ) {
-    return this.missionsService.closeMission(id, isForce);
+    return this.missionsService.closeMission(user.address, id, isForce);
   }
 
   @Mutation(() => Boolean)
-  ignoreMission(@Args('id', { type: () => Int }) id: number) {
-    return this.missionsService.ignoreMission(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  ignoreMission(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.missionsService.ignoreMission(user.address, id);
   }
 
   @Subscription(() => [MissionBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.missionCreated,
+    filter: (payload, variables) => {
+      if (payload.missionCreated.length > 0) {
+        return payload.missionCreated[0].bot.plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  subscribeToMissionCreated() {
+  subscribeToMissionCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionCreated);
   }
 
   @Subscription(() => [MissionBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.missionUpdated,
+    filter: (payload, variables) => {
+      if (payload.missionUpdated.length > 0) {
+        return payload.missionUpdated[0].bot.plan.userId === variables.userId;
+      }
+
+      return false;
+    },
   })
-  subscribeToMissionUpdated() {
+  subscribeToMissionUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.missionUpdated);
   }
 }

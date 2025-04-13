@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Args,
@@ -14,6 +14,13 @@ import { TaskBackwardDetails } from './entities/task.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
+
+import { User } from 'src/auth/entities/auth.entity';
+import { Roles } from 'src/auth/roles.decorator';
+import { UserPermission } from '@prisma/client';
+import { RolesGuard } from 'src/auth/gql-role.guard';
 
 @Resolver()
 export class TasksResolver {
@@ -23,26 +30,55 @@ export class TasksResolver {
   ) {}
 
   @Mutation(() => Boolean)
-  stopTask(@Args('id', { type: () => Int }) id: number) {
-    return this.tasksService.stopTask(id);
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  stopTask(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.tasksService.stopTask(user.address, id);
   }
 
   @Query(() => [TaskBackwardDetails])
-  async getAlertTasks() {
-    return this.tasksService.getAlertTasks();
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async getAlertTasks(@CurrentUser() user: User) {
+    return this.tasksService.getAlertTasks(user.address);
   }
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskCreated,
+    filter: (payload, variables) => {
+      if (payload.taskCreated.length > 0) {
+        return (
+          payload.taskCreated[0].mission.bot.plan.userId === variables.userId
+        );
+      }
+
+      return false;
+    },
   })
-  subscribeToTaskCreated() {
+  subscribeToTaskCreated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskCreated);
   }
 
   @Subscription(() => [TaskBackwardDetails], {
     name: SUBSCRIPTION_TOKEN.taskUpdated,
+    filter: (payload, variables) => {
+      if (payload.taskUpdated.length > 0) {
+        return (
+          payload.taskUpdated[0].mission.bot.plan.userId === variables.userId
+        );
+      }
+
+      return false;
+    },
   })
-  subscribeToTaskUpdated() {
+  subscribeToTaskUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+  ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.taskUpdated);
   }
 }

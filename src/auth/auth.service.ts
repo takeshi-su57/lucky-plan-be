@@ -67,6 +67,10 @@ export class AuthService {
       select: {
         address: true,
         permission: true,
+        allowAuto: true,
+        budget: true,
+        ratio: true,
+        followerContractId: true,
       },
       where: { address: walletAddress.toLowerCase() },
     });
@@ -94,6 +98,10 @@ export class AuthService {
       user = {
         address: result.address,
         permission: result.permission,
+        allowAuto: result.allowAuto,
+        budget: result.budget,
+        ratio: result.ratio,
+        followerContractId: result.followerContractId,
       };
     }
 
@@ -125,19 +133,53 @@ export class AuthService {
       select: {
         address: true,
         permission: true,
+        allowAuto: true,
+        budget: true,
+        ratio: true,
+        followerContractId: true,
       },
     });
   }
 
   async changePermission(address: string, permission: UserPermission) {
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       select: {
         address: true,
         permission: true,
+        allowAuto: true,
+        budget: true,
+        ratio: true,
+        followerContractId: true,
       },
       where: { address },
       data: {
         permission,
+      },
+    });
+  }
+
+  async allowAuto(
+    address: string,
+    allowAuto: boolean,
+    budget: number,
+    ratio: number,
+    followerContractId: number,
+  ) {
+    return await this.prisma.user.update({
+      select: {
+        address: true,
+        permission: true,
+        allowAuto: true,
+        budget: true,
+        ratio: true,
+        followerContractId: true,
+      },
+      where: { address },
+      data: {
+        allowAuto,
+        budget,
+        ratio,
+        followerContractId,
       },
     });
   }

@@ -132,6 +132,109 @@ model PnlSnapshot {
   @@index([accUSDPnl(sort: Desc)])
 }
 
+model TestingReport {
+  id                                   Int     @id @default(autoincrement())
+  minSlope                             Int
+  maxSlope                             Int
+  minR2                                Float
+  maxR2                                Float
+  recentTradedDays                     Int
+  closePositionCountsByPnlSnapshotKind String
+  investedUSD                          Float
+  totalUSDPnl                          Float
+  totalTasks                           Int
+  totalPositions                       Int
+  totalTraders                         Int
+  totalUniqueTraders                   Int
+  usdPnls                              Float[]
+  calculatedR2                         Float
+  calculatedSlope                      Float
+  maxLoss                              Float
+  lossCount                            Int
+  avgLoss                              Float
+  maxProfit                            Float
+  profitCount                          Int
+  avgProfit                            Float
+  peakAccProfit                        Float
+  bottomAccProfit                      Float
+}
+
+model TestingReportV2 {
+  id                      Int     @id @default(autoincrement())
+  minSlope                Int
+  maxSlope                Int
+  r2MinsByPnlSnapshotKind String
+  investedUSD             Float
+  totalUSDPnl             Float
+  totalTasks              Int
+  totalPositions          Int
+  totalTraders            Int
+  totalUniqueTraders      Int
+  usdPnls                 Float[]
+  calculatedR2            Float
+  calculatedSlope         Float
+  maxLoss                 Float
+  lossCount               Int
+  avgLoss                 Float
+  maxProfit               Float
+  profitCount             Int
+  avgProfit               Float
+  peakAccProfit           Float
+  bottomAccProfit         Float
+}
+
+model TestingReportV3 {
+  id                 Int     @id @default(autoincrement())
+  minSize            Int
+  maxSize            Int
+  minCount           Int
+  maxCount           Int
+  minR2              String
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  usdPnls            Float[]
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  lossCount          Int
+  avgLoss            Float
+  maxProfit          Float
+  profitCount        Int
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+}
+
+model TestingReportV4 {
+  id                 Int     @id @default(autoincrement())
+  minSize            Int
+  maxSize            Int
+  minCount           Int
+  maxCount           Int
+  minR2              String
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  usdPnls            Float[]
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  lossCount          Int
+  avgLoss            Float
+  maxProfit          Float
+  profitCount        Int
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+}
+
 model PnlSnapshotInitializedFlag {
   id      Int     @id @default(autoincrement())
   dateStr String  @unique // YYYY-MM-DD
@@ -170,9 +273,13 @@ enum UserPermission {
 }
 
 model User {
-  address    String         @unique
-  mnemonic   String
-  permission UserPermission
+  address            String         @unique
+  mnemonic           String
+  permission         UserPermission
+  allowAuto          Boolean        @default(false)
+  budget             Float          @default(0)
+  ratio              Float          @default(1)
+  followerContractId Int            @default(0)
 }
 
 enum BotStatus {
@@ -184,33 +291,47 @@ enum BotStatus {
 
 model TagCategory {
   id          Int    @id @default(autoincrement())
-  category    String @unique()
+  category    String
+  userId      String
   description String
 
   Tag Tag[]
+
+  @@unique([userId, category])
 }
 
 model Tag {
-  tag         String @id @db.VarChar(255)
+  id          Int    @id @default(autoincrement())
+  tag         String
+  userId      String
   description String
   color       String
   categoryId  Int?
 
   category TagCategory?    @relation(fields: [categoryId], references: [id])
   wallets  WalletAccount[]
+
+  @@unique([userId, tag])
 }
 
 model WalletAccount {
-  address String @id @db.VarChar(255)
+  id      Int    @id @default(autoincrement())
+  userId  String
+  address String
   tags    Tag[]
+
+  @@unique([userId, address])
 }
 
 model Follower {
   address      String @id @db.VarChar(255)
+  userId       String @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
   publicKey    String @unique
-  accountIndex Int    @unique // this is master follower
+  accountIndex Int // this is master follower
 
   bots Bot[]
+
+  @@unique([userId, accountIndex])
 }
 
 enum PlanStatus {
@@ -222,6 +343,7 @@ enum PlanStatus {
 
 model Plan {
   id             Int        @id @default(autoincrement())
+  userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
   title          String
   description    String
   startedAt      DateTime?
@@ -236,7 +358,7 @@ model Bot {
   id                       Int       @id @default(autoincrement())
   leaderAddress            String    @db.VarChar(255)
   followerAddress          String    @db.VarChar(255)
-  planId                   Int?
+  planId                   Int       @default(0)
   strategyId               Int
   leaderContractId         Int
   leaderCollateralBaseline Int
@@ -249,7 +371,7 @@ model Bot {
   endedAt                  DateTime?
   status                   BotStatus @default(Created)
 
-  plan             Plan?    @relation(fields: [planId], references: [id])
+  plan             Plan     @relation(fields: [planId], references: [id])
   follower         Follower @relation(fields: [followerAddress], references: [address])
   strategy         Strategy @relation(fields: [strategyId], references: [id])
   leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])

@@ -48,7 +48,7 @@ export class TasksService {
     private readonly logger: LogsService,
   ) {}
 
-  async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
+  private async getTasks(ids: number[]): Promise<TaskBackwardDetails[]> {
     return await this.prismaService.task.findMany({
       where: {
         id: { in: ids },
@@ -246,10 +246,17 @@ export class TasksService {
     });
   }
 
-  async stopTask(id: number): Promise<boolean> {
+  async stopTask(userId: string, id: number): Promise<boolean> {
     const task = await this.prismaService.task.findUnique({
       where: {
         id,
+        mission: {
+          bot: {
+            plan: {
+              userId,
+            },
+          },
+        },
       },
     });
 
@@ -542,11 +549,7 @@ export class TasksService {
 
       const missionTasks = (tasksByMissionMap.get(context.mission.id) || [])
         .filter((item) => item.missionId === context.mission.id)
-        .filter(
-          (task) =>
-            task.status !== TaskStatus.Completed &&
-            task.status !== TaskStatus.Stopped,
-        )
+        .filter((task) => task.status === TaskStatus.Await)
         .filter((task) => filter(task.action));
 
       const task = missionTasks.length === 1 ? missionTasks[0] : null;
@@ -663,7 +666,7 @@ export class TasksService {
     );
   }
 
-  async getAlertTasks(): Promise<TaskBackwardDetails[]> {
+  async getAlertTasks(userId: string): Promise<TaskBackwardDetails[]> {
     return await this.prismaService.task.findMany({
       where: {
         status: {
@@ -672,6 +675,11 @@ export class TasksService {
         mission: {
           status: {
             notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+          },
+          bot: {
+            plan: {
+              userId,
+            },
           },
         },
       },
