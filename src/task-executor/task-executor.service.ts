@@ -731,7 +731,7 @@ export class TaskExecutorService {
           const { success, message } = await this.performTask(botTask);
 
           taskUpdateInputs.push({
-            ...botTask,
+            id: botTask.id,
             status: success ? TaskStatus.Await : TaskStatus.Failed,
             logs: [
               ...botTask.logs,
