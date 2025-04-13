@@ -9,7 +9,6 @@ import { PlansService } from './plans/plans.service';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-import { FollowerService } from './follower/follower.service';
 import { AutoPlansService } from './plans/autoplans.service';
 
 dayjs.extend(utc);
@@ -18,6 +17,7 @@ dayjs.extend(timezone);
 @Injectable()
 export class SystemService {
   private isPaused = false;
+  private count = 0;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
@@ -29,6 +29,7 @@ export class SystemService {
     private autoPlansService: AutoPlansService,
   ) {
     this.isPaused = false;
+    this.count = 0;
 
     console.log(this.getServerTime());
   }
@@ -61,20 +62,13 @@ export class SystemService {
       this.taskExecutorService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_SECOND)
-  async executeTaskCron() {
-    if (this.isPaused) {
-      return;
-    }
-
-    if (
-      this.taskExecutorService.status === 'ready' &&
-      this.tradingVariableService.status === 'ready'
-    ) {
       await this.taskExecutorService.performAvailableTasks();
+
+      if (this.botsService.status === 'ready' && this.count % 60 === 0) {
+        await this.botsService.checkAndUpdateAllBots();
+      }
+
+      this.count = this.count + 1;
     }
   }
 
@@ -89,20 +83,6 @@ export class SystemService {
       this.tradingVariableService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForLeaderboard();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_30_SECONDS)
-  async executeCronForBots() {
-    if (this.isPaused) {
-      return;
-    }
-
-    if (
-      this.tradingVariableService.status === 'ready' &&
-      this.botsService.status === 'ready'
-    ) {
-      await this.botsService.checkAndUpdateAllBots();
     }
   }
 

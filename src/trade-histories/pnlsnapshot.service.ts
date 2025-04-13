@@ -488,7 +488,7 @@ export class PnlSnapshotsService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `PnlSnapshotsService>dynamicSnapshotBuild`,
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: LastDay: ${lastDayStr} CurrentDay: ${dateStr}`,
         details: getReadableError(err),
       });
 

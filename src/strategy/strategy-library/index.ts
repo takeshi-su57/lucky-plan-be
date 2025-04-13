@@ -54,6 +54,14 @@ export function getPositionDecreaseParams(
     decreaseEventArgs.values.positionSizeCollateralDelta,
   );
 
+  if (deltaLevL > 0) {
+    return {
+      collateralDelta: 0n,
+      leverageDelta: Math.min(deltaLevL, trade.leverage - strategy.minLeverage),
+      expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
+    };
+  }
+
   return {
     collateralDelta: BigInt(
       Math.floor(
@@ -62,7 +70,7 @@ export function getPositionDecreaseParams(
           Number(trade.collateralAmount),
       ),
     ),
-    leverageDelta: Math.min(deltaLevL, trade.leverage - strategy.minLeverage),
+    leverageDelta: 0,
     expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
   };
 }
