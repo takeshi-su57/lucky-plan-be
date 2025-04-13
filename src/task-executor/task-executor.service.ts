@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
-import { MissionStatus, TaskStatus } from '@prisma/client';
+import { MissionStatus, TaskStatus, UserPermission } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TradeService } from 'src/global/trade.service';
@@ -36,6 +36,7 @@ import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
 import { getReadableError } from 'src/utils';
 import { FollowerService } from 'src/follower/follower.service';
 import { LogsService } from 'src/loggers/logs.service';
+import { TaskUpdateInput } from 'src/tasks/dto/task.input';
 
 @Injectable()
 export class TaskExecutorService {
@@ -612,9 +613,7 @@ export class TaskExecutorService {
     return true;
   }
 
-  async performAvailableTasks() {
-    this.status = 'process';
-
+  private async performAvailableTasksByUser(userId: string) {
     try {
       await this.logger.log({
         severity: 'Info',
@@ -629,6 +628,11 @@ export class TaskExecutorService {
           mission: {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+            bot: {
+              plan: {
+                userId,
+              },
             },
           },
         },
@@ -685,7 +689,7 @@ export class TaskExecutorService {
         }
       });
 
-      const botTasks: TaskBackwardDetails[] = [];
+      const taskUpdateInputs: TaskUpdateInput[] = [];
 
       for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
         if (awaitBotsMap.get(botId)) {
@@ -724,37 +728,54 @@ export class TaskExecutorService {
         }
 
         if (botTask) {
-          botTasks.push(botTask);
+          const { success, message } = await this.performTask(botTask);
+
+          taskUpdateInputs.push({
+            ...botTask,
+            status: success ? TaskStatus.Await : TaskStatus.Failed,
+            logs: [
+              ...botTask.logs,
+              JSON.stringify({
+                timestamp: Date.now(),
+                message,
+              }),
+            ],
+          });
         }
       }
 
-      const promises = botTasks.map(async (task) => {
-        const { success, message } = await this.performTask(task);
+      await this.tasksService.updateMany(taskUpdateInputs);
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>performAvailableTasks',
+        details: getReadableError(err),
+      });
+    }
+  }
 
-        return {
-          ...task,
-          status: success ? TaskStatus.Await : TaskStatus.Failed,
-          logs: [
-            ...task.logs,
-            JSON.stringify({
-              timestamp: Date.now(),
-              message,
-            }),
-          ],
-        };
+  async performAvailableTasks() {
+    this.status = 'process';
+
+    try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>performAvailableTasks',
       });
 
-      const updatedTasks = await Promise.allSettled(promises);
+      const allUsers = await this.prismaService.user.findMany({
+        where: {
+          permission: {
+            in: [UserPermission.Admin, UserPermission.Trader],
+          },
+        },
+      });
 
-      await this.tasksService.updateMany(
-        updatedTasks
-          .filter((result) => result.status === 'fulfilled')
-          .map((result) => ({
-            id: result.value.id,
-            status: result.value.status,
-            logs: result.value.logs,
-          })),
-      );
+      const promises = allUsers.map(async (user) => {
+        await this.performAvailableTasksByUser(user.address.toLowerCase());
+      });
+
+      await Promise.allSettled(promises);
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
