@@ -549,11 +549,7 @@ export class TasksService {
 
       const missionTasks = (tasksByMissionMap.get(context.mission.id) || [])
         .filter((item) => item.missionId === context.mission.id)
-        .filter(
-          (task) =>
-            task.status !== TaskStatus.Completed &&
-            task.status !== TaskStatus.Stopped,
-        )
+        .filter((task) => task.status === TaskStatus.Await)
         .filter((task) => filter(task.action));
 
       const task = missionTasks.length === 1 ? missionTasks[0] : null;
