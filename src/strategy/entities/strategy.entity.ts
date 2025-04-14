@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 
 @ObjectType()
 export class Strategy {
@@ -11,7 +11,7 @@ export class Strategy {
   @Field()
   params: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   ratio: number;
 
   @Field(() => Int)
