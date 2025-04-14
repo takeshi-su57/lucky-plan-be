@@ -34,7 +34,7 @@ model StrategyMetadata {
 model Strategy {
   id                 Int    @id @default(autoincrement())
   strategyKey        String
-  ratio              Int    @default(100)
+  ratio              Float  @default(1)
   lifeTime           Int // unit is min
   minCollateral      Int // usdc
   maxCollateral      Int // usdc

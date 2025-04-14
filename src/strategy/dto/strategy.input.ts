@@ -1,4 +1,4 @@
-import { InputType, Field, Int } from '@nestjs/graphql';
+import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { IsNotEmpty, IsJSON, IsInt } from 'class-validator';
 
 @InputType()
@@ -13,8 +13,7 @@ export class CreateStrategyInput {
   params: string;
 
   @IsNotEmpty()
-  @IsInt()
-  @Field(() => Int)
+  @Field(() => Float)
   ratio: number;
 
   @IsNotEmpty()

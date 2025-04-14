@@ -94,7 +94,9 @@ export function getOpenMissionParams(
   let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
 
   if (strategy.strategyKey === 'ratioCopy') {
-    ratioAmount = BigInt(Math.floor(collateralUSDCAmount * strategy.ratio));
+    ratioAmount = BigInt(
+      Math.floor(collateralUSDCAmount * strategy.ratio * 1e6),
+    );
   }
 
   if (strategy.strategyKey === 'scaleCopy') {
