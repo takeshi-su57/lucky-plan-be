@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
-import { erc20Abi } from 'viem';
+import { erc20Abi, isAddress } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
 import { BotStatus } from '@prisma/client';
@@ -410,43 +410,228 @@ export class FollowerService {
     return false;
   }
 
-  async getPrivateKey(userId: string, address: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        address: userId,
-      },
-    });
+  async withdrawAssetToAny(
+    userId: string,
+    {
+      address,
+      contract,
+      amount,
+      kind,
+    }: {
+      address: string;
+      contract: Contract;
+      amount: bigint;
+      kind: 'usdc' | 'eth';
+    },
+  ) {
+    try {
+      const masterFollower = await this.prismaService.follower.findUnique({
+        where: {
+          userId_accountIndex: {
+            userId,
+            accountIndex: 1,
+          },
+        },
+      });
 
-    if (!user) {
-      throw new Error('User not found');
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
+      if (!isAddress(address) || !masterFollower) {
+        throw new Error('Wrong address');
+      }
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        contract.id,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const masterWallet = this.chainsService.walletClient(
+        mnemonic,
+        contract.chainId,
+        masterFollower,
+      );
+
+      let tx: string;
+
+      switch (kind) {
+        case 'usdc': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAssetToAny',
+            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${address}`,
+          });
+
+          const { request } = await publicClient.simulateContract({
+            account: masterWallet.account,
+            address: collateralInfo.collateral,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [address as Address, amount],
+          });
+
+          tx = await masterWallet.writeContract(request);
+
+          break;
+        }
+        case 'eth': {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAssetToAny',
+            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${address}`,
+          });
+
+          tx = await masterWallet.sendTransaction({
+            account: masterWallet.account!,
+            to: address as Address,
+            value: amount,
+            chain: masterWallet.chain,
+          });
+
+          break;
+        }
+      }
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        return transaction.status === 'success';
+      } else {
+        return false;
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>depositAsset`,
+        details: getReadableError(err),
+      });
     }
 
-    const follower = await this.prismaService.follower.findUnique({
-      where: { address },
-    });
-
-    if (!follower) {
-      throw new Error('Wrong address');
-    }
-
-    if (follower.userId !== userId) {
-      throw new Error('Unauthorized User');
-    }
-
-    const mnemonic = user.mnemonic || '';
-
-    if (!validateMnemonic(mnemonic, english)) {
-      throw new Error('Wrong mnemonic, plz check seed the db metadata');
-    }
-
-    const account = mnemonicToAccount(mnemonic, {
-      accountIndex: follower.accountIndex,
-    });
-
-    return `0x${Array.from(account.getHdKey().privateKey!)
-      .map((byte) => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
-      .join('')}`;
+    return false;
   }
+
+  async withdrawUSDCToUser(
+    userId: string,
+    amount: number,
+    contractId: number,
+  ): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        contractId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const decimals = await publicClient.readContract({
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'decimals',
+        args: [],
+      });
+
+      await this.withdrawAssetToAny(userId, {
+        address: userId as Address,
+        contract: contract,
+        amount: BigInt(Math.floor(amount * Math.pow(10, decimals))),
+        kind: 'usdc',
+      });
+
+      return true;
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawUSDCToUser`,
+        details: getReadableError(err),
+      });
+    }
+
+    return false;
+  }
+
+  async withdrawETHToUser(
+    userId: string,
+    amount: number,
+    contractId: number,
+  ): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      await this.withdrawAssetToAny(userId, {
+        address: userId,
+        contract: contract,
+        amount: BigInt(Math.floor(amount * Math.pow(10, 18))),
+        kind: 'eth',
+      });
+
+      return true;
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawETHToUser`,
+        details: getReadableError(err),
+      });
+    }
+
+    return false;
+  }
+
+  // async getPrivateKey(userId: string, address: string) {
+  //   const user = await this.prismaService.user.findUnique({
+  //     where: {
+  //       address: userId,
+  //     },
+  //   });
+
+  //   if (!user) {
+  //     throw new Error('User not found');
+  //   }
+
+  //   const follower = await this.prismaService.follower.findUnique({
+  //     where: { address },
+  //   });
+
+  //   if (!follower) {
+  //     throw new Error('Wrong address');
+  //   }
+
+  //   if (follower.userId !== userId) {
+  //     throw new Error('Unauthorized User');
+  //   }
+
+  //   const mnemonic = user.mnemonic || '';
+
+  //   if (!validateMnemonic(mnemonic, english)) {
+  //     throw new Error('Wrong mnemonic, plz check seed the db metadata');
+  //   }
+
+  //   const account = mnemonicToAccount(mnemonic, {
+  //     accountIndex: follower.accountIndex,
+  //   });
+
+  //   return `0x${Array.from(account.getHdKey().privateKey!)
+  //     .map((byte) => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
+  //     .join('')}`;
+  // }
 
   async generateNewFollower(userId: string) {
     const user = await this.prismaService.user.findUnique({
