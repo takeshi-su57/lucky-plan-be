@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, Float } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 
 import { FollowerService } from './follower.service';
@@ -12,7 +12,6 @@ import {
 import {
   CloseTradeInput,
   CancelOrderAfterTimeoutInput,
-  GetFollowerByAddressInput,
   WithdrawAllInput,
 } from './dto/follower.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
@@ -58,6 +57,36 @@ export class FollowerResolver {
       user.address,
       input.address,
       input.contractId,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  withdrawETHToUser(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('amount', { type: () => Float }) amount: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.withdrawETHToUser(
+      user.address,
+      amount,
+      contractId,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  withdrawUSDCToUser(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('amount', { type: () => Float }) amount: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.withdrawUSDCToUser(
+      user.address,
+      amount,
+      contractId,
     );
   }
 
@@ -107,15 +136,15 @@ export class FollowerResolver {
     return this.followerService.getTrades(user.address, address, contractId);
   }
 
-  @Query(() => String)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getFollowerPrivateKey(
-    @Args('input') input: GetFollowerByAddressInput,
-    @CurrentUser() user: User,
-  ) {
-    return this.followerService.getPrivateKey(user.address, input.address);
-  }
+  // @Query(() => String)
+  // @Roles(UserPermission.Trader)
+  // @UseGuards(GqlAuthGuard, RolesGuard)
+  // getFollowerPrivateKey(
+  //   @Args('input') input: GetFollowerByAddressInput,
+  //   @CurrentUser() user: User,
+  // ) {
+  //   return this.followerService.getPrivateKey(user.address, input.address);
+  // }
 
   @Query(() => [Follower])
   @Roles(UserPermission.Trader)
