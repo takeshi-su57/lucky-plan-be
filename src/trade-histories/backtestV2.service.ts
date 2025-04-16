@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
   PnlSnapshotKind,
-  TestingReport,
   TestingReportV2,
   TradeActionType,
   TradeHistory,
@@ -12,15 +11,13 @@ import { SimpleLinearRegression } from 'ml-regression-simple-linear';
 import { PrismaService } from 'src/global/prisma.service';
 import { getStartOfDay } from 'src/utils';
 import {
-  PnlSnapshotDetails,
   PnlSnapshotDevDetails,
   AccPnl,
   PnlSnapshot,
   BotCount,
-  TestingReportEdge,
   TestingReportV2Edge,
 } from './entities/trade-history.entity';
-import { ExportFilter, ExportFilterV2 } from './dto/trade-history.input';
+import { ExportFilterV2 } from './dto/trade-history.input';
 
 const pnlSnapshotKinds = [
   PnlSnapshotKind.DAY,
@@ -638,18 +635,18 @@ export class BacktestV2Service {
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    const fs = require('fs');
-    fs.writeFileSync(
-      'statistics.json',
-      JSON.stringify(
-        {
-          countStatistics,
-          sizeStatistics,
-        },
-        null,
-        2,
-      ),
-    );
+    // const fs = require('fs');
+    // fs.writeFileSync(
+    //   'statistics.json',
+    //   JSON.stringify(
+    //     {
+    //       countStatistics,
+    //       sizeStatistics,
+    //     },
+    //     null,
+    //     2,
+    //   ),
+    // );
 
     return {
       accPnls,
@@ -748,7 +745,7 @@ export class BacktestV2Service {
 
       console.time(`${minSlope}-${maxSlope}`);
 
-      for (let pnlSnapshotKind of pnlSnapshotKinds) {
+      for (const pnlSnapshotKind of pnlSnapshotKinds) {
         const r2MinsByPnlSnapshotKind = {
           [PnlSnapshotKind.DAY]: 1,
           [PnlSnapshotKind.TWO_DAY]: 1,
