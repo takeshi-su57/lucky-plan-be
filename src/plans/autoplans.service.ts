@@ -79,10 +79,10 @@ export class AutoPlansService {
     });
 
     let pnlSum = 0;
-    let sumIn = openHistories.reduce((acc, history) => {
+    const sumIn = openHistories.reduce((acc, history) => {
       return acc + +history.size * +history.collateralPriceUsd;
     }, 0);
-    let countIn = openHistories.length;
+    const countIn = openHistories.length;
 
     const avgSize = countIn > 0 ? sumIn / countIn : 0;
 
