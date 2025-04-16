@@ -35,7 +35,7 @@ const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
-const MIN_SLOPE = 900;
+const MIN_SLOPE = 150;
 
 type ExportFilterV4Params = {
   minR2: number;
