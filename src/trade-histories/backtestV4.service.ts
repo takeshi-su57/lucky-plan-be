@@ -15,7 +15,6 @@ import {
   AccPnl,
   PnlSnapshot,
   BotCount,
-  TestingReportV3,
   TestingReportV3Edge,
   TotalBot,
   PnlSnapshotDetails,
@@ -36,7 +35,7 @@ const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
-const MIN_SLOPE = 150;
+const MIN_SLOPE = 900;
 
 type ExportFilterV4Params = {
   minR2: number;
@@ -99,10 +98,10 @@ export class BacktestV4Service {
     });
 
     let pnlSum = 0;
-    let sumIn = openHistories.reduce((acc, history) => {
+    const sumIn = openHistories.reduce((acc, history) => {
       return acc + +history.size * +history.collateralPriceUsd;
     }, 0);
-    let countIn = openHistories.length;
+    const countIn = openHistories.length;
 
     const avgSize = countIn > 0 ? sumIn / countIn : 0;
 

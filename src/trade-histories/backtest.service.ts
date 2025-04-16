@@ -817,7 +817,7 @@ export class BacktestService {
 
       console.time(`${minSlope}-${maxSlope}`);
 
-      for (let pnlSnapshotKind of pnlSnapshotKinds) {
+      for (const pnlSnapshotKind of pnlSnapshotKinds) {
         const closePositionCountsByPnlSnapshotKind = {
           [PnlSnapshotKind.DAY]: inifinite,
           [PnlSnapshotKind.TWO_DAY]: inifinite,
