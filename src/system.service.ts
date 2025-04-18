@@ -10,13 +10,14 @@ import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
 import { AutoPlansService } from './plans/autoplans.service';
+import { SecurityService } from './global/security.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 @Injectable()
 export class SystemService {
-  private isPaused = false;
+  private isPaused = true;
   private count = 0;
 
   constructor(
@@ -27,11 +28,10 @@ export class SystemService {
     private botsService: BotsService,
     private plansService: PlansService,
     private autoPlansService: AutoPlansService,
+    private securityService: SecurityService,
   ) {
-    this.isPaused = false;
+    this.isPaused = true;
     this.count = 0;
-
-    console.log(this.getServerTime());
   }
 
   pauseSystem() {
@@ -40,7 +40,15 @@ export class SystemService {
     return true;
   }
 
-  resumeSystem() {
+  async resumeSystem(password: string | null) {
+    if (this.securityService.isSafeApp) {
+      if (!password) {
+        throw new Error('Required Password');
+      }
+
+      await this.securityService.loadPassword(password);
+    }
+
     this.isPaused = false;
 
     return true;
@@ -52,7 +60,7 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_SECOND)
   async executeCronForBotMonitor() {
-    if (this.isPaused) {
+    if (this.isPaused || !this.securityService.isReady()) {
       return;
     }
 
@@ -74,7 +82,7 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForLeaderboardMonitor() {
-    if (this.isPaused) {
+    if (this.isPaused || !this.securityService.isReady()) {
       return;
     }
 
@@ -88,7 +96,7 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async executeCronForPlans() {
-    if (this.isPaused) {
+    if (this.isPaused || !this.securityService.isReady()) {
       return;
     }
 
@@ -99,7 +107,7 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
-    if (this.isPaused) {
+    if (this.isPaused || !this.securityService.isReady()) {
       return;
     }
 
@@ -112,7 +120,7 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_DAY_AT_7AM)
   async executeCronForAutoPlans() {
-    if (this.isPaused) {
+    if (this.isPaused || !this.securityService.isReady()) {
       return;
     }
 
