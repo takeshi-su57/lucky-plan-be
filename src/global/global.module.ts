@@ -6,13 +6,11 @@ import { TradeService } from './trade.service';
 import { ChainsService } from './chains.service';
 import { TradingVariableService } from './trading-variable.service';
 import { SecurityService } from './security.service';
-import { LogsModule } from 'src/loggers/logs.module';
 
 export const PUB_SUB = Symbol('PUB_SUB');
 
 @Global()
 @Module({
-  imports: [LogsModule],
   providers: [
     PrismaService,
     TradeService,

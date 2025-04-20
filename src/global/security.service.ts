@@ -2,8 +2,6 @@ import { Injectable } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 
 import { PrismaService } from './prisma.service';
-import { LogsService } from 'src/loggers/logs.service';
-import { getReadableError } from 'src/utils';
 
 type AppSecureParams = {
   passwordHash: string;
@@ -24,10 +22,7 @@ export class SecurityService {
   private saltHex: string | null;
   public isSafeApp: boolean;
 
-  constructor(
-    private prismaService: PrismaService,
-    private logger: LogsService,
-  ) {
+  constructor(private prismaService: PrismaService) {
     this.appPassword = null;
     this.saltHex = null;
     this.isSafeApp = true;
@@ -128,55 +123,53 @@ export class SecurityService {
 
     const key = this.getKeyFromPassword(password, saltHex);
 
-    try {
-      const allUsers = await this.prismaService.user.findMany();
+    const allUsers = await this.prismaService.user.findMany();
 
-      const userInputs: { address: string; mnemonic: string }[] = [];
+    const userInputs: { address: string; mnemonic: string }[] = [];
 
-      for (const user of allUsers) {
-        const encrypted = this._encrypt(user.mnemonic, key);
+    for (const user of allUsers) {
+      const encrypted = this._encrypt(user.mnemonic, key);
 
-        userInputs.push({
-          address: user.address,
-          mnemonic: JSON.stringify(encrypted),
-        });
-      }
-
-      await this.prismaService.$transaction(
-        userInputs.map((input) => {
-          return this.prismaService.user.update({
-            where: {
-              address: input.address.toLowerCase(),
-            },
-            data: input,
-          });
-        }),
-      );
-
-      this.appPassword = password;
-      this.saltHex = saltHex;
-      this.isSafeApp = true;
-
-      await this.prismaService.metadata.update({
-        where: {
-          key: APP_SECURE_PARAMS,
-        },
-        data: {
-          value: JSON.stringify({
-            passwordHash,
-            saltHex,
-          }),
-        },
+      userInputs.push({
+        address: user.address,
+        mnemonic: JSON.stringify(encrypted),
       });
-    } catch (err) {
-      this.logger.log({
-        severity: 'Error',
-        summary: 'security.service > makeSafeApp',
-        details: getReadableError(err),
-      });
-
-      return false;
     }
+
+    await this.prismaService.$transaction(
+      userInputs.map((input) => {
+        return this.prismaService.user.update({
+          where: {
+            address: input.address.toLowerCase(),
+          },
+          data: input,
+        });
+      }),
+    );
+
+    this.appPassword = password;
+    this.saltHex = saltHex;
+    this.isSafeApp = true;
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: APP_SECURE_PARAMS,
+      },
+      create: {
+        key: APP_SECURE_PARAMS,
+        value: JSON.stringify({
+          passwordHash,
+          saltHex,
+        }),
+      },
+      update: {
+        key: APP_SECURE_PARAMS,
+        value: JSON.stringify({
+          passwordHash,
+          saltHex,
+        }),
+      },
+    });
 
     return true;
   }
@@ -203,59 +196,61 @@ export class SecurityService {
     const newSaltHex = newSalt.toString('hex');
     const newPasswordHash = this.getPasswordHash(newPassword);
 
-    const newKey = this.getKeyFromPassword(newPasswordHash, newSaltHex);
+    const newKey = this.getKeyFromPassword(newPassword, newSaltHex);
     const oldKey = this.getKeyFromPassword(oldPassword, oldAppParams.saltHex);
 
-    try {
-      const allUsers = await this.prismaService.user.findMany();
+    const allUsers = await this.prismaService.user.findMany();
 
-      const userInputs: { address: string; mnemonic: string }[] = [];
+    const userInputs: { address: string; mnemonic: string }[] = [];
 
-      for (const user of allUsers) {
-        const encryptedData = JSON.parse(user.mnemonic) as EncryptedData;
+    for (const user of allUsers) {
+      const encryptedData = JSON.parse(user.mnemonic) as EncryptedData;
 
-        const originalMnemonic = this._decrypt(encryptedData, oldKey);
+      const originalMnemonic = this._decrypt(encryptedData, oldKey);
 
-        const encrypted = this._encrypt(originalMnemonic, newKey);
+      const encrypted = this._encrypt(originalMnemonic, newKey);
 
-        userInputs.push({
-          address: user.address,
-          mnemonic: JSON.stringify(encrypted),
-        });
-      }
-
-      await this.prismaService.$transaction(
-        userInputs.map((input) => {
-          return this.prismaService.user.update({
-            where: {
-              address: input.address.toLowerCase(),
-            },
-            data: input,
-          });
-        }),
-      );
-
-      this.appPassword = newPassword;
-      this.saltHex = newSaltHex;
-
-      await this.prismaService.metadata.update({
-        where: {
-          key: APP_SECURE_PARAMS,
-        },
-        data: {
-          value: JSON.stringify({
-            passwordHash: this.getPasswordHash(newPassword),
-            saltHex: newSaltHex,
-          }),
-        },
-      });
-    } catch (err) {
-      this.logger.log({
-        severity: 'Error',
-        summary: 'security.service > change password',
-        details: getReadableError(err),
+      userInputs.push({
+        address: user.address,
+        mnemonic: JSON.stringify(encrypted),
       });
     }
+
+    await this.prismaService.$transaction(
+      userInputs.map((input) => {
+        return this.prismaService.user.update({
+          where: {
+            address: input.address.toLowerCase(),
+          },
+          data: input,
+        });
+      }),
+    );
+
+    this.appPassword = newPassword;
+    this.saltHex = newSaltHex;
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: APP_SECURE_PARAMS,
+      },
+      create: {
+        key: APP_SECURE_PARAMS,
+        value: JSON.stringify({
+          passwordHash: newPasswordHash,
+          saltHex: newSaltHex,
+        }),
+      },
+      update: {
+        key: APP_SECURE_PARAMS,
+        value: JSON.stringify({
+          passwordHash: newPasswordHash,
+          saltHex: newSaltHex,
+        }),
+      },
+    });
+
+    return true;
   }
 
   async loadPassword(password: string) {

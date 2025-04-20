@@ -54,6 +54,56 @@ export class SystemService {
     return true;
   }
 
+  async makeSafeApp(password: string) {
+    this.isPaused = true;
+
+    const promise = new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const result = await this.securityService.makeSafeApp(password);
+
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      }, 5000);
+    });
+
+    const result = await promise;
+
+    if (result) {
+      this.isPaused = false;
+    }
+
+    return result;
+  }
+
+  async changePassword(oldPassword: string, newPassword: string) {
+    this.isPaused = true;
+
+    const promise = new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const result = await this.securityService.changePassword(
+            oldPassword,
+            newPassword,
+          );
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      }, 5000);
+    });
+
+    const result = await promise;
+
+    if (result) {
+      this.isPaused = false;
+    }
+
+    return result;
+  }
+
   isSystemPaused() {
     return this.isPaused;
   }

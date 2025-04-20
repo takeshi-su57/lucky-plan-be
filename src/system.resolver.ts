@@ -52,7 +52,7 @@ export class SystemResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   makeSafeApp(@Args('password') password: string) {
-    return this.securityService.makeSafeApp(password);
+    return this.systemsService.makeSafeApp(password);
   }
 
   @Mutation(() => Boolean)
@@ -62,7 +62,7 @@ export class SystemResolver {
     @Args('oldPassword') oldPassword: string,
     @Args('newPassword') newPassword: string,
   ) {
-    return this.securityService.changePassword(oldPassword, newPassword);
+    return this.systemsService.changePassword(oldPassword, newPassword);
   }
 
   @Query(() => Boolean)
