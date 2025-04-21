@@ -6,12 +6,14 @@ import { generateMnemonic, english } from 'viem/accounts';
 import { PrismaService } from 'src/global/prisma.service';
 import { UserPermission } from '@prisma/client';
 import { User } from './entities/auth.entity';
+import { SecurityService } from 'src/global/security.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private securityService: SecurityService,
   ) {}
 
   async verifyWeb3Auth(
@@ -47,10 +49,14 @@ export class AuthService {
   }
 
   async createAccount(walletAddress: `0x${string}`) {
+    const mnemonic = generateMnemonic(english);
+
     return await this.prisma.user.create({
       data: {
         address: walletAddress.toLowerCase(),
-        mnemonic: generateMnemonic(english),
+        mnemonic: this.securityService.isSafeApp
+          ? JSON.stringify(this.securityService.encrypt(mnemonic))
+          : mnemonic,
         permission: UserPermission.Trial,
       },
     });
