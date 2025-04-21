@@ -18,9 +18,9 @@ import {
   apeChain,
   Chain,
 } from 'viem/chains';
-import { PrismaService } from './prisma.service';
 
 import { validateMnemonic } from '@scure/bip39';
+import { EncryptedData, SecurityService } from './security.service';
 
 const rpcUrls = {
   137: [
@@ -62,7 +62,7 @@ export class ChainsService {
   readonly publicClients: Record<number, PublicClient>;
   private walletClients: Record<number, Record<string, WalletClient>>;
 
-  constructor(private prismaService: PrismaService) {
+  constructor(private securityService: SecurityService) {
     this.availableChains = [arbitrum, polygon, base, arbitrumSepolia, apeChain];
     this.publicClients = {};
     this.walletClients = {};
@@ -107,7 +107,7 @@ export class ChainsService {
   }
 
   walletClient(
-    mnemonic: string,
+    mnemonicStr: string,
     chainId: number,
     follower: Follower,
   ): WalletClient {
@@ -120,6 +120,10 @@ export class ChainsService {
     if (!chain) {
       throw new Error('Invalid chain id');
     }
+
+    const mnemonic = this.securityService.isSafeApp
+      ? this.securityService.decrypt(JSON.parse(mnemonicStr) as EncryptedData)
+      : mnemonicStr;
 
     if (!validateMnemonic(mnemonic, english)) {
       throw new Error('Wrong mnemonic, plz check seed the db metadata');

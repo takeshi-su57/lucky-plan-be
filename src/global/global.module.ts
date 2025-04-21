@@ -5,6 +5,7 @@ import { PrismaService } from './prisma.service';
 import { TradeService } from './trade.service';
 import { ChainsService } from './chains.service';
 import { TradingVariableService } from './trading-variable.service';
+import { SecurityService } from './security.service';
 
 export const PUB_SUB = Symbol('PUB_SUB');
 
@@ -16,6 +17,7 @@ export const PUB_SUB = Symbol('PUB_SUB');
     Logger,
     ChainsService,
     TradingVariableService,
+    SecurityService,
     {
       provide: PUB_SUB,
       useValue: new PubSub(),
@@ -27,6 +29,7 @@ export const PUB_SUB = Symbol('PUB_SUB');
     Logger,
     ChainsService,
     TradingVariableService,
+    SecurityService,
     PUB_SUB,
   ],
 })

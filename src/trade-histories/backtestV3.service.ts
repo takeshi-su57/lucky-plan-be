@@ -28,6 +28,8 @@ const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
+const MIN_SLOPE = 900;
+
 type ExportFilterV3Params = {
   minR2: number;
   minCount: number;
@@ -86,10 +88,10 @@ export class BacktestV3Service {
     });
 
     let pnlSum = 0;
-    let sumIn = openHistories.reduce((acc, history) => {
+    const sumIn = openHistories.reduce((acc, history) => {
       return acc + +history.size * +history.collateralPriceUsd;
     }, 0);
-    let countIn = openHistories.length;
+    const countIn = openHistories.length;
 
     const avgSize = countIn > 0 ? sumIn / countIn : 0;
 
@@ -124,7 +126,7 @@ export class BacktestV3Service {
       return null;
     }
 
-    if (score.r2 < filterParam.minR2) {
+    if (score.r2 < filterParam.minR2 || regression.slope < MIN_SLOPE) {
       return null;
     }
 
@@ -155,7 +157,7 @@ export class BacktestV3Service {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
-    const valideTradeIndexMap: Record<number, boolean> = {};
+    const valideTradeIndexMap: Record<string, boolean> = {};
 
     sortedHistories.forEach((history) => {
       if (startDate && startDate > new Date(history.date)) {
@@ -170,22 +172,36 @@ export class BacktestV3Service {
         history.action === TradeActionType.TradeOpenedMarket ||
         history.action === TradeActionType.TradeOpenedLimit
       ) {
-        valideTradeIndexMap[history.tradeIndex] = true;
+        valideTradeIndexMap[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ] = true;
       }
     });
 
-    const historiesByTradeIndex: Record<number, TradeHistory[]> = {};
+    const historiesByTradeIndex: Record<string, TradeHistory[]> = {};
 
     sortedHistories.forEach((history) => {
-      if (!valideTradeIndexMap[history.tradeIndex]) {
+      if (
+        !valideTradeIndexMap[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ]
+      ) {
         return;
       }
 
-      if (!historiesByTradeIndex[history.tradeIndex]) {
-        historiesByTradeIndex[history.tradeIndex] = [];
+      if (
+        !historiesByTradeIndex[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ]
+      ) {
+        historiesByTradeIndex[
+          `${history.contractId}-${history.address}-${history.tradeIndex}`
+        ] = [];
       }
 
-      historiesByTradeIndex[history.tradeIndex].push(history);
+      historiesByTradeIndex[
+        `${history.contractId}-${history.address}-${history.tradeIndex}`
+      ].push(history);
     });
 
     return Object.values(historiesByTradeIndex)
@@ -230,6 +246,9 @@ export class BacktestV3Service {
             gt: 0,
           },
           kind: PnlSnapshotKind.MONTH,
+          contractId: {
+            not: 4,
+          },
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -259,12 +278,14 @@ export class BacktestV3Service {
 
     const pnlSnapshotsMapKeys = Array.from(pnlSnapshotsMap.keys());
 
-    const CHUNK = 50;
+    const CHUNK = 35;
     const totalResultHistories: TradeHistory[] = [];
-    const countStatistics: Record<string, Record<number, number>> = {};
-    const sizeStatistics: Record<string, Record<number, number>> = {};
-
     const botCountData: Record<string, number> = {};
+    const totalBots: {
+      dateStr: string;
+      contractId: number;
+      address: string;
+    }[] = [];
 
     for (let i = 0; i < pnlSnapshotsMapKeys.length; i += CHUNK) {
       const chunk = pnlSnapshotsMapKeys.slice(i, i + CHUNK);
@@ -311,17 +332,6 @@ export class BacktestV3Service {
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(key) || [];
 
-        const openHistories = allHistories.filter(
-          (history) =>
-            history.action === TradeActionType.TradeOpenedMarket ||
-            history.action === TradeActionType.TradeOpenedLimit,
-        );
-
-        const openAverageIn =
-          openHistories.reduce((acc, history) => {
-            return acc + +history.size * +history.collateralPriceUsd;
-          }, 0) / openHistories.length;
-
         const nodes: PnlSnapshotDevDetails[] = [];
 
         subPnlRecords.forEach((record) => {
@@ -330,28 +340,6 @@ export class BacktestV3Service {
             allHistories,
             params,
           );
-
-          const countObj = countStatistics[record.kind];
-
-          if (countObj) {
-            const count = countObj[allHistories.length] || 0;
-            countObj[allHistories.length] = count + 1;
-          } else {
-            countStatistics[record.kind] = {
-              [allHistories.length]: 1,
-            };
-          }
-
-          const sizeObj = sizeStatistics[record.kind];
-
-          if (sizeObj) {
-            const size = sizeObj[Math.floor(openAverageIn)] || 0;
-            sizeObj[Math.floor(openAverageIn)] = size + 1;
-          } else {
-            sizeStatistics[record.kind] = {
-              [Math.floor(openAverageIn)]: 1,
-            };
-          }
 
           if (detail) {
             nodes.push(detail);
@@ -362,6 +350,11 @@ export class BacktestV3Service {
           const dateStr = node.dateStr;
 
           botCountData[dateStr] = (botCountData[dateStr] || 0) + 1;
+          totalBots.push({
+            dateStr: node.dateStr,
+            contractId: node.contractId,
+            address: node.address,
+          });
 
           const startDate = new Date(
             new Date(dateStr).getTime() + 24 * 3600 * 1000,
@@ -374,7 +367,18 @@ export class BacktestV3Service {
             endDate,
           );
 
-          totalResultHistories.push(...histories);
+          const transformedHistories = histories.map((history) => {
+            return {
+              ...history,
+              size: `${Number(history.size) * 1}`,
+              pnl: `${Number(history.pnl) * 1}`,
+              collateralDelta: history.collateralDelta
+                ? `${Number(history.collateralDelta) * 1}`
+                : null,
+            };
+          });
+
+          totalResultHistories.push(...transformedHistories);
         });
       });
     }
