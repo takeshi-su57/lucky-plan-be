@@ -235,6 +235,32 @@ model TestingReportV4 {
   bottomAccProfit    Float
 }
 
+model TestingReportV5 {
+  id                 Int     @id @default(autoincrement())
+  window             Int
+  minR2              Float
+  n                  Int
+  m                  Int
+  minScore           Float
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  usdPnls            Float[]
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  lossCount          Int
+  avgLoss            Float
+  maxProfit          Float
+  profitCount        Int
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+}
+
 model PnlSnapshotInitializedFlag {
   id      Int     @id @default(autoincrement())
   dateStr String  @unique // YYYY-MM-DD

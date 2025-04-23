@@ -9,6 +9,7 @@ import { BacktestService } from './backtest.service';
 import { BacktestV2Service } from './backtestV2.service';
 import { BacktestV3Service } from './backtestV3.service';
 import { BacktestV4Service } from './backtestV4.service';
+import { BacktestV5Service } from './backtestV5.service';
 
 @Module({
   imports: [LogsModule],
@@ -20,6 +21,7 @@ import { BacktestV4Service } from './backtestV4.service';
     BacktestV2Service,
     BacktestV3Service,
     BacktestV4Service,
+    BacktestV5Service,
   ],
   exports: [
     TradeHistoriesService,

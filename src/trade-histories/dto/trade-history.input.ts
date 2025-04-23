@@ -113,3 +113,21 @@ export class ExportFilterV3 {
   @Field(() => Float)
   minR2: number;
 }
+
+@InputType()
+export class ExportFilterV5 {
+  @Field(() => Float)
+  minR2: number;
+
+  @Field(() => Int)
+  window: number;
+
+  @Field(() => Float)
+  minScore: number;
+
+  @Field(() => Float)
+  n: number;
+
+  @Field(() => Int)
+  m: number;
+}
