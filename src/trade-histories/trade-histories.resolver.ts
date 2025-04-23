@@ -4,11 +4,13 @@ import {
   AccPnl,
   PnlSnapshotDetailsConnection,
   PnlSnapshotDevDetails,
+  PnlSnapshotDevDetailsV5,
   PnlSnapshotInitializedFlag,
   TestingReport,
   TestingReportConnection,
   TestingReportV2Connection,
   TestingReportV3Connection,
+  TestingReportV5Connection,
   TradeHistory,
   TradeTransactionCount,
   WholeCompressedHistories,
@@ -20,6 +22,7 @@ import {
   ExportFilter,
   ExportFilterV2,
   ExportFilterV3,
+  ExportFilterV5,
   GetUserTransactionCountsInput,
 } from './dto/trade-history.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
@@ -30,6 +33,7 @@ import { BacktestService } from './backtest.service';
 import { BacktestV2Service } from './backtestV2.service';
 import { BacktestV3Service } from './backtestV3.service';
 import { BacktestV4Service } from './backtestV4.service';
+import { BacktestV5Service } from './backtestV5.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
@@ -40,6 +44,7 @@ export class TradeHistoriesResolver {
     private readonly backtestServiceV2: BacktestV2Service,
     private readonly backtestServiceV3: BacktestV3Service,
     private readonly backtestServiceV4: BacktestV4Service,
+    private readonly backtestServiceV5: BacktestV5Service,
   ) {}
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
@@ -261,5 +266,38 @@ export class TradeHistoriesResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   autoTesting(@Args('startDate', { type: () => String }) startDate: string) {
     return this.backtestServiceV4.autoTesting(startDate);
+  }
+
+  @Query(() => [PnlSnapshotDevDetailsV5])
+  getDevPnlSnapshotsV5(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('filterParams', { type: () => ExportFilterV5 })
+    filterParams: ExportFilterV5,
+  ) {
+    return this.backtestServiceV5.getDevPnlSnapshotsV5(dateStr, filterParams);
+  }
+
+  @Query(() => WholeCompressedHistories)
+  getWholeCompressedHistoriesV5(
+    @Args('ratio', { type: () => Float }) ratio: number,
+    @Args('startDate', { type: () => String }) startDate: string,
+    @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
+    @Args('filterParams', { type: () => ExportFilterV5 })
+    filterParams: ExportFilterV5,
+  ) {
+    return this.backtestServiceV5.getWholeCompressedHistoriesV5(
+      startDate,
+      filterParams,
+      ratio,
+      isTestnet,
+    );
+  }
+
+  @Query(() => TestingReportV5Connection)
+  getTestingReportV5(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.backtestServiceV5.getTestingReportV5(first, after);
   }
 }

@@ -1,0 +1,328 @@
+import { Injectable } from '@nestjs/common';
+import {
+  PnlSnapshotKind,
+  PnlSnapshot,
+  TradeHistory,
+  TradeActionType,
+  UserPermission,
+} from '@prisma/client';
+import * as dayjs from 'dayjs';
+import { SimpleLinearRegression } from 'ml-regression-simple-linear';
+
+import { PrismaService } from 'src/global/prisma.service';
+import { LogsService } from 'src/loggers/logs.service';
+
+import { getReadableError, getStartOfDay } from 'src/utils';
+import { CreatePlanInput } from './dto/plan.input';
+import { CreateBotAndStrategyInput } from 'src/bots/dto/bot.input';
+import { PlansService } from './plans.service';
+import { BotsService } from 'src/bots/bots.service';
+
+const bestFilter = {
+  minR2: 0.925,
+  window: 9,
+  minScore: 3,
+  n: 2,
+  m: 32,
+};
+
+export type ServiceStatus = 'process' | 'ready';
+
+@Injectable()
+export class AutoPlansV2Service {
+  status: ServiceStatus = 'ready';
+
+  constructor(
+    private prismaService: PrismaService,
+    private planService: PlansService,
+    private botService: BotsService,
+    private logger: LogsService,
+  ) {
+    this.status = 'ready';
+  }
+
+  private getExpertPnlSnapshot(
+    snapshot: PnlSnapshot,
+    histories: TradeHistory[],
+  ): PnlSnapshot | null {
+    const endDate = new Date(
+      getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
+    );
+
+    const rangeHistories = histories.filter((history) => {
+      const historyDate = new Date(history.date);
+
+      return historyDate.getTime() <= endDate.getTime();
+    });
+
+    const openHistoriesMap: Record<number, TradeHistory[]> = {};
+
+    rangeHistories.forEach((history) => {
+      if (
+        history.action === TradeActionType.TradeOpenedMarket ||
+        history.action === TradeActionType.TradeOpenedLimit
+      ) {
+        const arr = openHistoriesMap[history.tradeIndex];
+
+        if (arr) {
+          arr.push(history);
+        } else {
+          openHistoriesMap[history.tradeIndex] = [history];
+        }
+      }
+    });
+
+    const closeHistories = rangeHistories.filter((history) => {
+      return (
+        history.action === TradeActionType.TradeClosedMarket ||
+        history.action === TradeActionType.TradeClosedLIQ ||
+        history.action === TradeActionType.TradeClosedSL ||
+        history.action === TradeActionType.TradeClosedTP
+      );
+    });
+
+    if (closeHistories.length < 6) {
+      return null;
+    }
+
+    let traderScore = 0;
+    let round = 0;
+
+    for (let i = 0; i < closeHistories.length; i += bestFilter.window) {
+      round++;
+
+      const chunk = closeHistories.slice(
+        Math.max(closeHistories.length - i - bestFilter.window, 0),
+        Math.min(bestFilter.window, closeHistories.length),
+      );
+
+      let pnlSum = 0;
+
+      const pnlArrs: number[] = [];
+      const xs: number[] = [];
+
+      for (let j = 0; j < chunk.length; j++) {
+        const history = chunk[j];
+
+        pnlSum += +history.pnl * +history.collateralPriceUsd;
+
+        pnlArrs.push(pnlSum);
+        xs.push(j);
+      }
+
+      const regression = new SimpleLinearRegression(xs, pnlArrs);
+      const score = regression.score(xs, pnlArrs);
+
+      if (Number.isNaN(score.r2)) {
+        continue;
+      }
+
+      if (regression.slope > 0) {
+        if (score.r2 > bestFilter.minR2) {
+          traderScore += (regression.slope * score.r2) / round / bestFilter.n;
+        } else {
+          traderScore +=
+            (regression.slope * (score.r2 - 1) * bestFilter.m) /
+            round /
+            bestFilter.n;
+        }
+      } else {
+        traderScore +=
+          (regression.slope * (2 - score.r2) * bestFilter.m) /
+          round /
+          bestFilter.n;
+      }
+    }
+
+    if (traderScore <= bestFilter.minScore) {
+      return null;
+    }
+
+    return snapshot;
+  }
+
+  private async filterExperts(dateStr: string): Promise<PnlSnapshot[]> {
+    const pnlRecords: PnlSnapshot[] =
+      await this.prismaService.pnlSnapshot.findMany({
+        where: {
+          dateStr: dateStr,
+          accUSDPnl: {
+            gt: 0,
+          },
+          kind: PnlSnapshotKind.MONTH,
+          contractId: {
+            not: 4,
+          },
+        },
+        orderBy: {
+          accUSDPnl: 'desc',
+        },
+      });
+
+    const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
+
+    pnlRecords.forEach((record) => {
+      if (record.contractId === 0) {
+        return;
+      }
+
+      const key = JSON.stringify({
+        address: record.address,
+        contractId: record.contractId,
+      });
+
+      const arr = pnlSnapshotsMap.get(key);
+
+      if (arr) {
+        arr.push(record);
+      } else {
+        pnlSnapshotsMap.set(key, [record]);
+      }
+    });
+
+    const pnlSnapshotsMapKeys = Array.from(pnlSnapshotsMap.keys());
+
+    const historyRecords = await this.prismaService.tradeHistory.findMany({
+      where: {
+        OR: [
+          ...pnlSnapshotsMapKeys
+            .map(
+              (item) =>
+                JSON.parse(item) as { address: string; contractId: number },
+            )
+            .map((item) => ({
+              address: item.address,
+              ...(item.contractId !== 0 ? { contractId: item.contractId } : {}),
+            })),
+        ],
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    const historyRecordsMap = new Map<string, TradeHistory[]>();
+    const expertPnlSnapshots: PnlSnapshot[] = [];
+
+    historyRecords.forEach((record) => {
+      const key = JSON.stringify({
+        address: record.address,
+        contractId: record.contractId,
+      });
+
+      const arr = historyRecordsMap.get(key);
+
+      if (arr) {
+        arr.push(record);
+      } else {
+        historyRecordsMap.set(key, [record]);
+      }
+    });
+
+    pnlSnapshotsMapKeys.forEach((key) => {
+      const subPnlRecords = pnlSnapshotsMap.get(key) || [];
+      const allHistories = historyRecordsMap.get(key) || [];
+
+      subPnlRecords.forEach((record) => {
+        const detail = this.getExpertPnlSnapshot(record, allHistories);
+
+        if (detail) {
+          expertPnlSnapshots.push(detail);
+        }
+      });
+    });
+
+    return expertPnlSnapshots;
+  }
+
+  async createAutoPlans() {
+    this.status = 'process';
+
+    const dateStr = dayjs().format('YYYY-MM-DD');
+
+    try {
+      const allExpertPnlSnapshots = await this.filterExperts(dateStr);
+      const allFollowers = await this.prismaService.follower.findMany();
+      const followerAddresses = allFollowers.map((item) =>
+        item.address.toLowerCase(),
+      );
+
+      const realExpertPnlSnapshots = allExpertPnlSnapshots.filter(
+        (snapshot) =>
+          !followerAddresses.includes(snapshot.address.toLowerCase()),
+      );
+
+      this.logger.log({
+        severity: 'Info',
+        summary: 'AutoPlansService>createAutoPlans',
+        details: `[AutoPlansService] ${dateStr} expertPnlSnapshots: ${realExpertPnlSnapshots.length}`,
+      });
+
+      const autoAllowedUsers = await this.prismaService.user.findMany({
+        where: {
+          permission: {
+            in: [UserPermission.Trader, UserPermission.Admin],
+          },
+          allowAuto: true,
+        },
+      });
+
+      for (const user of autoAllowedUsers) {
+        if (user.followerContractId === 0) {
+          continue;
+        }
+
+        const planInput: CreatePlanInput = {
+          title: 'Auto Plan V2',
+          description: 'This is an auto plan',
+          scheduledStart: new Date(),
+          scheduledEnd: dayjs(new Date()).add(1, 'day').toDate(),
+        };
+
+        const plan = await this.planService.create(
+          user.address.toLowerCase(),
+          planInput,
+        );
+
+        if (!plan) {
+          continue;
+        }
+
+        const botInputs: CreateBotAndStrategyInput[] =
+          realExpertPnlSnapshots.map((snapshot) => ({
+            planId: plan.id,
+            followerContractId: user.followerContractId,
+            leaderAddress: snapshot.address,
+            leaderCollateralBaseline: 0,
+            leaderContractId: snapshot.contractId,
+            strategy: {
+              strategyKey: 'ratioCopy',
+              ratio: user.ratio,
+              lifeTime: 365 * 24 * 60,
+              maxCollateral: Math.floor(user.budget),
+              minCollateral: 5,
+              collateralBaseline: 0,
+              maxLeverage: 200000,
+              minLeverage: 1100,
+              params: '{}',
+            },
+          }));
+
+        await this.botService.batchCreateBots(
+          user.address.toLowerCase(),
+          botInputs,
+        );
+      }
+    } catch (error) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'AutoPlansService>createAutoPlans',
+        details: `[AutoPlansService] ${dateStr} error: ${getReadableError(
+          error as Error,
+        )}`,
+      });
+    }
+
+    this.status = 'ready';
+  }
+}

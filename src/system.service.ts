@@ -9,7 +9,7 @@ import { PlansService } from './plans/plans.service';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-import { AutoPlansService } from './plans/autoplans.service';
+import { AutoPlansV2Service } from './plans/autoplansV2.service';
 import { SecurityService } from './global/security.service';
 
 dayjs.extend(utc);
@@ -27,7 +27,7 @@ export class SystemService {
     private tradingVariableService: TradingVariableService,
     private botsService: BotsService,
     private plansService: PlansService,
-    private autoPlansService: AutoPlansService,
+    private autoPlansV2Service: AutoPlansV2Service,
     private securityService: SecurityService,
   ) {
     this.isPaused = true;
@@ -174,8 +174,8 @@ export class SystemService {
       return;
     }
 
-    if (this.autoPlansService.status === 'ready') {
-      await this.autoPlansService.createAutoPlans();
+    if (this.autoPlansV2Service.status === 'ready') {
+      await this.autoPlansV2Service.createAutoPlans();
     }
   }
 
