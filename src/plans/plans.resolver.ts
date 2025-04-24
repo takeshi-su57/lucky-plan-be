@@ -24,11 +24,13 @@ import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/gql-role.guard';
+import { AutoPlansV2Service } from './autoplansV2.service';
 
 @Resolver()
 export class PlansResolver {
   constructor(
     private readonly plansService: PlansService,
+    private readonly autoplanV2Service: AutoPlansV2Service,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
@@ -40,6 +42,13 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.create(user.address, createPlanInput);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  createAutoPlan(@CurrentUser() user: User) {
+    return this.autoplanV2Service.createAutoPlansForUser(user.address);
   }
 
   @Mutation(() => Int)
