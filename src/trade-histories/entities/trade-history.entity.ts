@@ -214,6 +214,15 @@ export class PnlSnapshotDevDetails extends PnlSnapshot {
 }
 
 @ObjectType()
+export class PnlSnapshotDevDetailsV5 extends PnlSnapshot {
+  @Field(() => [TradeHistory])
+  histories: TradeHistory[];
+
+  @Field(() => Float)
+  score: number;
+}
+
+@ObjectType()
 export class PnlSnapshotDetailsEdge {
   @Field(() => Int) cursor: number;
   @Field(() => PnlSnapshotDetails) node: PnlSnapshotDetails;
@@ -524,4 +533,95 @@ export class TestingReportV3Connection {
   @Field(() => [TestingReportV3Edge])
   edges: TestingReportV3Edge[];
   @Field(() => TestingReportV3PageInfo) pageInfo: TestingReportV3PageInfo;
+}
+
+@ObjectType()
+export class TestingReportV5 {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Int)
+  window: number;
+
+  @Field(() => Float)
+  minR2: number;
+
+  @Field(() => Float)
+  minScore: number;
+
+  @Field(() => Int)
+  n: number;
+
+  @Field(() => Int)
+  m: number;
+
+  @Field(() => Float)
+  investedUSD: number;
+
+  @Field(() => Float)
+  totalUSDPnl: number;
+
+  @Field(() => Int)
+  totalTasks: number;
+
+  @Field(() => Int)
+  totalPositions: number;
+
+  @Field(() => Int)
+  totalTraders: number;
+
+  @Field(() => Int)
+  totalUniqueTraders: number;
+
+  @Field(() => [Float])
+  usdPnls: number[];
+
+  @Field(() => Float)
+  calculatedR2: number;
+
+  @Field(() => Float)
+  calculatedSlope: number;
+
+  @Field(() => Float)
+  maxLoss: number;
+
+  @Field(() => Int)
+  lossCount: number;
+
+  @Field(() => Float)
+  avgLoss: number;
+
+  @Field(() => Float)
+  avgProfit: number;
+
+  @Field(() => Float)
+  maxProfit: number;
+
+  @Field(() => Int)
+  profitCount: number;
+
+  @Field(() => Float)
+  peakAccProfit: number;
+
+  @Field(() => Float)
+  bottomAccProfit: number;
+}
+
+@ObjectType()
+export class TestingReportV5Edge {
+  @Field(() => Int) cursor: number;
+  @Field(() => TestingReportV5) node: TestingReportV5;
+}
+
+@ObjectType()
+export class TestingReportV5PageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class TestingReportV5Connection {
+  @Field(() => [TestingReportV5Edge])
+  edges: TestingReportV5Edge[];
+  @Field(() => TestingReportV5PageInfo) pageInfo: TestingReportV5PageInfo;
 }
