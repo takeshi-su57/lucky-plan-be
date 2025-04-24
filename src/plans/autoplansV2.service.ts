@@ -325,4 +325,95 @@ export class AutoPlansV2Service {
 
     this.status = 'ready';
   }
+
+  async createAutoPlansForUser(userId: string) {
+    const dateStr = dayjs().format('YYYY-MM-DD');
+
+    try {
+      const allExpertPnlSnapshots = await this.filterExperts(dateStr);
+      const allFollowers = await this.prismaService.follower.findMany();
+      const followerAddresses = allFollowers.map((item) =>
+        item.address.toLowerCase(),
+      );
+
+      const realExpertPnlSnapshots = allExpertPnlSnapshots.filter(
+        (snapshot) =>
+          !followerAddresses.includes(snapshot.address.toLowerCase()),
+      );
+
+      this.logger.log({
+        severity: 'Info',
+        summary: 'AutoPlansService>createAutoPlansForUser',
+        details: `[AutoPlansService] ${dateStr} expertPnlSnapshots: ${realExpertPnlSnapshots.length}`,
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+          permission: {
+            in: [UserPermission.Trader, UserPermission.Admin],
+          },
+          allowAuto: true,
+        },
+      });
+
+      if (!user || user.followerContractId === 0) {
+        throw new Error('Invalid User');
+      }
+
+      const planInput: CreatePlanInput = {
+        title: 'Auto Plan V2',
+        description: 'This is an auto plan',
+        scheduledStart: new Date(),
+        scheduledEnd: dayjs(new Date()).add(1, 'day').toDate(),
+      };
+
+      const plan = await this.planService.create(
+        user.address.toLowerCase(),
+        planInput,
+      );
+
+      if (!plan) {
+        throw new Error('Cannot create a plan');
+      }
+
+      const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
+        (snapshot) => ({
+          planId: plan.id,
+          followerContractId: user.followerContractId,
+          leaderAddress: snapshot.address,
+          leaderCollateralBaseline: 0,
+          leaderContractId: snapshot.contractId,
+          strategy: {
+            strategyKey: 'ratioCopy',
+            ratio: user.ratio,
+            lifeTime: 365 * 24 * 60,
+            maxCollateral: Math.floor(user.budget),
+            minCollateral: 5,
+            collateralBaseline: 0,
+            maxLeverage: 200000,
+            minLeverage: 1100,
+            params: '{}',
+          },
+        }),
+      );
+
+      await this.botService.batchCreateBots(
+        user.address.toLowerCase(),
+        botInputs,
+      );
+
+      return true;
+    } catch (error) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'AutoPlansService>createAutoPlansForUser',
+        details: `[AutoPlansService] ${dateStr} error: ${getReadableError(
+          error as Error,
+        )}`,
+      });
+
+      return false;
+    }
+  }
 }

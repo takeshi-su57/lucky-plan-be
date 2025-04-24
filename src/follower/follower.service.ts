@@ -33,6 +33,7 @@ import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
 import { LogsService } from 'src/loggers/logs.service';
 import { TaskQueue } from 'src/utils/TaskQueue';
+import { EncryptedData, SecurityService } from 'src/global/security.service';
 
 @Injectable()
 export class FollowerService {
@@ -47,6 +48,7 @@ export class FollowerService {
     private tradeService: TradeService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
+    private securityService: SecurityService,
   ) {
     this.depositAssetQueue = {};
   }
@@ -644,7 +646,11 @@ export class FollowerService {
       throw new Error('User not found');
     }
 
-    const mnemonic = user.mnemonic || '';
+    const mnemonicStr = user.mnemonic || '';
+
+    const mnemonic = this.securityService.isSafeApp
+      ? this.securityService.decrypt(JSON.parse(mnemonicStr) as EncryptedData)
+      : mnemonicStr;
 
     if (!validateMnemonic(mnemonic, english)) {
       throw new Error('Wrong mnemonic, plz check seed the db metadata');
