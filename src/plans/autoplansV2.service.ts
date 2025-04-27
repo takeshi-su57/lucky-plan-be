@@ -19,9 +19,9 @@ import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
 
 const bestFilter = {
-  minR2: 0.925,
-  window: 9,
-  minScore: 3,
+  minR2: 0.92,
+  window: 38,
+  minScore: 0,
   n: 2,
   m: 32,
 };
@@ -72,14 +72,18 @@ export class AutoPlansV2Service {
       }
     });
 
-    const closeHistories = rangeHistories.filter((history) => {
-      return (
-        history.action === TradeActionType.TradeClosedMarket ||
-        history.action === TradeActionType.TradeClosedLIQ ||
-        history.action === TradeActionType.TradeClosedSL ||
-        history.action === TradeActionType.TradeClosedTP
-      );
-    });
+    const closeHistories = rangeHistories
+      .filter((history) => {
+        return (
+          history.action === TradeActionType.TradeClosedMarket ||
+          history.action === TradeActionType.TradeClosedLIQ ||
+          history.action === TradeActionType.TradeClosedSL ||
+          history.action === TradeActionType.TradeClosedTP ||
+          history.action === TradeActionType.TradePosSizeDecrease ||
+          history.action === TradeActionType.TradePosSizeIncrease
+        );
+      })
+      .filter((history) => +history.pnl !== 0);
 
     if (closeHistories.length < 6) {
       return null;
@@ -93,8 +97,12 @@ export class AutoPlansV2Service {
 
       const chunk = closeHistories.slice(
         Math.max(closeHistories.length - i - bestFilter.window, 0),
-        Math.min(bestFilter.window, closeHistories.length),
+        closeHistories.length - i,
       );
+
+      if (chunk.length < 2) {
+        continue;
+      }
 
       let pnlSum = 0;
 
@@ -114,6 +122,10 @@ export class AutoPlansV2Service {
       const score = regression.score(xs, pnlArrs);
 
       if (Number.isNaN(score.r2)) {
+        score.r2 = 1;
+      }
+
+      if (score.r2 === Infinity) {
         continue;
       }
 
