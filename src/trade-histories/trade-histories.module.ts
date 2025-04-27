@@ -30,6 +30,7 @@ import { BacktestV5Service } from './backtestV5.service';
     BacktestV2Service,
     BacktestV3Service,
     BacktestV4Service,
+    BacktestV5Service,
   ],
 })
 export class TradeHistoriesModule {}
