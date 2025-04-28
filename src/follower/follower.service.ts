@@ -1146,6 +1146,7 @@ export class FollowerService {
 
     const availableFollowers = await this.prismaService.follower.findMany({
       where: {
+        userId: userId.toLowerCase(),
         address: {
           notIn: Object.keys(followerAddressesMap),
         },
