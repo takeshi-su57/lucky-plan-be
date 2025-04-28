@@ -65,18 +65,14 @@ export class BacktestV5Service {
       }
     });
 
-    const closeHistories = rangeHistories
-      .filter((history) => {
-        return (
-          history.action === TradeActionType.TradeClosedMarket ||
-          history.action === TradeActionType.TradeClosedLIQ ||
-          history.action === TradeActionType.TradeClosedSL ||
-          history.action === TradeActionType.TradeClosedTP ||
-          history.action === TradeActionType.TradePosSizeDecrease ||
-          history.action === TradeActionType.TradePosSizeIncrease
-        );
-      })
-      .filter((history) => +history.pnl !== 0);
+    const closeHistories = rangeHistories.filter((history) => {
+      return (
+        history.action === TradeActionType.TradeClosedMarket ||
+        history.action === TradeActionType.TradeClosedLIQ ||
+        history.action === TradeActionType.TradeClosedSL ||
+        history.action === TradeActionType.TradeClosedTP
+      );
+    });
 
     if (closeHistories.length < 6) {
       return null;
@@ -90,12 +86,8 @@ export class BacktestV5Service {
 
       const chunk = closeHistories.slice(
         Math.max(closeHistories.length - i - params.window, 0),
-        closeHistories.length - i,
+        Math.min(params.window, closeHistories.length),
       );
-
-      if (chunk.length < 2) {
-        continue;
-      }
 
       let pnlSum = 0;
 
@@ -115,28 +107,20 @@ export class BacktestV5Service {
       const score = regression.score(xs, pnlArrs);
 
       if (Number.isNaN(score.r2)) {
-        score.r2 = 1;
-      }
-
-      if (score.r2 === Infinity) {
         continue;
       }
 
-      let fragmentScore = 0;
-
       if (regression.slope > 0) {
         if (score.r2 > params.minR2) {
-          fragmentScore = (regression.slope * score.r2) / round / params.n;
+          traderScore += (regression.slope * score.r2) / round / params.n;
         } else {
-          fragmentScore =
+          traderScore +=
             (regression.slope * (score.r2 - 1) * params.m) / round / params.n;
         }
       } else {
-        fragmentScore =
+        traderScore +=
           (regression.slope * (2 - score.r2) * params.m) / round / params.n;
       }
-
-      traderScore += fragmentScore;
     }
 
     if (traderScore <= params.minScore) {
@@ -960,20 +944,23 @@ export class BacktestV5Service {
     const startDate = '2024-11-01';
 
     const windowScales = [6, 7, 9, 12, 17, 25, 38];
+    const scoreScales = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
     const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
 
     await this.prismaService.testingReportV5.deleteMany();
 
     for (const window of windowScales) {
-      for (let minR2 = 0.89; minR2 < 1; minR2 += 0.005) {
-        await this.handleSingleCase(startDate, dayGaps, {
-          window,
-          minR2,
-          n: 2,
-          m: 32,
-          minScore: 0,
-        });
+      for (let minR2 = 0.85; minR2 < 1; minR2 += 0.01) {
+        for (const minScore of scoreScales) {
+          await this.handleSingleCase(startDate, dayGaps, {
+            window,
+            minR2,
+            n: 2,
+            m: 32,
+            minScore,
+          });
+        }
 
         console.log(`Done minR2 ${minR2}`);
       }
