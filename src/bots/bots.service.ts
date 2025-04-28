@@ -536,11 +536,11 @@ export class BotsService {
       bot.followerContractId,
     );
 
-    await this.followersService.withdrawAllETH(
-      bot.plan.userId,
-      bot.followerAddress,
-      bot.followerContractId,
-    );
+    // await this.followersService.withdrawAllETH(
+    //   bot.plan.userId,
+    //   bot.followerAddress,
+    //   bot.followerContractId,
+    // );
 
     return await this._update({
       id: bot.id,

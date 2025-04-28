@@ -19,6 +19,7 @@ dayjs.extend(timezone);
 export class SystemService {
   private isPaused = true;
   private count = 0;
+  private pnlCount = 0;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
@@ -32,6 +33,7 @@ export class SystemService {
   ) {
     this.isPaused = true;
     this.count = 0;
+    this.pnlCount = 0;
   }
 
   pauseSystem() {
@@ -165,17 +167,15 @@ export class SystemService {
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
-    }
-  }
 
-  @Cron(CronExpression.EVERY_DAY_AT_7AM)
-  async executeCronForAutoPlans() {
-    if (this.isPaused || !this.securityService.isReady()) {
-      return;
-    }
+      if (
+        this.autoPlansV2Service.status === 'ready' &&
+        this.pnlCount % 3 === 0
+      ) {
+        await this.autoPlansV2Service.createAutoPlans();
+      }
 
-    if (this.autoPlansV2Service.status === 'ready') {
-      await this.autoPlansV2Service.createAutoPlans();
+      this.pnlCount = this.pnlCount + 1;
     }
   }
 
