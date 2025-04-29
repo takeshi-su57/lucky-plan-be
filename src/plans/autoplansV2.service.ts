@@ -19,9 +19,9 @@ import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
 
 const bestFilter = {
-  minR2: 0.925,
-  window: 9,
-  minScore: 3,
+  minR2: 0.9,
+  window: 38,
+  minScore: 0,
   n: 2,
   m: 32,
 };
@@ -77,7 +77,9 @@ export class AutoPlansV2Service {
         history.action === TradeActionType.TradeClosedMarket ||
         history.action === TradeActionType.TradeClosedLIQ ||
         history.action === TradeActionType.TradeClosedSL ||
-        history.action === TradeActionType.TradeClosedTP
+        history.action === TradeActionType.TradeClosedTP ||
+        history.action === TradeActionType.TradePosSizeIncrease ||
+        history.action === TradeActionType.TradePosSizeDecrease
       );
     });
 
@@ -93,8 +95,12 @@ export class AutoPlansV2Service {
 
       const chunk = closeHistories.slice(
         Math.max(closeHistories.length - i - bestFilter.window, 0),
-        Math.min(bestFilter.window, closeHistories.length),
+        closeHistories.length - i,
       );
+
+      if (chunk.length < 2) {
+        continue;
+      }
 
       let pnlSum = 0;
 
@@ -114,8 +120,14 @@ export class AutoPlansV2Service {
       const score = regression.score(xs, pnlArrs);
 
       if (Number.isNaN(score.r2)) {
+        score.r2 = 1;
+      }
+
+      if (score.r2 === Infinity) {
         continue;
       }
+
+      let fragmentScore = 0;
 
       if (regression.slope > 0) {
         if (score.r2 > bestFilter.minR2) {
@@ -132,6 +144,8 @@ export class AutoPlansV2Service {
           round /
           bestFilter.n;
       }
+
+      traderScore += fragmentScore;
     }
 
     if (traderScore <= bestFilter.minScore) {
@@ -276,7 +290,10 @@ export class AutoPlansV2Service {
           title: 'Auto Plan V2',
           description: 'This is an auto plan',
           scheduledStart: new Date(),
-          scheduledEnd: dayjs(new Date()).add(1, 'day').toDate(),
+          scheduledEnd: dayjs(new Date())
+            .add(3, 'hours')
+            .add(30, 'minutes')
+            .toDate(),
         };
 
         const plan = await this.planService.create(
@@ -365,7 +382,10 @@ export class AutoPlansV2Service {
         title: 'Auto Plan V2',
         description: 'This is an auto plan',
         scheduledStart: new Date(),
-        scheduledEnd: dayjs(new Date()).add(1, 'day').toDate(),
+        scheduledEnd: dayjs(new Date())
+          .add(3, 'hours')
+          .add(15, 'minutes')
+          .toDate(),
       };
 
       const plan = await this.planService.create(

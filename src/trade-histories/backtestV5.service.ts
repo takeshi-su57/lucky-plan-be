@@ -22,6 +22,8 @@ import {
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
 
+const dailyPlans = 8;
+
 @Injectable()
 export class BacktestV5Service {
   status: 'processing' | 'ready' = 'ready';
@@ -34,13 +36,14 @@ export class BacktestV5Service {
   }
 
   private getPnlSnapshotDevDetails(
+    endDate: Date,
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
     params: ExportFilterV5,
   ): PnlSnapshotDevDetailsV5 | null {
-    const endDate = new Date(
-      getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
-    );
+    // const endDate = new Date(
+    //   getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
+    // );
 
     const rangeHistories = histories.filter((history) => {
       const historyDate = new Date(history.date);
@@ -70,7 +73,9 @@ export class BacktestV5Service {
         history.action === TradeActionType.TradeClosedMarket ||
         history.action === TradeActionType.TradeClosedLIQ ||
         history.action === TradeActionType.TradeClosedSL ||
-        history.action === TradeActionType.TradeClosedTP
+        history.action === TradeActionType.TradeClosedTP ||
+        history.action === TradeActionType.TradePosSizeIncrease ||
+        history.action === TradeActionType.TradePosSizeDecrease
       );
     });
 
@@ -83,11 +88,14 @@ export class BacktestV5Service {
 
     for (let i = 0; i < closeHistories.length; i += params.window) {
       round++;
-
       const chunk = closeHistories.slice(
         Math.max(closeHistories.length - i - params.window, 0),
-        Math.min(params.window, closeHistories.length),
+        closeHistories.length - i,
       );
+
+      if (chunk.length < 2) {
+        continue;
+      }
 
       let pnlSum = 0;
 
@@ -107,8 +115,14 @@ export class BacktestV5Service {
       const score = regression.score(xs, pnlArrs);
 
       if (Number.isNaN(score.r2)) {
+        score.r2 = 1;
+      }
+
+      if (score.r2 === Infinity) {
         continue;
       }
+
+      let fragmentScore = 0;
 
       if (regression.slope > 0) {
         if (score.r2 > params.minR2) {
@@ -121,6 +135,8 @@ export class BacktestV5Service {
         traderScore +=
           (regression.slope * (2 - score.r2) * params.m) / round / params.n;
       }
+
+      traderScore += fragmentScore;
     }
 
     if (traderScore <= params.minScore) {
@@ -262,6 +278,10 @@ export class BacktestV5Service {
           historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
 
         const detail = this.getPnlSnapshotDevDetails(
+          new Date(
+            getStartOfDay(new Date(record.dateStr)).getTime() +
+              24 * 3600 * 1000,
+          ),
           record,
           allHistories,
           params,
@@ -419,17 +439,31 @@ export class BacktestV5Service {
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(key) || [];
 
-        const nodes: PnlSnapshotDevDetailsV5[] = [];
+        const nodes: (PnlSnapshotDevDetailsV5 & {
+          endDate: Date;
+        })[] = [];
 
         subPnlRecords.forEach((record) => {
-          const detail = this.getPnlSnapshotDevDetails(
-            record,
-            allHistories,
-            params,
-          );
+          for (let divider = dailyPlans; divider > 0; divider--) {
+            const detail = this.getPnlSnapshotDevDetails(
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider,
+              ),
+              record,
+              allHistories,
+              params,
+            );
 
-          if (detail) {
-            nodes.push(detail);
+            if (detail) {
+              nodes.push({
+                ...detail,
+                endDate: new Date(
+                  getStartOfDay(new Date(record.dateStr)).getTime() +
+                    (24 * 3600 * 1000) / divider,
+                ),
+              });
+            }
           }
         });
 
@@ -443,10 +477,10 @@ export class BacktestV5Service {
             address: node.address,
           });
 
-          const startDate = new Date(
-            new Date(dateStr).getTime() + 24 * 3600 * 1000,
+          const startDate = node.endDate;
+          const endDate = new Date(
+            startDate.getTime() + (24 * 3600 * 1000) / dailyPlans + 1800 * 1000,
           );
-          const endDate = new Date(startDate.getTime() + 48 * 3600 * 1000);
 
           const histories = this.getSortedPartialHistories(
             node.histories,
