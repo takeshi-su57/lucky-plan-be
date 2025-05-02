@@ -28,47 +28,50 @@ const rpcUrls = {
     'https://1rpc.io/matic',
     'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://polygon-bor-rpc.publicnode.com',
-    // 'https://rpc.ankr.com/polygon/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://polygon-mainnet.public.blastapi.io',
-    // ...(process.env.ENV === 'production'
-    //   ? [
-    //       'https://rpc.ankr.com/polygon/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-    //     ]
-    //   : []),
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://polygon-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+        ]
+      : []),
   ],
   8453: [
     'https://1rpc.io/base',
     'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://base-rpc.publicnode.com',
     'https://base-mainnet.public.blastapi.io',
-    // ...(process.env.ENV === 'production'
-    //   ? [
-    //       'https://rpc.ankr.com/base/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-    //     ]
-    //   : []),
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://base-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+        ]
+      : []),
   ],
   42161: [
     'https://1rpc.io/arb',
     'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-one-rpc.publicnode.com',
-    // 'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-one.public.blastapi.io',
-    // ...(process.env.ENV === 'production'
-    //   ? [
-    //       'https://rpc.ankr.com/arbitrum/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-    //     ]
-    //   : []),
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://arbitrum-one.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+        ]
+      : []),
   ],
   421614: [
     'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-sepolia-rpc.publicnode.com',
-    // 'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-sepolia.public.blastapi.io',
   ],
   33139: [
     'https://rpc.apechain.com/http',
     'https://apechain.gateway.tenderly.co/',
     'https://33139.rpc.thirdweb.com/',
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://apechain-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+        ]
+      : []),
   ],
 };
 
