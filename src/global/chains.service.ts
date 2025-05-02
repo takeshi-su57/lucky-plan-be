@@ -49,7 +49,7 @@ const rpcUrls = {
   ],
   42161: [
     'https://1rpc.io/arb',
-    'https://arb-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-one-rpc.publicnode.com',
     'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-one.public.blastapi.io',
