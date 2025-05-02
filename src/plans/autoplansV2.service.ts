@@ -127,8 +127,6 @@ export class AutoPlansV2Service {
         continue;
       }
 
-      let fragmentScore = 0;
-
       if (regression.slope > 0) {
         if (score.r2 > bestFilter.minR2) {
           traderScore += (regression.slope * score.r2) / round / bestFilter.n;
@@ -144,8 +142,6 @@ export class AutoPlansV2Service {
           round /
           bestFilter.n;
       }
-
-      traderScore += fragmentScore;
     }
 
     if (traderScore <= bestFilter.minScore) {
