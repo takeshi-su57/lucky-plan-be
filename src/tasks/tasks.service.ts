@@ -633,7 +633,7 @@ export class TasksService {
       });
     }
 
-    const promises = manualCloseActions.map(async (item) => {
+    for (const item of manualCloseActions) {
       const currentPrice = await this.tradingVariableService.getPairPrice(
         item.pairIndex,
       );
@@ -656,10 +656,6 @@ export class TasksService {
           ],
         },
       ]);
-    });
-
-    if (promises.length > 0) {
-      await Promise.all(promises);
     }
 
     await this.updateMany(taskUpateInputs);
