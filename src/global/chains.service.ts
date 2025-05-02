@@ -26,43 +26,43 @@ import { EncryptedData, SecurityService } from './security.service';
 const rpcUrls = {
   137: [
     'https://1rpc.io/matic',
-    'https://polygon-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://polygon-bor-rpc.publicnode.com',
-    'https://rpc.ankr.com/polygon/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    // 'https://rpc.ankr.com/polygon/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://polygon-mainnet.public.blastapi.io',
-    ...(process.env.ENV === 'production'
-      ? [
-          'https://rpc.ankr.com/polygon/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-        ]
-      : []),
+    // ...(process.env.ENV === 'production'
+    //   ? [
+    //       'https://rpc.ankr.com/polygon/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+    //     ]
+    //   : []),
   ],
   8453: [
     'https://1rpc.io/base',
-    'https://base-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://base-rpc.publicnode.com',
     'https://base-mainnet.public.blastapi.io',
-    ...(process.env.ENV === 'production'
-      ? [
-          'https://rpc.ankr.com/base/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-        ]
-      : []),
+    // ...(process.env.ENV === 'production'
+    //   ? [
+    //       'https://rpc.ankr.com/base/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+    //     ]
+    //   : []),
   ],
   42161: [
     'https://1rpc.io/arb',
     'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-one-rpc.publicnode.com',
-    'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    // 'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-one.public.blastapi.io',
-    ...(process.env.ENV === 'production'
-      ? [
-          'https://rpc.ankr.com/arbitrum/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
-        ]
-      : []),
+    // ...(process.env.ENV === 'production'
+    //   ? [
+    //       'https://rpc.ankr.com/arbitrum/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+    //     ]
+    //   : []),
   ],
   421614: [
-    'https://arb-sepolia.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
+    'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-sepolia-rpc.publicnode.com',
-    'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+    // 'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-sepolia.public.blastapi.io',
   ],
   33139: [
