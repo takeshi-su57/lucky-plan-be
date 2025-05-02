@@ -43,11 +43,9 @@ export class ContractMonitorService {
 
     const contracts = await this.contractsService.findAll();
 
-    const promises = contracts.map(async (contract) => {
-      return await this.checkContractForBots(contract);
-    });
-
-    await Promise.allSettled(promises);
+    for (const contract of contracts) {
+      await this.checkContractForBots(contract);
+    }
 
     this.status.bot = 'ready';
   }
@@ -99,11 +97,9 @@ export class ContractMonitorService {
 
     const contracts = await this.contractsService.findAll();
 
-    const promises = contracts.map(async (contract) => {
-      return await this.checkContractForLeaderboard(contract);
-    });
-
-    await Promise.allSettled(promises);
+    for (const contract of contracts) {
+      await this.checkContractForLeaderboard(contract);
+    }
 
     this.status.leaderboard = 'ready';
   }

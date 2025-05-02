@@ -1081,7 +1081,7 @@ export class FollowerService {
       const usdcMap: Record<string, bigint> = {};
       const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
 
-      const usdcPromises = followerEntities.map(async (entity) => {
+      for (const entity of followerEntities) {
         const usdcBalance = await publicClient.readContract({
           address: collateralInfo.collateral,
           abi: erc20Abi,
@@ -1104,9 +1104,7 @@ export class FollowerService {
           );
 
         pnlSnapshotsMap[entity.address] = pnlSnapshots;
-      });
-
-      await Promise.allSettled(usdcPromises);
+      }
 
       return followerEntities.map((entity) => ({
         ...entity,
