@@ -28,7 +28,6 @@ const rpcUrls = {
     'https://1rpc.io/matic',
     'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://polygon-bor-rpc.publicnode.com',
-    'https://polygon-mainnet.public.blastapi.io',
     ...(process.env.ENV === 'production'
       ? [
           'https://polygon-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
@@ -39,7 +38,6 @@ const rpcUrls = {
     'https://1rpc.io/base',
     'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://base-rpc.publicnode.com',
-    'https://base-mainnet.public.blastapi.io',
     ...(process.env.ENV === 'production'
       ? [
           'https://base-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
@@ -50,7 +48,6 @@ const rpcUrls = {
     'https://1rpc.io/arb',
     'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-one-rpc.publicnode.com',
-    'https://arbitrum-one.public.blastapi.io',
     ...(process.env.ENV === 'production'
       ? [
           'https://arbitrum-one.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
@@ -61,7 +58,11 @@ const rpcUrls = {
     'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
     'https://arbitrum-sepolia-rpc.publicnode.com',
     'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
-    'https://arbitrum-sepolia.public.blastapi.io',
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://arbitrum-sepolia.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+        ]
+      : []),
   ],
   33139: [
     'https://rpc.apechain.com/http',
