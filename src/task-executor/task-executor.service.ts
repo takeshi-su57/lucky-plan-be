@@ -771,11 +771,9 @@ export class TaskExecutorService {
         },
       });
 
-      const promises = allUsers.map(async (user) => {
+      for (const user of allUsers) {
         await this.performAvailableTasksByUser(user.address.toLowerCase());
-      });
-
-      await Promise.allSettled(promises);
+      }
     } catch (err) {
       await this.logger.log({
         severity: 'Error',

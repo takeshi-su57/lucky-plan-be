@@ -26,7 +26,9 @@ export class TradingVariableService {
     private chainsService: ChainsService,
     private prismaService: PrismaService,
   ) {
-    this.loadTradingVariables();
+    this.loadTradingVariables().then(() =>
+      console.log('loaded trading variables'),
+    );
   }
 
   async loadTradingVariables() {
@@ -36,7 +38,11 @@ export class TradingVariableService {
 
     this.tradingVariable = {};
 
-    const promises = contracts.map(async (contract) => {
+    for (const contract of contracts) {
+      console.log(
+        `Started loading trading variable for contract: ${contract.chainId}`,
+      );
+
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const refData = await publicClient.multicall({
@@ -89,9 +95,11 @@ export class TradingVariableService {
           ...item,
         })),
       };
-    });
 
-    await Promise.all(promises);
+      console.log(
+        `Ended loading trading variable for contract: ${contract.chainId}`,
+      );
+    }
 
     this.status = 'ready';
   }
