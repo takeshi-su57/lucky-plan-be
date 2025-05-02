@@ -18,6 +18,7 @@ import {
   apeChain,
   Chain,
 } from 'viem/chains';
+import 'dotenv';
 
 import { validateMnemonic } from '@scure/bip39';
 import { EncryptedData, SecurityService } from './security.service';
@@ -29,12 +30,22 @@ const rpcUrls = {
     'https://polygon-bor-rpc.publicnode.com',
     'https://rpc.ankr.com/polygon/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://polygon-mainnet.public.blastapi.io',
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://rpc.ankr.com/polygon/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+        ]
+      : []),
   ],
   8453: [
     'https://1rpc.io/base',
     'https://base-mainnet.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
     'https://base-rpc.publicnode.com',
     'https://base-mainnet.public.blastapi.io',
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://rpc.ankr.com/base/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+        ]
+      : []),
   ],
   42161: [
     'https://1rpc.io/arb',
@@ -42,6 +53,11 @@ const rpcUrls = {
     'https://arbitrum-one-rpc.publicnode.com',
     'https://rpc.ankr.com/arbitrum/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     'https://arbitrum-one.public.blastapi.io',
+    ...(process.env.ENV === 'production'
+      ? [
+          'https://rpc.ankr.com/arbitrum/a4e0eb38730e01d4461dcbf62a5f98ad80a2282aff2643740e1203ee65a31622',
+        ]
+      : []),
   ],
   421614: [
     'https://arb-sepolia.g.alchemy.com/v2/wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ',
