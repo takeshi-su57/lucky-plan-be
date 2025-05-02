@@ -27,7 +27,7 @@ const rpcUrls = {
   137: [
     ...(process.env.ENV === 'production'
       ? [
-          'https://polygon-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+          'https://lb.drpc.org/ogrpc?network=polygon&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
         ]
       : [
           'https://1rpc.io/matic',
@@ -38,7 +38,7 @@ const rpcUrls = {
   8453: [
     ...(process.env.ENV === 'production'
       ? [
-          'https://base-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+          'https://lb.drpc.org/ogrpc?network=base&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
         ]
       : [
           'https://1rpc.io/base',
@@ -49,7 +49,7 @@ const rpcUrls = {
   42161: [
     ...(process.env.ENV === 'production'
       ? [
-          'https://arbitrum-one.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+          'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
         ]
       : [
           'https://1rpc.io/arb',
@@ -60,7 +60,7 @@ const rpcUrls = {
   421614: [
     ...(process.env.ENV === 'production'
       ? [
-          'https://arbitrum-sepolia.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+          'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
         ]
       : [
           'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
@@ -71,7 +71,7 @@ const rpcUrls = {
   33139: [
     ...(process.env.ENV === 'production'
       ? [
-          'https://apechain-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
+          'https://lb.drpc.org/ogrpc?network=apechain&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
         ]
       : [
           'https://rpc.apechain.com/http',
@@ -97,10 +97,10 @@ export class ChainsService {
         chain: chain,
         transport: fallback(
           [
-            http(),
             ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
               http(url),
             ),
+            // http(),
           ],
           {
             rank: {
