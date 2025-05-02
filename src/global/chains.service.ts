@@ -25,54 +25,59 @@ import { EncryptedData, SecurityService } from './security.service';
 
 const rpcUrls = {
   137: [
-    'https://1rpc.io/matic',
-    'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://polygon-bor-rpc.publicnode.com',
     ...(process.env.ENV === 'production'
       ? [
           'https://polygon-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
         ]
-      : []),
+      : [
+          'https://1rpc.io/matic',
+          'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://polygon-bor-rpc.publicnode.com',
+        ]),
   ],
   8453: [
-    'https://1rpc.io/base',
-    'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://base-rpc.publicnode.com',
     ...(process.env.ENV === 'production'
       ? [
           'https://base-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
         ]
-      : []),
+      : [
+          'https://1rpc.io/base',
+          'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://base-rpc.publicnode.com',
+        ]),
   ],
   42161: [
-    'https://1rpc.io/arb',
-    'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://arbitrum-one-rpc.publicnode.com',
     ...(process.env.ENV === 'production'
       ? [
           'https://arbitrum-one.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
         ]
-      : []),
+      : [
+          'https://1rpc.io/arb',
+          'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://arbitrum-one-rpc.publicnode.com',
+        ]),
   ],
   421614: [
-    'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://arbitrum-sepolia-rpc.publicnode.com',
-    'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
     ...(process.env.ENV === 'production'
       ? [
           'https://arbitrum-sepolia.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
         ]
-      : []),
+      : [
+          'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://arbitrum-sepolia-rpc.publicnode.com',
+          'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
+        ]),
   ],
   33139: [
-    'https://rpc.apechain.com/http',
-    'https://apechain.gateway.tenderly.co/',
-    'https://33139.rpc.thirdweb.com/',
     ...(process.env.ENV === 'production'
       ? [
           'https://apechain-mainnet.blastapi.io/82c90b21-5d86-4e27-8ca3-572b27864e9c',
         ]
-      : []),
+      : [
+          'https://rpc.apechain.com/http',
+          'https://apechain.gateway.tenderly.co/',
+          'https://33139.rpc.thirdweb.com/',
+        ]),
   ],
 };
 
