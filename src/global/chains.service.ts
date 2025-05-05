@@ -28,17 +28,29 @@ const rpcUrls = {
     ...(process.env.ENV === 'production'
       ? [
           'https://lb.drpc.org/ogrpc?network=polygon&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-        ]
-      : [
-          'https://1rpc.io/matic',
+          'https://lb.drpc.org/ogrpc?network=polygon&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=polygon&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=polygon&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=polygon&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
           'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-          'https://polygon-bor-rpc.publicnode.com',
-        ]),
+          'https://polygon-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+          'https://polygon-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+          'https://polygon-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+        ]
+      : ['https://1rpc.io/matic', 'https://polygon-bor-rpc.publicnode.com']),
   ],
   8453: [
     ...(process.env.ENV === 'production'
       ? [
           'https://lb.drpc.org/ogrpc?network=base&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=base&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=base&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=base&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=base&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
+          'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://base-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+          'https://base-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+          'https://base-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
         ]
       : [
           'https://1rpc.io/base',
@@ -50,20 +62,31 @@ const rpcUrls = {
     ...(process.env.ENV === 'production'
       ? [
           'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-        ]
-      : [
-          'https://1rpc.io/arb',
+          'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
           'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-          'https://arbitrum-one-rpc.publicnode.com',
-        ]),
+          'https://arb-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+          'https://arb-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+          'https://arb-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+        ]
+      : ['https://1rpc.io/arb', 'https://arbitrum-one-rpc.publicnode.com']),
   ],
   421614: [
     ...(process.env.ENV === 'production'
       ? [
           'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
+          'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://arb-sepolia.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+          'https://arb-sepolia.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+          'https://arb-sepolia.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
         ]
       : [
-          'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
           'https://arbitrum-sepolia-rpc.publicnode.com',
           'https://rpc.ankr.com/arbitrum_sepolia/1a678463ad0a874876ae86cb3eb01c56ea1de36dc52f7d6fb6473cea5386f340',
         ]),
@@ -72,6 +95,14 @@ const rpcUrls = {
     ...(process.env.ENV === 'production'
       ? [
           'https://lb.drpc.org/ogrpc?network=apechain&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=apechain&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=apechain&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=apechain&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+          'https://lb.drpc.org/ogrpc?network=apechain&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
+          'https://apechain-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+          'https://apechain-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+          'https://apechain-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+          'https://apechain-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
         ]
       : [
           'https://rpc.apechain.com/http',
@@ -98,14 +129,11 @@ export class ChainsService {
         transport: fallback(
           [
             ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
-              http(url),
+              http(url, { batch: true }),
             ),
-            // http(),
           ],
           {
-            rank: {
-              timeout: 100_000,
-            },
+            rank: true,
           },
         ),
         batch: {

@@ -110,7 +110,7 @@ export class SystemService {
     return this.isPaused;
   }
 
-  @Cron(CronExpression.EVERY_SECOND)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
     if (this.isPaused || !this.securityService.isReady()) {
       return;
@@ -124,7 +124,7 @@ export class SystemService {
       await this.contractMonitorService.checkContractsForBots();
       await this.taskExecutorService.performAvailableTasks();
 
-      if (this.botsService.status === 'ready' && this.count % 60 === 0) {
+      if (this.botsService.status === 'ready' && this.count % 12 === 0) {
         await this.botsService.checkAndUpdateAllBots();
       }
 
@@ -146,7 +146,7 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async executeCronForPlans() {
     if (this.isPaused || !this.securityService.isReady()) {
       return;

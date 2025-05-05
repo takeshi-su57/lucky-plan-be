@@ -678,7 +678,7 @@ export class PnlSnapshotsService {
   }
 
   async initializePnlSnapshot(beginingDate: Date, isForceBuild: boolean) {
-    if (!isForceBuild) {
+    if (isForceBuild) {
       await this.buildSnapshots(dayjs(beginingDate).format('YYYY-MM-DD'), true);
     }
 
