@@ -246,7 +246,7 @@ export class TradeHistoriesService {
                 BigInt(args.values.newCollateralAmount) / collateral.precision,
               )}`,
               leverage,
-              pnl: `${Number(
+              pnl: `${-Number(
                 BigInt(args.values.borrowingFeeCollateral) /
                   collateral.precision,
               )}`,
