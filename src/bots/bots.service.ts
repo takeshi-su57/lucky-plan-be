@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BotStatus, Contract } from '@prisma/client';
+import { BotStatus, Contract, MissionStatus } from '@prisma/client';
 import { Address, erc20Abi, isAddressEqual, maxInt256 } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 
@@ -35,7 +35,6 @@ import { PUB_SUB } from 'src/global/global.module';
 
 @Injectable()
 export class BotsService {
-  private bots: BotBackwardDetails[] = [];
   status: 'ready' | 'progress' = 'ready';
 
   constructor(
@@ -48,9 +47,7 @@ export class BotsService {
     private tradingVariableService: TradingVariableService,
     private strategyService: StrategyService,
     private logger: LogsService,
-  ) {
-    this.loadBots();
-  }
+  ) {}
 
   async create(
     userId: string,
@@ -85,8 +82,6 @@ export class BotsService {
         plan: true,
       },
     });
-
-    this.bots.push(newBot);
 
     this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
       [SUBSCRIPTION_TOKEN.botCreated]: [newBot],
@@ -176,8 +171,6 @@ export class BotsService {
       throw new Error('Cannot delete a bot');
     }
 
-    this.bots = this.bots.filter((item) => item.id !== id);
-
     return deletedBot;
   }
 
@@ -196,7 +189,6 @@ export class BotsService {
       await this.logger.log({
         severity: 'Info',
         summary: 'BotsService>reBalanceAsset',
-        details: `BotId: ${bot.id}`,
       });
 
       const {
@@ -239,20 +231,42 @@ export class BotsService {
         summary: 'BotsService>checkAndUpdateAllBots',
       });
 
-      for (const bot of this.bots) {
-        if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
-          continue;
-        }
+      const bots = await this.prismaService.bot.findMany({
+        where: {
+          status: {
+            notIn: [BotStatus.Created, BotStatus.Dead],
+          },
+        },
+        include: {
+          follower: true,
+          strategy: true,
+          leaderContract: true,
+          followerContract: true,
+          plan: true,
+          missions: true,
+        },
+      });
 
+      for (const bot of bots) {
         if (
           bot.status === BotStatus.Stop &&
-          this.missionsService.getMissionsByBotId(bot.id).length === 0
+          !bot.missions.find(
+            (item) =>
+              item.status !== MissionStatus.Closed &&
+              item.status !== MissionStatus.Ignored,
+          )
         ) {
           await this._kill(bot);
         }
-
-        await this.reBalanceAsset(bot);
       }
+
+      const promises = bots.map(async (bot) => {
+        if (bot.status === BotStatus.Live || bot.status === BotStatus.Stop) {
+          await this.reBalanceAsset(bot);
+        }
+      });
+
+      await Promise.allSettled(promises);
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
@@ -278,14 +292,6 @@ export class BotsService {
         plan: true,
       },
     });
-
-    const index = this.bots.findIndex((bot) => bot.id === updatedBot.id);
-
-    if (index !== -1) {
-      this.bots[index] = updatedBot;
-    } else {
-      this.bots.push(updatedBot);
-    }
 
     this.pubSub.publish(SUBSCRIPTION_TOKEN.botUpdated, {
       [SUBSCRIPTION_TOKEN.botUpdated]: [updatedBot],
@@ -438,15 +444,25 @@ export class BotsService {
       ],
     );
 
-    const { request } = await publicClient.simulateContract({
+    const allowance = await publicClient.readContract({
       account: walletClient.account,
       address: collateralInfo.collateral,
       abi: erc20Abi,
-      functionName: 'approve',
-      args: [followerContract.address as Address, maxInt256],
+      functionName: 'allowance',
+      args: [follower.address as Address, followerContract.address as Address],
     });
 
-    await walletClient.writeContract(request);
+    if (allowance < 1000000n) {
+      const { request } = await publicClient.simulateContract({
+        account: walletClient.account,
+        address: collateralInfo.collateral,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [followerContract.address as Address, maxInt256],
+      });
+
+      await walletClient.writeContract(request);
+    }
 
     const leaderBlockNumber = await this.chainsService
       .publicClient(bot.leaderContract.chainId)
@@ -548,24 +564,16 @@ export class BotsService {
     });
   }
 
-  private async loadBots() {
-    this.bots = await this.prismaService.bot.findMany({
-      include: {
-        follower: true,
-        strategy: true,
-        leaderContract: true,
-        followerContract: true,
-        plan: true,
-      },
-    });
-  }
-
-  private filterBots(contractId: number, blockNumber: number) {
+  private filterBots(
+    bots: BotBackwardDetails[],
+    contractId: number,
+    blockNumber: number,
+  ) {
     const leaderBots: BotDetails[] = [];
     const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];
 
-    this.bots.forEach((bot) => {
+    bots.forEach((bot) => {
       if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
         return;
       }
@@ -602,6 +610,7 @@ export class BotsService {
   }
 
   private filterBotActions(
+    bots: BotBackwardDetails[],
     contractId: number,
     actionItems: { item: ActionItem; blockNumber: number }[],
   ) {
@@ -609,6 +618,7 @@ export class BotsService {
 
     for (let i = 0; i < actionItems.length; ) {
       const { botAddressSet } = this.filterBots(
+        bots,
         contractId,
         actionItems[i].blockNumber,
       );
@@ -635,12 +645,17 @@ export class BotsService {
     return filteredActionItems;
   }
 
-  private getBotContextActions(contractId: number, actions: ActionDetails[]) {
+  private getBotContextActions(
+    bots: BotBackwardDetails[],
+    contractId: number,
+    actions: ActionDetails[],
+  ) {
     const leaderActions: ActionContext<BotContext>[] = [];
     const followerActions: ActionContext<BotContext>[] = [];
 
     for (let i = 0; i < actions.length; ) {
       const { leaderBots, followerBots } = this.filterBots(
+        bots,
         contractId,
         actions[i].blockNumber,
       );
@@ -698,7 +713,27 @@ export class BotsService {
     contract: Contract,
     actionItems: { item: ActionItem; blockNumber: number }[],
   ) {
-    const filteredActionItems = this.filterBotActions(contract.id, actionItems);
+    const bots = await this.prismaService.bot.findMany({
+      where: {
+        status: {
+          notIn: [BotStatus.Created, BotStatus.Dead],
+        },
+      },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        plan: true,
+        missions: true,
+      },
+    });
+
+    const filteredActionItems = this.filterBotActions(
+      bots,
+      contract.id,
+      actionItems,
+    );
 
     // no need to proceed further steps
     if (filteredActionItems.length === 0) {
@@ -718,16 +753,11 @@ export class BotsService {
     );
 
     const { leaderActions, followerActions } = this.getBotContextActions(
+      bots,
       contract.id,
       actions,
     );
 
-    if (followerActions.length > 0) {
-      await this.missionsService.handleFollowerActions(followerActions);
-    }
-
-    if (leaderActions.length > 0) {
-      await this.missionsService.handleLeaderActions(leaderActions);
-    }
+    await this.missionsService.handleActions(followerActions, leaderActions);
   }
 }

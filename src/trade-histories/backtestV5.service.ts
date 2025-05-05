@@ -122,8 +122,6 @@ export class BacktestV5Service {
         continue;
       }
 
-      let fragmentScore = 0;
-
       if (regression.slope > 0) {
         if (score.r2 > params.minR2) {
           traderScore += (regression.slope * score.r2) / round / params.n;
@@ -135,8 +133,6 @@ export class BacktestV5Service {
         traderScore +=
           (regression.slope * (2 - score.r2) * params.m) / round / params.n;
       }
-
-      traderScore += fragmentScore;
     }
 
     if (traderScore <= params.minScore) {

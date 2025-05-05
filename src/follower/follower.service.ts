@@ -412,7 +412,7 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAssetToAny(
+  private async withdrawAssetToAny(
     userId: string,
     {
       address,
