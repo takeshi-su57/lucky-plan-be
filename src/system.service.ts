@@ -128,6 +128,10 @@ export class SystemService {
         await this.botsService.checkAndUpdateAllBots();
       }
 
+      if (this.plansService.status === 'ready' && this.count % 24 === 0) {
+        await this.plansService.checkAndUpdateAllPlans();
+      }
+
       this.count = this.count + 1;
     }
   }
@@ -143,17 +147,6 @@ export class SystemService {
       this.tradingVariableService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForLeaderboard();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_MINUTE)
-  async executeCronForPlans() {
-    if (this.isPaused || !this.securityService.isReady()) {
-      return;
-    }
-
-    if (this.plansService.status === 'ready') {
-      await this.plansService.checkAndUpdateAllPlans();
     }
   }
 
