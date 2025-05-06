@@ -68,7 +68,10 @@ export class MissionsService {
     });
   }
 
-  private async createMany(inputs: MissionCreateInput[]) {
+  private async createMany(
+    inputs: MissionCreateInput[],
+    missionsByBotMap: Map<number, MissionDetails[]>,
+  ) {
     if (inputs.length === 0) {
       return;
     }
@@ -83,6 +86,16 @@ export class MissionsService {
         achievePosition: true,
         bot: true,
       },
+    });
+
+    newMissions.forEach((mission) => {
+      const arr = missionsByBotMap.get(mission.botId);
+
+      if (arr) {
+        arr.push(mission);
+      } else {
+        missionsByBotMap.set(mission.botId, [mission]);
+      }
     });
 
     const missions = await this.getMissions(
@@ -126,10 +139,42 @@ export class MissionsService {
     return updatedMissions;
   }
 
-  async closeMany(inputs: MissionCloseInput[]) {
-    await this.updateMany(
+  private async attachAchievePositionMany(
+    inputs: MissionUpdateInput[],
+    missionsByBotMap: Map<number, MissionDetails[]>,
+  ) {
+    const updatedMissions = await this.updateMany(inputs);
+
+    updatedMissions.forEach((item) => {
+      const arr = missionsByBotMap.get(item.botId);
+
+      if (arr) {
+        const index = arr.findIndex((bot) => bot.id === item.id);
+        arr[index] = item;
+      } else {
+        missionsByBotMap.set(item.botId, [item]);
+      }
+    });
+  }
+
+  async closeMany(
+    inputs: MissionCloseInput[],
+    missionsByBotMap: Map<number, MissionDetails[]>,
+  ) {
+    const closedMissions = await this.updateMany(
       inputs.map((item) => ({ ...item, status: MissionStatus.Closed })),
     );
+
+    closedMissions.forEach((mission) => {
+      const arr = missionsByBotMap.get(mission.botId);
+
+      if (arr) {
+        missionsByBotMap.set(
+          mission.botId,
+          arr.filter((item) => item.id !== mission.id),
+        );
+      }
+    });
   }
 
   private async loadMissions() {
@@ -283,6 +328,7 @@ export class MissionsService {
   }
 
   private async handleMarketOrderInitiatedActions(
+    missionsByBotMap: Map<number, MissionDetails[]>,
     followerActions: ActionContext<BotContext>[],
   ) {
     const openEvents = followerActions
@@ -317,7 +363,7 @@ export class MissionsService {
     );
 
     // fill achievePositionId with orderId for temporaily
-    await this.updateMany(
+    await this.attachAchievePositionMany(
       tasks
         .map((task) => {
           const mission = task.mission;
@@ -342,11 +388,13 @@ export class MissionsService {
           };
         })
         .filter((item) => !!item),
+      missionsByBotMap,
     );
   }
 
   private async handleMissionLeaderActions(
     actions: ActionContext<BotContext>[],
+    missionsByBotMap: Map<number, MissionDetails[]>,
   ) {
     const openEvents = actions
       .filter(
@@ -374,6 +422,7 @@ export class MissionsService {
         botId: item.context.bot.id,
         targetPositionId: item.action.positionId,
       })),
+      missionsByBotMap,
     );
   }
 
@@ -437,6 +486,7 @@ export class MissionsService {
     followerActions: ActionContext<BotContext>[],
   ) {
     await this.handleMarketOrderInitiatedActions(
+      missionsByBotMap,
       followerActions.filter(
         (item) =>
           item.action.name === marketOrderInitiatedEventParser.eventName,
@@ -450,7 +500,7 @@ export class MissionsService {
     );
 
     // handle open mission follower actions
-    await this.updateMany(
+    await this.attachAchievePositionMany(
       missionActions
         .filter((item) => isOpenMissionAction(item.action))
         .map((item) => ({
@@ -458,6 +508,7 @@ export class MissionsService {
           achievePositionId: item.action.positionId,
           status: MissionStatus.Opened,
         })),
+      missionsByBotMap,
     );
 
     if (missionActions.length > 0) {
@@ -465,11 +516,11 @@ export class MissionsService {
         missionActions,
         async (missionIds) => {
           // handle close mission follower actions
-          await this.updateMany(
+          await this.closeMany(
             missionIds.map((item) => ({
               id: item,
-              status: MissionStatus.Closed,
             })),
+            missionsByBotMap,
           );
         },
       );
@@ -484,6 +535,7 @@ export class MissionsService {
       leaderActions.filter((item) =>
         missionEventNames.includes(item.action.name),
       ),
+      missionsByBotMap,
     );
 
     const missionActions = this.getMissionActions(
@@ -502,11 +554,11 @@ export class MissionsService {
         ),
         async (missionIds) => {
           // handle close mission follower actions
-          await this.updateMany(
+          await this.closeMany(
             missionIds.map((item) => ({
               id: item,
-              status: MissionStatus.Closed,
             })),
+            missionsByBotMap,
           );
         },
       );

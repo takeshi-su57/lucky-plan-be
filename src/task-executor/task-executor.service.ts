@@ -360,7 +360,10 @@ export class TaskExecutorService {
             );
 
             if (!pair) {
-              await this.missionsService.closeMany([{ id: mission.id }]);
+              await this.missionsService.closeMany(
+                [{ id: mission.id }],
+                new Map(),
+              );
 
               throw new Error(
                 `follower contract doesn't support this pairIndex: ${t.pairIndex}`,
