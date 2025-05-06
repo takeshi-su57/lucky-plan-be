@@ -21,7 +21,7 @@ import { BotsService } from 'src/bots/bots.service';
 const bestFilter = {
   minR2: 0.9,
   window: 38,
-  minScore: 0,
+  minScore: 35,
   n: 2,
   m: 32,
 };
