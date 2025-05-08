@@ -241,6 +241,10 @@ model TestingReportV5 {
   minR2              Float
   n                  Int
   m                  Int
+  weekWeight         Int
+  monthWeight        Int
+  threeMonthWeight   Int
+  allTimeWeight      Int
   minScore           Float
   investedUSD        Float
   totalUSDPnl        Float
