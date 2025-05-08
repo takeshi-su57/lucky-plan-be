@@ -36,11 +36,12 @@ export class BacktestV5Service {
   }
 
   private getPnlSnapshotDevDetails(
+    startDate: Date,
     endDate: Date,
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
     params: ExportFilterV5,
-  ): PnlSnapshotDevDetailsV5 | null {
+  ): PnlSnapshotDevDetailsV5 {
     // const endDate = new Date(
     //   getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
     // );
@@ -48,7 +49,10 @@ export class BacktestV5Service {
     const rangeHistories = histories.filter((history) => {
       const historyDate = new Date(history.date);
 
-      return historyDate.getTime() <= endDate.getTime();
+      return (
+        historyDate.getTime() <= endDate.getTime() &&
+        historyDate.getTime() >= startDate.getTime()
+      );
     });
 
     const openHistoriesMap: Record<number, TradeHistory[]> = {};
@@ -68,19 +72,25 @@ export class BacktestV5Service {
       }
     });
 
-    const closeHistories = rangeHistories.filter((history) => {
-      return (
-        history.action === TradeActionType.TradeClosedMarket ||
-        history.action === TradeActionType.TradeClosedLIQ ||
-        history.action === TradeActionType.TradeClosedSL ||
-        history.action === TradeActionType.TradeClosedTP ||
-        history.action === TradeActionType.TradePosSizeIncrease ||
-        history.action === TradeActionType.TradePosSizeDecrease
-      );
-    });
+    const closeHistories = rangeHistories
+      .filter((history) => {
+        return (
+          history.action === TradeActionType.TradeClosedMarket ||
+          history.action === TradeActionType.TradeClosedLIQ ||
+          history.action === TradeActionType.TradeClosedSL ||
+          history.action === TradeActionType.TradeClosedTP ||
+          history.action === TradeActionType.TradePosSizeIncrease ||
+          history.action === TradeActionType.TradePosSizeDecrease
+        );
+      })
+      .filter((history) => +history.pnl !== 0);
 
     if (closeHistories.length < 6) {
-      return null;
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
     }
 
     let traderScore = 0;
@@ -133,10 +143,6 @@ export class BacktestV5Service {
         traderScore +=
           (regression.slope * (2 - score.r2) * params.m) / round / params.n;
       }
-    }
-
-    if (traderScore <= params.minScore) {
-      return null;
     }
 
     return {
@@ -274,6 +280,7 @@ export class BacktestV5Service {
           historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
 
         const detail = this.getPnlSnapshotDevDetails(
+          new Date('2024-01-01'),
           new Date(
             getStartOfDay(new Date(record.dateStr)).getTime() +
               24 * 3600 * 1000,
@@ -283,7 +290,7 @@ export class BacktestV5Service {
           params,
         );
 
-        if (detail) {
+        if (detail.score > params.minScore) {
           nodes.push({
             ...detail,
             histories: allHistories,
@@ -442,6 +449,7 @@ export class BacktestV5Service {
         subPnlRecords.forEach((record) => {
           for (let divider = dailyPlans; divider > 0; divider--) {
             const detail = this.getPnlSnapshotDevDetails(
+              new Date('2024-01-01'),
               new Date(
                 getStartOfDay(new Date(record.dateStr)).getTime() +
                   (24 * 3600 * 1000) / divider,
@@ -451,13 +459,507 @@ export class BacktestV5Service {
               params,
             );
 
-            if (detail) {
+            if (detail.score > params.minScore) {
               nodes.push({
                 ...detail,
                 endDate: new Date(
                   getStartOfDay(new Date(record.dateStr)).getTime() +
                     (24 * 3600 * 1000) / divider,
                 ),
+              });
+            }
+          }
+        });
+
+        nodes.forEach((node) => {
+          const dateStr = node.dateStr;
+
+          botCountData[dateStr] = (botCountData[dateStr] || 0) + 1;
+          totalBots.push({
+            dateStr: node.dateStr,
+            contractId: node.contractId,
+            address: node.address,
+          });
+
+          const startDate = node.endDate;
+          const endDate = new Date(
+            startDate.getTime() + (24 * 3600 * 1000) / dailyPlans + 1800 * 1000,
+          );
+
+          const histories = this.getSortedPartialHistories(
+            node.histories,
+            startDate,
+            endDate,
+          );
+
+          const availablePairNames = allPairs.map((pair) =>
+            `${pair.from}/${pair.to}`.toLowerCase(),
+          );
+
+          const supportedPairsMap: Record<string, boolean> = {};
+
+          availablePairNames.forEach((pair) => {
+            supportedPairsMap[pair.toLowerCase()] = true;
+          });
+
+          const transformedHistories = histories
+            .filter((history) =>
+              isTestnet ? supportedPairsMap[history.pair.toLowerCase()] : true,
+            )
+            .map((history) => {
+              return {
+                ...history,
+                size: `${Number(history.size) * ratio}`,
+                pnl: `${Number(history.pnl) * ratio}`,
+                collateralDelta: history.collateralDelta
+                  ? `${Number(history.collateralDelta) * ratio}`
+                  : null,
+              };
+            });
+
+          totalResultHistories.push(...transformedHistories);
+        });
+      });
+    }
+
+    const accInData: Record<string, number> = {};
+    const accOutData: Record<string, number> = {};
+    const accPnlData: Record<string, number> = {};
+    const accInOutData: Record<string, number> = {};
+    const taskCountData: Record<string, number> = {};
+    const positionCountData: Record<string, Record<string, boolean>> = {};
+    const actionTypeCount: Record<string, number> = {};
+
+    const traderCountData: Record<string, Record<string, boolean>> = {};
+    const uniqueTraders: Record<string, boolean> = {};
+
+    let accInOut = 0;
+    let maxInvested = 0;
+
+    let accPnlLoss = 0;
+    let lossCount = 0;
+    let accPnlProfit = 0;
+    let profitCount = 0;
+    let bottomPnl = 0;
+    let peakPnl = 0;
+    let accPnl = 0;
+    let maxLoss = 0;
+    let maxProfit = 0;
+
+    totalResultHistories
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .forEach((history) => {
+        const date = dayjs(history.date).format('YYYY-MM-DD HH:[00]:[00]');
+        const usdPnl = +history.pnl * +history.collateralPriceUsd;
+
+        accPnl += usdPnl;
+
+        peakPnl = Math.max(peakPnl, accPnl);
+        bottomPnl = Math.min(bottomPnl, accPnl);
+
+        if (usdPnl < 0) {
+          accPnlLoss += usdPnl;
+          maxLoss = Math.min(maxLoss, usdPnl);
+          lossCount++;
+        } else if (usdPnl > 0) {
+          accPnlProfit += usdPnl;
+          maxProfit = Math.max(maxProfit, usdPnl);
+          profitCount++;
+        }
+
+        accPnlData[date] = (accPnlData[date] ?? 0) + usdPnl;
+        taskCountData[date] = (taskCountData[date] ?? 0) + 1;
+        uniqueTraders[history.address.toLowerCase()] = true;
+
+        const positionCountMap = positionCountData[date] ?? {};
+        positionCountMap[history.tradeIndex] = true;
+        positionCountData[date] = positionCountMap;
+
+        const traderCountMap = traderCountData[date] ?? {};
+        traderCountMap[history.address.toLowerCase()] = true;
+        traderCountData[date] = traderCountMap;
+
+        actionTypeCount[history.action] =
+          (actionTypeCount[history.action] ?? 0) + 1;
+
+        switch (history.action) {
+          case TradeActionType.TradeOpenedMarket: {
+            const inOut = +history.size * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + -inOut;
+            accInOut = accInOut + -inOut;
+
+            accInData[date] = (accInData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeOpenedLimit: {
+            const inOut = +history.size * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + -inOut;
+
+            accInOut = accInOut + -inOut;
+
+            accInData[date] = (accInData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeClosedMarket: {
+            const inOut =
+              (+history.size + +history.pnl) * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
+
+            accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeClosedLIQ: {
+            const inOut =
+              (+history.size + +history.pnl) * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
+
+            accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeClosedSL: {
+            const inOut =
+              (+history.size + +history.pnl) * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
+
+            accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeClosedTP: {
+            const inOut =
+              (+history.size + +history.pnl) * +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + inOut;
+
+            accInOut = accInOut + inOut;
+
+            accOutData[date] = (accOutData[date] ?? 0) + inOut;
+
+            break;
+          }
+          case TradeActionType.TradeLeverageUpdate: {
+            const delta =
+              (-(history.collateralDelta || 0) + +history.pnl) *
+              +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + delta;
+
+            accInOut = accInOut + delta;
+
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
+
+            break;
+          }
+          case TradeActionType.TradePosSizeIncrease: {
+            const delta =
+              (-(history.collateralDelta || 0) + +history.pnl) *
+              +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + delta;
+
+            accInOut = accInOut + delta;
+
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
+
+            break;
+          }
+          case TradeActionType.TradePosSizeDecrease: {
+            const delta =
+              (-(history.collateralDelta || 0) + +history.pnl) *
+              +history.collateralPriceUsd;
+
+            accInOutData[date] = (accInOutData[date] ?? 0) + delta;
+
+            accInOut = accInOut + delta;
+
+            if (delta > 0) {
+              accOutData[date] = (accOutData[date] ?? 0) + delta;
+            } else {
+              accInData[date] = (accInData[date] ?? 0) + -delta;
+            }
+
+            break;
+          }
+        }
+
+        maxInvested = Math.min(maxInvested, accInOut);
+      });
+
+    const accPnls: AccPnl[] = Object.entries(accPnlData)
+      .map(([date, pnl]) => ({
+        date: dayjs(date).toDate(),
+        pnl,
+        in: accInData[date] ?? 0,
+        out: accOutData[date] ?? 0,
+        inOut: accInOutData[date] ?? 0,
+        taskCount: taskCountData[date] ?? 0,
+        positionCount: Object.keys(positionCountData[date] ?? {}).length,
+        traderCount: Object.keys(traderCountData[date] ?? {}).length,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    const botCounts: BotCount[] = Object.entries(botCountData)
+      .map(([date, count]) => ({
+        date: dayjs(date).toDate(),
+        botCount: count,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    return {
+      accPnls,
+      botCounts,
+      histories: totalResultHistories,
+      maxInvested,
+      uniqueTraders: Object.keys(uniqueTraders),
+      actionTypeCount,
+      maxLoss,
+      maxProfit,
+      bottomPnl,
+      peakPnl,
+      lossCount,
+      profitCount,
+      avgLoss: lossCount > 0 ? accPnlLoss / lossCount : 0,
+      avgProfit: profitCount > 0 ? accPnlProfit / profitCount : 0,
+      totalPnls: accPnl,
+      totalBots,
+    };
+  }
+
+  private async getRangeHistoriesForRecord(
+    dateStr: string,
+    days: number,
+    params: ExportFilterV5,
+    dnaParams: {
+      weekWeight: number;
+      monthWeight: number;
+      threeMonthWeight: number;
+      allTimeWeight: number;
+    },
+    ratio: number,
+    isTestnet: boolean,
+  ): Promise<{
+    accPnls: AccPnl[];
+    botCounts: BotCount[];
+    histories: TradeHistory[];
+    maxInvested: number;
+    uniqueTraders: string[];
+    maxLoss: number;
+    avgLoss: number;
+    maxProfit: number;
+    avgProfit: number;
+    bottomPnl: number;
+    peakPnl: number;
+    lossCount: number;
+    profitCount: number;
+    totalPnls: number;
+    totalBots: TotalBot[];
+    actionTypeCount: Record<string, number>;
+  }> {
+    const dateStrs: string[] = [];
+
+    for (let i = 0; i < days; i++) {
+      dateStrs.push(dayjs(dateStr).add(i, 'days').format('YYYY-MM-DD'));
+    }
+
+    const allPairs = isTestnet
+      ? await this.tradingVariableService.getTradePairs(isTestnet ? 4 : 0)
+      : [];
+
+    const pnlRecords: PnlSnapshot[] =
+      await this.prismaService.pnlSnapshot.findMany({
+        where: {
+          dateStr: {
+            in: dateStrs,
+          },
+          accUSDPnl: {
+            gt: 0,
+          },
+          kind: PnlSnapshotKind.MONTH,
+          contractId: {
+            not: 4,
+          },
+        },
+        orderBy: {
+          accUSDPnl: 'desc',
+        },
+      });
+
+    const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
+
+    pnlRecords.forEach((record) => {
+      if (record.contractId === 0) {
+        return;
+      }
+
+      const key = JSON.stringify({
+        address: record.address,
+        contractId: record.contractId,
+      });
+
+      const arr = pnlSnapshotsMap.get(key);
+
+      if (arr) {
+        arr.push(record);
+      } else {
+        pnlSnapshotsMap.set(key, [record]);
+      }
+    });
+
+    const pnlSnapshotsMapKeys = Array.from(pnlSnapshotsMap.keys());
+
+    const CHUNK = 35;
+    const totalResultHistories: TradeHistory[] = [];
+    const botCountData: Record<string, number> = {};
+    const totalBots: {
+      dateStr: string;
+      contractId: number;
+      address: string;
+    }[] = [];
+
+    for (let i = 0; i < pnlSnapshotsMapKeys.length; i += CHUNK) {
+      const chunk = pnlSnapshotsMapKeys.slice(i, i + CHUNK);
+
+      const historyRecords = await this.prismaService.tradeHistory.findMany({
+        where: {
+          OR: [
+            ...chunk
+              .map(
+                (item) =>
+                  JSON.parse(item) as { address: string; contractId: number },
+              )
+              .map((item) => ({
+                address: item.address,
+                ...(item.contractId !== 0
+                  ? { contractId: item.contractId }
+                  : {}),
+              })),
+          ],
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+
+      const historyRecordsMap = new Map<string, TradeHistory[]>();
+
+      historyRecords.forEach((record) => {
+        const key = JSON.stringify({
+          address: record.address,
+          contractId: record.contractId,
+        });
+
+        const arr = historyRecordsMap.get(key);
+
+        if (arr) {
+          arr.push(record);
+        } else {
+          historyRecordsMap.set(key, [record]);
+        }
+      });
+
+      chunk.forEach((key) => {
+        const subPnlRecords = pnlSnapshotsMap.get(key) || [];
+        const allHistories = historyRecordsMap.get(key) || [];
+
+        const nodes: (PnlSnapshotDevDetailsV5 & {
+          endDate: Date;
+        })[] = [];
+
+        subPnlRecords.forEach((record) => {
+          for (let divider = dailyPlans; divider > 0; divider--) {
+            const weekDetail = this.getPnlSnapshotDevDetails(
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider -
+                  7 * 24 * 3600 * 1000,
+              ),
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider,
+              ),
+              record,
+              allHistories,
+              params,
+            );
+
+            const monthDetail = this.getPnlSnapshotDevDetails(
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider -
+                  30 * 24 * 3600 * 1000,
+              ),
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider,
+              ),
+              record,
+              allHistories,
+              params,
+            );
+
+            const threeMonthDetails = this.getPnlSnapshotDevDetails(
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider -
+                  90 * 24 * 3600 * 1000,
+              ),
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider,
+              ),
+              record,
+              allHistories,
+              params,
+            );
+
+            const allTimeDetails = this.getPnlSnapshotDevDetails(
+              new Date('2024-01-01'),
+              new Date(
+                getStartOfDay(new Date(record.dateStr)).getTime() +
+                  (24 * 3600 * 1000) / divider,
+              ),
+              record,
+              allHistories,
+              params,
+            );
+
+            const sumScore =
+              (weekDetail?.score || 0) * dnaParams.weekWeight +
+              (monthDetail?.score || 0) * dnaParams.monthWeight +
+              (threeMonthDetails?.score || 0) * dnaParams.threeMonthWeight +
+              (allTimeDetails?.score || 0) * dnaParams.allTimeWeight;
+
+            if (sumScore > params.minScore) {
+              nodes.push({
+                ...allTimeDetails,
+                endDate: new Date(
+                  getStartOfDay(new Date(record.dateStr)).getTime() +
+                    (24 * 3600 * 1000) / divider,
+                ),
+                score: sumScore,
               });
             }
           }
@@ -848,6 +1350,12 @@ export class BacktestV5Service {
     startDate: string,
     dayGaps: number,
     params: ExportFilterV5,
+    dnaParams: {
+      weekWeight: number;
+      monthWeight: number;
+      threeMonthWeight: number;
+      allTimeWeight: number;
+    },
   ) {
     console.time(
       `${params.window}-${params.minR2}-${params.n}-${params.m}-${params.minScore}`,
@@ -867,7 +1375,14 @@ export class BacktestV5Service {
         bottomPnl,
         maxProfit,
         totalPnls,
-      } = await this.getRangeHistories(startDate, dayGaps, params, 1, false);
+      } = await this.getRangeHistoriesForRecord(
+        startDate,
+        dayGaps,
+        params,
+        dnaParams,
+        1,
+        false,
+      );
 
       const investedUSD = maxInvested;
 
@@ -939,6 +1454,10 @@ export class BacktestV5Service {
         data: {
           window: params.window,
           minR2: params.minR2,
+          weekWeight: dnaParams.weekWeight,
+          monthWeight: dnaParams.monthWeight,
+          threeMonthWeight: dnaParams.threeMonthWeight,
+          allTimeWeight: dnaParams.allTimeWeight,
           n: params.n,
           m: params.m,
           minScore: params.minScore,
@@ -971,31 +1490,77 @@ export class BacktestV5Service {
   }
 
   async autoTesting(): Promise<boolean> {
-    const startDate = '2024-11-01';
+    const startDates = ['2024-11-01', '2025-03-01'];
 
-    const windowScales = [6, 7, 9, 12, 17, 25, 38];
-    const scoreScales = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-
-    const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+    const windowScales = [6, 9, 12, 38];
+    const penaltyScales = [1, 34];
+    const dnaParams = [
+      {
+        weekWeight: 0,
+        monthWeight: 0,
+        threeMonthWeight: 0,
+        allTimeWeight: 1,
+      },
+      {
+        weekWeight: 1,
+        monthWeight: 1,
+        threeMonthWeight: 1,
+        allTimeWeight: 1,
+      },
+      {
+        weekWeight: 4,
+        monthWeight: 3,
+        threeMonthWeight: 2,
+        allTimeWeight: 1,
+      },
+      {
+        weekWeight: 30,
+        monthWeight: 15,
+        threeMonthWeight: 5,
+        allTimeWeight: 1,
+      },
+      {
+        weekWeight: 1000,
+        monthWeight: 100,
+        threeMonthWeight: 10,
+        allTimeWeight: 1,
+      },
+      {
+        weekWeight: 9,
+        monthWeight: 6,
+        threeMonthWeight: 3,
+        allTimeWeight: 1,
+      },
+    ];
 
     await this.prismaService.testingReportV5.deleteMany();
 
-    for (const window of windowScales) {
-      for (let minR2 = 0.85; minR2 < 1; minR2 += 0.01) {
-        for (const minScore of scoreScales) {
-          await this.handleSingleCase(startDate, dayGaps, {
-            window,
-            minR2,
-            n: 2,
-            m: 32,
-            minScore,
-          });
+    for (let i = 0; i < dnaParams.length; i++) {
+      for (const window of windowScales) {
+        for (const penalty of penaltyScales) {
+          for (const startDate of startDates) {
+            const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+
+            await this.handleSingleCase(
+              startDate,
+              dayGaps,
+              {
+                window,
+                minR2: 0.9,
+                n: 2,
+                m: penalty,
+                minScore: 10,
+              },
+              dnaParams[i],
+            );
+          }
+
+          console.log(`Done penalty ${penalty}`);
         }
 
-        console.log(`Done minR2 ${minR2}`);
+        console.log(`Done window ${window}`);
       }
-
-      console.log(`Done window ${window}`);
+      console.log(`Done dna ${i}`);
     }
 
     console.log('Finished');

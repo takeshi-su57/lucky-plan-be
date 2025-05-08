@@ -20,10 +20,10 @@ import { BotsService } from 'src/bots/bots.service';
 
 const bestFilter = {
   minR2: 0.9,
-  window: 38,
-  minScore: 35,
+  window: 6,
+  minScore: 10,
   n: 2,
-  m: 32,
+  m: 1,
 };
 
 export type ServiceStatus = 'process' | 'ready';
@@ -45,15 +45,7 @@ export class AutoPlansV2Service {
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
   ): PnlSnapshot | null {
-    const endDate = new Date(
-      getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
-    );
-
-    const rangeHistories = histories.filter((history) => {
-      const historyDate = new Date(history.date);
-
-      return historyDate.getTime() <= endDate.getTime();
-    });
+    const rangeHistories = histories;
 
     const openHistoriesMap: Record<number, TradeHistory[]> = {};
 
@@ -72,16 +64,18 @@ export class AutoPlansV2Service {
       }
     });
 
-    const closeHistories = rangeHistories.filter((history) => {
-      return (
-        history.action === TradeActionType.TradeClosedMarket ||
-        history.action === TradeActionType.TradeClosedLIQ ||
-        history.action === TradeActionType.TradeClosedSL ||
-        history.action === TradeActionType.TradeClosedTP ||
-        history.action === TradeActionType.TradePosSizeIncrease ||
-        history.action === TradeActionType.TradePosSizeDecrease
-      );
-    });
+    const closeHistories = rangeHistories
+      .filter((history) => {
+        return (
+          history.action === TradeActionType.TradeClosedMarket ||
+          history.action === TradeActionType.TradeClosedLIQ ||
+          history.action === TradeActionType.TradeClosedSL ||
+          history.action === TradeActionType.TradeClosedTP ||
+          history.action === TradeActionType.TradePosSizeIncrease ||
+          history.action === TradeActionType.TradePosSizeDecrease
+        );
+      })
+      .filter((history) => +history.pnl !== 0);
 
     if (closeHistories.length < 6) {
       return null;

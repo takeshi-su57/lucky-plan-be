@@ -555,6 +555,18 @@ export class TestingReportV5 {
   @Field(() => Int)
   m: number;
 
+  @Field(() => Int)
+  weekWeight: number;
+
+  @Field(() => Int)
+  monthWeight: number;
+
+  @Field(() => Int)
+  threeMonthWeight: number;
+
+  @Field(() => Int)
+  allTimeWeight: number;
+
   @Field(() => Float)
   investedUSD: number;
 
