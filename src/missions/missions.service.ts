@@ -36,6 +36,7 @@ import {
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { LogsService } from 'src/loggers/logs.service';
+import { getOpenMissionParams } from 'src/strategy/strategy-library';
 
 @Injectable()
 export class MissionsService {
@@ -407,14 +408,44 @@ export class MissionsService {
         const event = missionEventParsers
           .find((parser) => parser.eventName === item.action.name)!
           .actionParser(item.action);
-        const { t } = event.args;
+        const { t, collateralPriceUsd } = event.args;
 
         const pair = this.tradingVariableService.getPair(
           item.context.bot.followerContractId,
           t.pairIndex,
         );
 
-        return !!pair;
+        if (!pair) {
+          return false;
+        }
+
+        const collateral = this.tradingVariableService.getCollateral(
+          item.context.bot.leaderContractId,
+          t.collateralIndex,
+        );
+
+        if (!collateral) {
+          return false;
+        }
+
+        const openMissionParams = getOpenMissionParams(
+          item.context.bot.strategy,
+          {
+            leverage: t.leverage,
+            collateralAmount: BigInt(t.collateralAmount),
+            collateralPriceUsd: BigInt(collateralPriceUsd),
+            collateral,
+          },
+          item.context.bot.leaderCollateralBaseline,
+          100_000_000n,
+        );
+
+        // block leader action register if collateral is less than 5 USDC
+        if (openMissionParams.collateralAmount < 5000000n) {
+          return false;
+        }
+
+        return true;
       });
 
     await this.createMany(

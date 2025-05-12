@@ -147,12 +147,6 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          await this.logger.log({
-            severity: 'Info',
-            summary: 'FollowerService>depositAsset',
-            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address}`,
-          });
-
           const { request } = await publicClient.simulateContract({
             account: masterWallet.account,
             address: collateralInfo.collateral,
@@ -163,20 +157,26 @@ export class FollowerService {
 
           tx = await masterWallet.writeContract(request);
 
-          break;
-        }
-        case 'eth': {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>depositAsset',
-            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address}`,
+            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address} tx: ${tx}`,
           });
 
+          break;
+        }
+        case 'eth': {
           tx = await masterWallet.sendTransaction({
             account: masterWallet.account!,
             to: follower.address as Address,
             value: amount,
             chain: masterWallet.chain,
+          });
+
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>depositAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${follower.address} tx: ${tx}`,
           });
 
           break;
@@ -272,12 +272,6 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          await this.logger.log({
-            severity: 'Info',
-            summary: 'FollowerService>withdrawAsset',
-            details: `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address}`,
-          });
-
           const { request } = await publicClient.simulateContract({
             account: followerWallet.account,
             address: collateralInfo.collateral,
@@ -288,15 +282,15 @@ export class FollowerService {
 
           tx = await followerWallet.writeContract(request);
 
-          break;
-        }
-        case 'eth': {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>withdrawAsset',
-            details: `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address}`,
+            details: `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address} tx: ${tx}`,
           });
 
+          break;
+        }
+        case 'eth': {
           const gas = await publicClient.estimateGas({
             account: followerWallet.account?.address,
             to: masterFollower.address as Address,
@@ -310,6 +304,12 @@ export class FollowerService {
             to: masterFollower.address as Address,
             value: amount - gas * maxFeePerGas,
             chain: followerWallet.chain,
+          });
+
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAsset',
+            details: `Move ${amount / 1000000000n} gwei from ${follower.address} to ${masterFollower.address} tx: ${tx}`,
           });
 
           break;
@@ -474,12 +474,6 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          await this.logger.log({
-            severity: 'Info',
-            summary: 'FollowerService>withdrawAssetToAny',
-            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${address}`,
-          });
-
           const { request } = await publicClient.simulateContract({
             account: masterWallet.account,
             address: collateralInfo.collateral,
@@ -490,20 +484,26 @@ export class FollowerService {
 
           tx = await masterWallet.writeContract(request);
 
-          break;
-        }
-        case 'eth': {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>withdrawAssetToAny',
-            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${address}`,
+            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${address} tx: ${tx}`,
           });
 
+          break;
+        }
+        case 'eth': {
           tx = await masterWallet.sendTransaction({
             account: masterWallet.account!,
             to: address as Address,
             value: amount,
             chain: masterWallet.chain,
+          });
+
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'FollowerService>withdrawAssetToAny',
+            details: `Move ${amount / 1000000000n} gwei from ${masterFollower.address} to ${address} tx: ${tx}`,
           });
 
           break;

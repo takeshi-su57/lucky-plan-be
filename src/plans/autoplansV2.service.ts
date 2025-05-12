@@ -12,7 +12,7 @@ import { SimpleLinearRegression } from 'ml-regression-simple-linear';
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/loggers/logs.service';
 
-import { getReadableError, getStartOfDay } from 'src/utils';
+import { getReadableError } from 'src/utils';
 import { CreatePlanInput } from './dto/plan.input';
 import { CreateBotAndStrategyInput } from 'src/bots/dto/bot.input';
 import { PlansService } from './plans.service';

@@ -131,6 +131,8 @@ export class SystemService {
         if (this.botsService.status === 'ready') {
           await this.botsService.checkAndUpdateAllBots();
         }
+
+        await this.taskExecutorService.handleFailedTasks();
       }
 
       if (this.plansService.status === 'ready' && this.count % 24 === 0) {
