@@ -247,26 +247,31 @@ export class BotsService {
         },
       });
 
-      for (const bot of bots) {
-        if (
-          bot.status === BotStatus.Stop &&
-          !bot.missions.find(
-            (item) =>
-              item.status !== MissionStatus.Closed &&
-              item.status !== MissionStatus.Ignored,
-          )
-        ) {
-          await this._kill(bot);
-        }
+      const BATCH_SIZE = 20;
+
+      for (let i = 0; i < bots.length; i += BATCH_SIZE) {
+        const batchBots = bots.slice(i, i + BATCH_SIZE);
+
+        const promises = batchBots.map(async (bot) => {
+          if (
+            bot.status === BotStatus.Stop &&
+            !bot.missions.find(
+              (item) =>
+                item.status !== MissionStatus.Closed &&
+                item.status !== MissionStatus.Ignored,
+            )
+          ) {
+            await this._kill(bot);
+          } else if (
+            bot.status === BotStatus.Live ||
+            bot.status === BotStatus.Stop
+          ) {
+            await this.reBalanceAsset(bot);
+          }
+        });
+
+        await Promise.allSettled(promises);
       }
-
-      const promises = bots.map(async (bot) => {
-        if (bot.status === BotStatus.Live || bot.status === BotStatus.Stop) {
-          await this.reBalanceAsset(bot);
-        }
-      });
-
-      await Promise.allSettled(promises);
     } catch (err) {
       await this.logger.log({
         severity: 'Error',

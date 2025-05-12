@@ -112,41 +112,37 @@ export class SystemService {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
-    if (this.isPaused || !this.securityService.isReady()) {
+    if (
+      this.isPaused ||
+      !this.securityService.isReady() ||
+      this.tradingVariableService.status !== 'ready'
+    ) {
       return;
     }
 
     if (
       this.contractMonitorService.status.bot === 'ready' &&
-      this.tradingVariableService.status === 'ready' &&
       this.taskExecutorService.status === 'ready'
     ) {
       await this.contractMonitorService.checkContractsForBots();
       await this.taskExecutorService.performAvailableTasks();
 
-      if (this.botsService.status === 'ready' && this.count % 12 === 0) {
-        await this.botsService.checkAndUpdateAllBots();
+      if (this.count % 12 === 0) {
+        if (this.botsService.status === 'ready') {
+          await this.botsService.checkAndUpdateAllBots();
+        }
       }
 
       if (this.plansService.status === 'ready' && this.count % 24 === 0) {
         await this.plansService.checkAndUpdateAllPlans();
+
+        // leaderboard update
+        if (this.contractMonitorService.status.leaderboard === 'ready') {
+          await this.contractMonitorService.checkContractsForLeaderboard();
+        }
       }
 
       this.count = this.count + 1;
-    }
-  }
-
-  @Cron(CronExpression.EVERY_MINUTE)
-  async executeCronForLeaderboardMonitor() {
-    if (this.isPaused || !this.securityService.isReady()) {
-      return;
-    }
-
-    if (
-      this.contractMonitorService.status.leaderboard === 'ready' &&
-      this.tradingVariableService.status === 'ready'
-    ) {
-      await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
 

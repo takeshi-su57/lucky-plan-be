@@ -360,12 +360,15 @@ export class FollowerService {
         args: [address as Address],
       });
 
-      await this.withdrawAsset(userId, {
-        address,
-        contract: contract,
-        amount: usdcBalance,
-        kind: 'usdc',
-      });
+      // 1000000n (1usdc) is the minimum amount of USDC to withdraw
+      if (usdcBalance > 1000000n) {
+        await this.withdrawAsset(userId, {
+          address,
+          contract: contract,
+          amount: usdcBalance,
+          kind: 'usdc',
+        });
+      }
 
       return true;
     } catch (err) {
