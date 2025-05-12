@@ -128,6 +128,6 @@ export class ExportFilterV5 {
   @Field(() => Float)
   n: number;
 
-  @Field(() => Int)
+  @Field(() => Float)
   m: number;
 }
