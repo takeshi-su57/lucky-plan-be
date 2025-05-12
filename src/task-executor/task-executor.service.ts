@@ -276,22 +276,24 @@ export class TaskExecutorService {
 
               return {
                 success: true,
-                message: `Task achieved`,
+                message: `Task achieved tx: ${tx}`,
               };
             } else {
               await this.logger.log({
                 severity: 'Error',
                 summary: 'TaskExecutorService>performTask',
-                details: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                details:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               });
 
               return {
                 success: false,
-                message: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                message:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               };
             }
           }
@@ -325,22 +327,24 @@ export class TaskExecutorService {
 
               return {
                 success: true,
-                message: `Task achieved`,
+                message: `Task achieved tx: ${tx}`,
               };
             } else {
               await this.logger.log({
                 severity: 'Error',
                 summary: 'TaskExecutorService>performTask',
-                details: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                details:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               });
 
               return {
                 success: false,
-                message: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                message:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               };
             }
           }
@@ -473,22 +477,24 @@ export class TaskExecutorService {
 
                   return {
                     success: true,
-                    message: `Task achieved`,
+                    message: `Task achieved tx: ${tx}`,
                   };
                 } else {
                   await this.logger.log({
                     severity: 'Error',
                     summary: 'TaskExecutorService>performTask',
-                    details: JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ),
+                    details:
+                      JSON.stringify(transaction.logs, (_, v) =>
+                        typeof v === 'bigint' ? v.toString() : v,
+                      ) + ` tx: ${tx}`,
                   });
 
                   return {
                     success: false,
-                    message: JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ),
+                    message:
+                      JSON.stringify(transaction.logs, (_, v) =>
+                        typeof v === 'bigint' ? v.toString() : v,
+                      ) + ` tx: ${tx}`,
                   };
                 }
               }
@@ -507,22 +513,24 @@ export class TaskExecutorService {
         if (transaction.status === 'success') {
           return {
             success: true,
-            message: `Task achieved`,
+            message: `Task achieved tx: ${tx}`,
           };
         } else {
           await this.logger.log({
             severity: 'Error',
             summary: 'TaskExecutorService>performTask',
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
+            details:
+              JSON.stringify(transaction.logs, (_, v) =>
+                typeof v === 'bigint' ? v.toString() : v,
+              ) + ` tx: ${tx}`,
           });
 
           return {
             success: false,
-            message: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
+            message:
+              JSON.stringify(transaction.logs, (_, v) =>
+                typeof v === 'bigint' ? v.toString() : v,
+              ) + ` tx: ${tx}`,
           };
         }
       } else {
@@ -752,6 +760,61 @@ export class TaskExecutorService {
       await this.logger.log({
         severity: 'Error',
         summary: 'TaskExecutorService>performAvailableTasks',
+        details: getReadableError(err),
+      });
+    }
+  }
+
+  async handleFailedTasks() {
+    try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>handleFailedTasks',
+      });
+
+      const allFailedTasks = await this.prismaService.task.findMany({
+        where: {
+          status: TaskStatus.Failed,
+          mission: {
+            status: {
+              notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+          },
+        },
+        include: {
+          action: true,
+          followerActions: {
+            include: {
+              action: true,
+            },
+          },
+          mission: true,
+        },
+      });
+
+      for (const task of allFailedTasks) {
+        if (
+          task.action.name !== CloseMissionAction &&
+          !missionEventNames.includes(task.action.name) &&
+          !isCloseMissionAction(task.action)
+        ) {
+          continue;
+        }
+
+        try {
+          await this.tasksService.closeMissionTasks(task.mission, false);
+        } catch (err) {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `TaskExecutorService>handleFailedTasks>taskId: ${task.id}`,
+            details: getReadableError(err),
+          });
+        }
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>handleFailedTasks',
         details: getReadableError(err),
       });
     }
