@@ -16,7 +16,7 @@ export function getPositionIncreaseParams(
 
     return {
       collateralDelta: 0n,
-      leverageDelta: Math.min(levDelta, strategy.maxLeverage - levF),
+      leverageDelta: levDelta,
       expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
     };
   }
@@ -57,7 +57,7 @@ export function getPositionDecreaseParams(
   if (deltaLevL > 0) {
     return {
       collateralDelta: 0n,
-      leverageDelta: Math.min(deltaLevL, trade.leverage - strategy.minLeverage),
+      leverageDelta: Math.min(deltaLevL, trade.leverage - 1100),
       expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
     };
   }
@@ -117,10 +117,7 @@ export function getOpenMissionParams(
   ratioAmount = ratioAmount > minCollateral ? ratioAmount : minCollateral;
 
   return {
-    leverage: Math.max(
-      Math.min(args.leverage, strategy.maxLeverage),
-      strategy.minLeverage,
-    ),
+    leverage: args.leverage,
     collateralAmount: ratioAmount,
   };
 }
