@@ -276,22 +276,24 @@ export class TaskExecutorService {
 
               return {
                 success: true,
-                message: `Task achieved`,
+                message: `Task achieved tx: ${tx}`,
               };
             } else {
               await this.logger.log({
                 severity: 'Error',
                 summary: 'TaskExecutorService>performTask',
-                details: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                details:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               });
 
               return {
                 success: false,
-                message: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                message:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               };
             }
           }
@@ -325,22 +327,24 @@ export class TaskExecutorService {
 
               return {
                 success: true,
-                message: `Task achieved`,
+                message: `Task achieved tx: ${tx}`,
               };
             } else {
               await this.logger.log({
                 severity: 'Error',
                 summary: 'TaskExecutorService>performTask',
-                details: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                details:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               });
 
               return {
                 success: false,
-                message: JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ),
+                message:
+                  JSON.stringify(transaction.logs, (_, v) =>
+                    typeof v === 'bigint' ? v.toString() : v,
+                  ) + ` tx: ${tx}`,
               };
             }
           }
@@ -473,22 +477,24 @@ export class TaskExecutorService {
 
                   return {
                     success: true,
-                    message: `Task achieved`,
+                    message: `Task achieved tx: ${tx}`,
                   };
                 } else {
                   await this.logger.log({
                     severity: 'Error',
                     summary: 'TaskExecutorService>performTask',
-                    details: JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ),
+                    details:
+                      JSON.stringify(transaction.logs, (_, v) =>
+                        typeof v === 'bigint' ? v.toString() : v,
+                      ) + ` tx: ${tx}`,
                   });
 
                   return {
                     success: false,
-                    message: JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ),
+                    message:
+                      JSON.stringify(transaction.logs, (_, v) =>
+                        typeof v === 'bigint' ? v.toString() : v,
+                      ) + ` tx: ${tx}`,
                   };
                 }
               }
@@ -507,22 +513,24 @@ export class TaskExecutorService {
         if (transaction.status === 'success') {
           return {
             success: true,
-            message: `Task achieved`,
+            message: `Task achieved tx: ${tx}`,
           };
         } else {
           await this.logger.log({
             severity: 'Error',
             summary: 'TaskExecutorService>performTask',
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
+            details:
+              JSON.stringify(transaction.logs, (_, v) =>
+                typeof v === 'bigint' ? v.toString() : v,
+              ) + ` tx: ${tx}`,
           });
 
           return {
             success: false,
-            message: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
+            message:
+              JSON.stringify(transaction.logs, (_, v) =>
+                typeof v === 'bigint' ? v.toString() : v,
+              ) + ` tx: ${tx}`,
           };
         }
       } else {
