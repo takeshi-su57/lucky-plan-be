@@ -765,6 +765,61 @@ export class TaskExecutorService {
     }
   }
 
+  async handleFailedTasks() {
+    try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>handleFailedTasks',
+      });
+
+      const allFailedTasks = await this.prismaService.task.findMany({
+        where: {
+          status: TaskStatus.Failed,
+          mission: {
+            status: {
+              notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+          },
+        },
+        include: {
+          action: true,
+          followerActions: {
+            include: {
+              action: true,
+            },
+          },
+          mission: true,
+        },
+      });
+
+      for (const task of allFailedTasks) {
+        if (
+          task.action.name !== CloseMissionAction &&
+          !missionEventNames.includes(task.action.name) &&
+          !isCloseMissionAction(task.action)
+        ) {
+          continue;
+        }
+
+        try {
+          await this.tasksService.closeMissionTasks(task.mission, false);
+        } catch (err) {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `TaskExecutorService>handleFailedTasks>taskId: ${task.id}`,
+            details: getReadableError(err),
+          });
+        }
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>handleFailedTasks',
+        details: getReadableError(err),
+      });
+    }
+  }
+
   async performAvailableTasks() {
     this.status = 'process';
 
