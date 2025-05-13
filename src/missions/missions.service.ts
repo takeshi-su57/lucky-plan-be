@@ -33,7 +33,7 @@ import {
   MissionCreateInput,
   MissionUpdateInput,
 } from './dto/mission.input';
-import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { MIN_POSITION_SIZE, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { LogsService } from 'src/loggers/logs.service';
 import { getOpenMissionParams } from 'src/strategy/strategy-library';
@@ -440,8 +440,8 @@ export class MissionsService {
           100_000_000n,
         );
 
-        // block leader action register if collateral is less than 5 USDC
-        if (openMissionParams.collateralAmount < 5000000n) {
+        // block leader action register if collateral is less than 25 USDC
+        if (openMissionParams.collateralAmount < MIN_POSITION_SIZE) {
           return false;
         }
 
