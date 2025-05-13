@@ -38,6 +38,8 @@ import { FollowerService } from 'src/follower/follower.service';
 import { LogsService } from 'src/loggers/logs.service';
 import { TaskUpdateInput } from 'src/tasks/dto/task.input';
 
+import { MIN_FEE } from 'src/utils/constants';
+
 @Injectable()
 export class TaskExecutorService {
   status: 'process' | 'ready' = 'ready';
@@ -192,12 +194,28 @@ export class TaskExecutorService {
           );
 
           if (increaseParams.collateralDelta > 0n) {
-            // if new position size is less than 0.5% of the old position size, skip the update
-            if (
-              increaseParams.collateralDelta *
-                BigInt(increaseParams.leverageDelta) <
-              (followerTradeData.collateralAmount * 5n) / 1000n
-            ) {
+            const fee = BigInt(
+              Math.max(
+                Math.floor(
+                  (Number(increaseParams.collateralDelta) *
+                    Number(increaseParams.leverageDelta) *
+                    0.16) /
+                    1e5,
+                ),
+                Number(MIN_FEE),
+              ),
+            );
+
+            const positionDelta = BigInt(
+              Math.floor(
+                (Number(increaseParams.collateralDelta) *
+                  Number(increaseParams.leverageDelta)) /
+                  1e3,
+              ),
+            );
+
+            // if new position size is less than fee, skip the update
+            if (positionDelta < fee) {
               return {
                 success: true,
                 message: `Skipped this position size update because collateral delta is too small`,
@@ -506,6 +524,12 @@ export class TaskExecutorService {
       }
 
       if (tx) {
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'TaskExecutorService>performTask',
+          details: `tx: ${tx}`,
+        });
+
         const transaction = await publicClient.waitForTransactionReceipt({
           hash: tx as `0x${string}`,
         });
