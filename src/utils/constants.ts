@@ -23,5 +23,5 @@ export const SUBSCRIPTION_TOKEN = {
 export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
 export const MAX_GAS = BigInt(0.001 * Math.pow(10, etherUnits.wei));
 
-export const MIN_POSITION_SIZE = 25_000_000n; // 25 USDC
+export const MIN_POSITION_SIZE = 10_000_000n; // 10 USDC
 export const MIN_FEE = 1000_000n; // 1 USDC
