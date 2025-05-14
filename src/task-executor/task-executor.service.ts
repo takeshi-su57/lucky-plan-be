@@ -58,6 +58,8 @@ export class TaskExecutorService {
   private async performTask(
     task: TaskBackwardDetails,
   ): Promise<{ success: boolean; message: string }> {
+    let tx: `0x${string}` | null = null;
+
     try {
       const { action, mission } = task;
       const { bot, achievePosition } = mission;
@@ -100,8 +102,6 @@ export class TaskExecutorService {
       const publicClient = this.chainsService.publicClient(
         followerContract.chainId,
       );
-
-      let tx: `0x${string}` | null = null;
 
       switch (action.name) {
         case tradeMaxClosingSlippagePUpdatedEventParser.eventName: {
@@ -563,13 +563,13 @@ export class TaskExecutorService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: 'TaskExecutorService>performTask',
+        summary: `TaskExecutorService>performTask tx: ${tx}`,
         details: getReadableError(err),
       });
 
       return {
         success: false,
-        message: getReadableError(err),
+        message: getReadableError(err) + ` tx: ${tx}`,
       };
     }
   }
