@@ -50,3 +50,9 @@ export function getStartOfMonth(date: Date): Date {
   updatedDate.setDate(1);
   return getStartOfDay(updatedDate);
 }
+
+export async function delay(ms: number) {
+  const promise = new Promise((resolve) => setTimeout(resolve, ms));
+
+  await promise;
+}

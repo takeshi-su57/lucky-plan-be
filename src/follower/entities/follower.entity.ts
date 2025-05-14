@@ -18,21 +18,6 @@ export class Follower {
 }
 
 @ObjectType()
-export class FollowerDetail extends Follower {
-  @Field(() => String, { nullable: true })
-  ethBalance: string | null;
-
-  @Field(() => String, { nullable: true })
-  usdcBalance: string | null;
-
-  @Field(() => Int)
-  contractId: number;
-
-  @Field(() => [PnlSnapshot])
-  pnlSnapshots: PnlSnapshot[];
-}
-
-@ObjectType()
 export class FollowerTrade {
   @Field()
   address: string;
@@ -57,6 +42,27 @@ export class FollowerPendingOrder {
 
   @Field()
   params: string;
+}
+
+@ObjectType()
+export class FollowerDetail extends Follower {
+  @Field(() => String, { nullable: true })
+  ethBalance: string | null;
+
+  @Field(() => String, { nullable: true })
+  usdcBalance: string | null;
+
+  @Field(() => Int)
+  contractId: number;
+
+  @Field(() => [FollowerTrade])
+  trades: FollowerTrade[];
+
+  @Field(() => [FollowerPendingOrder])
+  pendingOrders: FollowerPendingOrder[];
+
+  @Field(() => [PnlSnapshot])
+  pnlSnapshots: PnlSnapshot[];
 }
 
 @ObjectType()

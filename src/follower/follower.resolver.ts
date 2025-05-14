@@ -6,8 +6,6 @@ import {
   ContractExecutionResult,
   Follower,
   FollowerDetail,
-  FollowerPendingOrder,
-  FollowerTrade,
 } from './entities/follower.entity';
 import {
   CloseTradeInput,
@@ -109,42 +107,6 @@ export class FollowerResolver {
   ) {
     return this.followerService.cancelOrderAfterTimeout(user.address, input);
   }
-
-  @Query(() => [FollowerPendingOrder])
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getPendingOrders(
-    @Args('address') address: string,
-    @Args('contractId', { type: () => Int }) contractId: number,
-    @CurrentUser() user: User,
-  ) {
-    return this.followerService.getPendingOrders(
-      user.address,
-      address,
-      contractId,
-    );
-  }
-
-  @Query(() => [FollowerTrade])
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getTrades(
-    @Args('address') address: string,
-    @Args('contractId', { type: () => Int }) contractId: number,
-    @CurrentUser() user: User,
-  ) {
-    return this.followerService.getTrades(user.address, address, contractId);
-  }
-
-  // @Query(() => String)
-  // @Roles(UserPermission.Trader)
-  // @UseGuards(GqlAuthGuard, RolesGuard)
-  // getFollowerPrivateKey(
-  //   @Args('input') input: GetFollowerByAddressInput,
-  //   @CurrentUser() user: User,
-  // ) {
-  //   return this.followerService.getPrivateKey(user.address, input.address);
-  // }
 
   @Query(() => [Follower])
   @Roles(UserPermission.Trader)
