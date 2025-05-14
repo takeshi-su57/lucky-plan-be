@@ -11,9 +11,36 @@ import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
 import { AutoPlansV2Service } from './plans/autoplansV2.service';
 import { SecurityService } from './global/security.service';
+import { spawn } from 'child_process';
+import * as path from 'path';
+
+import { delay } from './utils';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+const runInNewTerminal = (cmd: string, args: string[]) => {
+  const terminalCommand =
+    process.platform === 'darwin' ? 'osascript' : 'gnome-terminal';
+
+  let commandArgs;
+
+  if (process.platform === 'darwin') {
+    commandArgs = [
+      '-e',
+      `tell app "Terminal" to do script "${cmd} ${args.join(' ')}"`,
+    ];
+  } else {
+    commandArgs = ['--', cmd, ...args];
+  }
+
+  const child = spawn(terminalCommand, commandArgs, {
+    stdio: 'ignore',
+    detached: true,
+  });
+
+  child.unref();
+};
 
 @Injectable()
 export class SystemService {
@@ -52,6 +79,30 @@ export class SystemService {
     }
 
     this.isPaused = false;
+
+    return true;
+  }
+
+  async upgrade() {
+    this.pauseSystem();
+
+    await delay(10_000);
+
+    runInNewTerminal('bash', [path.join(__dirname, 'upgrade.js')]);
+
+    // Spawning the process in detached mode
+    const upgradeProcess = spawn('node', [path.join(__dirname, 'upgrade.js')], {
+      detached: true,
+      stdio: 'ignore', // Ignore output to prevent the parent process from waiting
+    });
+
+    // Allow the parent to exit independently of the child
+    upgradeProcess.unref();
+
+    // Gracefully exit the app
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000); // short delay to allow child process to start
 
     return true;
   }

@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi, isAddress } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
-import { BotStatus } from '@prisma/client';
+import { BotStatus, UserPermission } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -38,6 +39,7 @@ import { EncryptedData, SecurityService } from 'src/global/security.service';
 @Injectable()
 export class FollowerService {
   private depositAssetQueue: Record<string, TaskQueue>;
+  private followerDetailsCache: Record<string, FollowerDetail[]>;
 
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
@@ -51,6 +53,7 @@ export class FollowerService {
     private securityService: SecurityService,
   ) {
     this.depositAssetQueue = {};
+    this.followerDetailsCache = {};
   }
 
   async depositAsset(
@@ -96,6 +99,8 @@ export class FollowerService {
       kind: 'usdc' | 'eth';
     },
   ) {
+    let tx: string = 'no tx';
+
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
@@ -128,6 +133,13 @@ export class FollowerService {
         throw new Error('Wrong address');
       }
 
+      // skip recursive transaction
+      if (
+        follower.address.toLowerCase() === masterFollower.address.toLowerCase()
+      ) {
+        return true;
+      }
+
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const collateralInfo = this.tradingVariableService.getCollateral(
@@ -142,8 +154,6 @@ export class FollowerService {
         contract.chainId,
         masterFollower,
       );
-
-      let tx: string;
 
       switch (kind) {
         case 'usdc': {
@@ -195,7 +205,7 @@ export class FollowerService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>depositAsset`,
+        summary: `FollowerService>depositAsset tx: ${tx}`,
         details: getReadableError(err),
       });
     }
@@ -217,6 +227,13 @@ export class FollowerService {
       kind: 'usdc' | 'eth';
     },
   ) {
+    // skip 0 amount
+    if (amount === 0n) {
+      return true;
+    }
+
+    let tx: string = 'no tx';
+
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
@@ -253,6 +270,13 @@ export class FollowerService {
         throw new Error('Unauthorized User');
       }
 
+      // skip recursive transaction
+      if (
+        follower.address.toLowerCase() === masterFollower.address.toLowerCase()
+      ) {
+        return true;
+      }
+
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
       const collateralInfo = this.tradingVariableService.getCollateral(
@@ -267,8 +291,6 @@ export class FollowerService {
         contract.chainId,
         follower,
       );
-
-      let tx: string;
 
       switch (kind) {
         case 'usdc': {
@@ -328,7 +350,7 @@ export class FollowerService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>withdrawAsset`,
+        summary: `FollowerService>withdrawAsset tx: ${tx}`,
         details: getReadableError(err),
       });
     }
@@ -429,6 +451,8 @@ export class FollowerService {
       kind: 'usdc' | 'eth';
     },
   ) {
+    let tx: string = 'no tx';
+
     try {
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
@@ -469,8 +493,6 @@ export class FollowerService {
         contract.chainId,
         masterFollower,
       );
-
-      let tx: string;
 
       switch (kind) {
         case 'usdc': {
@@ -522,7 +544,7 @@ export class FollowerService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>depositAsset`,
+        summary: `FollowerService>withdrawAssetToAny tx: ${tx}`,
         details: getReadableError(err),
       });
     }
@@ -600,44 +622,6 @@ export class FollowerService {
     return false;
   }
 
-  // async getPrivateKey(userId: string, address: string) {
-  //   const user = await this.prismaService.user.findUnique({
-  //     where: {
-  //       address: userId,
-  //     },
-  //   });
-
-  //   if (!user) {
-  //     throw new Error('User not found');
-  //   }
-
-  //   const follower = await this.prismaService.follower.findUnique({
-  //     where: { address },
-  //   });
-
-  //   if (!follower) {
-  //     throw new Error('Wrong address');
-  //   }
-
-  //   if (follower.userId !== userId) {
-  //     throw new Error('Unauthorized User');
-  //   }
-
-  //   const mnemonic = user.mnemonic || '';
-
-  //   if (!validateMnemonic(mnemonic, english)) {
-  //     throw new Error('Wrong mnemonic, plz check seed the db metadata');
-  //   }
-
-  //   const account = mnemonicToAccount(mnemonic, {
-  //     accountIndex: follower.accountIndex,
-  //   });
-
-  //   return `0x${Array.from(account.getHdKey().privateKey!)
-  //     .map((byte) => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
-  //     .join('')}`;
-  // }
-
   async generateNewFollower(userId: string) {
     const user = await this.prismaService.user.findUnique({
       where: {
@@ -684,8 +668,7 @@ export class FollowerService {
     }
   }
 
-  async getPendingOrders(
-    userId: string,
+  private async getPendingOrders(
     address: string,
     contractId: number,
   ): Promise<FollowerPendingOrder[]> {
@@ -700,10 +683,6 @@ export class FollowerService {
 
       if (!follower) {
         throw new Error('Follower not found');
-      }
-
-      if (follower.userId !== userId) {
-        throw new Error('Unauthorized User');
       }
 
       const publicClient = this.chainsService.publicClient(contract.chainId);
@@ -733,8 +712,7 @@ export class FollowerService {
     return [];
   }
 
-  async getTrades(
-    userId: string,
+  private async getTrades(
     address: string,
     contractId: number,
   ): Promise<FollowerTrade[]> {
@@ -747,10 +725,6 @@ export class FollowerService {
 
       if (!follower) {
         throw new Error('Follower not found');
-      }
-
-      if (follower.userId !== userId) {
-        throw new Error('Unauthorized User');
       }
 
       const contract = await this.contractService.findOne(contractId);
@@ -842,6 +816,8 @@ export class FollowerService {
     userId: string,
     input: CloseTradeInput,
   ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
     try {
       const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
@@ -881,7 +857,7 @@ export class FollowerService {
         input.pairIndex,
       );
 
-      const tx = await this.tradeService.closeTradeMarket(
+      tx = await this.tradeService.closeTradeMarket(
         walletClient,
         publicClient,
         contract.chainId,
@@ -897,6 +873,19 @@ export class FollowerService {
         });
 
         if (transaction.status === 'success') {
+          // close open position
+          Object.values(this.followerDetailsCache).forEach((followers) => {
+            followers.forEach((follower) => {
+              if (
+                follower.address.toLowerCase() === input.address.toLowerCase()
+              ) {
+                follower.trades = follower.trades.filter(
+                  (item) => item.index !== input.index,
+                );
+              }
+            });
+          });
+
           return {
             success: true,
             message: `Trade closed`,
@@ -907,7 +896,7 @@ export class FollowerService {
         } else {
           await this.logger.log({
             severity: 'Error',
-            summary: `FollowerService>closeTradeMarket`,
+            summary: `FollowerService>closeTradeMarket tx: ${tx}`,
             details: JSON.stringify(transaction.logs, (_, v) =>
               typeof v === 'bigint' ? v.toString() : v,
             ),
@@ -915,9 +904,9 @@ export class FollowerService {
 
           return {
             success: false,
-            message: JSON.stringify(transaction.logs, (_, v) =>
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
               typeof v === 'bigint' ? v.toString() : v,
-            ),
+            )} tx: ${tx}`,
             address: input.address,
             index: input.index,
             contractId: input.contractId,
@@ -927,7 +916,7 @@ export class FollowerService {
 
       return {
         success: false,
-        message: 'Transaction not found',
+        message: `Transaction not found tx: ${tx}`,
         address: input.address,
         index: input.index,
         contractId: input.contractId,
@@ -935,15 +924,15 @@ export class FollowerService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>getTrades`,
+        summary: `FollowerService>closeTradeMarket tx: ${tx}`,
         details: getReadableError(err),
       });
 
       return {
         success: false,
-        message: JSON.stringify(err, (_, v) =>
+        message: `${JSON.stringify(err, (_, v) =>
           typeof v === 'bigint' ? v.toString() : v,
-        ),
+        )} tx: ${tx}`,
         address: input.address,
         index: input.index,
         contractId: input.contractId,
@@ -955,6 +944,8 @@ export class FollowerService {
     userId: string,
     input: CancelOrderAfterTimeoutInput,
   ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
     try {
       const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
@@ -989,7 +980,7 @@ export class FollowerService {
       );
       const publicClient = this.chainsService.publicClient(contract.chainId);
 
-      const tx = await this.tradeService.cancelOrderAfterTimeout(
+      tx = await this.tradeService.cancelOrderAfterTimeout(
         walletClient,
         publicClient,
         contract.chainId,
@@ -1004,9 +995,22 @@ export class FollowerService {
         });
 
         if (transaction.status === 'success') {
+          // cancel pending order
+          Object.values(this.followerDetailsCache).forEach((followers) => {
+            followers.forEach((follower) => {
+              if (
+                follower.address.toLowerCase() === input.address.toLowerCase()
+              ) {
+                follower.pendingOrders = follower.pendingOrders.filter(
+                  (item) => item.index !== input.index,
+                );
+              }
+            });
+          });
+
           return {
             success: true,
-            message: `Order canceled`,
+            message: `Order canceled tx: ${tx}`,
             address: input.address,
             index: input.index,
             contractId: input.contractId,
@@ -1014,7 +1018,7 @@ export class FollowerService {
         } else {
           await this.logger.log({
             severity: 'Error',
-            summary: `FollowerService>closeTradeMarket`,
+            summary: `FollowerService>cancelOrderAfterTimeout tx: ${tx}`,
             details: JSON.stringify(transaction.logs, (_, v) =>
               typeof v === 'bigint' ? v.toString() : v,
             ),
@@ -1022,9 +1026,9 @@ export class FollowerService {
 
           return {
             success: false,
-            message: JSON.stringify(transaction.logs, (_, v) =>
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
               typeof v === 'bigint' ? v.toString() : v,
-            ),
+            )} tx: ${tx}`,
             address: input.address,
             index: input.index,
             contractId: input.contractId,
@@ -1034,7 +1038,7 @@ export class FollowerService {
 
       return {
         success: false,
-        message: 'Transaction not found',
+        message: `Transaction not found tx: ${tx}`,
         address: input.address,
         index: input.index,
         contractId: input.contractId,
@@ -1042,91 +1046,20 @@ export class FollowerService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>closeTradeMarket`,
+        summary: `FollowerService>cancelOrderAfterTimeout tx: ${tx}`,
         details: getReadableError(err),
       });
 
       return {
         success: false,
-        message: JSON.stringify(err, (_, v) =>
+        message: `${JSON.stringify(err, (_, v) =>
           typeof v === 'bigint' ? v.toString() : v,
-        ),
+        )} tx: ${tx}`,
         address: input.address,
         index: input.index,
         contractId: input.contractId,
       };
     }
-  }
-
-  private async loadFollowers(
-    userId: string,
-    contractId: number,
-  ): Promise<FollowerDetail[]> {
-    try {
-      const contract = await this.contractService.findOne(contractId);
-
-      const publicClient = this.chainsService.publicClient(contract.chainId);
-
-      const collateralInfo = this.tradingVariableService.getCollateral(
-        contractId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      const followerEntities = await this.prismaService.follower.findMany({
-        where: {
-          userId,
-        },
-      });
-
-      const ethMap: Record<string, bigint> = {};
-      const usdcMap: Record<string, bigint> = {};
-      const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
-
-      const promises = followerEntities.map(async (entity) => {
-        const usdcBalance = await publicClient.readContract({
-          address: collateralInfo.collateral,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [entity.address as Address],
-        });
-
-        usdcMap[entity.address] = usdcBalance;
-
-        const ethBalance = await publicClient.getBalance({
-          address: entity.address as Address,
-        });
-
-        ethMap[entity.address] = ethBalance;
-
-        const pnlSnapshots =
-          await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
-            dayjs(new Date()).format('YYYY-MM-DD'),
-            entity.address,
-          );
-
-        pnlSnapshotsMap[entity.address] = pnlSnapshots;
-      });
-
-      await Promise.allSettled(promises);
-
-      return followerEntities.map((entity) => ({
-        ...entity,
-        contractId,
-        ethBalance: ethMap[entity.address]?.toString() || null,
-        usdcBalance: usdcMap[entity.address]?.toString() || null,
-        pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
-      }));
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: `FollowerService>loadFollowers`,
-        details: getReadableError(err),
-      });
-    }
-
-    return [];
   }
 
   async getAvailableFollowers(userId: string, counts: number) {
@@ -1167,8 +1100,128 @@ export class FollowerService {
     return validFollowers.slice(0, counts);
   }
 
-  findAllDetails(userId: string, contractId: number) {
-    return this.loadFollowers(userId, contractId);
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async cronForLoadFollowerDetails() {
+    try {
+      const allUsers = await this.prismaService.user.findMany({
+        where: {
+          permission: {
+            in: [UserPermission.Admin, UserPermission.Trader],
+          },
+        },
+      });
+
+      const allContracts = await this.prismaService.contract.findMany();
+
+      for (const user of allUsers) {
+        for (const contract of allContracts) {
+          await this.loadFollowerDetails(
+            user.address.toLowerCase(),
+            contract.id,
+          );
+
+          console.log('Done ', user.address.toLowerCase(), contract.id);
+        }
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'FollowerService>cronForLoadFollowerDetails',
+        details: getReadableError(err),
+      });
+    }
+  }
+
+  private async loadFollowerDetails(userId: string, contractId: number) {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      const collateralInfo = this.tradingVariableService.getCollateral(
+        contractId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      const followerEntities = await this.prismaService.follower.findMany({
+        where: {
+          userId,
+        },
+      });
+
+      const ethMap: Record<string, bigint> = {};
+      const usdcMap: Record<string, bigint> = {};
+      const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
+      const tradesMap: Record<string, FollowerTrade[]> = {};
+      const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
+
+      const BATCH_SIZE = 10;
+
+      for (let i = 0; i < followerEntities.length; i += BATCH_SIZE) {
+        const batch = followerEntities.slice(i, i + BATCH_SIZE);
+
+        const promises = batch.map(async (entity) => {
+          const usdcBalance = await publicClient.readContract({
+            address: collateralInfo.collateral,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [entity.address as Address],
+          });
+
+          usdcMap[entity.address] = usdcBalance;
+
+          const ethBalance = await publicClient.getBalance({
+            address: entity.address as Address,
+          });
+
+          ethMap[entity.address] = ethBalance;
+
+          const pnlSnapshots =
+            await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+              dayjs(new Date()).format('YYYY-MM-DD'),
+              entity.address,
+            );
+
+          pnlSnapshotsMap[entity.address] = pnlSnapshots;
+
+          const trades = await this.getTrades(entity.address, contractId);
+          tradesMap[entity.address] = trades;
+
+          const pendingOrders = await this.getPendingOrders(
+            entity.address,
+            contractId,
+          );
+
+          pendingOrdersMap[entity.address] = pendingOrders;
+        });
+
+        await Promise.allSettled(promises);
+      }
+
+      this.followerDetailsCache[`${userId}-${contractId}`] =
+        followerEntities.map((entity) => ({
+          ...entity,
+          contractId,
+          ethBalance: ethMap[entity.address]?.toString() || null,
+          usdcBalance: usdcMap[entity.address]?.toString() || null,
+          pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
+          trades: tradesMap[entity.address] || [],
+          pendingOrders: pendingOrdersMap[entity.address] || [],
+        }));
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>loadFollowerDetails ${userId} ${contractId}`,
+        details: getReadableError(err),
+      });
+    }
+  }
+
+  findAllDetails(userId: string, contractId: number): FollowerDetail[] {
+    console.log(Object.keys(this.followerDetailsCache));
+    return this.followerDetailsCache[`${userId}-${contractId}`] || [];
   }
 
   findAll(userId: string) {

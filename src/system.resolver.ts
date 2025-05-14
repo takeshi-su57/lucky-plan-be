@@ -51,6 +51,13 @@ export class SystemResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
+  upgradeSystem() {
+    return this.systemsService.upgrade();
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   makeSafeApp(@Args('password') password: string) {
     return this.systemsService.makeSafeApp(password);
   }
