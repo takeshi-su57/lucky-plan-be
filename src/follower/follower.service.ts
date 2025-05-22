@@ -1,11 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi, isAddress } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
-import { BotStatus, UserPermission } from '@prisma/client';
+import { BotStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -21,7 +20,8 @@ import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { Mission } from 'src/missions/entities/mission.entity';
 import {
   ContractExecutionResult,
-  FollowerDetail,
+  FollowerConnection,
+  FollowerEdge,
   FollowerPendingOrder,
   FollowerTrade,
 } from './entities/follower.entity';
@@ -39,7 +39,6 @@ import { EncryptedData, SecurityService } from 'src/global/security.service';
 @Injectable()
 export class FollowerService {
   private depositAssetQueue: Record<string, TaskQueue>;
-  private followerDetailsCache: Record<string, FollowerDetail[]>;
 
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
@@ -53,7 +52,6 @@ export class FollowerService {
     private securityService: SecurityService,
   ) {
     this.depositAssetQueue = {};
-    this.followerDetailsCache = {};
   }
 
   async depositAsset(
@@ -873,19 +871,6 @@ export class FollowerService {
         });
 
         if (transaction.status === 'success') {
-          // close open position
-          Object.values(this.followerDetailsCache).forEach((followers) => {
-            followers.forEach((follower) => {
-              if (
-                follower.address.toLowerCase() === input.address.toLowerCase()
-              ) {
-                follower.trades = follower.trades.filter(
-                  (item) => item.index !== input.index,
-                );
-              }
-            });
-          });
-
           return {
             success: true,
             message: `Trade closed`,
@@ -995,19 +980,6 @@ export class FollowerService {
         });
 
         if (transaction.status === 'success') {
-          // cancel pending order
-          Object.values(this.followerDetailsCache).forEach((followers) => {
-            followers.forEach((follower) => {
-              if (
-                follower.address.toLowerCase() === input.address.toLowerCase()
-              ) {
-                follower.pendingOrders = follower.pendingOrders.filter(
-                  (item) => item.index !== input.index,
-                );
-              }
-            });
-          });
-
           return {
             success: true,
             message: `Order canceled tx: ${tx}`,
@@ -1080,11 +1052,15 @@ export class FollowerService {
       followerAddressesMap[bot.followerAddress] = true;
     });
 
+    // master account cannot be a follower
     const availableFollowers = await this.prismaService.follower.findMany({
       where: {
         userId: userId.toLowerCase(),
         address: {
           notIn: Object.keys(followerAddressesMap),
+        },
+        accountIndex: {
+          not: 1,
         },
       },
     });
@@ -1100,128 +1076,103 @@ export class FollowerService {
     return validFollowers.slice(0, counts);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
-  async cronForLoadFollowerDetails() {
-    try {
-      const allUsers = await this.prismaService.user.findMany({
-        where: {
-          permission: {
-            in: [UserPermission.Admin, UserPermission.Trader],
-          },
+  async findAllDetails(
+    userId: string,
+    contractId: number,
+    first: number,
+    after: number | null,
+  ): Promise<FollowerConnection> {
+    const contract = await this.contractService.findOne(contractId);
+
+    const publicClient = this.chainsService.publicClient(contract.chainId);
+
+    const collateralInfo = this.tradingVariableService.getCollateral(
+      contractId,
+      USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
+    );
+
+    const followerEntities = await this.prismaService.follower.findMany({
+      where: {
+        userId,
+        accountIndex: {
+          gt: after || 0,
         },
-      });
+      },
+      take: first,
+      orderBy: {
+        accountIndex: 'asc',
+      },
+    });
 
-      const allContracts = await this.prismaService.contract.findMany();
+    const ethMap: Record<string, bigint> = {};
+    const usdcMap: Record<string, bigint> = {};
+    const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
+    const tradesMap: Record<string, FollowerTrade[]> = {};
+    const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
 
-      for (const user of allUsers) {
-        for (const contract of allContracts) {
-          await this.loadFollowerDetails(
-            user.address.toLowerCase(),
-            contract.id,
-          );
+    const BATCH_SIZE = 10;
 
-          console.log('Done ', user.address.toLowerCase(), contract.id);
-        }
-      }
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: 'FollowerService>cronForLoadFollowerDetails',
-        details: getReadableError(err),
-      });
-    }
-  }
+    for (let i = 0; i < followerEntities.length; i += BATCH_SIZE) {
+      const batch = followerEntities.slice(i, i + BATCH_SIZE);
 
-  private async loadFollowerDetails(userId: string, contractId: number) {
-    try {
-      const contract = await this.contractService.findOne(contractId);
-
-      const publicClient = this.chainsService.publicClient(contract.chainId);
-
-      const collateralInfo = this.tradingVariableService.getCollateral(
-        contractId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      const followerEntities = await this.prismaService.follower.findMany({
-        where: {
-          userId,
-        },
-      });
-
-      const ethMap: Record<string, bigint> = {};
-      const usdcMap: Record<string, bigint> = {};
-      const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
-      const tradesMap: Record<string, FollowerTrade[]> = {};
-      const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
-
-      const BATCH_SIZE = 10;
-
-      for (let i = 0; i < followerEntities.length; i += BATCH_SIZE) {
-        const batch = followerEntities.slice(i, i + BATCH_SIZE);
-
-        const promises = batch.map(async (entity) => {
-          const usdcBalance = await publicClient.readContract({
-            address: collateralInfo.collateral,
-            abi: erc20Abi,
-            functionName: 'balanceOf',
-            args: [entity.address as Address],
-          });
-
-          usdcMap[entity.address] = usdcBalance;
-
-          const ethBalance = await publicClient.getBalance({
-            address: entity.address as Address,
-          });
-
-          ethMap[entity.address] = ethBalance;
-
-          const pnlSnapshots =
-            await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
-              dayjs(new Date()).format('YYYY-MM-DD'),
-              entity.address,
-            );
-
-          pnlSnapshotsMap[entity.address] = pnlSnapshots;
-
-          const trades = await this.getTrades(entity.address, contractId);
-          tradesMap[entity.address] = trades;
-
-          const pendingOrders = await this.getPendingOrders(
-            entity.address,
-            contractId,
-          );
-
-          pendingOrdersMap[entity.address] = pendingOrders;
+      const promises = batch.map(async (entity) => {
+        const usdcBalance = await publicClient.readContract({
+          address: collateralInfo.collateral,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [entity.address as Address],
         });
 
-        await Promise.allSettled(promises);
-      }
+        usdcMap[entity.address] = usdcBalance;
 
-      this.followerDetailsCache[`${userId}-${contractId}`] =
-        followerEntities.map((entity) => ({
-          ...entity,
+        const ethBalance = await publicClient.getBalance({
+          address: entity.address as Address,
+        });
+
+        ethMap[entity.address] = ethBalance;
+
+        const pnlSnapshots =
+          await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+            dayjs(new Date()).format('YYYY-MM-DD'),
+            entity.address,
+          );
+
+        pnlSnapshotsMap[entity.address] = pnlSnapshots;
+
+        const trades = await this.getTrades(entity.address, contractId);
+        tradesMap[entity.address] = trades;
+
+        const pendingOrders = await this.getPendingOrders(
+          entity.address,
           contractId,
-          ethBalance: ethMap[entity.address]?.toString() || null,
-          usdcBalance: usdcMap[entity.address]?.toString() || null,
-          pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
-          trades: tradesMap[entity.address] || [],
-          pendingOrders: pendingOrdersMap[entity.address] || [],
-        }));
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: `FollowerService>loadFollowerDetails ${userId} ${contractId}`,
-        details: getReadableError(err),
-      });
-    }
-  }
+        );
 
-  findAllDetails(userId: string, contractId: number): FollowerDetail[] {
-    console.log(Object.keys(this.followerDetailsCache));
-    return this.followerDetailsCache[`${userId}-${contractId}`] || [];
+        pendingOrdersMap[entity.address] = pendingOrders;
+      });
+
+      await Promise.allSettled(promises);
+    }
+
+    const edges: FollowerEdge[] = followerEntities.map((entity) => ({
+      cursor: entity.accountIndex,
+      node: {
+        ...entity,
+        contractId,
+        ethBalance: ethMap[entity.address]?.toString() || null,
+        usdcBalance: usdcMap[entity.address]?.toString() || null,
+        pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
+        trades: tradesMap[entity.address] || [],
+        pendingOrders: pendingOrdersMap[entity.address] || [],
+      },
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      },
+    };
   }
 
   findAll(userId: string) {

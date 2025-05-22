@@ -5,6 +5,7 @@ import { FollowerService } from './follower.service';
 import {
   ContractExecutionResult,
   Follower,
+  FollowerConnection,
   FollowerDetail,
 } from './entities/follower.entity';
 import {
@@ -115,13 +116,20 @@ export class FollowerResolver {
     return this.followerService.findAll(user.address);
   }
 
-  @Query(() => [FollowerDetail])
+  @Query(() => FollowerConnection)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   getAllFollowerDetails(
     @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
     @CurrentUser() user: User,
   ) {
-    return this.followerService.findAllDetails(user.address, contractId);
+    return this.followerService.findAllDetails(
+      user.address,
+      contractId,
+      first,
+      after,
+    );
   }
 }

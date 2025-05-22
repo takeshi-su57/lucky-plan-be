@@ -82,3 +82,22 @@ export class ContractExecutionResult {
   @Field(() => String)
   message: string;
 }
+
+@ObjectType()
+export class FollowerEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => FollowerDetail) node: FollowerDetail;
+}
+
+@ObjectType()
+export class FollowerPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class FollowerConnection {
+  @Field(() => [FollowerEdge])
+  edges: FollowerEdge[];
+  @Field(() => FollowerPageInfo) pageInfo: FollowerPageInfo;
+}
