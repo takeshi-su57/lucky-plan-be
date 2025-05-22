@@ -280,10 +280,7 @@ export class AutoPlansV2Service {
           title: 'Auto Plan V2',
           description: 'This is an auto plan',
           scheduledStart: new Date(),
-          scheduledEnd: dayjs(new Date())
-            .add(3, 'hours')
-            .add(30, 'minutes')
-            .toDate(),
+          scheduledEnd: dayjs(new Date()).add(3, 'hours').toDate(),
         };
 
         const plan = await this.planService.create(
@@ -372,10 +369,7 @@ export class AutoPlansV2Service {
         title: 'Auto Plan V2',
         description: 'This is an auto plan',
         scheduledStart: new Date(),
-        scheduledEnd: dayjs(new Date())
-          .add(3, 'hours')
-          .add(15, 'minutes')
-          .toDate(),
+        scheduledEnd: dayjs(new Date()).add(3, 'hours').toDate(),
       };
 
       const plan = await this.planService.create(

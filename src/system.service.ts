@@ -45,8 +45,8 @@ const runInNewTerminal = (cmd: string, args: string[]) => {
 @Injectable()
 export class SystemService {
   private isPaused = true;
-  private count = 0;
-  private pnlCount = 0;
+  private count = 1;
+  private pnlCount = 1;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
@@ -59,8 +59,8 @@ export class SystemService {
     private securityService: SecurityService,
   ) {
     this.isPaused = true;
-    this.count = 0;
-    this.pnlCount = 0;
+    this.count = 1;
+    this.pnlCount = 1;
   }
 
   pauseSystem() {
