@@ -211,7 +211,9 @@ export class ChainsService {
             ),
           ],
           {
-            rank: true,
+            rank: {
+              interval: 60_000,
+            },
           },
         ),
         batch: {
@@ -267,7 +269,18 @@ export class ChainsService {
     const client = createWalletClient({
       account,
       chain: chain,
-      transport: http(),
+      transport: fallback(
+        [
+          ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
+            http(url, { batch: true }),
+          ),
+        ],
+        {
+          rank: {
+            interval: 60_000,
+          },
+        },
+      ),
     });
 
     if (this.walletClients[chainId]) {
