@@ -194,6 +194,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await publicClient.waitForTransactionReceipt({
           hash: tx as `0x${string}`,
+          confirmations: 6,
         });
 
         return transaction.status === 'success';
