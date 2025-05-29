@@ -98,6 +98,11 @@ export class ContractMonitorService {
     const contracts = await this.contractsService.findAll();
 
     for (const contract of contracts) {
+      // temporarily skip testnet contracts
+      if (contract.isTestnet) {
+        continue;
+      }
+
       await this.checkContractForLeaderboard(contract);
     }
 
