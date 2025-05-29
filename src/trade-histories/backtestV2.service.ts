@@ -21,24 +21,16 @@ import { ExportFilterV2 } from './dto/trade-history.input';
 
 const pnlSnapshotKinds = [
   PnlSnapshotKind.DAY,
-  PnlSnapshotKind.TWO_DAY,
-  PnlSnapshotKind.THREE_DAY,
   PnlSnapshotKind.WEEK,
-  PnlSnapshotKind.TWO_WEEK,
   PnlSnapshotKind.MONTH,
   PnlSnapshotKind.THREE_MONTH,
 ];
 
 const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_DAY]: 2 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.THREE_DAY]: 3 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.WEEK]: 7 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_WEEK]: 2 * 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.THREE_MONTH]: 3 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.HALF_YEAR]: 6 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.YEAR]: 365 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
@@ -282,7 +274,7 @@ export class BacktestV2Service {
             gt: 0,
           },
           kind: {
-            notIn: [PnlSnapshotKind.ALL_TIME, PnlSnapshotKind.YEAR],
+            notIn: [PnlSnapshotKind.ALL_TIME],
           },
         },
         orderBy: {
@@ -748,14 +740,9 @@ export class BacktestV2Service {
       for (const pnlSnapshotKind of pnlSnapshotKinds) {
         const r2MinsByPnlSnapshotKind = {
           [PnlSnapshotKind.DAY]: 1,
-          [PnlSnapshotKind.TWO_DAY]: 1,
-          [PnlSnapshotKind.THREE_DAY]: 1,
           [PnlSnapshotKind.WEEK]: 1,
-          [PnlSnapshotKind.TWO_WEEK]: 1,
           [PnlSnapshotKind.MONTH]: 1,
           [PnlSnapshotKind.THREE_MONTH]: 1,
-          [PnlSnapshotKind.HALF_YEAR]: 1,
-          [PnlSnapshotKind.YEAR]: 1,
           [PnlSnapshotKind.ALL_TIME]: 1,
         };
 

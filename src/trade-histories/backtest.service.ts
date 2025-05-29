@@ -22,24 +22,16 @@ import { ExportFilter } from './dto/trade-history.input';
 
 const pnlSnapshotKinds = [
   PnlSnapshotKind.DAY,
-  PnlSnapshotKind.TWO_DAY,
-  PnlSnapshotKind.THREE_DAY,
   PnlSnapshotKind.WEEK,
-  PnlSnapshotKind.TWO_WEEK,
   PnlSnapshotKind.MONTH,
   PnlSnapshotKind.THREE_MONTH,
 ];
 
 const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_DAY]: 2 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.THREE_DAY]: 3 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.WEEK]: 7 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_WEEK]: 2 * 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.THREE_MONTH]: 3 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.HALF_YEAR]: 6 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.YEAR]: 365 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
@@ -256,7 +248,7 @@ export class BacktestService {
             gt: 0,
           },
           kind: {
-            notIn: [PnlSnapshotKind.ALL_TIME, PnlSnapshotKind.YEAR],
+            notIn: [PnlSnapshotKind.ALL_TIME],
           },
         },
         orderBy: {
@@ -368,7 +360,7 @@ export class BacktestService {
             gt: 0,
           },
           kind: {
-            notIn: [PnlSnapshotKind.ALL_TIME, PnlSnapshotKind.YEAR],
+            notIn: [PnlSnapshotKind.ALL_TIME],
           },
         },
         orderBy: {
@@ -820,14 +812,9 @@ export class BacktestService {
       for (const pnlSnapshotKind of pnlSnapshotKinds) {
         const closePositionCountsByPnlSnapshotKind = {
           [PnlSnapshotKind.DAY]: inifinite,
-          [PnlSnapshotKind.TWO_DAY]: inifinite,
-          [PnlSnapshotKind.THREE_DAY]: inifinite,
           [PnlSnapshotKind.WEEK]: inifinite,
-          [PnlSnapshotKind.TWO_WEEK]: inifinite,
           [PnlSnapshotKind.MONTH]: inifinite,
           [PnlSnapshotKind.THREE_MONTH]: inifinite,
-          [PnlSnapshotKind.HALF_YEAR]: inifinite,
-          [PnlSnapshotKind.YEAR]: inifinite,
           [PnlSnapshotKind.ALL_TIME]: inifinite,
         };
 
