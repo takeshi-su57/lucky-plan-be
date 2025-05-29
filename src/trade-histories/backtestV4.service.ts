@@ -24,14 +24,9 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 
 const timestampGapByPnlSnapshotKind = {
   [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_DAY]: 2 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.THREE_DAY]: 3 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.WEEK]: 7 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.TWO_WEEK]: 2 * 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.THREE_MONTH]: 3 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.HALF_YEAR]: 6 * 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.YEAR]: 365 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
 
