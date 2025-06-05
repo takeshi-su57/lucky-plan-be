@@ -74,7 +74,7 @@ export class MissionsService {
     missionsByBotMap: Map<number, MissionDetails[]>,
   ) {
     if (inputs.length === 0) {
-      return;
+      return [];
     }
 
     const newMissions = await this.prismaService.mission.createManyAndReturn({
@@ -106,6 +106,8 @@ export class MissionsService {
     this.pubSub.publish(SUBSCRIPTION_TOKEN.missionCreated, {
       [SUBSCRIPTION_TOKEN.missionCreated]: missions,
     });
+
+    return missions;
   }
 
   private async updateMany(inputs: MissionUpdateInput[]) {
@@ -274,6 +276,60 @@ export class MissionsService {
     if (closingMissions.length !== 1) {
       throw new Error('There is something wrong while closing mission tasks!');
     }
+
+    return true;
+  }
+
+  async cloneMission(userId: string, id: number) {
+    const mission = await this.prismaService.mission.findUnique({
+      where: {
+        id,
+        bot: {
+          plan: {
+            userId,
+          },
+        },
+      },
+      include: {
+        targetPosition: true,
+        achievePosition: true,
+        bot: {
+          include: {
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
+          },
+        },
+      },
+    });
+
+    if (!mission) {
+      throw new Error('Invalid mission id!');
+    }
+
+    const openTask = await this.tasksService.findOpenTask(mission);
+
+    if (!openTask) {
+      throw new Error('Cannot clone because of missing open task!');
+    }
+
+    const clonedMission = await this.createMany(
+      [
+        {
+          botId: mission.botId,
+          targetPositionId: mission.targetPositionId,
+        },
+      ],
+      new Map(),
+    );
+
+    if (clonedMission.length !== 1) {
+      throw new Error('Cannot clone mission by internal error!');
+    }
+
+    await this.tasksService.cloneOpenTask(openTask, clonedMission[0].id);
 
     return true;
   }
