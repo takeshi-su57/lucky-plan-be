@@ -534,7 +534,7 @@ export class MissionsService {
           const orderId = getOrderIdFromMissionAction(actionItem.action);
 
           if (!orderId) {
-            return null;
+            return [];
           }
 
           actionPosition = {
@@ -543,7 +543,7 @@ export class MissionsService {
           };
         }
 
-        const mission = missions.find(
+        const filteredMissions = missions.filter(
           (missionItem) =>
             !!missionItem[field] &&
             isAddressEqual(
@@ -553,19 +553,15 @@ export class MissionsService {
             missionItem[field].index === actionPosition.index,
         );
 
-        if (!mission) {
-          return null;
-        }
-
-        return {
+        return filteredMissions.map((mission) => ({
           ...actionItem,
           context: {
             ...actionItem.context,
             mission,
           },
-        };
+        }));
       })
-      .filter((item) => !!item);
+      .flat();
   }
 
   private async handleFollowerActions(
