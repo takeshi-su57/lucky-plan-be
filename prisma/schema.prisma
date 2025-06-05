@@ -441,8 +441,6 @@ model Mission {
   achievePosition Position? @relation("achieveMissions", fields: [achievePositionId], references: [id])
   bot             Bot       @relation(fields: [botId], references: [id])
   tasks           Task[]
-
-  @@unique([botId, targetPositionId])
 }
 
 enum TaskStatus {
