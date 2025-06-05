@@ -23,12 +23,26 @@ export class MissionsResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
+  cloneMission(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.missionsService.cloneMission(user.address, id);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   closeMission(
     @Args('id', { type: () => Int }) id: number,
     @Args('isForce', { type: () => Boolean }) isForce: boolean,
     @CurrentUser() user: User,
   ) {
-    return this.missionsService.closeMission(user.address, id, isForce);
+    return this.missionsService.closeMission(
+      user.address.toLowerCase(),
+      id,
+      isForce,
+    );
   }
 
   @Mutation(() => Boolean)

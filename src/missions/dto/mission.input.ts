@@ -17,7 +17,7 @@ export class MissionUpdateInput {
   id: number;
 
   @IsNumber()
-  achievePositionId?: number;
+  achievePositionId?: number | null;
 
   @IsNotEmpty()
   @IsString()

@@ -197,6 +197,98 @@ export class TasksService {
     return 'closing';
   }
 
+  async findOpenTask(mission: Mission): Promise<TaskDetails | null> {
+    const allMissionTasks = await this.prismaService.task.findMany({
+      where: {
+        missionId: mission.id,
+      },
+      include: {
+        action: true,
+        mission: {
+          include: {
+            bot: {
+              include: {
+                follower: true,
+                strategy: true,
+                followerContract: true,
+                leaderContract: true,
+              },
+            },
+            achievePosition: true,
+            targetPosition: true,
+          },
+        },
+      },
+    });
+
+    if (allMissionTasks.length === 0) {
+      return null;
+    }
+
+    const sortedMissionTasks = allMissionTasks.sort((a, b) => {
+      if (a.action.blockNumber !== b.action.blockNumber) {
+        return a.action.blockNumber - b.action.blockNumber;
+      }
+
+      return a.action.orderInBlock - b.action.orderInBlock;
+    });
+
+    let openTask: TaskDetails | null = null;
+
+    // find first create task and put it to queue
+    for (let i = 0; i < sortedMissionTasks.length; i++) {
+      const task = sortedMissionTasks[i];
+
+      if (isOpenMissionAction(task.action)) {
+        openTask = task;
+      }
+    }
+
+    return openTask;
+  }
+
+  async cloneOpenTask(task: TaskDetails, clonedMissionId: number) {
+    const openEvent = missionEventParsers
+      .find((parser) => parser.eventName === task.action.name)!
+      .actionParser(task.action);
+
+    const currentPrice = await this.tradingVariableService.getPairPrice(
+      openEvent.args.t.pairIndex,
+    );
+
+    const newArgs = JSON.stringify({
+      ...openEvent.args,
+      t: {
+        ...openEvent.args.t,
+        openPrice: currentPrice.toString(),
+      },
+    });
+
+    const clonedAction = await this.prismaService.action.create({
+      data: {
+        name: task.action.name,
+        positionId: task.action.positionId,
+        args: newArgs,
+        blockNumber: task.action.blockNumber,
+        orderInBlock: task.action.orderInBlock,
+      },
+    });
+
+    await this.createMany([
+      {
+        missionId: clonedMissionId,
+        actionId: clonedAction.id,
+        status: TaskStatus.Created,
+        logs: [
+          JSON.stringify({
+            timestamp: Date.now(),
+            message: `Task created`,
+          }),
+        ],
+      },
+    ]);
+  }
+
   private async createMany(inputs: TaskCreateInput[]) {
     if (inputs.length === 0) {
       return [];
