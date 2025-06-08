@@ -94,61 +94,67 @@ export class BacktestV5Service {
     }
 
     let traderScore = 0;
-    let round = 0;
 
-    for (let i = 0; i < closeHistories.length; i += params.window) {
-      round++;
-      const chunk = closeHistories.slice(
-        Math.max(closeHistories.length - i - params.window, 0),
-        closeHistories.length - i,
-      );
+    for (let step = 0; step < params.window; step++) {
+      let round = 0;
+      let stepScore = 0;
 
-      if (chunk.length < 2) {
-        continue;
-      }
+      for (let i = 0; i < closeHistories.length; i += params.window) {
+        round++;
+        const chunk = closeHistories.slice(
+          Math.max(closeHistories.length - i - step - params.window, 0),
+          closeHistories.length - i - step,
+        );
 
-      let pnlSum = 0;
-
-      const pnlArrs: number[] = [];
-      const xs: number[] = [];
-
-      for (let j = 0; j < chunk.length; j++) {
-        const history = chunk[j];
-
-        pnlSum += +history.pnl * +history.collateralPriceUsd;
-
-        pnlArrs.push(pnlSum);
-        xs.push(j);
-      }
-
-      const regression = new SimpleLinearRegression(xs, pnlArrs);
-      const score = regression.score(xs, pnlArrs);
-
-      if (Number.isNaN(score.r2)) {
-        score.r2 = 1;
-      }
-
-      if (score.r2 === Infinity) {
-        continue;
-      }
-
-      if (regression.slope > 0) {
-        if (score.r2 > params.minR2) {
-          traderScore += (regression.slope * score.r2) / round / params.n;
-        } else {
-          traderScore +=
-            (regression.slope * (score.r2 - 1) * params.m) / round / params.n;
+        if (chunk.length !== 6) {
+          continue;
         }
-      } else {
-        traderScore +=
-          (regression.slope * (2 - score.r2) * params.m) / round / params.n;
+
+        let pnlSum = 0;
+
+        const pnlArrs: number[] = [];
+        const xs: number[] = [];
+
+        for (let j = 0; j < chunk.length; j++) {
+          const history = chunk[j];
+
+          pnlSum += +history.pnl * +history.collateralPriceUsd;
+
+          pnlArrs.push(pnlSum);
+          xs.push(j);
+        }
+
+        const regression = new SimpleLinearRegression(xs, pnlArrs);
+        const score = regression.score(xs, pnlArrs);
+
+        if (Number.isNaN(score.r2)) {
+          score.r2 = 1;
+        }
+
+        if (score.r2 === Infinity) {
+          continue;
+        }
+
+        if (regression.slope > 0) {
+          if (score.r2 > params.minR2) {
+            stepScore += (regression.slope * score.r2) / round / params.n;
+          } else {
+            stepScore +=
+              (regression.slope * (score.r2 - 1) * params.m) / round / params.n;
+          }
+        } else {
+          stepScore +=
+            (regression.slope * (2 - score.r2) * params.m) / round / params.n;
+        }
       }
+
+      traderScore += stepScore;
     }
 
     return {
       ...snapshot,
       histories,
-      score: traderScore,
+      score: (traderScore * closeHistories.length) / params.window,
     };
   }
 
