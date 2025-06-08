@@ -5,6 +5,7 @@ import {
   TradeHistory,
   TradeActionType,
   UserPermission,
+  User,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -44,7 +45,7 @@ export class AutoPlansV2Service {
   private getExpertPnlSnapshot(
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
-  ): PnlSnapshot | null {
+  ): (PnlSnapshot & { score: number }) | null {
     const rangeHistories = histories;
 
     const openHistoriesMap: Record<number, TradeHistory[]> = {};
@@ -142,10 +143,12 @@ export class AutoPlansV2Service {
       return null;
     }
 
-    return snapshot;
+    return { ...snapshot, score: traderScore };
   }
 
-  private async filterExperts(dateStr: string): Promise<PnlSnapshot[]> {
+  private async filterExperts(
+    dateStr: string,
+  ): Promise<(PnlSnapshot & { score: number })[]> {
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
         where: {
@@ -206,7 +209,7 @@ export class AutoPlansV2Service {
     });
 
     const historyRecordsMap = new Map<string, TradeHistory[]>();
-    const expertPnlSnapshots: PnlSnapshot[] = [];
+    const expertPnlSnapshots: (PnlSnapshot & { score: number })[] = [];
 
     historyRecords.forEach((record) => {
       const key = JSON.stringify({
@@ -237,6 +240,84 @@ export class AutoPlansV2Service {
     });
 
     return expertPnlSnapshots;
+  }
+
+  private async createPlan(
+    user: User,
+    realExpertPnlSnapshots: (PnlSnapshot & { score: number })[],
+  ): Promise<boolean> {
+    try {
+      if (user.followerContractId === 0) {
+        throw new Error('Invalid User');
+      }
+
+      const planInput: CreatePlanInput = {
+        title: 'Auto Plan V2',
+        description: 'This is an auto plan',
+        scheduledStart: new Date(),
+        scheduledEnd: dayjs(new Date())
+          .add(3, 'hours')
+          .add(30, 'minutes')
+          .toDate(),
+      };
+
+      const plan = await this.planService.create(
+        user.address.toLowerCase(),
+        planInput,
+      );
+
+      if (!plan) {
+        throw new Error('Cannot create a plan');
+      }
+
+      const totalScores = realExpertPnlSnapshots.reduce(
+        (acc, snapshot) => acc + snapshot.score,
+        0,
+      );
+
+      if (totalScores === 0) {
+        throw new Error('Invalid total scores');
+      }
+
+      const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
+        (snapshot) => ({
+          planId: plan.id,
+          followerContractId: user.followerContractId,
+          leaderAddress: snapshot.address,
+          leaderCollateralBaseline: 0,
+          leaderContractId: snapshot.contractId,
+          strategy: {
+            strategyKey: 'ratioCopy',
+            ratio:
+              user.ratio * 0.1 +
+              (user.ratio * Math.floor((snapshot.score * 100) / totalScores)) /
+                100, // dynamic ratio for each expert
+            lifeTime: 365 * 24 * 60,
+            maxCollateral: Math.floor(user.budget * 0.1), // 10% of the whole budget
+            minCollateral: 5,
+            collateralBaseline: 0,
+            maxLeverage: 200000,
+            minLeverage: 1100,
+            params: '{}',
+          },
+        }),
+      );
+
+      await this.botService.batchCreateBots(
+        user.address.toLowerCase(),
+        botInputs,
+      );
+
+      return true;
+    } catch (err) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'AutoPlansService>createPlan',
+        details: `[AutoPlansService] error: ${getReadableError(err as Error)}`,
+      });
+
+      return false;
+    }
   }
 
   async createAutoPlans() {
@@ -272,53 +353,7 @@ export class AutoPlansV2Service {
       });
 
       for (const user of autoAllowedUsers) {
-        if (user.followerContractId === 0) {
-          continue;
-        }
-
-        const planInput: CreatePlanInput = {
-          title: 'Auto Plan V2',
-          description: 'This is an auto plan',
-          scheduledStart: new Date(),
-          scheduledEnd: dayjs(new Date())
-            .add(3, 'hours')
-            .add(30, 'minutes')
-            .toDate(),
-        };
-
-        const plan = await this.planService.create(
-          user.address.toLowerCase(),
-          planInput,
-        );
-
-        if (!plan) {
-          continue;
-        }
-
-        const botInputs: CreateBotAndStrategyInput[] =
-          realExpertPnlSnapshots.map((snapshot) => ({
-            planId: plan.id,
-            followerContractId: user.followerContractId,
-            leaderAddress: snapshot.address,
-            leaderCollateralBaseline: 0,
-            leaderContractId: snapshot.contractId,
-            strategy: {
-              strategyKey: 'ratioCopy',
-              ratio: user.ratio,
-              lifeTime: 365 * 24 * 60,
-              maxCollateral: Math.floor(user.budget),
-              minCollateral: 5,
-              collateralBaseline: 0,
-              maxLeverage: 200000,
-              minLeverage: 1100,
-              params: '{}',
-            },
-          }));
-
-        await this.botService.batchCreateBots(
-          user.address.toLowerCase(),
-          botInputs,
-        );
+        await this.createPlan(user, realExpertPnlSnapshots);
       }
     } catch (error) {
       this.logger.log({
@@ -364,56 +399,11 @@ export class AutoPlansV2Service {
         },
       });
 
-      if (!user || user.followerContractId === 0) {
+      if (!user) {
         throw new Error('Invalid User');
       }
 
-      const planInput: CreatePlanInput = {
-        title: 'Auto Plan V2',
-        description: 'This is an auto plan',
-        scheduledStart: new Date(),
-        scheduledEnd: dayjs(new Date())
-          .add(3, 'hours')
-          .add(30, 'minutes')
-          .toDate(),
-      };
-
-      const plan = await this.planService.create(
-        user.address.toLowerCase(),
-        planInput,
-      );
-
-      if (!plan) {
-        throw new Error('Cannot create a plan');
-      }
-
-      const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
-        (snapshot) => ({
-          planId: plan.id,
-          followerContractId: user.followerContractId,
-          leaderAddress: snapshot.address,
-          leaderCollateralBaseline: 0,
-          leaderContractId: snapshot.contractId,
-          strategy: {
-            strategyKey: 'ratioCopy',
-            ratio: user.ratio,
-            lifeTime: 365 * 24 * 60,
-            maxCollateral: Math.floor(user.budget),
-            minCollateral: 5,
-            collateralBaseline: 0,
-            maxLeverage: 200000,
-            minLeverage: 1100,
-            params: '{}',
-          },
-        }),
-      );
-
-      await this.botService.batchCreateBots(
-        user.address.toLowerCase(),
-        botInputs,
-      );
-
-      return true;
+      return await this.createPlan(user, realExpertPnlSnapshots);
     } catch (error) {
       this.logger.log({
         severity: 'Error',
