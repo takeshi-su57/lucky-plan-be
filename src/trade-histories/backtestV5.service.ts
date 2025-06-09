@@ -18,6 +18,7 @@ import {
   PnlSnapshotDetails,
   PnlSnapshotDevDetailsV5,
   TestingReportV5Edge,
+  WholeCompressedHistories,
 } from './entities/trade-history.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
@@ -27,12 +28,17 @@ const dailyPlans = 8;
 @Injectable()
 export class BacktestV5Service {
   status: 'processing' | 'ready' = 'ready';
+  private cache: WholeCompressedHistories | null = null;
+  private cachedDateStr: string | null = null;
 
   constructor(
     private prismaService: PrismaService,
     private tradingVariableService: TradingVariableService,
   ) {
     // this.autoTesting();
+
+    this.cache = null;
+    this.cachedDateStr = null;
   }
 
   private getPnlSnapshotDevDetails(
@@ -1254,6 +1260,10 @@ export class BacktestV5Service {
     ratio: number,
     isTestnet: boolean,
   ) {
+    if (this.cachedDateStr === startDate && this.cache) {
+      return this.cache;
+    }
+
     console.time('getWholeCompressedHistories==============>');
 
     const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
@@ -1274,6 +1284,16 @@ export class BacktestV5Service {
     );
 
     console.timeEnd('getWholeCompressedHistories==============>');
+
+    this.cache = {
+      accPnls,
+      botCounts,
+      maxInvested,
+      uniqueTraders,
+      actionTypeCount: JSON.stringify(actionTypeCount),
+      totalBots,
+    };
+    this.cachedDateStr = startDate;
 
     return {
       accPnls,
