@@ -304,8 +304,11 @@ export class AutoPlansV2Service {
             strategyKey: 'ratioCopy',
             ratio:
               user.ratio * 0.1 +
-              (user.ratio * Math.floor((snapshot.score * 100) / avgScore)) /
-                100, // dynamic ratio for each expert
+              user.ratio *
+                Math.min(
+                  2,
+                  Math.floor((snapshot.score * 100) / avgScore) / 100,
+                ), // dynamic ratio for each expert and max to 2x the avg score
             lifeTime: 365 * 24 * 60,
             maxCollateral: Math.floor(user.budget * 0.1), // 10% of the whole budget
             minCollateral: 5,
