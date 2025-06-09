@@ -259,6 +259,10 @@ export class AutoPlansV2Service {
         throw new Error('Invalid User');
       }
 
+      if (realExpertPnlSnapshots.length === 0) {
+        throw new Error('No expert pnl snapshots');
+      }
+
       const planInput: CreatePlanInput = {
         title: 'Auto Plan V2',
         description: 'This is an auto plan',
@@ -287,6 +291,8 @@ export class AutoPlansV2Service {
         throw new Error('Invalid total scores');
       }
 
+      const avgScore = totalScores / realExpertPnlSnapshots.length;
+
       const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
         (snapshot) => ({
           planId: plan.id,
@@ -298,7 +304,7 @@ export class AutoPlansV2Service {
             strategyKey: 'ratioCopy',
             ratio:
               user.ratio * 0.1 +
-              (user.ratio * Math.floor((snapshot.score * 100) / totalScores)) /
+              (user.ratio * Math.floor((snapshot.score * 100) / avgScore)) /
                 100, // dynamic ratio for each expert
             lifeTime: 365 * 24 * 60,
             maxCollateral: Math.floor(user.budget * 0.1), // 10% of the whole budget
