@@ -764,12 +764,6 @@ export class BacktestV5Service {
     dateStr: string,
     days: number,
     params: ExportFilterV5,
-    dnaParams: {
-      weekWeight: number;
-      monthWeight: number;
-      threeMonthWeight: number;
-      allTimeWeight: number;
-    },
     ratio: number,
     isTestnet: boolean,
   ): Promise<{
@@ -902,51 +896,6 @@ export class BacktestV5Service {
 
         subPnlRecords.forEach((record) => {
           for (let divider = dailyPlans; divider > 0; divider--) {
-            const weekDetail = this.getPnlSnapshotDevDetails(
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider -
-                  7 * 24 * 3600 * 1000,
-              ),
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider,
-              ),
-              record,
-              allHistories,
-              params,
-            );
-
-            const monthDetail = this.getPnlSnapshotDevDetails(
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider -
-                  30 * 24 * 3600 * 1000,
-              ),
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider,
-              ),
-              record,
-              allHistories,
-              params,
-            );
-
-            const threeMonthDetails = this.getPnlSnapshotDevDetails(
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider -
-                  90 * 24 * 3600 * 1000,
-              ),
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider,
-              ),
-              record,
-              allHistories,
-              params,
-            );
-
             const allTimeDetails = this.getPnlSnapshotDevDetails(
               new Date('2024-01-01'),
               new Date(
@@ -958,11 +907,7 @@ export class BacktestV5Service {
               params,
             );
 
-            const sumScore =
-              (weekDetail?.score || 0) * dnaParams.weekWeight +
-              (monthDetail?.score || 0) * dnaParams.monthWeight +
-              (threeMonthDetails?.score || 0) * dnaParams.threeMonthWeight +
-              (allTimeDetails?.score || 0) * dnaParams.allTimeWeight;
+            const sumScore = allTimeDetails?.score || 0;
 
             if (sumScore > params.minScore) {
               nodes.push({
@@ -1376,12 +1321,6 @@ export class BacktestV5Service {
     startDate: string,
     dayGaps: number,
     params: ExportFilterV5,
-    dnaParams: {
-      weekWeight: number;
-      monthWeight: number;
-      threeMonthWeight: number;
-      allTimeWeight: number;
-    },
   ) {
     console.time(
       `${params.window}-${params.minR2}-${params.n}-${params.m}-${params.minScore}`,
@@ -1405,7 +1344,6 @@ export class BacktestV5Service {
         startDate,
         dayGaps,
         params,
-        dnaParams,
         1,
         false,
       );
@@ -1480,10 +1418,10 @@ export class BacktestV5Service {
         data: {
           window: params.window,
           minR2: params.minR2,
-          weekWeight: dnaParams.weekWeight,
-          monthWeight: dnaParams.monthWeight,
-          threeMonthWeight: dnaParams.threeMonthWeight,
-          allTimeWeight: dnaParams.allTimeWeight,
+          weekWeight: 0,
+          monthWeight: 0,
+          threeMonthWeight: 0,
+          allTimeWeight: 1,
           n: params.n,
           m: params.m,
           minScore: params.minScore,
@@ -1516,77 +1454,31 @@ export class BacktestV5Service {
   }
 
   async autoTesting(): Promise<boolean> {
-    const startDates = ['2024-11-01', '2025-03-01'];
+    const startDates = ['2025-01-01'];
 
     const windowScales = [6, 9, 12, 38];
-    const penaltyScales = [1, 34];
-    const dnaParams = [
-      {
-        weekWeight: 0,
-        monthWeight: 0,
-        threeMonthWeight: 0,
-        allTimeWeight: 1,
-      },
-      {
-        weekWeight: 1,
-        monthWeight: 1,
-        threeMonthWeight: 1,
-        allTimeWeight: 1,
-      },
-      {
-        weekWeight: 4,
-        monthWeight: 3,
-        threeMonthWeight: 2,
-        allTimeWeight: 1,
-      },
-      {
-        weekWeight: 30,
-        monthWeight: 15,
-        threeMonthWeight: 5,
-        allTimeWeight: 1,
-      },
-      {
-        weekWeight: 1000,
-        monthWeight: 100,
-        threeMonthWeight: 10,
-        allTimeWeight: 1,
-      },
-      {
-        weekWeight: 9,
-        monthWeight: 6,
-        threeMonthWeight: 3,
-        allTimeWeight: 1,
-      },
-    ];
+    const penaltyScales = [1, 2, 22, 34];
 
     await this.prismaService.testingReportV5.deleteMany();
 
-    for (let i = 0; i < dnaParams.length; i++) {
-      for (const window of windowScales) {
-        for (const penalty of penaltyScales) {
-          for (const startDate of startDates) {
-            const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+    for (const window of windowScales) {
+      for (const penalty of penaltyScales) {
+        for (const startDate of startDates) {
+          const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
 
-            await this.handleSingleCase(
-              startDate,
-              dayGaps,
-              {
-                window,
-                minR2: 0.9,
-                n: 2,
-                m: penalty,
-                minScore: 10,
-              },
-              dnaParams[i],
-            );
-          }
-
-          console.log(`Done penalty ${penalty}`);
+          await this.handleSingleCase(startDate, dayGaps, {
+            window,
+            minR2: 0.9,
+            n: 2,
+            m: penalty,
+            minScore: 10,
+          });
         }
 
-        console.log(`Done window ${window}`);
+        console.log(`Done penalty ${penalty}`);
       }
-      console.log(`Done dna ${i}`);
+
+      console.log(`Done window ${window}`);
     }
 
     console.log('Finished');

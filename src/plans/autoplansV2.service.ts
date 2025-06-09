@@ -247,7 +247,7 @@ export class AutoPlansV2Service {
       });
     });
 
-    return expertPnlSnapshots;
+    return expertPnlSnapshots.sort((a, b) => b.score - a.score);
   }
 
   private async createPlan(
@@ -291,10 +291,15 @@ export class AutoPlansV2Service {
         throw new Error('Invalid total scores');
       }
 
-      const avgScore = totalScores / realExpertPnlSnapshots.length;
+      let stepScore = 0;
+      let stepRatio = user.ratio;
 
-      const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
-        (snapshot) => ({
+      const botInputs: CreateBotAndStrategyInput[] = [];
+
+      for (const snapshot of realExpertPnlSnapshots) {
+        stepScore += snapshot.score;
+
+        botInputs.push({
           planId: plan.id,
           followerContractId: user.followerContractId,
           leaderAddress: snapshot.address,
@@ -302,14 +307,7 @@ export class AutoPlansV2Service {
           leaderContractId: snapshot.contractId,
           strategy: {
             strategyKey: 'ratioCopy',
-            ratio: Math.max(
-              user.ratio * 0.1,
-              user.ratio *
-                Math.min(
-                  2,
-                  Math.floor((snapshot.score * 100) / avgScore) / 100,
-                ),
-            ), // dynamic ratio for each e  xpert and max to 2x the avg score
+            ratio: stepRatio, // dynamic ratio for each e  xpert and max to 2x the avg score
             lifeTime: 365 * 24 * 60,
             maxCollateral: Math.floor(user.budget * 0.1), // 10% of the whole budget
             minCollateral: 5,
@@ -318,8 +316,13 @@ export class AutoPlansV2Service {
             minLeverage: 1100,
             params: '{}',
           },
-        }),
-      );
+        });
+
+        if (stepScore > totalScores / 5) {
+          stepScore = 0;
+          stepRatio = stepRatio - user.ratio / 5;
+        }
+      }
 
       await this.botService.batchCreateBots(
         user.address.toLowerCase(),
