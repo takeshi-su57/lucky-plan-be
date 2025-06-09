@@ -83,67 +83,75 @@ export class AutoPlansV2Service {
     }
 
     let traderScore = 0;
-    let round = 0;
 
-    for (let i = 0; i < closeHistories.length; i += bestFilter.window) {
-      round++;
+    for (let step = 0; step < bestFilter.window; step++) {
+      let round = 0;
+      let stepScore = 0;
 
-      const chunk = closeHistories.slice(
-        Math.max(closeHistories.length - i - bestFilter.window, 0),
-        closeHistories.length - i,
-      );
+      for (let i = 0; i < closeHistories.length; i += bestFilter.window) {
+        round++;
 
-      if (chunk.length < 2) {
-        continue;
-      }
+        const chunk = closeHistories.slice(
+          Math.max(closeHistories.length - i - step - bestFilter.window, 0),
+          closeHistories.length - i - step,
+        );
 
-      let pnlSum = 0;
+        if (chunk.length < 6) {
+          continue;
+        }
 
-      const pnlArrs: number[] = [];
-      const xs: number[] = [];
+        let pnlSum = 0;
 
-      for (let j = 0; j < chunk.length; j++) {
-        const history = chunk[j];
+        const pnlArrs: number[] = [];
+        const xs: number[] = [];
 
-        pnlSum += +history.pnl * +history.collateralPriceUsd;
+        for (let j = 0; j < chunk.length; j++) {
+          const history = chunk[j];
 
-        pnlArrs.push(pnlSum);
-        xs.push(j);
-      }
+          pnlSum += +history.pnl * +history.collateralPriceUsd;
 
-      const regression = new SimpleLinearRegression(xs, pnlArrs);
-      const score = regression.score(xs, pnlArrs);
+          pnlArrs.push(pnlSum);
+          xs.push(j);
+        }
 
-      if (Number.isNaN(score.r2)) {
-        score.r2 = 1;
-      }
+        const regression = new SimpleLinearRegression(xs, pnlArrs);
+        const score = regression.score(xs, pnlArrs);
 
-      if (score.r2 === Infinity) {
-        continue;
-      }
+        if (Number.isNaN(score.r2)) {
+          score.r2 = 1;
+        }
 
-      if (regression.slope > 0) {
-        if (score.r2 > bestFilter.minR2) {
-          traderScore += (regression.slope * score.r2) / round / bestFilter.n;
+        if (score.r2 === Infinity) {
+          continue;
+        }
+
+        if (regression.slope > 0) {
+          if (score.r2 > bestFilter.minR2) {
+            stepScore += (regression.slope * score.r2) / round / bestFilter.n;
+          } else {
+            stepScore +=
+              (regression.slope * (score.r2 - 1) * bestFilter.m) /
+              round /
+              bestFilter.n;
+          }
         } else {
-          traderScore +=
-            (regression.slope * (score.r2 - 1) * bestFilter.m) /
+          stepScore +=
+            (regression.slope * (2 - score.r2) * bestFilter.m) /
             round /
             bestFilter.n;
         }
-      } else {
-        traderScore +=
-          (regression.slope * (2 - score.r2) * bestFilter.m) /
-          round /
-          bestFilter.n;
       }
+      traderScore += stepScore;
     }
 
     if (traderScore <= bestFilter.minScore) {
       return null;
     }
 
-    return { ...snapshot, score: traderScore };
+    return {
+      ...snapshot,
+      score: (traderScore * closeHistories.length) / bestFilter.window,
+    };
   }
 
   private async filterExperts(
@@ -251,6 +259,10 @@ export class AutoPlansV2Service {
         throw new Error('Invalid User');
       }
 
+      if (realExpertPnlSnapshots.length === 0) {
+        throw new Error('No expert pnl snapshots');
+      }
+
       const planInput: CreatePlanInput = {
         title: 'Auto Plan V2',
         description: 'This is an auto plan',
@@ -279,6 +291,8 @@ export class AutoPlansV2Service {
         throw new Error('Invalid total scores');
       }
 
+      const avgScore = totalScores / realExpertPnlSnapshots.length;
+
       const botInputs: CreateBotAndStrategyInput[] = realExpertPnlSnapshots.map(
         (snapshot) => ({
           planId: plan.id,
@@ -290,7 +304,7 @@ export class AutoPlansV2Service {
             strategyKey: 'ratioCopy',
             ratio:
               user.ratio * 0.1 +
-              (user.ratio * Math.floor((snapshot.score * 100) / totalScores)) /
+              (user.ratio * Math.floor((snapshot.score * 100) / avgScore)) /
                 100, // dynamic ratio for each expert
             lifeTime: 365 * 24 * 60,
             maxCollateral: Math.floor(user.budget * 0.1), // 10% of the whole budget

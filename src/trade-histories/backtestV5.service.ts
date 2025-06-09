@@ -106,7 +106,7 @@ export class BacktestV5Service {
           closeHistories.length - i - step,
         );
 
-        if (chunk.length !== 6) {
+        if (chunk.length < 6) {
           continue;
         }
 
