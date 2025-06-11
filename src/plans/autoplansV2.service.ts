@@ -293,6 +293,8 @@ export class AutoPlansV2Service {
 
       let stepScore = 0;
       let stepRatio = user.ratio;
+      let stepDecreaseRatio = 0.01;
+      let stepDecreaseDelta = 0;
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
@@ -320,7 +322,8 @@ export class AutoPlansV2Service {
 
         if (stepScore > totalScores / 5) {
           stepScore = 0;
-          stepRatio = stepRatio - user.ratio / 5;
+          stepDecreaseDelta = stepDecreaseDelta + stepDecreaseRatio;
+          stepRatio = stepRatio - stepDecreaseDelta;
         }
       }
 
