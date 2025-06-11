@@ -287,15 +287,13 @@ export class AutoPlansV2Service {
 
       let stepRatio = user.ratio;
       let stepDecreaseRatio = 0.01;
-      let stepDecreaseDelta = 0;
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
       for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
         if (i >= fibonacciIndex[stepIndex]) {
           stepIndex++;
-          stepDecreaseDelta = stepDecreaseDelta + stepDecreaseRatio;
-          stepRatio = stepRatio - stepDecreaseDelta;
+          stepRatio = stepRatio - stepDecreaseRatio;
         }
 
         const snapshot = realExpertPnlSnapshots[i];
