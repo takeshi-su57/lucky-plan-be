@@ -282,24 +282,23 @@ export class AutoPlansV2Service {
         throw new Error('Cannot create a plan');
       }
 
-      const totalScores = realExpertPnlSnapshots.reduce(
-        (acc, snapshot) => acc + snapshot.score,
-        0,
-      );
+      const fibonacciIndex = [2, 5, 10, 18, 10000, 100000];
+      let stepIndex = 0;
 
-      if (totalScores === 0) {
-        throw new Error('Invalid total scores');
-      }
-
-      let stepScore = 0;
       let stepRatio = user.ratio;
       let stepDecreaseRatio = 0.01;
       let stepDecreaseDelta = 0;
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
-      for (const snapshot of realExpertPnlSnapshots) {
-        stepScore += snapshot.score;
+      for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
+        if (i >= fibonacciIndex[stepIndex]) {
+          stepIndex++;
+          stepDecreaseDelta = stepDecreaseDelta + stepDecreaseRatio;
+          stepRatio = stepRatio - stepDecreaseDelta;
+        }
+
+        const snapshot = realExpertPnlSnapshots[i];
 
         botInputs.push({
           planId: plan.id,
@@ -319,12 +318,6 @@ export class AutoPlansV2Service {
             params: '{}',
           },
         });
-
-        if (stepScore > totalScores / 5) {
-          stepScore = 0;
-          stepDecreaseDelta = stepDecreaseDelta + stepDecreaseRatio;
-          stepRatio = stepRatio - stepDecreaseDelta;
-        }
       }
 
       await this.botService.batchCreateBots(
