@@ -24,6 +24,9 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
 
 const dailyPlans = 8;
+const minAvgSize = 0;
+const maxAvgSize = 10000000000;
+const minCount = 6;
 
 @Injectable()
 export class BacktestV5Service {
@@ -61,22 +64,35 @@ export class BacktestV5Service {
       );
     });
 
-    const openHistoriesMap: Record<number, TradeHistory[]> = {};
-
-    rangeHistories.forEach((history) => {
-      if (
+    const totalOpenHistories = rangeHistories.filter(
+      (history) =>
         history.action === TradeActionType.TradeOpenedMarket ||
-        history.action === TradeActionType.TradeOpenedLimit
-      ) {
-        const arr = openHistoriesMap[history.tradeIndex];
+        history.action === TradeActionType.TradeOpenedLimit,
+    );
 
-        if (arr) {
-          arr.push(history);
-        } else {
-          openHistoriesMap[history.tradeIndex] = [history];
-        }
-      }
-    });
+    if (totalOpenHistories.length < minCount) {
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
+    }
+
+    const openHistories = totalOpenHistories.reverse().slice(0, 50);
+
+    const totalSize = openHistories.reduce((acc, history) => {
+      return acc + Number(history.size) * Number(history.collateralPriceUsd);
+    }, 0);
+
+    const avgSize = totalSize / openHistories.length;
+
+    if (avgSize < minAvgSize || avgSize > maxAvgSize) {
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
+    }
 
     const closeHistories = rangeHistories
       .filter((history) => {
