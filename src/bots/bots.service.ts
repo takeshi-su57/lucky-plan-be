@@ -100,18 +100,11 @@ export class BotsService {
 
     const bots: BotBackwardDetails[] = [];
 
-    const followers = await this.followersService.getAvailableFollowers(
-      userId,
-      inputs.length,
-    );
-
-    if (followers.length !== inputs.length) {
-      throw new Error('No available followers');
-    }
+    const masterFollower =
+      await this.followersService.getMasterFollower(userId);
 
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
-      const follower = followers[i];
 
       const strategy = await this.strategyService.create(input.strategy);
 
@@ -119,7 +112,7 @@ export class BotsService {
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: follower.address.toLowerCase(),
+        followerAddress: masterFollower.address.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
@@ -401,19 +394,21 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const liveOrFinishBots = await this.prismaService.bot.findMany({
-      where: {
-        status: {
-          in: [BotStatus.Live, BotStatus.Stop],
-        },
-        followerAddress: bot.followerAddress,
-      },
-    });
+    // we allowed having multiple live bots with same follower
 
-    // There is a bot which having same follower and live or finish status
-    if (liveOrFinishBots.length > 0) {
-      throw new Error('Invalid bot status');
-    }
+    // const liveOrFinishBots = await this.prismaService.bot.findMany({
+    //   where: {
+    //     status: {
+    //       in: [BotStatus.Live, BotStatus.Stop],
+    //     },
+    //     followerAddress: bot.followerAddress,
+    //   },
+    // });
+
+    // // There is a bot which having same follower and live or finish status
+    // if (liveOrFinishBots.length > 0) {
+    //   throw new Error('Invalid bot status');
+    // }
 
     await this.reBalanceAsset(bot);
 

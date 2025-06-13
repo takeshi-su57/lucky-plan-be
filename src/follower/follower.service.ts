@@ -1077,6 +1077,23 @@ export class FollowerService {
     return validFollowers.slice(0, counts);
   }
 
+  async getMasterFollower(userId: string) {
+    const masterFollower = await this.prismaService.follower.findUnique({
+      where: {
+        userId_accountIndex: {
+          userId,
+          accountIndex: 1,
+        },
+      },
+    });
+
+    if (!masterFollower) {
+      return this.generateNewFollower(userId);
+    }
+
+    return masterFollower;
+  }
+
   async findAllDetails(
     userId: string,
     contractId: number,
