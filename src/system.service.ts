@@ -161,7 +161,7 @@ export class SystemService {
     return this.isPaused;
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_SECOND)
   async executeCronForBotMonitor() {
     if (
       this.isPaused ||
@@ -178,7 +178,8 @@ export class SystemService {
       await this.contractMonitorService.checkContractsForBots();
       await this.taskExecutorService.performAvailableTasks();
 
-      if (this.count % 12 === 0) {
+      // check every minutes
+      if (this.count % 60 === 0) {
         if (this.botsService.status === 'ready') {
           await this.botsService.checkAndUpdateAllBots();
         }
@@ -186,7 +187,8 @@ export class SystemService {
         await this.taskExecutorService.handleFailedTasks();
       }
 
-      if (this.plansService.status === 'ready' && this.count % 24 === 0) {
+      // check every 2 minutes
+      if (this.plansService.status === 'ready' && this.count % 120 === 0) {
         await this.plansService.checkAndUpdateAllPlans();
 
         // leaderboard update
