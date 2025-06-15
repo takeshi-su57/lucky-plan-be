@@ -235,6 +235,10 @@ input ExportFilterV3 {
 
 input ExportFilterV5 {
   m: Float!
+  maxAvgSize: Int!
+  maxCount: Int!
+  minAvgSize: Int!
+  minCount: Int!
   minR2: Float!
   minScore: Float!
   n: Float!
