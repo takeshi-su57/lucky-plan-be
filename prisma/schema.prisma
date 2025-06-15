@@ -236,6 +236,10 @@ model TestingReportV5 {
   minR2              Float
   n                  Int
   m                  Int
+  minAvgSize         Int
+  maxAvgSize         Int
+  minCount           Int
+  maxCount           Int
   weekWeight         Int
   monthWeight        Int
   threeMonthWeight   Int
@@ -476,14 +480,14 @@ model Action {
   orderInBlock Int
   createdAt    DateTime @default(now())
 
-  position       Position        @relation(fields: [positionId], references: [id])
-  tasks          Task[]
-  followerAction FollowerAction?
+  position        Position         @relation(fields: [positionId], references: [id])
+  tasks           Task[]
+  followerActions FollowerAction[]
 }
 
 model FollowerAction {
   id       Int @id @default(autoincrement())
-  actionId Int @unique
+  actionId Int
   taskId   Int
 
   action Action @relation(fields: [actionId], references: [id])

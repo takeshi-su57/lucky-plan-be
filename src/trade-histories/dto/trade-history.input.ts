@@ -130,4 +130,16 @@ export class ExportFilterV5 {
 
   @Field(() => Float)
   m: number;
+
+  @Field(() => Int)
+  minAvgSize: number;
+
+  @Field(() => Int)
+  maxAvgSize: number;
+
+  @Field(() => Int)
+  minCount: number;
+
+  @Field(() => Int)
+  maxCount: number;
 }
