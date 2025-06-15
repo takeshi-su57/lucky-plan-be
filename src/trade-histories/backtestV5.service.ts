@@ -24,9 +24,41 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
 
 const dailyPlans = 8;
+
 const minAvgSize = 0;
 const maxAvgSize = 10000000000;
 const minCount = 6;
+
+const extraFilters = [
+  // {
+  //   minAvgSize: 0,
+  //   maxAvgSize: 300,
+  //   minCount: 700,
+  //   ratio: 0.5,
+  //   maxSize: 300,
+  // },
+  {
+    minAvgSize: 300,
+    maxAvgSize: 2000,
+    minCount: 256,
+    ratio: 0.5,
+    maxSize: 300,
+  },
+  // {
+  //   minAvgSize: 2000,
+  //   maxAvgSize: 5000,
+  //   minCount: 64,
+  //   ratio: 0.1,
+  //   maxSize: 500,
+  // },
+  // {
+  //   minAvgSize: 5000,
+  //   maxAvgSize: 10000,
+  //   minCount: 128,
+  //   ratio: 0.05,
+  //   maxSize: 500,
+  // },
+];
 
 @Injectable()
 export class BacktestV5Service {
@@ -70,7 +102,10 @@ export class BacktestV5Service {
         history.action === TradeActionType.TradeOpenedLimit,
     );
 
-    if (totalOpenHistories.length < minCount) {
+    if (
+      totalOpenHistories.length < params.minCount ||
+      totalOpenHistories.length > params.maxCount
+    ) {
       return {
         ...snapshot,
         histories,
@@ -86,7 +121,7 @@ export class BacktestV5Service {
 
     const avgSize = totalSize / openHistories.length;
 
-    if (avgSize < minAvgSize || avgSize > maxAvgSize) {
+    if (avgSize < params.minAvgSize || avgSize > params.maxAvgSize) {
       return {
         ...snapshot,
         histories,
@@ -1434,6 +1469,10 @@ export class BacktestV5Service {
         data: {
           window: params.window,
           minR2: params.minR2,
+          minAvgSize: params.minAvgSize,
+          maxAvgSize: params.maxAvgSize,
+          minCount: params.minCount,
+          maxCount: params.maxCount,
           weekWeight: 0,
           monthWeight: 0,
           threeMonthWeight: 0,
@@ -1472,23 +1511,44 @@ export class BacktestV5Service {
   async autoTesting(): Promise<boolean> {
     const startDates = ['2025-01-01'];
 
-    const windowScales = [6, 9, 12, 38];
-    const penaltyScales = [1, 2, 22, 34];
+    const minR2Scales = [0.85, 0.9, 0.95];
+    const windowScales = [6, 12, 38];
+    const penaltyScales = [1, 34];
+    const sizeScales = [0, 300, 2000, 5000, 10000, 50000, 1000000000];
+    const countScales = [0, 16, 32, 64, 128, 256, 512, 1000000000];
 
     await this.prismaService.testingReportV5.deleteMany();
 
     for (const window of windowScales) {
       for (const penalty of penaltyScales) {
-        for (const startDate of startDates) {
-          const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+        for (const minR2 of minR2Scales) {
+          for (const startDate of startDates) {
+            for (
+              let sizeIndex = 1;
+              sizeIndex < sizeScales.length;
+              sizeIndex++
+            ) {
+              for (
+                let countIndex = 1;
+                countIndex < countScales.length;
+                countIndex++
+              ) {
+                const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
 
-          await this.handleSingleCase(startDate, dayGaps, {
-            window,
-            minR2: 0.9,
-            n: 2,
-            m: penalty,
-            minScore: 10,
-          });
+                await this.handleSingleCase(startDate, dayGaps, {
+                  window,
+                  minR2,
+                  n: 2,
+                  m: penalty,
+                  minScore: 10,
+                  minAvgSize: sizeScales[sizeIndex - 1],
+                  maxAvgSize: sizeScales[sizeIndex],
+                  minCount: countScales[countIndex - 1],
+                  maxCount: countScales[countIndex],
+                });
+              }
+            }
+          }
         }
 
         console.log(`Done penalty ${penalty}`);
