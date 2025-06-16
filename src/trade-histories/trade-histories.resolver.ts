@@ -264,7 +264,7 @@ export class TradeHistoriesResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  autoTesting(@Args('startDate', { type: () => String }) startDate: string) {
+  autoTestingV4(@Args('startDate', { type: () => String }) startDate: string) {
     return this.backtestServiceV4.autoTesting(startDate);
   }
 
@@ -299,5 +299,12 @@ export class TradeHistoriesResolver {
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.backtestServiceV5.getTestingReportV5(first, after);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  autoTestingV5() {
+    return this.backtestServiceV5.autoTesting();
   }
 }

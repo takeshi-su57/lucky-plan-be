@@ -45,7 +45,6 @@ const runInNewTerminal = (cmd: string, args: string[]) => {
 @Injectable()
 export class SystemService {
   private isPaused = true;
-  private count = 1;
   private pnlCount = 1;
 
   constructor(
@@ -59,7 +58,6 @@ export class SystemService {
     private securityService: SecurityService,
   ) {
     this.isPaused = true;
-    this.count = 1;
     this.pnlCount = 1;
   }
 
@@ -177,27 +175,41 @@ export class SystemService {
     ) {
       await this.contractMonitorService.checkContractsForBots();
       await this.taskExecutorService.performAvailableTasks();
+      await this.taskExecutorService.handleFailedTasks();
+    }
+  }
 
-      // check every minutes
-      if (this.count % 60 === 0) {
-        if (this.botsService.status === 'ready') {
-          await this.botsService.checkAndUpdateAllBots();
-        }
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkAndUpdateAllBots() {
+    if (
+      this.isPaused ||
+      !this.securityService.isReady() ||
+      this.tradingVariableService.status !== 'ready'
+    ) {
+      return;
+    }
 
-        await this.taskExecutorService.handleFailedTasks();
-      }
+    if (this.botsService.status === 'ready') {
+      await this.botsService.checkAndUpdateAllBots();
+    }
 
-      // check every 2 minutes
-      if (this.plansService.status === 'ready' && this.count % 120 === 0) {
-        await this.plansService.checkAndUpdateAllPlans();
+    if (this.plansService.status === 'ready') {
+      await this.plansService.checkAndUpdateAllPlans();
+    }
+  }
 
-        // leaderboard update
-        if (this.contractMonitorService.status.leaderboard === 'ready') {
-          await this.contractMonitorService.checkContractsForLeaderboard();
-        }
-      }
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async checkContractsForLeaderboard() {
+    if (
+      this.isPaused ||
+      !this.securityService.isReady() ||
+      this.tradingVariableService.status !== 'ready'
+    ) {
+      return;
+    }
 
-      this.count = this.count + 1;
+    if (this.contractMonitorService.status.leaderboard === 'ready') {
+      await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
 
