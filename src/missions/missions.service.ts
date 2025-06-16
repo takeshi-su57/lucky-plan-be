@@ -37,6 +37,7 @@ import { MIN_POSITION_SIZE, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { LogsService } from 'src/loggers/logs.service';
 import { getOpenMissionParams } from 'src/strategy/strategy-library';
+import { getReadableError } from 'src/utils';
 
 @Injectable()
 export class MissionsService {
@@ -280,6 +281,45 @@ export class MissionsService {
     return true;
   }
 
+  private async _cloneMission(
+    mission: MissionDetails,
+    missionsByBotMap: Map<number, MissionDetails[]>,
+  ): Promise<boolean> {
+    try {
+      const openTask = await this.tasksService.findOpenTask(mission);
+
+      if (!openTask) {
+        throw new Error('Cannot clone because of missing open task!');
+      }
+
+      const clonedMission = await this.createMany(
+        [
+          {
+            botId: mission.botId,
+            targetPositionId: mission.targetPositionId,
+          },
+        ],
+        missionsByBotMap,
+      );
+
+      if (clonedMission.length !== 1) {
+        throw new Error('Cannot clone mission by internal error!');
+      }
+
+      await this.tasksService.cloneOpenTask(openTask, clonedMission[0].id);
+
+      return true;
+    } catch (error) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'MissionsService>_cloneMission',
+        details: `Cannot clone mission: ${getReadableError(error)}`,
+      });
+
+      return false;
+    }
+  }
+
   async cloneMission(userId: string, id: number) {
     const mission = await this.prismaService.mission.findUnique({
       where: {
@@ -309,29 +349,7 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    const openTask = await this.tasksService.findOpenTask(mission);
-
-    if (!openTask) {
-      throw new Error('Cannot clone because of missing open task!');
-    }
-
-    const clonedMission = await this.createMany(
-      [
-        {
-          botId: mission.botId,
-          targetPositionId: mission.targetPositionId,
-        },
-      ],
-      new Map(),
-    );
-
-    if (clonedMission.length !== 1) {
-      throw new Error('Cannot clone mission by internal error!');
-    }
-
-    await this.tasksService.cloneOpenTask(openTask, clonedMission[0].id);
-
-    return true;
+    return await this._cloneMission(mission, new Map());
   }
 
   async ignoreMission(userId: string, id: number): Promise<boolean> {
@@ -602,6 +620,18 @@ export class MissionsService {
           await this.closeMany(
             missionIds.map((item) => ({
               id: item,
+            })),
+            missionsByBotMap,
+          );
+        },
+        async (missions) => {
+          for (const mission of missions) {
+            await this._cloneMission(mission, missionsByBotMap);
+          }
+
+          await this.closeMany(
+            missions.map((item) => ({
+              id: item.id,
             })),
             missionsByBotMap,
           );
