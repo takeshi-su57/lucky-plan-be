@@ -617,6 +617,18 @@ export class TestingReportV5 {
 
   @Field(() => Float)
   bottomAccProfit: number;
+
+  @Field(() => Int)
+  minAvgSize: number;
+
+  @Field(() => Int)
+  maxAvgSize: number;
+
+  @Field(() => Int)
+  minCount: number;
+
+  @Field(() => Int)
+  maxCount: number;
 }
 
 @ObjectType()
