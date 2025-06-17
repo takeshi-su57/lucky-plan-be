@@ -478,7 +478,7 @@ export class TaskExecutorService {
                     sl: 0n,
                     __placeholder: BigInt(t.__placeholder),
                   },
-                  maxSlippageP: 1000,
+                  maxSlippageP: 0,
                 },
               );
 
