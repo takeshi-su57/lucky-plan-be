@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Address } from 'viem';
+import { Address, decodeEventLog, PublicClient } from 'viem';
 import { MissionStatus, TaskStatus, UserPermission } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -15,10 +15,12 @@ import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParser
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 
 import {
+  eventParsers,
   missionEventNames,
   isOpenMissionAction,
   isCloseMissionAction,
   missionEventParsers,
+  eventToActionParser,
 } from 'src/actions/eventParsers';
 
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
@@ -39,10 +41,19 @@ import { LogsService } from 'src/loggers/logs.service';
 import { TaskUpdateInput } from 'src/tasks/dto/task.input';
 
 import { MIN_FEE } from 'src/utils/constants';
+import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
+import { ActionsService } from 'src/actions/actions.service';
+
+const expectedEventSignatures: Record<string, string> = Object.fromEntries(
+  gnsMultiCollatDiamondAbi
+    .filter((item) => item.type === 'event')
+    .map((item) => [item.signature, item.name]),
+);
 
 @Injectable()
 export class TaskExecutorService {
   status: 'process' | 'ready' = 'ready';
+  readonly registeredEventNames: string[] = [];
 
   constructor(
     private prismaService: PrismaService,
@@ -53,7 +64,10 @@ export class TaskExecutorService {
     private missionsService: MissionsService,
     private tasksService: TasksService,
     private readonly logger: LogsService,
-  ) {}
+    private actionsService: ActionsService,
+  ) {
+    this.registeredEventNames = eventParsers.map((item) => item.eventName);
+  }
 
   private async performTask(
     task: TaskBackwardDetails,
@@ -467,6 +481,8 @@ export class TaskExecutorService {
                   maxSlippageP: 1000,
                 },
               );
+
+              await this.handleOpenTradeTransaction(task, tx, publicClient);
             }
 
             if (isCloseMissionAction(action)) {
@@ -571,6 +587,78 @@ export class TaskExecutorService {
         success: false,
         message: getReadableError(err) + ` tx: ${tx}`,
       };
+    }
+  }
+
+  private async handleOpenTradeTransaction(
+    task: TaskBackwardDetails,
+    tx: `0x${string}`,
+    publicClient: PublicClient,
+  ) {
+    const { mission } = task;
+    const { bot } = mission;
+
+    const transaction = await publicClient.waitForTransactionReceipt({
+      hash: tx,
+    });
+
+    if (transaction.status !== 'success') {
+      throw new Error(`Failed at open trade tx: ${tx}`);
+    }
+
+    for (const log of transaction.logs) {
+      if (
+        log.topics.length > 0 &&
+        this.registeredEventNames.includes(
+          expectedEventSignatures[log.topics[0] as string],
+        )
+      ) {
+        const parsed = eventToActionParser(
+          bot.followerContractId,
+          decodeEventLog({
+            abi: gnsMultiCollatDiamondAbi,
+            data: log.data,
+            topics: log.topics,
+          }),
+        );
+
+        if (parsed.name === marketOrderInitiatedEventParser.eventName) {
+          const { args } = marketOrderInitiatedEventParser.actionParser(parsed);
+
+          if (!args.open) {
+            continue;
+          }
+
+          const actions = await this.actionsService.createMany(
+            bot.followerContractId,
+            [
+              {
+                name: parsed.name,
+                positionAddress: args.orderId.user.toLowerCase(),
+                positionIndex: args.orderId.index,
+                args: parsed.args,
+                blockNumber: Number(log.blockNumber),
+                orderInBlock: 0,
+              },
+            ],
+          );
+
+          if (actions.length === 0) {
+            continue;
+          }
+
+          await this.missionsService.attachAchievePositionMany(
+            [
+              {
+                id: mission.id,
+                achievePositionId: actions[0].positionId,
+                status: MissionStatus.Opening,
+              },
+            ],
+            new Map(),
+          );
+        }
+      }
     }
   }
 
