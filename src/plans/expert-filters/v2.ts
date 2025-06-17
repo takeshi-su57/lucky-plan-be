@@ -109,8 +109,8 @@ const size_300_2000 = {
 };
 
 const size_2000_5000 = {
-  ratio: 0.25,
-  maxSize: 300,
+  ratio: 0.1,
+  maxSize: 500,
   subFilters: [
     {
       window: 12,
@@ -171,8 +171,8 @@ const size_2000_5000 = {
 };
 
 const size_5000_10000 = {
-  ratio: 0.25,
-  maxSize: 300,
+  ratio: 0.05,
+  maxSize: 500,
   subFilters: [
     {
       window: 6,
@@ -233,8 +233,8 @@ const size_5000_10000 = {
 };
 
 const size_10000_50000 = {
-  ratio: 0.25,
-  maxSize: 300,
+  ratio: 0.01,
+  maxSize: 500,
   subFilters: [
     {
       window: 6,

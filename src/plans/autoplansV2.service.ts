@@ -56,7 +56,7 @@ export class AutoPlansV2Service {
       return null;
     }
 
-    const openHistories = totalOpenHistories.reverse().slice(0, 50);
+    const openHistories = totalOpenHistories.reverse().slice(0, 512);
 
     const totalSize = openHistories.reduce((acc, history) => {
       return acc + Number(history.size) * Number(history.collateralPriceUsd);
@@ -154,9 +154,7 @@ export class AutoPlansV2Service {
     };
   }
 
-  private async filterExperts(
-    dateStr: string,
-  ): Promise<
+  private async filterExperts(dateStr: string): Promise<
     (PnlSnapshot & {
       score: number;
       histories: TradeHistory[];
