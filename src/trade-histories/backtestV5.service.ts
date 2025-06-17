@@ -77,7 +77,7 @@ export class BacktestV5Service {
       };
     }
 
-    const openHistories = totalOpenHistories.reverse().slice(0, 50);
+    const openHistories = totalOpenHistories.reverse().slice(0, 512);
 
     const totalSize = openHistories.reduce((acc, history) => {
       return acc + Number(history.size) * Number(history.collateralPriceUsd);
