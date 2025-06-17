@@ -402,25 +402,6 @@ export class TasksService {
     return tasksByMissionMap;
   }
 
-  async findMissionTasksForMOIEvent(botIds: number[]) {
-    return await this.prismaService.task.findMany({
-      where: {
-        mission: {
-          botId: {
-            in: botIds,
-          },
-          status: MissionStatus.Created,
-          achievePositionId: null,
-        },
-        status: TaskStatus.Await,
-      },
-      include: {
-        action: true,
-        mission: true,
-      },
-    });
-  }
-
   async handleLeaderActions(
     actions: ActionContext<MissionContext>[],
     missionCloseCallback: (missionIds: number[]) => Promise<void>,
