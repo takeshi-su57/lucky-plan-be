@@ -569,8 +569,11 @@ export class TasksService {
 
   async handleFollowerActions(
     actions: ActionContext<MissionContext>[],
-    missionCloseCanceledCallback: (missionIds: number[]) => Promise<void>,
-    missionOpenCanceledCallback: (missions: MissionDetails[]) => Promise<void>,
+    callbacks: {
+      closeCancelded: (missionIds: number[]) => Promise<void>;
+      openCanceled: (missionIds: number[]) => Promise<void>;
+      clone: (missions: MissionDetails[]) => Promise<void>;
+    },
   ) {
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
@@ -582,7 +585,8 @@ export class TasksService {
       targetPositionId: number;
     }[] = [];
 
-    const openCanceledMission: MissionDetails[] = [];
+    const cloneMissions: MissionDetails[] = [];
+    const openCanceledMissionIds: number[] = [];
 
     const tasksByMissionMap = await this.getTasksByMissionMap(
       actions.map((item) => item.context.mission.id),
@@ -596,7 +600,13 @@ export class TasksService {
         filter = isOpenMissionAction;
         status = TaskStatus.Failed;
 
-        openCanceledMission.push(context.mission);
+        const event = marketOpenCanceledEventParser.actionParser(action);
+
+        if (event.args.cancelReason === CancelReason.SLIPPAGE) {
+          cloneMissions.push(context.mission);
+        }
+
+        openCanceledMissionIds.push(context.mission.id);
       }
 
       if (action.name === marketCloseCanceledEventParser.eventName) {
@@ -758,13 +768,17 @@ export class TasksService {
     await this.followerActionsService.createMany(followerActionInputs);
 
     if (closeActions.length > 0) {
-      await missionCloseCanceledCallback(
+      await callbacks.closeCancelded(
         closeActions.map((item) => item.context.mission.id),
       );
     }
 
-    if (openCanceledMission.length > 0) {
-      await missionOpenCanceledCallback(openCanceledMission);
+    if (openCanceledMissionIds.length > 0) {
+      await callbacks.openCanceled(openCanceledMissionIds);
+    }
+
+    if (cloneMissions.length > 0) {
+      await callbacks.clone(cloneMissions);
     }
   }
 

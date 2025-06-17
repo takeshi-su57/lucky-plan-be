@@ -613,9 +613,8 @@ export class MissionsService {
     );
 
     if (missionActions.length > 0) {
-      await this.tasksService.handleFollowerActions(
-        missionActions,
-        async (missionIds) => {
+      await this.tasksService.handleFollowerActions(missionActions, {
+        closeCancelded: async (missionIds) => {
           // handle close mission follower actions
           await this.closeMany(
             missionIds.map((item) => ({
@@ -624,19 +623,20 @@ export class MissionsService {
             missionsByBotMap,
           );
         },
-        async (missions) => {
-          for (const mission of missions) {
-            await this._cloneMission(mission, missionsByBotMap);
-          }
-
+        openCanceled: async (missionIds) => {
           await this.closeMany(
-            missions.map((item) => ({
-              id: item.id,
+            missionIds.map((item) => ({
+              id: item,
             })),
             missionsByBotMap,
           );
         },
-      );
+        clone: async (missions) => {
+          for (const mission of missions) {
+            await this._cloneMission(mission, missionsByBotMap);
+          }
+        },
+      });
     }
   }
 
