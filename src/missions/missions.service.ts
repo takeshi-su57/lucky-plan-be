@@ -143,7 +143,7 @@ export class MissionsService {
     return updatedMissions;
   }
 
-  private async attachAchievePositionMany(
+  async attachAchievePositionMany(
     inputs: MissionUpdateInput[],
     missionsByBotMap: Map<number, MissionDetails[]>,
   ) {
@@ -402,71 +402,6 @@ export class MissionsService {
     return true;
   }
 
-  private async handleMarketOrderInitiatedActions(
-    missionsByBotMap: Map<number, MissionDetails[]>,
-    followerActions: ActionContext<BotContext>[],
-  ) {
-    const openEvents = followerActions
-      .map((item) => ({
-        action: item.action,
-        event: marketOrderInitiatedEventParser.actionParser(item.action),
-        context: item.context,
-      }))
-      .filter((item) => item.event.args.open);
-
-    const eventsMap = new Map<
-      number,
-      TradeEventContext<MarketOrderInitiatedEventArgs, BotContext>
-    >();
-
-    openEvents.forEach((event) => {
-      if (eventsMap.get(event.context.bot.id)) {
-        this.logger.log({
-          severity: 'Warning',
-          summary: 'MissionsService>handleMarketOrderInitiatedActions',
-          details:
-            'Unexpected app error: There are two MarketOrderInitiated events having same bot id',
-        });
-      }
-
-      eventsMap.set(event.context.bot.id, event);
-    });
-
-    // find missions by their setup task.
-    const tasks = await this.tasksService.findMissionTasksForMOIEvent(
-      Array.from(eventsMap.keys()),
-    );
-
-    // fill achievePositionId with orderId for temporaily
-    await this.attachAchievePositionMany(
-      tasks
-        .map((task) => {
-          const mission = task.mission;
-          const botId = mission.botId;
-          const eventContext = eventsMap.get(botId);
-
-          if (!eventContext) {
-            this.logger.log({
-              severity: 'Warning',
-              summary: 'MissionsService>handleMarketOrderInitiatedActions',
-              details:
-                'Unexpected app error: eventContext = eventsByBotId[botId] <- no eventContet',
-            });
-
-            return null;
-          }
-
-          return {
-            id: mission.id,
-            achievePositionId: eventContext.action.positionId,
-            status: MissionStatus.Opening,
-          };
-        })
-        .filter((item) => !!item),
-      missionsByBotMap,
-    );
-  }
-
   private async handleMissionLeaderActions(
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, MissionDetails[]>,
@@ -586,14 +521,6 @@ export class MissionsService {
     missionsByBotMap: Map<number, MissionDetails[]>,
     followerActions: ActionContext<BotContext>[],
   ) {
-    await this.handleMarketOrderInitiatedActions(
-      missionsByBotMap,
-      followerActions.filter(
-        (item) =>
-          item.action.name === marketOrderInitiatedEventParser.eventName,
-      ),
-    );
-
     const missionActions = this.getMissionActions(
       missionsByBotMap,
       followerActions,
