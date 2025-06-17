@@ -19,37 +19,7 @@ import { CreateBotAndStrategyInput } from 'src/bots/dto/bot.input';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
 
-const bestFilter = {
-  minR2: 0.9,
-  window: 6,
-  minScore: 10,
-  n: 2,
-  m: 1,
-};
-
-const subPlans = [
-  {
-    minAvgSize: 0,
-    maxAvgSize: 300,
-    minCount: 715,
-    ratio: 0.5,
-    maxSize: 300,
-  },
-  {
-    minAvgSize: 2000,
-    maxAvgSize: 5000,
-    minCount: 64,
-    ratio: 0.1,
-    maxSize: 500,
-  },
-  {
-    minAvgSize: 5000,
-    maxAvgSize: 10000,
-    minCount: 128,
-    ratio: 0.05,
-    maxSize: 500,
-  },
-];
+import { bestFilters, ExpertFilterParams } from './expert-filters/v2';
 
 export type ServiceStatus = 'process' | 'ready';
 
@@ -67,10 +37,36 @@ export class AutoPlansV2Service {
   }
 
   private getExpertPnlSnapshot(
+    filter: ExpertFilterParams,
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
   ): (PnlSnapshot & { score: number; histories: TradeHistory[] }) | null {
     const rangeHistories = histories;
+
+    const totalOpenHistories = rangeHistories.filter(
+      (history) =>
+        history.action === TradeActionType.TradeOpenedMarket ||
+        history.action === TradeActionType.TradeOpenedLimit,
+    );
+
+    if (
+      totalOpenHistories.length < filter.minCount ||
+      totalOpenHistories.length > filter.maxCount
+    ) {
+      return null;
+    }
+
+    const openHistories = totalOpenHistories.reverse().slice(0, 512);
+
+    const totalSize = openHistories.reduce((acc, history) => {
+      return acc + Number(history.size) * Number(history.collateralPriceUsd);
+    }, 0);
+
+    const avgSize = totalSize / openHistories.length;
+
+    if (avgSize < filter.minAvgSize || avgSize > filter.maxAvgSize) {
+      return null;
+    }
 
     const closeHistories = rangeHistories
       .filter((history) => {
@@ -91,15 +87,15 @@ export class AutoPlansV2Service {
 
     let traderScore = 0;
 
-    for (let step = 0; step < bestFilter.window; step++) {
+    for (let step = 0; step < filter.window; step++) {
       let round = 0;
       let stepScore = 0;
 
-      for (let i = 0; i < closeHistories.length; i += bestFilter.window) {
+      for (let i = 0; i < closeHistories.length; i += filter.window) {
         round++;
 
         const chunk = closeHistories.slice(
-          Math.max(closeHistories.length - i - step - bestFilter.window, 0),
+          Math.max(closeHistories.length - i - step - filter.window, 0),
           closeHistories.length - i - step,
         );
 
@@ -133,38 +129,39 @@ export class AutoPlansV2Service {
         }
 
         if (regression.slope > 0) {
-          if (score.r2 > bestFilter.minR2) {
-            stepScore += (regression.slope * score.r2) / round / bestFilter.n;
+          if (score.r2 > filter.minR2) {
+            stepScore += (regression.slope * score.r2) / round / filter.n;
           } else {
             stepScore +=
-              (regression.slope * (score.r2 - 1) * bestFilter.m) /
-              round /
-              bestFilter.n;
+              (regression.slope * (score.r2 - 1) * filter.m) / round / filter.n;
           }
         } else {
           stepScore +=
-            (regression.slope * (2 - score.r2) * bestFilter.m) /
-            round /
-            bestFilter.n;
+            (regression.slope * (2 - score.r2) * filter.m) / round / filter.n;
         }
       }
       traderScore += stepScore;
     }
 
-    if (traderScore <= bestFilter.minScore) {
+    if (traderScore <= filter.minScore) {
       return null;
     }
 
     return {
       ...snapshot,
-      score: (traderScore * closeHistories.length) / bestFilter.window,
+      score: (traderScore * closeHistories.length) / filter.window,
       histories,
     };
   }
 
-  private async filterExperts(
-    dateStr: string,
-  ): Promise<(PnlSnapshot & { score: number; histories: TradeHistory[] })[]> {
+  private async filterExperts(dateStr: string): Promise<
+    (PnlSnapshot & {
+      score: number;
+      histories: TradeHistory[];
+      maxSize: number;
+      ratio: number;
+    })[]
+  > {
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
         where: {
@@ -225,10 +222,16 @@ export class AutoPlansV2Service {
     });
 
     const historyRecordsMap = new Map<string, TradeHistory[]>();
-    const expertPnlSnapshots: (PnlSnapshot & {
-      score: number;
-      histories: TradeHistory[];
-    })[] = [];
+
+    const expertMap = new Map<
+      string,
+      PnlSnapshot & {
+        score: number;
+        histories: TradeHistory[];
+        maxSize: number;
+        ratio: number;
+      }
+    >();
 
     historyRecords.forEach((record) => {
       const key = JSON.stringify({
@@ -250,15 +253,34 @@ export class AutoPlansV2Service {
       const allHistories = historyRecordsMap.get(key) || [];
 
       subPnlRecords.forEach((record) => {
-        const detail = this.getExpertPnlSnapshot(record, allHistories);
+        for (const filter of bestFilters) {
+          const detail = this.getExpertPnlSnapshot(
+            filter,
+            record,
+            allHistories,
+          );
 
-        if (detail) {
-          expertPnlSnapshots.push(detail);
+          if (detail) {
+            const key = JSON.stringify({
+              address: record.address.toLowerCase(),
+              contractId: record.contractId,
+            });
+
+            const expert = expertMap.get(key);
+
+            if (!expert || expert.ratio < filter.ratio) {
+              expertMap.set(key, {
+                ...detail,
+                maxSize: filter.maxSize,
+                ratio: filter.ratio,
+              });
+            }
+          }
         }
       });
     });
 
-    return expertPnlSnapshots.sort((a, b) => b.score - a.score);
+    return Array.from(expertMap.values()).sort((a, b) => b.score - a.score);
   }
 
   private async createPlan(
@@ -266,6 +288,8 @@ export class AutoPlansV2Service {
     realExpertPnlSnapshots: (PnlSnapshot & {
       score: number;
       histories: TradeHistory[];
+      maxSize: number;
+      ratio: number;
     })[],
   ): Promise<boolean> {
     try {
@@ -298,53 +322,27 @@ export class AutoPlansV2Service {
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
-      for (const subPlan of subPlans) {
-        for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
-          const snapshot = realExpertPnlSnapshots[i];
+      for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
+        const expert = realExpertPnlSnapshots[i];
 
-          const totalOpenHistories = snapshot.histories.filter(
-            (history) =>
-              history.action === TradeActionType.TradeOpenedMarket ||
-              history.action === TradeActionType.TradeOpenedLimit,
-          );
-
-          if (totalOpenHistories.length < subPlan.minCount) {
-            continue;
-          }
-
-          const openHistories = totalOpenHistories.reverse().slice(0, 50);
-
-          const totalSize = openHistories.reduce((acc, history) => {
-            return (
-              acc + Number(history.size) * Number(history.collateralPriceUsd)
-            );
-          }, 0);
-
-          const avgSize = totalSize / openHistories.length;
-
-          if (avgSize < subPlan.minAvgSize || avgSize > subPlan.maxAvgSize) {
-            continue;
-          }
-
-          botInputs.push({
-            planId: plan.id,
-            followerContractId: user.followerContractId,
-            leaderAddress: snapshot.address,
-            leaderCollateralBaseline: 0,
-            leaderContractId: snapshot.contractId,
-            strategy: {
-              strategyKey: 'ratioCopy',
-              ratio: subPlan.ratio, // dynamic ratio for each e  xpert and max to 2x the avg score
-              lifeTime: 365 * 24 * 60,
-              maxCollateral: subPlan.maxSize, // 10% of the whole budget
-              minCollateral: 5,
-              collateralBaseline: 0,
-              maxLeverage: 200000,
-              minLeverage: 1100,
-              params: '{}',
-            },
-          });
-        }
+        botInputs.push({
+          planId: plan.id,
+          followerContractId: user.followerContractId,
+          leaderAddress: expert.address,
+          leaderCollateralBaseline: 0,
+          leaderContractId: expert.contractId,
+          strategy: {
+            strategyKey: 'ratioCopy',
+            ratio: expert.ratio,
+            lifeTime: 365 * 24 * 60,
+            maxCollateral: expert.maxSize,
+            minCollateral: 5,
+            collateralBaseline: 0,
+            maxLeverage: 200000,
+            minLeverage: 1100,
+            params: '{}',
+          },
+        });
       }
 
       await this.botService.batchCreateBots(

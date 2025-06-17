@@ -18,47 +18,12 @@ import {
   PnlSnapshotDetails,
   PnlSnapshotDevDetailsV5,
   TestingReportV5Edge,
-  WholeCompressedHistories,
 } from './entities/trade-history.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
+import { WholeCompressedHistories } from './entities/trade-history.entity';
 
 const dailyPlans = 8;
-
-const minAvgSize = 0;
-const maxAvgSize = 10000000000;
-const minCount = 6;
-
-const extraFilters = [
-  // {
-  //   minAvgSize: 0,
-  //   maxAvgSize: 300,
-  //   minCount: 700,
-  //   ratio: 0.5,
-  //   maxSize: 300,
-  // },
-  {
-    minAvgSize: 300,
-    maxAvgSize: 2000,
-    minCount: 256,
-    ratio: 0.5,
-    maxSize: 300,
-  },
-  // {
-  //   minAvgSize: 2000,
-  //   maxAvgSize: 5000,
-  //   minCount: 64,
-  //   ratio: 0.1,
-  //   maxSize: 500,
-  // },
-  // {
-  //   minAvgSize: 5000,
-  //   maxAvgSize: 10000,
-  //   minCount: 128,
-  //   ratio: 0.05,
-  //   maxSize: 500,
-  // },
-];
 
 @Injectable()
 export class BacktestV5Service {
@@ -71,7 +36,6 @@ export class BacktestV5Service {
     private tradingVariableService: TradingVariableService,
   ) {
     // this.autoTesting();
-
     this.cache = null;
     this.cachedDateStr = null;
   }
@@ -113,7 +77,7 @@ export class BacktestV5Service {
       };
     }
 
-    const openHistories = totalOpenHistories.reverse().slice(0, 50);
+    const openHistories = totalOpenHistories.reverse().slice(0, 512);
 
     const totalSize = openHistories.reduce((acc, history) => {
       return acc + Number(history.size) * Number(history.collateralPriceUsd);
@@ -278,7 +242,7 @@ export class BacktestV5Service {
 
   private async getDayDevPnlSnapshots(
     dateStr: string,
-    params: ExportFilterV5,
+    params: ExportFilterV5[],
   ): Promise<PnlSnapshotDetails[]> {
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
@@ -342,22 +306,24 @@ export class BacktestV5Service {
         const allHistories =
           historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
 
-        const detail = this.getPnlSnapshotDevDetails(
-          new Date('2024-01-01'),
-          new Date(
-            getStartOfDay(new Date(record.dateStr)).getTime() +
-              24 * 3600 * 1000,
-          ),
-          record,
-          allHistories,
-          params,
-        );
+        for (const param of params) {
+          const detail = this.getPnlSnapshotDevDetails(
+            new Date('2024-01-01'),
+            new Date(
+              getStartOfDay(new Date(record.dateStr)).getTime() +
+                24 * 3600 * 1000,
+            ),
+            record,
+            allHistories,
+            param,
+          );
 
-        if (detail.score > params.minScore) {
-          nodes.push({
-            ...detail,
-            histories: allHistories,
-          });
+          if (detail.score > param.minScore) {
+            nodes.push({
+              ...detail,
+              histories: allHistories,
+            });
+          }
         }
       });
 
@@ -371,14 +337,14 @@ export class BacktestV5Service {
     return nodes.sort((a, b) => b.score - a.score).slice(0, 100);
   }
 
-  async getDevPnlSnapshotsV5(dateStr: string, params: ExportFilterV5) {
+  async getDevPnlSnapshotsV5(dateStr: string, params: ExportFilterV5[]) {
     return this.getDayDevPnlSnapshots(dateStr, params);
   }
 
   private async getRangeHistories(
     dateStr: string,
     days: number,
-    params: ExportFilterV5,
+    params: ExportFilterV5[],
     ratio: number,
     isTestnet: boolean,
   ): Promise<{
@@ -511,25 +477,27 @@ export class BacktestV5Service {
 
         subPnlRecords.forEach((record) => {
           for (let divider = dailyPlans; divider > 0; divider--) {
-            const detail = this.getPnlSnapshotDevDetails(
-              new Date('2024-01-01'),
-              new Date(
-                getStartOfDay(new Date(record.dateStr)).getTime() +
-                  (24 * 3600 * 1000) / divider,
-              ),
-              record,
-              allHistories,
-              params,
-            );
-
-            if (detail.score > params.minScore) {
-              nodes.push({
-                ...detail,
-                endDate: new Date(
+            for (const param of params) {
+              const detail = this.getPnlSnapshotDevDetails(
+                new Date('2024-01-01'),
+                new Date(
                   getStartOfDay(new Date(record.dateStr)).getTime() +
                     (24 * 3600 * 1000) / divider,
                 ),
-              });
+                record,
+                allHistories,
+                param,
+              );
+
+              if (detail.score > param.minScore) {
+                nodes.push({
+                  ...detail,
+                  endDate: new Date(
+                    getStartOfDay(new Date(record.dateStr)).getTime() +
+                      (24 * 3600 * 1000) / divider,
+                  ),
+                });
+              }
             }
           }
         });
@@ -1252,7 +1220,7 @@ export class BacktestV5Service {
 
   async getWholeCompressedHistoriesV5(
     startDate: string,
-    params: ExportFilterV5,
+    params: ExportFilterV5[],
     ratio: number,
     isTestnet: boolean,
   ) {

@@ -4,7 +4,6 @@ import { PubSub } from 'graphql-subscriptions';
 
 import {
   missionEventNames,
-  missionCanceledEventNames,
   updateEventNames,
   isOpenMissionAction,
   isCloseMissionAction,
@@ -18,8 +17,6 @@ import { ActionContext, CancelReason, MissionContext } from 'src/types';
 import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
-import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
-import { marketOpenCanceledEventParser } from 'src/actions/eventParsers/market-open-canceled';
 import { Action } from 'src/actions/entities/action.entity';
 
 import { CreateFollowerActionInput } from 'src/follower-actions/dto/follower-action.input';
@@ -29,12 +26,16 @@ import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { ActionsService } from 'src/actions/actions.service';
-import { Mission } from 'src/missions/entities/mission.entity';
+import { Mission, MissionDetails } from 'src/missions/entities/mission.entity';
 import { PUB_SUB } from 'src/global/global.module';
+
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
 import { marketCloseCanceledEventParser } from 'src/actions/eventParsers/market-close-canceled';
+import { marketOrderInitiatedEventParser } from 'src/actions/eventParsers/market-order-initiated.parser';
+import { marketOpenCanceledEventParser } from 'src/actions/eventParsers/market-open-canceled';
+
 import { LogsService } from 'src/loggers/logs.service';
 
 @Injectable()
@@ -568,7 +569,11 @@ export class TasksService {
 
   async handleFollowerActions(
     actions: ActionContext<MissionContext>[],
-    missionCloseCallback: (missionIds: number[]) => Promise<void>,
+    callbacks: {
+      closeCancelded: (missionIds: number[]) => Promise<void>;
+      openCanceled: (missionIds: number[]) => Promise<void>;
+      clone: (missions: MissionDetails[]) => Promise<void>;
+    },
   ) {
     const followerActionInputs: CreateFollowerActionInput[] = [];
     const taskUpateInputs: TaskUpdateInput[] = [];
@@ -580,6 +585,9 @@ export class TasksService {
       targetPositionId: number;
     }[] = [];
 
+    const cloneMissions: MissionDetails[] = [];
+    const openCanceledMissionIds: number[] = [];
+
     const tasksByMissionMap = await this.getTasksByMissionMap(
       actions.map((item) => item.context.mission.id),
     );
@@ -588,25 +596,31 @@ export class TasksService {
       let status: TaskStatus = TaskStatus.Completed;
       let filter: (action: Action) => boolean = () => false;
 
-      if (missionCanceledEventNames.includes(action.name)) {
-        filter =
-          action.name === marketOpenCanceledEventParser.eventName
-            ? isOpenMissionAction
-            : (action: Action) =>
-                action.name === CloseMissionAction ||
-                isCloseMissionAction(action);
+      if (action.name === marketOpenCanceledEventParser.eventName) {
+        filter = isOpenMissionAction;
+        status = TaskStatus.Failed;
 
-        if (action.name === marketCloseCanceledEventParser.eventName) {
-          const event = marketCloseCanceledEventParser.actionParser(action);
+        const event = marketOpenCanceledEventParser.actionParser(action);
 
-          manualCloseActions.push({
-            missionId: context.mission.id,
-            pairIndex: Number(event.args.pairIndex),
-            targetPositionId: context.mission.targetPositionId,
-          });
+        if (event.args.cancelReason === CancelReason.SLIPPAGE) {
+          cloneMissions.push(context.mission);
         }
 
+        openCanceledMissionIds.push(context.mission.id);
+      }
+
+      if (action.name === marketCloseCanceledEventParser.eventName) {
+        filter = (action: Action) =>
+          action.name === CloseMissionAction || isCloseMissionAction(action);
         status = TaskStatus.Failed;
+
+        const event = marketCloseCanceledEventParser.actionParser(action);
+
+        manualCloseActions.push({
+          missionId: context.mission.id,
+          pairIndex: Number(event.args.pairIndex),
+          targetPositionId: context.mission.targetPositionId,
+        });
       }
 
       if (action.name === marketOrderInitiatedEventParser.eventName) {
@@ -753,9 +767,19 @@ export class TasksService {
     await this.updateMany(taskUpateInputs);
     await this.followerActionsService.createMany(followerActionInputs);
 
-    await missionCloseCallback(
-      closeActions.map((item) => item.context.mission.id),
-    );
+    if (closeActions.length > 0) {
+      await callbacks.closeCancelded(
+        closeActions.map((item) => item.context.mission.id),
+      );
+    }
+
+    if (openCanceledMissionIds.length > 0) {
+      await callbacks.openCanceled(openCanceledMissionIds);
+    }
+
+    if (cloneMissions.length > 0) {
+      await callbacks.clone(cloneMissions);
+    }
   }
 
   async getAlertTasks(userId: string): Promise<TaskBackwardDetails[]> {

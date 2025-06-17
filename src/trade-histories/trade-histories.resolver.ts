@@ -271,8 +271,8 @@ export class TradeHistoriesResolver {
   @Query(() => [PnlSnapshotDevDetailsV5])
   getDevPnlSnapshotsV5(
     @Args('dateStr', { type: () => String }) dateStr: string,
-    @Args('filterParams', { type: () => ExportFilterV5 })
-    filterParams: ExportFilterV5,
+    @Args('filterParams', { type: () => [ExportFilterV5] })
+    filterParams: ExportFilterV5[],
   ) {
     return this.backtestServiceV5.getDevPnlSnapshotsV5(dateStr, filterParams);
   }
@@ -282,8 +282,8 @@ export class TradeHistoriesResolver {
     @Args('ratio', { type: () => Float }) ratio: number,
     @Args('startDate', { type: () => String }) startDate: string,
     @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
-    @Args('filterParams', { type: () => ExportFilterV5 })
-    filterParams: ExportFilterV5,
+    @Args('filterParams', { type: () => [ExportFilterV5] })
+    filterParams: ExportFilterV5[],
   ) {
     return this.backtestServiceV5.getWholeCompressedHistoriesV5(
       startDate,
