@@ -1112,9 +1112,7 @@ export class FollowerService {
     const followerEntities = await this.prismaService.follower.findMany({
       where: {
         userId,
-        accountIndex: {
-          gt: after || 0,
-        },
+        accountIndex: 1,
       },
       take: first,
       orderBy: {
@@ -1187,7 +1185,7 @@ export class FollowerService {
     return {
       edges,
       pageInfo: {
-        hasNextPage: edges.length > 0,
+        hasNextPage: false,
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
