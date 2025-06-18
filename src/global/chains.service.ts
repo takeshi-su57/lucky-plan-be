@@ -18,217 +18,190 @@ import {
   apeChain,
   Chain,
 } from 'viem/chains';
+import { Mutex } from 'async-mutex';
+
 import 'dotenv';
 
 import { validateMnemonic } from '@scure/bip39';
 import { EncryptedData, SecurityService } from './security.service';
 
-const rpcUrls = {
+const privateRPCProviders = [
+  {
+    provider: 'drpc',
+    getUrl: (network: string, token: string) =>
+      `https://lb.drpc.org/ogrpc?network=${network}&dkey=${token}`,
+    networks: {
+      137: 'polygon',
+      8453: 'base',
+      42161: 'arbitrum',
+      421614: 'arbitrum-sepolia',
+      33139: 'apechain',
+    },
+    tokens: [
+      'AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
+      'AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
+      'AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
+      'Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
+      'Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
+      'AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
+      'AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
+      'ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
+      'AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
+      'ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
+      'Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
+      'AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
+      'AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
+      'AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
+      'An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
+      'AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
+      'Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
+      'AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
+      'AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
+      'An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
+      'AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
+      'AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
+      'Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
+      'AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
+      'Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
+      'AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
+      'AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
+      'Am0x7P-p5kK7v_reTZmLd4dzmWmuTGIR8JB6rqRhf0fE',
+      'AvhJoW-S4kmTknz15IiVBYK_Il7QTGIR8JB7rqRhf0fE',
+      'AoXQXLJ_VkmMlXCG0bI4Mt8b-sqzTGMR8JB8rqRhf0fE',
+      'AtAeKo-q7UhBnm4u3I9iCIBWNtX5TGMR8JB-rqRhf0fE',
+      'Ait1RtvXaU6gmO_Xt7EN_P2eh5fkTGMR8JB_rqRhf0fE',
+      'AsGRXdZc2Uf2ku4Bnw_IYQ_WTDIgTGMR8JCArqRhf0fE',
+      'AuyggAM8NEBEth8UuV6lU5gpOfb0TGQR8JCBrqRhf0fE',
+      'AhzxyJtFWE2Fsj64Tq1rgiZR5LHkTGQR8JCCrqRhf0fE',
+      'Atmbwwib_EIfg57kaH-o7MODz641TGQR8JCDrqRhf0fE',
+      'AnSxNF1zE0fIhgfSbIRtl5tKdE8TTGUR8JCErqRhf0fE',
+    ],
+  },
+  {
+    provider: 'alchemy',
+    getUrl: (network: string, token: string) =>
+      `'https://${network}.g.alchemy.com/v2/${token}`,
+    networks: {
+      137: 'polygon-mainnet',
+      8453: 'base-mainnet',
+      42161: 'arb-mainnet',
+      421614: 'arb-sepolia',
+      33139: 'apechain-mainnet',
+    },
+    tokens: [
+      'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+      'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+      'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    ],
+  },
+];
+
+const publicRpcProviders = {
   137: [
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=polygon&dkey=AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-    'https://polygon-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://polygon-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-    'https://polygon-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-    'https://polygon-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    'https://1rpc.io/matic',
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://polygon-mainnet.public.blastapi.io',
+    'https://polygon.api.onfinality.io/public',
+    'https://polygon.meowrpc.com',
+    'https://polygon-rpc.com',
+    'https://polygon-pokt.nodies.app',
+    'https://polygon.drpc.org',
+    'https://polygon.rpc.subquery.network/public',
   ],
   8453: [
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=base&dkey=AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-    'https://base-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://base-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-    'https://base-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-    'https://base-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    'https://1rpc.io/base',
+    'https://base-rpc.publicnode.com',
+    'https://base-mainnet.public.blastapi.io',
+    'https://base.drpc.org',
+    'https://base.meowrpc.com',
+    'https://mainnet.base.org',
+    'https://base-pokt.nodies.app',
+    'https://gateway.tenderly.co/public/base',
+    'https://base.api.onfinality.io/public',
+    'https://rpc.therpc.io/base',
+    'https://base.blockpi.network/v1/rpc/public',
   ],
   42161: [
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-    'https://arb-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://arb-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-    'https://arb-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-    'https://arb-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    'https://arb1.arbitrum.io/rpc',
+    'https://1rpc.io/arb',
+    'https://arbitrum-one-rpc.publicnode.com',
+    'https://arbitrum-one.public.blastapi.io',
+    'https://arbitrum.meowrpc.com',
+    'https://arbitrum.blockpi.network/v1/rpc/public',
+    'https://arbitrum.drpc.org',
+    'https://rpc.therpc.io/arbitrum',
+    'https://arb-pokt.nodies.app',
   ],
   421614: [
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=arbitrum-sepolia&dkey=AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-    'https://arb-sepolia.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://arb-sepolia.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-    'https://arb-sepolia.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-    'https://arb-sepolia.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    'https://sepolia-rollup.arbitrum.io/rpc',
+    'https://arbitrum-sepolia-rpc.publicnode.com',
+    'https://arbitrum-sepolia.public.blastapi.io',
+    'https://endpoints.omniatech.io/v1/arbitrum/sepolia/public',
+    'https://arbitrum-sepolia.drpc.org',
   ],
   33139: [
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-    'https://lb.drpc.org/ogrpc?network=apechain&dkey=AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-    'https://apechain-mainnet.g.alchemy.com/v2/Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-    'https://apechain-mainnet.g.alchemy.com/v2/fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-    'https://apechain-mainnet.g.alchemy.com/v2/OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-    'https://apechain-mainnet.g.alchemy.com/v2/JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+    'https://rpc.apechain.com/http',
+    'https://apechain.gateway.tenderly.co/',
+    'https://33139.rpc.thirdweb.com/',
+    'https://apechain.drpc.org',
+    'https://rpc.apechain.com/http',
   ],
 };
 
 @Injectable()
 export class ChainsService {
   readonly availableChains: Chain[];
-  readonly publicClients: Record<number, PublicClient>;
+  readonly freePublicClients: Record<number, PublicClient>;
+  readonly paidPublicClients: Record<number, PublicClient>;
   private walletClients: Record<number, Record<string, WalletClient>>;
+  private readMutexs: Record<number, Mutex>;
+  private writeMutexs: Record<number, Mutex>;
 
   constructor(private securityService: SecurityService) {
     this.availableChains = [arbitrum, polygon, base, arbitrumSepolia, apeChain];
-    this.publicClients = {};
+    this.freePublicClients = {};
+    this.paidPublicClients = {};
     this.walletClients = {};
+    this.readMutexs = {};
+    this.writeMutexs = {};
 
     this.availableChains.forEach((chain) => {
-      this.publicClients[chain.id] = createPublicClient({
+      this.freePublicClients[chain.id] = createPublicClient({
         chain: chain,
-        transport: fallback(
-          [
-            ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
-              http(url, { batch: true }),
-            ),
-          ],
-          {
-            rank: {
-              interval: 60_000,
-            },
-          },
-        ),
+        transport: fallback([
+          ...publicRpcProviders[
+            chain.id as keyof typeof publicRpcProviders
+          ].map((url) => http(url, { batch: true })),
+        ]),
         batch: {
           multicall: true,
         },
       }) as unknown as PublicClient;
+
+      this.paidPublicClients[chain.id] = createPublicClient({
+        chain: chain,
+        transport: fallback([
+          ...privateRPCProviders
+            .map((item) =>
+              item.tokens.map((token) =>
+                item.getUrl(
+                  item.networks[chain.id as keyof typeof item.networks],
+                  token,
+                ),
+              ),
+            )
+            .flat()
+            .map((url) => http(url, { batch: true })),
+        ]),
+        batch: {
+          multicall: true,
+        },
+      }) as unknown as PublicClient;
+
+      this.readMutexs[chain.id] = new Mutex();
+      this.writeMutexs[chain.id] = new Mutex();
     });
-  }
-
-  publicClient(chainId: number): PublicClient {
-    if (!this.isValidChainId(chainId)) {
-      throw new Error('Invalid chainId');
-    }
-
-    return this.publicClients[chainId];
   }
 
   getChainByChainId(chainId: number): Chain | null {
@@ -237,6 +210,53 @@ export class ChainsService {
 
   isValidChainId(chainId: number) {
     return !!this.getChainByChainId(chainId);
+  }
+
+  private paidPublicClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.paidPublicClients[chainId];
+  }
+
+  private freePublicClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.freePublicClients[chainId];
+  }
+
+  publicClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    const freeClient = this.freePublicClient(chainId);
+    const paidClient = this.paidPublicClient(chainId);
+
+    return new Proxy(freeClient, {
+      get(target, prop, receiver) {
+        const origMethod = Reflect.get(target, prop, receiver);
+
+        if (typeof origMethod !== 'function') {
+          return origMethod;
+        }
+
+        return async (...args: any[]) => {
+          try {
+            return await origMethod.apply(freeClient, args);
+          } catch (err: any) {
+            if (err && typeof err === 'object' && 'cause' in err) {
+              const paidMethod = Reflect.get(paidClient, prop, receiver);
+              return await paidMethod.apply(paidClient, args);
+            }
+            throw err;
+          }
+        };
+      },
+    });
   }
 
   walletClient(
@@ -269,18 +289,19 @@ export class ChainsService {
     const client = createWalletClient({
       account,
       chain: chain,
-      transport: fallback(
-        [
-          ...rpcUrls[chain.id as keyof typeof rpcUrls].map((url) =>
-            http(url, { batch: true }),
-          ),
-        ],
-        {
-          rank: {
-            interval: 60_000,
-          },
-        },
-      ),
+      transport: fallback([
+        ...privateRPCProviders
+          .map((item) =>
+            item.tokens.map((token) =>
+              item.getUrl(
+                item.networks[chain.id as keyof typeof item.networks],
+                token,
+              ),
+            ),
+          )
+          .flat()
+          .map((url) => http(url, { batch: true })),
+      ]),
     });
 
     if (this.walletClients[chainId]) {
