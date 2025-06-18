@@ -1112,7 +1112,9 @@ export class FollowerService {
     const followerEntities = await this.prismaService.follower.findMany({
       where: {
         userId,
-        accountIndex: 1,
+        accountIndex: {
+          gt: after || 0,
+        },
       },
       take: first,
       orderBy: {
@@ -1132,18 +1134,24 @@ export class FollowerService {
       const batch = followerEntities.slice(i, i + BATCH_SIZE);
 
       const promises = batch.map(async (entity) => {
-        const usdcBalance = await publicClient.readContract({
-          address: collateralInfo.collateral,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [entity.address as Address],
-        });
+        const usdcBalance =
+          entity.accountIndex === 1
+            ? await publicClient.readContract({
+                address: collateralInfo.collateral,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [entity.address as Address],
+              })
+            : 0n;
 
         usdcMap[entity.address] = usdcBalance;
 
-        const ethBalance = await publicClient.getBalance({
-          address: entity.address as Address,
-        });
+        const ethBalance =
+          entity.accountIndex === 1
+            ? await publicClient.getBalance({
+                address: entity.address as Address,
+              })
+            : 0n;
 
         ethMap[entity.address] = ethBalance;
 
@@ -1155,13 +1163,16 @@ export class FollowerService {
 
         pnlSnapshotsMap[entity.address] = pnlSnapshots;
 
-        const trades = await this.getTrades(entity.address, contractId);
+        const trades =
+          entity.accountIndex === 1
+            ? await this.getTrades(entity.address, contractId)
+            : [];
         tradesMap[entity.address] = trades;
 
-        const pendingOrders = await this.getPendingOrders(
-          entity.address,
-          contractId,
-        );
+        const pendingOrders =
+          entity.accountIndex === 1
+            ? await this.getPendingOrders(entity.address, contractId)
+            : [];
 
         pendingOrdersMap[entity.address] = pendingOrders;
       });
@@ -1185,7 +1196,7 @@ export class FollowerService {
     return {
       edges,
       pageInfo: {
-        hasNextPage: false,
+        hasNextPage: edges.length > 0,
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
