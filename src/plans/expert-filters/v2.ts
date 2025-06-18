@@ -285,8 +285,8 @@ export type ExpertFilterParams = {
 };
 
 export const bestFilters = [
-  // size_0_300,
-  // size_300_2000,
+  size_0_300,
+  size_300_2000,
   size_2000_5000,
   size_5000_10000,
   size_10000_50000,
