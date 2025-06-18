@@ -23,7 +23,7 @@ export const missionEventNames = missionEventParsers.map(
 );
 
 export const updateEventParsers = [
-  // tradeMaxClosingSlippagePUpdatedEventParser,
+  tradeMaxClosingSlippagePUpdatedEventParser,
   leverageUpdateExecutedEventParser,
   positionSizeDecreaseExecutedEventParser,
   positionSizeIncreaseExecutedEventParser,
