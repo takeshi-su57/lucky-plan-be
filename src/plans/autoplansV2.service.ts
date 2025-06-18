@@ -263,12 +263,12 @@ export class AutoPlansV2Service {
           if (detail) {
             const key = JSON.stringify({
               address: record.address.toLowerCase(),
-              contractId: record.contractId,
+              contractId: filter.maxSize <= 2000 ? 0 : record.contractId,
             });
 
             const expert = expertMap.get(key);
 
-            if (!expert || expert.ratio < filter.ratio) {
+            if (!expert || expert.score < detail.score) {
               expertMap.set(key, {
                 ...detail,
                 maxSize: filter.maxSize,
