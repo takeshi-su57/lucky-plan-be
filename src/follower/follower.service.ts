@@ -454,7 +454,7 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      if (!this.securityService.isValidPassword(password)) {
+      if (!(await this.securityService.isValidPassword(password))) {
         throw new Error('Password is incorrect');
       }
 
