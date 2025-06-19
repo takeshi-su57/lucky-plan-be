@@ -45,6 +45,7 @@ const runInNewTerminal = (cmd: string, args: string[]) => {
 @Injectable()
 export class SystemService {
   private isPaused = true;
+  private stopForTradingVariableLoading = false;
   private pnlCount = 1;
 
   constructor(
@@ -59,6 +60,9 @@ export class SystemService {
   ) {
     this.isPaused = true;
     this.pnlCount = 1;
+    this.stopForTradingVariableLoading = false;
+
+    this.reloadTradingVariables();
   }
 
   pauseSystem() {
@@ -163,6 +167,7 @@ export class SystemService {
   async executeCronForBotMonitor() {
     if (
       this.isPaused ||
+      this.stopForTradingVariableLoading ||
       !this.securityService.isReady() ||
       this.tradingVariableService.status !== 'ready'
     ) {
@@ -183,6 +188,7 @@ export class SystemService {
   async checkAndUpdateAllBots() {
     if (
       this.isPaused ||
+      this.stopForTradingVariableLoading ||
       !this.securityService.isReady() ||
       this.tradingVariableService.status !== 'ready'
     ) {
@@ -202,6 +208,7 @@ export class SystemService {
   async checkContractsForLeaderboard() {
     if (
       this.isPaused ||
+      this.stopForTradingVariableLoading ||
       !this.securityService.isReady() ||
       this.tradingVariableService.status !== 'ready'
     ) {
@@ -211,6 +218,23 @@ export class SystemService {
     if (this.contractMonitorService.status.leaderboard === 'ready') {
       await this.contractMonitorService.checkContractsForLeaderboard();
     }
+  }
+
+  @Cron(CronExpression.EVERY_3_HOURS)
+  async reloadTradingVariables() {
+    if (this.tradingVariableService.status !== 'ready') {
+      return;
+    }
+
+    this.stopForTradingVariableLoading = true;
+
+    setTimeout(() => {
+      this.tradingVariableService.loadTradingVariables().then(() => {
+        console.log('trading variables reloaded');
+      });
+
+      this.stopForTradingVariableLoading = false;
+    }, 20_000);
   }
 
   @Cron(CronExpression.EVERY_HOUR)

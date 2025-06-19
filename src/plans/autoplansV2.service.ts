@@ -18,8 +18,11 @@ import { CreatePlanInput } from './dto/plan.input';
 import { CreateBotAndStrategyInput } from 'src/bots/dto/bot.input';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
+import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { bestFilters, ExpertFilterParams } from './expert-filters/v2';
+
+import { Pair } from 'src/types';
 
 export type ServiceStatus = 'process' | 'ready';
 
@@ -29,6 +32,7 @@ export class AutoPlansV2Service {
 
   constructor(
     private prismaService: PrismaService,
+    private tradingVariableService: TradingVariableService,
     private planService: PlansService,
     private botService: BotsService,
     private logger: LogsService,
@@ -263,7 +267,7 @@ export class AutoPlansV2Service {
           if (detail) {
             const key = JSON.stringify({
               address: record.address.toLowerCase(),
-              contractId: filter.maxSize <= 2000 ? 0 : record.contractId,
+              contractId: record.contractId,
             });
 
             const expert = expertMap.get(key);
@@ -307,7 +311,7 @@ export class AutoPlansV2Service {
         scheduledStart: new Date(),
         scheduledEnd: dayjs(new Date())
           .add(3, 'hours')
-          .add(30, 'minutes')
+          .add(15, 'minutes')
           .toDate(),
       };
 
@@ -324,6 +328,58 @@ export class AutoPlansV2Service {
 
       for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
         const expert = realExpertPnlSnapshots[i];
+
+        const pairMap = new Map<string, Pair>();
+
+        this.tradingVariableService
+          .getPairs(expert.contractId)
+          .forEach((pair) => {
+            if (pair) {
+              pairMap.set(`${pair.from}/${pair.to}`.toLowerCase(), pair);
+            }
+          });
+
+        const chunkHistories = expert.histories
+          .filter((item) => {
+            const pair = pairMap.get(`${item.pair}`.toLowerCase());
+
+            if (!pair) {
+              return false;
+            }
+
+            return (
+              pair.depth.onePercentDepthAboveUsd > 0n &&
+              pair.depth.onePercentDepthBelowUsd > 0n
+            );
+          })
+          .slice(0, 512);
+
+        const openHistories = chunkHistories
+          .filter(
+            (history) =>
+              history.action === TradeActionType.TradeOpenedMarket ||
+              history.action === TradeActionType.TradeOpenedLimit,
+          )
+          .map((item) => ({
+            size: +item.size * +item.leverage * +item.collateralPriceUsd,
+            leverage: +item.leverage,
+            collateral: +item.size * +item.collateralPriceUsd,
+          }));
+
+        const avgPnl =
+          chunkHistories
+            .map((item) => +item.pnl * +item.collateralPriceUsd)
+            .reduce((acc, item) => acc + item, 0) / openHistories.length;
+
+        const avgSize =
+          openHistories.reduce((acc, item) => acc + item.size, 0) /
+          openHistories.length;
+
+        const pnlP = (avgPnl / avgSize) * 100;
+
+        if (pnlP < 1.1) {
+          continue;
+        }
 
         botInputs.push({
           planId: plan.id,
