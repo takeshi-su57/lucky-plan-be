@@ -20,15 +20,13 @@ export type TradingVariable = {
 @Injectable()
 export class TradingVariableService {
   private tradingVariable: Record<number, TradingVariable> = {};
-  public status: 'ready' | 'process' = 'process';
+  public status: 'ready' | 'process' = 'ready';
 
   constructor(
     private chainsService: ChainsService,
     private prismaService: PrismaService,
   ) {
-    this.loadTradingVariables().then(() =>
-      console.log('loaded trading variables'),
-    );
+    this.status = 'ready';
   }
 
   async loadTradingVariables() {
@@ -83,6 +81,17 @@ export class TradingVariableService {
         ),
       });
 
+      const depthData = await publicClient.readContract({
+        address: contract.address as Address,
+        abi: gnsMultiCollatDiamondAbi,
+        functionName: 'getPairDepths',
+        args: [
+          Array.from(Array(Number(refData[0].result)).keys()).map((item) =>
+            BigInt(item),
+          ),
+        ],
+      });
+
       const failedPair = pairsData.find((pair) => pair.status === 'failure');
 
       if (failedPair) {
@@ -90,7 +99,13 @@ export class TradingVariableService {
       }
 
       this.tradingVariable[contract.id] = {
-        pairs: pairsData.map((item) => item.result),
+        pairs: pairsData
+          .map((item) => item.result)
+          .filter((item) => item !== undefined)
+          .map((item, index) => ({
+            ...item,
+            depth: depthData[index],
+          })),
         collaterals: refData[1].result.map((item) => ({
           ...item,
         })),
