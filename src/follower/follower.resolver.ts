@@ -65,10 +65,12 @@ export class FollowerResolver {
   withdrawETHToUser(
     @Args('contractId', { type: () => Int }) contractId: number,
     @Args('amount', { type: () => Float }) amount: number,
+    @Args('password', { type: () => String }) password: string,
     @CurrentUser() user: User,
   ) {
     return this.followerService.withdrawETHToUser(
       user.address,
+      password,
       amount,
       contractId,
     );
@@ -80,10 +82,12 @@ export class FollowerResolver {
   withdrawUSDCToUser(
     @Args('contractId', { type: () => Int }) contractId: number,
     @Args('amount', { type: () => Float }) amount: number,
+    @Args('password', { type: () => String }) password: string,
     @CurrentUser() user: User,
   ) {
     return this.followerService.withdrawUSDCToUser(
       user.address,
+      password,
       amount,
       contractId,
     );

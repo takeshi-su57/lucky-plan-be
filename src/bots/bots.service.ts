@@ -325,7 +325,11 @@ export class BotsService {
             id: after,
           }
         : undefined,
-      where: { status, plan: { userId } },
+      where: {
+        status,
+        plan: { userId },
+        missions: status === BotStatus.Dead ? { some: {} } : undefined,
+      },
       orderBy: { id: 'desc' },
       include: {
         follower: true,

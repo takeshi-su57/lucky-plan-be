@@ -438,6 +438,7 @@ export class FollowerService {
 
   private async withdrawAssetToAny(
     userId: string,
+    password: string,
     {
       address,
       contract,
@@ -453,6 +454,10 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
+      if (!this.securityService.isValidPassword(password)) {
+        throw new Error('Password is incorrect');
+      }
+
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
           userId_accountIndex: {
@@ -553,6 +558,7 @@ export class FollowerService {
 
   async withdrawUSDCToUser(
     userId: string,
+    password: string,
     amount: number,
     contractId: number,
   ): Promise<boolean> {
@@ -575,7 +581,7 @@ export class FollowerService {
         args: [],
       });
 
-      await this.withdrawAssetToAny(userId, {
+      await this.withdrawAssetToAny(userId, password, {
         address: userId as Address,
         contract: contract,
         amount: BigInt(Math.floor(amount * Math.pow(10, decimals))),
@@ -596,13 +602,14 @@ export class FollowerService {
 
   async withdrawETHToUser(
     userId: string,
+    password: string,
     amount: number,
     contractId: number,
   ): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      await this.withdrawAssetToAny(userId, {
+      await this.withdrawAssetToAny(userId, password, {
         address: userId,
         contract: contract,
         amount: BigInt(Math.floor(amount * Math.pow(10, 18))),
