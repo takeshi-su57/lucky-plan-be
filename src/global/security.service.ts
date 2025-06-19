@@ -253,6 +253,24 @@ export class SecurityService {
     return true;
   }
 
+  async isValidPassword(password: string) {
+    const secureParams = await this.prismaService.metadata.findUnique({
+      where: {
+        key: APP_SECURE_PARAMS,
+      },
+    });
+
+    if (!secureParams) {
+      return true;
+    }
+
+    const params = JSON.parse(secureParams.value) as AppSecureParams;
+
+    const passwordHash = this.getPasswordHash(password);
+
+    return params.passwordHash === passwordHash;
+  }
+
   async loadPassword(password: string) {
     const secureParams = await this.prismaService.metadata.findUnique({
       where: {
