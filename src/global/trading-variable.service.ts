@@ -148,6 +148,14 @@ export class TradingVariableService {
     return this.tradingVariable[contractId].pairs[pairIndex];
   }
 
+  getPairs(contractId: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].pairs;
+  }
+
   getPairName(contractId: number, pairIndex: number) {
     if (!this.tradingVariable[contractId]) {
       throw new Error('Failed at getting trading variable');
