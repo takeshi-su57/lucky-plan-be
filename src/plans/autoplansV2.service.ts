@@ -366,19 +366,18 @@ export class AutoPlansV2Service {
             collateral: +item.size * +item.collateralPriceUsd,
           }));
 
-        const avgPnl =
-          chunkHistories
-            .map((item) => +item.pnl * +item.collateralPriceUsd)
-            .reduce((acc, item) => acc + item, 0) / openHistories.length;
+        const pnlSum = chunkHistories
+          .map((item) => +item.pnl * +item.collateralPriceUsd)
+          .reduce((acc, item) => acc + item, 0);
 
-        const avgSize =
-          openHistories.reduce((acc, item) => acc + item.size, 0) /
-          openHistories.length;
+        const sizeSum = openHistories.reduce((acc, item) => acc + item.size, 0);
 
-        const pnlP = (avgPnl / avgSize) * 100;
+        if (sizeSum > 0) {
+          const pnlP = (pnlSum / sizeSum) * 100;
 
-        if (pnlP < 1.1) {
-          continue;
+          if (pnlP < 1.1) {
+            continue;
+          }
         }
 
         botInputs.push({
