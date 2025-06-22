@@ -33,8 +33,10 @@ export function getPositionIncreaseParams(
 
   return {
     collateralDelta: BigInt(
-      (BigInt(trade.collateralAmount) * BigInt(levF - levL)) /
-        BigInt(levL - 1100),
+      Math.floor(
+        (Number(trade.collateralAmount) * Number(levF - levL)) /
+          Number(levL - 1100),
+      ),
     ),
     leverageDelta: 1100,
     expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),

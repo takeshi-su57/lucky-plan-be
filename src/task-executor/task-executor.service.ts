@@ -146,11 +146,14 @@ export class TaskExecutorService {
               args: [follower.address as Address, achievePosition!.index],
             });
 
-            const collateralDelta =
-              (BigInt(followerTradeData.collateralAmount) *
-                BigInt(followerTradeData.leverage)) /
-                BigInt(args.values.newLeverage) -
-              BigInt(followerTradeData.collateralAmount);
+            const collateralDelta = BigInt(
+              Math.floor(
+                (Number(followerTradeData.collateralAmount) *
+                  Number(followerTradeData.leverage)) /
+                  Number(args.values.newLeverage) -
+                  Number(followerTradeData.collateralAmount),
+              ),
+            );
 
             if (collateralDelta > 0n) {
               const result = await this.followerService.depositAsset(
