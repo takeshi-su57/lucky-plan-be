@@ -137,8 +137,10 @@ export class ContractMonitorService {
         if (actionItems.length > 0) {
           await this.tradeHistoriesService.handleActionItems(
             contract.id,
-            new Date(Number(block.timestamp) * 1000),
-            actionItems,
+            actionItems.map((item) => ({
+              ...item,
+              timestamp: new Date(Number(block.timestamp) * 1000),
+            })),
           );
         }
 

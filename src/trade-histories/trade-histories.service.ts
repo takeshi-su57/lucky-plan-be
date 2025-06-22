@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ActionItem } from 'src/actions/entities/action.entity';
+import * as csv from 'csv-parser';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { PrismaService } from 'src/global/prisma.service';
 import {
@@ -21,12 +24,22 @@ import { getStartOfDay } from 'src/utils';
 import { TradeTransactionCount } from './entities/trade-history.entity';
 import { TradeActionType } from '@prisma/client';
 
+import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
+
 @Injectable()
 export class TradeHistoriesService {
+  readonly registeredEventNames: string[] = [];
+
   constructor(
     private prismaService: PrismaService,
     private tradingVariableServcie: TradingVariableService,
-  ) {}
+  ) {
+    this.registeredEventNames = eventParsers.map((item) => item.eventName);
+
+    // setTimeout(() => {
+    //   this.migrateTradeHistoriesFromCsv('2024-10-01', '2025-06-22');
+    // }, 60_000);
+  }
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
     if (inputs.length === 0) {
@@ -204,10 +217,107 @@ export class TradeHistoriesService {
     });
   }
 
+  async migrateTradeHistoriesFromCsv(fromDateStr: string, toDateStr: string) {
+    const BATCH_SIZE = 10000;
+
+    const fromDate = new Date(fromDateStr);
+    const toDate = new Date(toDateStr);
+
+    console.time('Delete trade histories');
+
+    await this.prismaService.tradeHistory.deleteMany({
+      where: {
+        date: {
+          gte: fromDate,
+          lte: toDate,
+        },
+      },
+    });
+
+    console.timeEnd('Delete trade histories');
+
+    const dirName = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      '_EventLog__202506221924.csv',
+    );
+
+    const cache: Record<
+      number,
+      { item: ActionItem; blockNumber: number; timestamp: Date }[]
+    > = {};
+
+    console.time('migrateTradeHistoriesFromCsv');
+
+    fs.createReadStream(dirName)
+      .pipe(csv())
+      .on('data', (row) => {
+        const rowDate = new Date(row.date);
+
+        if (rowDate < fromDate || rowDate > toDate) {
+          return;
+        }
+
+        const event = JSON.parse(row.jsonLog);
+
+        if (!this.registeredEventNames.includes(event.eventName)) {
+          return;
+        }
+
+        const cacheByContractId = cache[Number(row.contractId)];
+
+        if (!cacheByContractId) {
+          cache[Number(row.contractId)] = [];
+        }
+
+        cache[Number(row.contractId)].push({
+          item: eventToActionParser(Number(row.contractId), event),
+          blockNumber: Number(row.block),
+          timestamp: rowDate,
+        });
+
+        if (cache[Number(row.contractId)].length === BATCH_SIZE) {
+          console.log('handleActionItems', {
+            contractId: Number(row.contractId),
+            length: cache[Number(row.contractId)].length,
+            from: cache[Number(row.contractId)][0].blockNumber,
+            to: cache[Number(row.contractId)][
+              cache[Number(row.contractId)].length - 1
+            ].blockNumber,
+          });
+
+          this.handleActionItems(Number(row.contractId), [
+            ...cache[Number(row.contractId)],
+          ]).then(() =>
+            console.log('handleActionItemsEnded', {
+              contractId: Number(row.contractId),
+              length: cache[Number(row.contractId)].length,
+              from: cache[Number(row.contractId)][0].blockNumber,
+              to: cache[Number(row.contractId)][
+                cache[Number(row.contractId)].length - 1
+              ].blockNumber,
+            }),
+          );
+
+          cache[Number(row.contractId)] = [];
+        }
+      })
+      .on('end', async () => {
+        for (const contractId in cache) {
+          await this.handleActionItems(Number(contractId), [
+            ...cache[Number(contractId)],
+          ]);
+        }
+
+        console.timeEnd('migrateTradeHistoriesFromCsv');
+      });
+  }
+
   async handleActionItems(
     contractId: number,
-    timestamp: Date,
-    actionItems: { item: ActionItem; blockNumber: number }[],
+    actionItems: { item: ActionItem; blockNumber: number; timestamp: Date }[],
   ) {
     const historyInputs = actionItems
       .map((actionItem) => {
@@ -230,7 +340,7 @@ export class TradeHistoriesService {
             const leverage = Number(args.values.newLeverage) / 1000;
 
             return {
-              date: timestamp,
+              date: actionItem.timestamp,
               pair: this.tradingVariableServcie.getPairName(
                 contractId,
                 Number(args.pairIndex),
@@ -277,7 +387,7 @@ export class TradeHistoriesService {
             );
 
             return {
-              date: timestamp,
+              date: actionItem.timestamp,
               pair: this.tradingVariableServcie.getPairName(
                 contractId,
                 Number(args.pairIndex),
@@ -324,7 +434,7 @@ export class TradeHistoriesService {
             );
 
             return {
-              date: timestamp,
+              date: actionItem.timestamp,
               pair: this.tradingVariableServcie.getPairName(
                 contractId,
                 Number(args.pairIndex),
@@ -372,7 +482,7 @@ export class TradeHistoriesService {
                 )}`;
 
             return {
-              date: timestamp,
+              date: actionItem.timestamp,
               pair: this.tradingVariableServcie.getPairName(
                 contractId,
                 Number(args.t.pairIndex),
@@ -430,7 +540,7 @@ export class TradeHistoriesService {
                   )}`;
 
             return {
-              date: timestamp,
+              date: actionItem.timestamp,
               pair: this.tradingVariableServcie.getPairName(
                 contractId,
                 Number(args.t.pairIndex),
