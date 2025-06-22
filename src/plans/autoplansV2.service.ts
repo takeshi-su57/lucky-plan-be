@@ -375,7 +375,7 @@ export class AutoPlansV2Service {
         if (sizeSum > 0) {
           const pnlP = (pnlSum / sizeSum) * 100;
 
-          if (pnlP < 2) {
+          if (pnlP < 1.5) {
             continue;
           }
         }
