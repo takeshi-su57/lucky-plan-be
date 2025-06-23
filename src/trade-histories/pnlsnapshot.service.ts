@@ -274,13 +274,15 @@ export class PnlSnapshotsService {
 
             historiesUsdPnlMap.set(
               contractKey,
-              prevContractValue + +record.pnl * +record.collateralPriceUsd,
+              prevContractValue +
+                Math.floor(+record.pnl * +record.collateralPriceUsd),
             );
 
             if (!testContractIdsMap.get(record.contractId)) {
               historiesUsdPnlMap.set(
                 overallKey,
-                prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+                prevOverallValue +
+                  Math.floor(+record.pnl * +record.collateralPriceUsd),
               );
             }
           }
@@ -309,7 +311,7 @@ export class PnlSnapshotsService {
           pnlRecords.forEach((record) => {
             const key = getKey(record.address, record.kind, record.contractId);
 
-            pnlRecordsMap.set(key, record.accUSDPnl);
+            pnlRecordsMap.set(key, Math.floor(record.accUSDPnl));
           });
 
           const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
@@ -322,7 +324,7 @@ export class PnlSnapshotsService {
               address: address.toLowerCase(),
               contractId,
               kind,
-              accUSDPnl: prevValue - accValue,
+              accUSDPnl: Math.floor(prevValue - accValue),
               dateStr,
             };
           });
@@ -339,7 +341,7 @@ export class PnlSnapshotsService {
                   },
                 },
                 update: {
-                  accUSDPnl: input.accUSDPnl,
+                  accUSDPnl: Math.floor(input.accUSDPnl),
                 },
                 create: input,
               });
@@ -399,13 +401,15 @@ export class PnlSnapshotsService {
 
             historiesUsdPnlMap.set(
               contractKey,
-              prevContractValue + +record.pnl * +record.collateralPriceUsd,
+              prevContractValue +
+                Math.floor(+record.pnl * +record.collateralPriceUsd),
             );
 
             if (!testContractIdsMap.get(record.contractId)) {
               historiesUsdPnlMap.set(
                 overallKey,
-                prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+                prevOverallValue +
+                  Math.floor(+record.pnl * +record.collateralPriceUsd),
               );
             }
           }
@@ -435,7 +439,7 @@ export class PnlSnapshotsService {
         pnlRecords.forEach((record) => {
           const key = getKey(record.address, record.kind, record.contractId);
 
-          pnlRecordsMap.set(key, record.accUSDPnl);
+          pnlRecordsMap.set(key, Math.floor(record.accUSDPnl));
         });
 
         const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
@@ -448,7 +452,7 @@ export class PnlSnapshotsService {
             address: address.toLowerCase(),
             contractId,
             kind,
-            accUSDPnl: prevValue + accValue,
+            accUSDPnl: Math.floor(prevValue + accValue),
             dateStr,
           };
         });
@@ -465,7 +469,7 @@ export class PnlSnapshotsService {
                 },
               },
               update: {
-                accUSDPnl: input.accUSDPnl,
+                accUSDPnl: Math.floor(input.accUSDPnl),
               },
               create: input,
             });
@@ -584,13 +588,15 @@ export class PnlSnapshotsService {
             if (upperBound.getTime() - timestampGap < record.date.getTime()) {
               historiesUsdPnlMap.set(
                 contractKey,
-                prevContractValue + +record.pnl * +record.collateralPriceUsd,
+                prevContractValue +
+                  Math.floor(+record.pnl * +record.collateralPriceUsd),
               );
 
               if (!testContractIdsMap.get(record.contractId)) {
                 historiesUsdPnlMap.set(
                   overallKey,
-                  prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+                  prevOverallValue +
+                    Math.floor(+record.pnl * +record.collateralPriceUsd),
                 );
               }
             }
@@ -621,7 +627,7 @@ export class PnlSnapshotsService {
         pnlRecords.forEach((record) => {
           const key = getKey(record.address, record.kind, record.contractId);
 
-          pnlRecordsMap.set(key, record.accUSDPnl);
+          pnlRecordsMap.set(key, Math.floor(record.accUSDPnl));
         });
 
         const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
@@ -634,7 +640,7 @@ export class PnlSnapshotsService {
             address: address.toLowerCase(),
             contractId,
             kind,
-            accUSDPnl: prevValue + accValue,
+            accUSDPnl: Math.floor(prevValue + accValue),
             dateStr,
           };
         });
@@ -651,7 +657,7 @@ export class PnlSnapshotsService {
                 },
               },
               update: {
-                accUSDPnl: input.accUSDPnl,
+                accUSDPnl: Math.floor(input.accUSDPnl),
               },
               create: input,
             });
