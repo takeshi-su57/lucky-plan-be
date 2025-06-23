@@ -51,6 +51,8 @@ export class BacktestV5Service {
     //   getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
     // );
 
+    const oneMonthStartDate = dayjs(endDate).subtract(1, 'month').toDate();
+
     const rangeHistories = histories.filter((history) => {
       const historyDate = new Date(history.date);
 
@@ -66,7 +68,17 @@ export class BacktestV5Service {
         history.action === TradeActionType.TradeOpenedLimit,
     );
 
+    const isLatestTrader = totalOpenHistories.find((history) => {
+      const historyDate = new Date(history.date);
+
+      return (
+        historyDate.getTime() >= oneMonthStartDate.getTime() &&
+        historyDate.getTime() <= endDate.getTime()
+      );
+    });
+
     if (
+      !isLatestTrader ||
       totalOpenHistories.length < params.minCount ||
       totalOpenHistories.length > params.maxCount
     ) {
