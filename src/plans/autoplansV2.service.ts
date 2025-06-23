@@ -47,13 +47,22 @@ export class AutoPlansV2Service {
   ): (PnlSnapshot & { score: number; histories: TradeHistory[] }) | null {
     const rangeHistories = histories;
 
+    const oneMonthAgoDate = dayjs().subtract(1, 'month').toDate();
+
     const totalOpenHistories = rangeHistories.filter(
       (history) =>
         history.action === TradeActionType.TradeOpenedMarket ||
         history.action === TradeActionType.TradeOpenedLimit,
     );
 
+    const isLatestTrader = totalOpenHistories.find((history) => {
+      const historyDate = new Date(history.date);
+
+      return historyDate.getTime() >= oneMonthAgoDate.getTime();
+    });
+
     if (
+      !isLatestTrader ||
       totalOpenHistories.length < filter.minCount ||
       totalOpenHistories.length > filter.maxCount
     ) {
