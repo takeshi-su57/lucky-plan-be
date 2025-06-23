@@ -263,28 +263,34 @@ export class PnlSnapshotsService {
             break;
           }
 
-          const historiesPnlMap = new Map<string, number>();
+          const historiesUsdPnlMap = new Map<string, number>();
 
           for (const record of records) {
             const contractKey = getKey(record.address, kind, record.contractId);
             const overallKey = getKey(record.address, kind, 0);
 
-            const prevContractValue = historiesPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
+            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
+            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
 
-            historiesPnlMap.set(contractKey, prevContractValue + +record.pnl);
+            historiesUsdPnlMap.set(
+              contractKey,
+              prevContractValue + +record.pnl * +record.collateralPriceUsd,
+            );
 
             if (!testContractIdsMap.get(record.contractId)) {
-              historiesPnlMap.set(overallKey, prevOverallValue + +record.pnl);
+              historiesUsdPnlMap.set(
+                overallKey,
+                prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+              );
             }
           }
 
-          const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
+          const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
 
           const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
             where: {
               OR: [
-                ...historiesPnlMapKeys.map((key) => {
+                ...historiesUsdPnlMapKeys.map((key) => {
                   const { address, kind, contractId } = parseKey(key);
 
                   return {
@@ -306,10 +312,10 @@ export class PnlSnapshotsService {
             pnlRecordsMap.set(key, record.accUSDPnl);
           });
 
-          const upsertInputs = historiesPnlMapKeys.map((key) => {
+          const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
             const { address, kind, contractId } = parseKey(key);
 
-            const accValue = historiesPnlMap.get(key) || 0;
+            const accValue = historiesUsdPnlMap.get(key) || 0;
             const prevValue = pnlRecordsMap.get(key) || 0;
 
             return {
@@ -381,30 +387,36 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const historiesPnlMap = new Map<string, number>();
+        const historiesUsdPnlMap = new Map<string, number>();
 
         for (const record of records) {
           for (const kind of Object.values(PnlSnapshotKind)) {
             const contractKey = getKey(record.address, kind, record.contractId);
             const overallKey = getKey(record.address, kind, 0);
 
-            const prevContractValue = historiesPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
+            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
+            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
 
-            historiesPnlMap.set(contractKey, prevContractValue + +record.pnl);
+            historiesUsdPnlMap.set(
+              contractKey,
+              prevContractValue + +record.pnl * +record.collateralPriceUsd,
+            );
 
             if (!testContractIdsMap.get(record.contractId)) {
-              historiesPnlMap.set(overallKey, prevOverallValue + +record.pnl);
+              historiesUsdPnlMap.set(
+                overallKey,
+                prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+              );
             }
           }
         }
 
-        const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
+        const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
 
         const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
           where: {
             OR: [
-              ...historiesPnlMapKeys.map((key) => {
+              ...historiesUsdPnlMapKeys.map((key) => {
                 const { address, kind, contractId } = parseKey(key);
 
                 return {
@@ -426,10 +438,10 @@ export class PnlSnapshotsService {
           pnlRecordsMap.set(key, record.accUSDPnl);
         });
 
-        const upsertInputs = historiesPnlMapKeys.map((key) => {
+        const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
           const { address, kind, contractId } = parseKey(key);
 
-          const accValue = historiesPnlMap.get(key) || 0;
+          const accValue = historiesUsdPnlMap.get(key) || 0;
           const prevValue = pnlRecordsMap.get(key) || 0;
 
           return {
@@ -558,7 +570,7 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const historiesPnlMap = new Map<string, number>();
+        const historiesUsdPnlMap = new Map<string, number>();
 
         for (const record of records) {
           for (const kind of Object.values(PnlSnapshotKind)) {
@@ -566,25 +578,31 @@ export class PnlSnapshotsService {
             const overallKey = getKey(record.address, kind, 0);
 
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prevContractValue = historiesPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
+            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
+            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
 
             if (upperBound.getTime() - timestampGap < record.date.getTime()) {
-              historiesPnlMap.set(contractKey, prevContractValue + +record.pnl);
+              historiesUsdPnlMap.set(
+                contractKey,
+                prevContractValue + +record.pnl * +record.collateralPriceUsd,
+              );
 
               if (!testContractIdsMap.get(record.contractId)) {
-                historiesPnlMap.set(overallKey, prevOverallValue + +record.pnl);
+                historiesUsdPnlMap.set(
+                  overallKey,
+                  prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+                );
               }
             }
           }
         }
 
-        const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
+        const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
 
         const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
           where: {
             OR: [
-              ...historiesPnlMapKeys.map((key) => {
+              ...historiesUsdPnlMapKeys.map((key) => {
                 const { address, kind, contractId } = parseKey(key);
 
                 return {
@@ -606,10 +624,10 @@ export class PnlSnapshotsService {
           pnlRecordsMap.set(key, record.accUSDPnl);
         });
 
-        const upsertInputs = historiesPnlMapKeys.map((key) => {
+        const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
           const { address, kind, contractId } = parseKey(key);
 
-          const accValue = historiesPnlMap.get(key) || 0;
+          const accValue = historiesUsdPnlMap.get(key) || 0;
           const prevValue = pnlRecordsMap.get(key) || 0;
 
           return {
