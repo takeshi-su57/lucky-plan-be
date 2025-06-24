@@ -293,9 +293,14 @@ export class BacktestV5Service {
             })),
           ],
         },
-        orderBy: {
-          date: 'asc',
-        },
+        orderBy: [
+          {
+            date: 'asc',
+          },
+          {
+            block: 'asc',
+          },
+        ],
       });
 
       const historyRecordsMap = new Map<string, TradeHistory[]>();
@@ -457,9 +462,14 @@ export class BacktestV5Service {
               })),
           ],
         },
-        orderBy: {
-          date: 'asc',
-        },
+        orderBy: [
+          {
+            date: 'asc',
+          },
+          {
+            block: 'asc',
+          },
+        ],
       });
 
       const historyRecordsMap = new Map<string, TradeHistory[]>();
@@ -895,9 +905,14 @@ export class BacktestV5Service {
               })),
           ],
         },
-        orderBy: {
-          date: 'asc',
-        },
+        orderBy: [
+          {
+            date: 'asc',
+          },
+          {
+            block: 'asc',
+          },
+        ],
       });
 
       const historyRecordsMap = new Map<string, TradeHistory[]>();

@@ -1,14 +1,22 @@
-export const oldFilter = {
-  minR2: 0.9,
-  window: 6,
-  minScore: 10,
-  n: 2,
-  m: 1,
-};
+export const oldFilter = [
+  {
+    ratio: 0.5,
+    maxSize: 150,
+    minR2: 0.9,
+    window: 6,
+    minScore: 10,
+    n: 2,
+    m: 1,
+    minAvgSize: 0,
+    maxAvgSize: 1000_000_000,
+    minCount: 0,
+    maxCount: 1000_000_000,
+  },
+];
 
 const size_0_300 = {
-  ratio: 0.5,
-  maxSize: 150,
+  ratio: 0.3,
+  maxSize: 100,
   subFilters: [
     {
       window: 12,
@@ -47,8 +55,8 @@ const size_0_300 = {
 };
 
 const size_300_2000 = {
-  ratio: 0.25,
-  maxSize: 300,
+  ratio: 0.2,
+  maxSize: 200,
   subFilters: [
     {
       window: 6,

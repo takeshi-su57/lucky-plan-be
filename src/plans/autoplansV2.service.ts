@@ -229,9 +229,14 @@ export class AutoPlansV2Service {
             })),
         ],
       },
-      orderBy: {
-        date: 'asc',
-      },
+      orderBy: [
+        {
+          date: 'asc',
+        },
+        {
+          block: 'asc',
+        },
+      ],
     });
 
     const historyRecordsMap = new Map<string, TradeHistory[]>();
@@ -348,6 +353,48 @@ export class AutoPlansV2Service {
             }
           });
 
+        const openedHistories = new Map<number, boolean>();
+        const pnlMaps = new Map<number, number>();
+        const sizeMaps = new Map<number, number>();
+
+        expert.histories.forEach((item) => {
+          if (
+            item.action === TradeActionType.TradeOpenedMarket ||
+            item.action === TradeActionType.TradeOpenedLimit
+          ) {
+            openedHistories.set(item.tradeIndex, true);
+          }
+
+          if (
+            item.action === TradeActionType.TradeClosedMarket ||
+            item.action === TradeActionType.TradeClosedLIQ ||
+            item.action === TradeActionType.TradeClosedSL ||
+            item.action === TradeActionType.TradeClosedTP
+          ) {
+            openedHistories.set(item.tradeIndex, false);
+          }
+
+          const prevPnl = pnlMaps.get(item.tradeIndex) || 0;
+
+          pnlMaps.set(item.tradeIndex, prevPnl + +item.pnl);
+
+          const prevSize = sizeMaps.get(item.tradeIndex) || 0;
+
+          sizeMaps.set(
+            item.tradeIndex,
+            Math.max(prevSize, +item.size * +item.leverage),
+          );
+        });
+
+        const openedHistoriesArr = Array.from(openedHistories.entries())
+          .filter((item) => item[1])
+          .map((item) => item[0]);
+
+        // if trader holds too many positions, skip
+        if (openedHistoriesArr.length > 17) {
+          continue;
+        }
+
         const chunkHistories = expert.histories
           .filter((item) => {
             const pair = pairMap.get(`${item.pair}`.toLowerCase());
@@ -361,30 +408,29 @@ export class AutoPlansV2Service {
               pair.depth.onePercentDepthBelowUsd > 0n
             );
           })
+          .reverse()
           .slice(0, 512);
 
-        const openHistories = chunkHistories
+        const pnlRatios = chunkHistories
           .filter(
             (history) =>
-              history.action === TradeActionType.TradeOpenedMarket ||
-              history.action === TradeActionType.TradeOpenedLimit,
+              history.action === TradeActionType.TradeClosedMarket ||
+              history.action === TradeActionType.TradeClosedLIQ ||
+              history.action === TradeActionType.TradeClosedSL ||
+              history.action === TradeActionType.TradeClosedTP,
           )
-          .map((item) => ({
-            size: +item.size * +item.leverage * +item.collateralPriceUsd,
-            leverage: +item.leverage,
-            collateral: +item.size * +item.collateralPriceUsd,
-          }));
+          .map((item) => {
+            const pnl = pnlMaps.get(item.tradeIndex) || 0;
+            const size = sizeMaps.get(item.tradeIndex) || 0;
+            return size > 0 ? (pnl / size) * 100 : null;
+          })
+          .filter((item) => item !== null);
 
-        const pnlSum = chunkHistories
-          .map((item) => +item.pnl * +item.collateralPriceUsd)
-          .reduce((acc, item) => acc + item, 0);
+        if (pnlRatios.length > 0) {
+          const avgPnlP =
+            pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
 
-        const sizeSum = openHistories.reduce((acc, item) => acc + item.size, 0);
-
-        if (sizeSum > 0) {
-          const pnlP = (pnlSum / sizeSum) * 100;
-
-          if (pnlP < 1.5) {
+          if (avgPnlP < 0.5) {
             continue;
           }
         }
