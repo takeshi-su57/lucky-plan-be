@@ -101,9 +101,14 @@ export class PnlSnapshotsService {
           })),
         ],
       },
-      orderBy: {
-        block: 'asc',
-      },
+      orderBy: [
+        {
+          date: 'asc',
+        },
+        {
+          block: 'asc',
+        },
+      ],
     });
 
     const historyRecordsMap = new Map<string, TradeHistory[]>();
@@ -242,9 +247,14 @@ export class PnlSnapshotsService {
                     lte: new Date(pastUpperBound),
                   },
                 },
-                orderBy: {
-                  block: 'asc',
-                },
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                ],
               })
             : await this.prismaService.tradeHistory.findMany({
                 take: BATCH_SIZE,
@@ -254,9 +264,14 @@ export class PnlSnapshotsService {
                     lte: new Date(pastUpperBound),
                   },
                 },
-                orderBy: {
-                  block: 'asc',
-                },
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                ],
               });
 
           if (records.length === 0) {
@@ -368,9 +383,14 @@ export class PnlSnapshotsService {
                   lte: new Date(upperBound),
                 },
               },
-              orderBy: {
-                block: 'asc',
-              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+              ],
             })
           : await this.prismaService.tradeHistory.findMany({
               take: BATCH_SIZE,
@@ -380,9 +400,14 @@ export class PnlSnapshotsService {
                   lte: new Date(upperBound),
                 },
               },
-              orderBy: {
-                block: 'asc',
-              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+              ],
             });
 
         if (records.length === 0) {
@@ -554,9 +579,14 @@ export class PnlSnapshotsService {
                   lte: upperBound,
                 },
               },
-              orderBy: {
-                block: 'asc',
-              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+              ],
             })
           : await this.prismaService.tradeHistory.findMany({
               take: BATCH_SIZE,
@@ -565,9 +595,14 @@ export class PnlSnapshotsService {
                   lte: upperBound,
                 },
               },
-              orderBy: {
-                block: 'asc',
-              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+                      ],
             });
 
         if (records.length === 0) {
