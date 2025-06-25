@@ -117,8 +117,8 @@ const size_300_2000 = {
 };
 
 const size_2000_5000 = {
-  ratio: 0.1,
-  maxSize: 500,
+  ratio: 0.15,
+  maxSize: 700,
   subFilters: [
     {
       window: 12,
@@ -179,8 +179,8 @@ const size_2000_5000 = {
 };
 
 const size_5000_10000 = {
-  ratio: 0.05,
-  maxSize: 500,
+  ratio: 0.07,
+  maxSize: 700,
   subFilters: [
     {
       window: 6,
@@ -297,7 +297,7 @@ export const bestFilters = [
   size_300_2000,
   size_2000_5000,
   size_5000_10000,
-  size_10000_50000,
+  // size_10000_50000,
 ].flatMap((item) =>
   item.subFilters.map((subFilter) => ({
     ratio: item.ratio,
