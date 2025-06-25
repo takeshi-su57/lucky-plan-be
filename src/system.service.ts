@@ -220,21 +220,26 @@ export class SystemService {
     }
   }
 
-  @Cron(CronExpression.EVERY_3_HOURS)
-  async reloadTradingVariables() {
+  private async reloadTradingVariables() {
     if (this.tradingVariableService.status !== 'ready') {
       return;
     }
 
     this.stopForTradingVariableLoading = true;
 
-    setTimeout(() => {
-      this.tradingVariableService.loadTradingVariables().then(() => {
-        console.log('trading variables reloaded');
-      });
+    const promise = new Promise((resolve) =>
+      setTimeout(() => {
+        resolve(true);
+      }, 20_000),
+    );
 
-      this.stopForTradingVariableLoading = false;
-    }, 20_000);
+    await promise;
+
+    this.stopForTradingVariableLoading = false;
+
+    await this.tradingVariableService.loadTradingVariables();
+
+    console.log('trading variables reloaded');
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -252,6 +257,8 @@ export class SystemService {
         this.autoPlansV2Service.status === 'ready' &&
         this.pnlCount % 3 === 0
       ) {
+        await this.reloadTradingVariables();
+
         await this.autoPlansV2Service.createAutoPlans();
       }
 
