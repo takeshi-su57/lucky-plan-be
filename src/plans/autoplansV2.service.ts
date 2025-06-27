@@ -26,6 +26,8 @@ import { Pair } from 'src/types';
 
 export type ServiceStatus = 'process' | 'ready';
 
+const blacklist = ['0xfe2bc280ee8ce7f2cbe2c3ff71514864ecf8a776'];
+
 @Injectable()
 export class AutoPlansV2Service {
   status: ServiceStatus = 'ready';
@@ -342,6 +344,10 @@ export class AutoPlansV2Service {
 
       for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
         const expert = realExpertPnlSnapshots[i];
+
+        if (blacklist.includes(expert.address.toLowerCase())) {
+          continue;
+        }
 
         const pairMap = new Map<string, Pair>();
 
