@@ -1506,9 +1506,9 @@ export class BacktestV5Service {
   async autoTesting(): Promise<boolean> {
     const startDates = ['2025-01-01'];
 
-    const minR2Scales = [0.85, 0.9, 0.95];
-    const windowScales = [6, 12, 38];
-    const penaltyScales = [1, 34];
+    const minR2Scales = [0.85, 0.9, 0.93, 0.95, 0.97];
+    const windowScales = [6];
+    const penaltyScales = [1];
     const sizeScales = [0, 300, 2000, 5000, 10000, 50000, 1000000000];
     const countScales = [0, 16, 32, 64, 128, 256, 512, 1000000000];
 
