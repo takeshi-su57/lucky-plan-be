@@ -271,7 +271,7 @@ export class BacktestV2Service {
             in: dateStrs,
           },
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: {
             notIn: [PnlSnapshotKind.ALL_TIME],

@@ -245,7 +245,7 @@ export class BacktestService {
         where: {
           dateStr,
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: {
             notIn: [PnlSnapshotKind.ALL_TIME],
@@ -357,7 +357,7 @@ export class BacktestService {
             in: dateStrs,
           },
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: {
             notIn: [PnlSnapshotKind.ALL_TIME],
