@@ -196,9 +196,16 @@ export class BacktestV5Service {
     startDate: Date,
     endDate: Date,
   ): TradeHistory[] {
-    const sortedHistories = histories.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    const sortedHistories = histories.sort((a, b) => {
+      const aDate = new Date(a.date);
+      const bDate = new Date(b.date);
+
+      if (aDate.getTime() === bDate.getTime()) {
+        return a.block - b.block;
+      }
+
+      return aDate.getTime() - bDate.getTime();
+    });
 
     const valideTradeIndexMap: Record<string, boolean> = {};
 
@@ -264,9 +271,7 @@ export class BacktestV5Service {
             gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
-          contractId: {
-            not: 4,
-          },
+          contractId: 0,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -289,7 +294,13 @@ export class BacktestV5Service {
           OR: [
             ...chunk.map((item) => ({
               address: item.address,
-              ...(item.contractId !== 0 ? { contractId: item.contractId } : {}),
+              ...(item.contractId !== 0
+                ? { contractId: item.contractId }
+                : {
+                    contractId: {
+                      not: 4,
+                    },
+                  }),
             })),
           ],
         },
@@ -306,22 +317,17 @@ export class BacktestV5Service {
       const historyRecordsMap = new Map<string, TradeHistory[]>();
 
       historyRecords.forEach((record) => {
-        const arr = historyRecordsMap.get(
-          `${record.address}-${record.contractId}`,
-        );
+        const arr = historyRecordsMap.get(`${record.address}`);
 
         if (arr) {
           arr.push(record);
         } else {
-          historyRecordsMap.set(`${record.address}-${record.contractId}`, [
-            record,
-          ]);
+          historyRecordsMap.set(`${record.address}`, [record]);
         }
       });
 
       pnlRecords.forEach((record) => {
-        const allHistories =
-          historyRecordsMap.get(`${record.address}-${record.contractId}`) || [];
+        const allHistories = historyRecordsMap.get(`${record.address}`) || [];
 
         for (const param of params) {
           const detail = this.getPnlSnapshotDevDetails(
@@ -402,9 +408,7 @@ export class BacktestV5Service {
             gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
-          contractId: {
-            not: 4,
-          },
+          contractId: 0,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -414,9 +418,9 @@ export class BacktestV5Service {
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
 
     pnlRecords.forEach((record) => {
-      if (record.contractId === 0) {
-        return;
-      }
+      // if (record.contractId === 0) {
+      //   return;
+      // }
 
       const key = JSON.stringify({
         address: record.address,
@@ -458,7 +462,7 @@ export class BacktestV5Service {
                 address: item.address,
                 ...(item.contractId !== 0
                   ? { contractId: item.contractId }
-                  : {}),
+                  : { contractId: { not: 4 } }),
               })),
           ],
         },
@@ -475,10 +479,7 @@ export class BacktestV5Service {
       const historyRecordsMap = new Map<string, TradeHistory[]>();
 
       historyRecords.forEach((record) => {
-        const key = JSON.stringify({
-          address: record.address,
-          contractId: record.contractId,
-        });
+        const key = record.address;
 
         const arr = historyRecordsMap.get(key);
 
@@ -490,8 +491,10 @@ export class BacktestV5Service {
       });
 
       chunk.forEach((key) => {
+        const item = JSON.parse(key) as { address: string; contractId: number };
+
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
-        const allHistories = historyRecordsMap.get(key) || [];
+        const allHistories = historyRecordsMap.get(item.address) || [];
 
         const nodes: (PnlSnapshotDevDetailsV5 & {
           endDate: Date;
@@ -845,9 +848,7 @@ export class BacktestV5Service {
             gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
-          contractId: {
-            not: 4,
-          },
+          contractId: 0,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -857,9 +858,9 @@ export class BacktestV5Service {
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
 
     pnlRecords.forEach((record) => {
-      if (record.contractId === 0) {
-        return;
-      }
+      // if (record.contractId === 0) {
+      //   return;
+      // }
 
       const key = JSON.stringify({
         address: record.address,
@@ -901,7 +902,7 @@ export class BacktestV5Service {
                 address: item.address,
                 ...(item.contractId !== 0
                   ? { contractId: item.contractId }
-                  : {}),
+                  : { contractId: { not: 4 } }),
               })),
           ],
         },
@@ -918,10 +919,7 @@ export class BacktestV5Service {
       const historyRecordsMap = new Map<string, TradeHistory[]>();
 
       historyRecords.forEach((record) => {
-        const key = JSON.stringify({
-          address: record.address,
-          contractId: record.contractId,
-        });
+        const key = record.address;
 
         const arr = historyRecordsMap.get(key);
 
@@ -933,6 +931,8 @@ export class BacktestV5Service {
       });
 
       chunk.forEach((key) => {
+        const item = JSON.parse(key) as { address: string; contractId: number };
+
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(key) || [];
 
@@ -1509,7 +1509,7 @@ export class BacktestV5Service {
     const minR2Scales = [0.85, 0.9, 0.93, 0.95, 0.97];
     const windowScales = [6];
     const penaltyScales = [1];
-    const sizeScales = [0, 300, 2000, 5000, 10000, 50000, 1000000000];
+    const sizeScales = [0, 300, 2000, 5000, 10000, 30000, 100000, 1000000000];
     const countScales = [0, 16, 32, 64, 128, 256, 512, 1000000000];
 
     await this.prismaService.testingReportV5.deleteMany();
