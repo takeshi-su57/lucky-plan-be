@@ -224,7 +224,7 @@ export class BacktestV4Service {
         where: {
           dateStr,
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
           contractId: {
@@ -357,7 +357,7 @@ export class BacktestV4Service {
             in: dateStrs,
           },
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
           contractId: {
