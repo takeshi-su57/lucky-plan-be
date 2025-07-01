@@ -182,7 +182,7 @@ export class AutoPlansV2Service {
         where: {
           dateStr: dateStr,
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
           contractId: {

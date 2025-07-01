@@ -238,7 +238,7 @@ export class BacktestV3Service {
             in: dateStrs,
           },
           accUSDPnl: {
-            gt: 0,
+            gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
           contractId: {
