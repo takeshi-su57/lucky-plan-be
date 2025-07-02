@@ -142,4 +142,7 @@ export class ExportFilterV5 {
 
   @Field(() => Int)
   maxCount: number;
+
+  @Field(() => Float)
+  ratio: number;
 }

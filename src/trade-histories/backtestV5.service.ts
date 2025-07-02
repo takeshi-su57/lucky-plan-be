@@ -35,7 +35,9 @@ export class BacktestV5Service {
     private prismaService: PrismaService,
     private tradingVariableService: TradingVariableService,
   ) {
-    // this.autoTesting();
+    // setTimeout(() => {
+    //   this.autoTesting();
+    // }, 30_000);
     this.cache = null;
     this.cachedDateStr = null;
   }
@@ -368,7 +370,6 @@ export class BacktestV5Service {
     dateStr: string,
     days: number,
     params: ExportFilterV5[],
-    ratio: number,
     isTestnet: boolean,
   ): Promise<{
     accPnls: AccPnl[];
@@ -498,6 +499,7 @@ export class BacktestV5Service {
 
         const nodes: (PnlSnapshotDevDetailsV5 & {
           endDate: Date;
+          ratio: number;
         })[] = [];
 
         subPnlRecords.forEach((record) => {
@@ -521,6 +523,7 @@ export class BacktestV5Service {
                     getStartOfDay(new Date(record.dateStr)).getTime() +
                       (24 * 3600 * 1000) / divider,
                   ),
+                  ratio: param.ratio,
                 });
               }
             }
@@ -565,10 +568,10 @@ export class BacktestV5Service {
             .map((history) => {
               return {
                 ...history,
-                size: `${Number(history.size) * ratio}`,
-                pnl: `${Number(history.pnl) * ratio}`,
+                size: `${Number(history.size) * node.ratio}`,
+                pnl: `${Number(history.pnl) * node.ratio}`,
                 collateralDelta: history.collateralDelta
-                  ? `${Number(history.collateralDelta) * ratio}`
+                  ? `${Number(history.collateralDelta) * node.ratio}`
                   : null,
               };
             });
@@ -808,7 +811,6 @@ export class BacktestV5Service {
     dateStr: string,
     days: number,
     params: ExportFilterV5,
-    ratio: number,
     isTestnet: boolean,
   ): Promise<{
     accPnls: AccPnl[];
@@ -934,10 +936,11 @@ export class BacktestV5Service {
         const item = JSON.parse(key) as { address: string; contractId: number };
 
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
-        const allHistories = historyRecordsMap.get(key) || [];
+        const allHistories = historyRecordsMap.get(item.address) || [];
 
         const nodes: (PnlSnapshotDevDetailsV5 & {
           endDate: Date;
+          ratio: number;
         })[] = [];
 
         subPnlRecords.forEach((record) => {
@@ -963,6 +966,7 @@ export class BacktestV5Service {
                     (24 * 3600 * 1000) / divider,
                 ),
                 score: sumScore,
+                ratio: 1,
               });
             }
           }
@@ -1006,10 +1010,10 @@ export class BacktestV5Service {
             .map((history) => {
               return {
                 ...history,
-                size: `${Number(history.size) * ratio}`,
-                pnl: `${Number(history.pnl) * ratio}`,
+                size: `${Number(history.size) * node.ratio}`,
+                pnl: `${Number(history.pnl) * node.ratio}`,
                 collateralDelta: history.collateralDelta
-                  ? `${Number(history.collateralDelta) * ratio}`
+                  ? `${Number(history.collateralDelta) * node.ratio}`
                   : null,
               };
             });
@@ -1248,7 +1252,6 @@ export class BacktestV5Service {
   async getWholeCompressedHistoriesV5(
     startDate: string,
     params: ExportFilterV5[],
-    ratio: number,
     isTestnet: boolean,
   ) {
     if (this.cachedDateStr === startDate && this.cache) {
@@ -1266,13 +1269,7 @@ export class BacktestV5Service {
       botCounts,
       maxInvested,
       totalBots,
-    } = await this.getRangeHistories(
-      startDate,
-      dayGaps,
-      params,
-      ratio,
-      isTestnet,
-    );
+    } = await this.getRangeHistories(startDate, dayGaps, params, isTestnet);
 
     console.timeEnd('getWholeCompressedHistories==============>');
 
@@ -1390,7 +1387,6 @@ export class BacktestV5Service {
         startDate,
         dayGaps,
         params,
-        1,
         false,
       );
 
@@ -1540,6 +1536,7 @@ export class BacktestV5Service {
                   maxAvgSize: sizeScales[sizeIndex],
                   minCount: countScales[countIndex - 1],
                   maxCount: countScales[countIndex],
+                  ratio: 1,
                 });
               }
             }

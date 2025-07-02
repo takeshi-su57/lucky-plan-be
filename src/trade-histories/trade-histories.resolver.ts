@@ -279,7 +279,6 @@ export class TradeHistoriesResolver {
 
   @Query(() => WholeCompressedHistories)
   getWholeCompressedHistoriesV5(
-    @Args('ratio', { type: () => Float }) ratio: number,
     @Args('startDate', { type: () => String }) startDate: string,
     @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
     @Args('filterParams', { type: () => [ExportFilterV5] })
@@ -288,7 +287,6 @@ export class TradeHistoriesResolver {
     return this.backtestServiceV5.getWholeCompressedHistoriesV5(
       startDate,
       filterParams,
-      ratio,
       isTestnet,
     );
   }
