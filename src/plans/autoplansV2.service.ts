@@ -20,7 +20,7 @@ import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
-import { bestFilters, ExpertFilterParams } from './expert-filters/v2';
+import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 
 import { Pair } from 'src/types';
 
@@ -185,9 +185,7 @@ export class AutoPlansV2Service {
             gt: 100,
           },
           kind: PnlSnapshotKind.MONTH,
-          contractId: {
-            not: 4,
-          },
+          contractId: 0,
         },
         orderBy: {
           accUSDPnl: 'desc',
@@ -197,9 +195,9 @@ export class AutoPlansV2Service {
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
 
     pnlRecords.forEach((record) => {
-      if (record.contractId === 0) {
-        return;
-      }
+      // if (record.contractId === 0) {
+      //   return;
+      // }
 
       const key = JSON.stringify({
         address: record.address,
@@ -227,7 +225,9 @@ export class AutoPlansV2Service {
             )
             .map((item) => ({
               address: item.address,
-              ...(item.contractId !== 0 ? { contractId: item.contractId } : {}),
+              ...(item.contractId !== 0
+                ? { contractId: item.contractId }
+                : { contractId: { not: 4 } }),
             })),
         ],
       },
@@ -254,10 +254,7 @@ export class AutoPlansV2Service {
     >();
 
     historyRecords.forEach((record) => {
-      const key = JSON.stringify({
-        address: record.address,
-        contractId: record.contractId,
-      });
+      const key = record.address;
 
       const arr = historyRecordsMap.get(key);
 
@@ -269,8 +266,10 @@ export class AutoPlansV2Service {
     });
 
     pnlSnapshotsMapKeys.forEach((key) => {
+      const item = JSON.parse(key) as { address: string; contractId: number };
+
       const subPnlRecords = pnlSnapshotsMap.get(key) || [];
-      const allHistories = historyRecordsMap.get(key) || [];
+      const allHistories = historyRecordsMap.get(item.address) || [];
 
       subPnlRecords.forEach((record) => {
         for (const filter of bestFilters) {
@@ -281,10 +280,7 @@ export class AutoPlansV2Service {
           );
 
           if (detail) {
-            const key = JSON.stringify({
-              address: record.address.toLowerCase(),
-              contractId: record.contractId,
-            });
+            const key = record.address.toLowerCase();
 
             const expert = expertMap.get(key);
 
@@ -340,6 +336,28 @@ export class AutoPlansV2Service {
         throw new Error('Cannot create a plan');
       }
 
+      const contracts = await this.prismaService.contract.findMany({
+        where: {
+          isTestnet: false,
+          id: {
+            not: 4,
+          },
+        },
+      });
+
+      const pairMap = new Map<string, Pair>();
+
+      for (const contract of contracts) {
+        this.tradingVariableService.getPairs(contract.id).forEach((pair) => {
+          if (pair) {
+            pairMap.set(
+              `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
+              pair,
+            );
+          }
+        });
+      }
+
       const botInputs: CreateBotAndStrategyInput[] = [];
 
       for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
@@ -348,16 +366,6 @@ export class AutoPlansV2Service {
         if (blacklist.includes(expert.address.toLowerCase())) {
           continue;
         }
-
-        const pairMap = new Map<string, Pair>();
-
-        this.tradingVariableService
-          .getPairs(expert.contractId)
-          .forEach((pair) => {
-            if (pair) {
-              pairMap.set(`${pair.from}/${pair.to}`.toLowerCase(), pair);
-            }
-          });
 
         const openedHistories = new Map<number, boolean>();
         const pnlMaps = new Map<number, number>();
@@ -403,7 +411,9 @@ export class AutoPlansV2Service {
 
         const chunkHistories = expert.histories
           .filter((item) => {
-            const pair = pairMap.get(`${item.pair}`.toLowerCase());
+            const pair = pairMap.get(
+              `${expert.contractId}-${item.pair}`.toLowerCase(),
+            );
 
             if (!pair) {
               return false;
@@ -441,24 +451,26 @@ export class AutoPlansV2Service {
           }
         }
 
-        botInputs.push({
-          planId: plan.id,
-          followerContractId: user.followerContractId,
-          leaderAddress: expert.address,
-          leaderCollateralBaseline: 0,
-          leaderContractId: expert.contractId,
-          strategy: {
-            strategyKey: 'ratioCopy',
-            ratio: expert.ratio,
-            lifeTime: 365 * 24 * 60,
-            maxCollateral: expert.maxSize,
-            minCollateral: 5,
-            collateralBaseline: 0,
-            maxLeverage: 200000,
-            minLeverage: 1100,
-            params: '{}',
-          },
-        });
+        for (const contract of contracts) {
+          botInputs.push({
+            planId: plan.id,
+            followerContractId: user.followerContractId,
+            leaderAddress: expert.address,
+            leaderCollateralBaseline: 0,
+            leaderContractId: contract.id,
+            strategy: {
+              strategyKey: 'ratioCopy',
+              ratio: expert.ratio,
+              lifeTime: 365 * 24 * 60,
+              maxCollateral: expert.maxSize,
+              minCollateral: 5,
+              collateralBaseline: 0,
+              maxLeverage: 200000,
+              minLeverage: 1100,
+              params: '{}',
+            },
+          });
+        }
       }
 
       await this.botService.batchCreateBots(
