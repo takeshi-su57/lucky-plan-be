@@ -26,7 +26,7 @@ import { Pair } from 'src/types';
 
 export type ServiceStatus = 'process' | 'ready';
 
-const blacklist = [];
+const blacklist: string[] = [];
 
 @Injectable()
 export class AutoPlansV2Service {
