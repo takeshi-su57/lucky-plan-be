@@ -26,7 +26,7 @@ import { Pair } from 'src/types';
 
 export type ServiceStatus = 'process' | 'ready';
 
-const blacklist = ['0xfe2bc280ee8ce7f2cbe2c3ff71514864ecf8a776'];
+const blacklist = [];
 
 @Injectable()
 export class AutoPlansV2Service {
@@ -446,7 +446,7 @@ export class AutoPlansV2Service {
           const avgPnlP =
             pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
 
-          if (avgPnlP < 0.5) {
+          if (avgPnlP < 1) {
             continue;
           }
         }
