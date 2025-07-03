@@ -431,16 +431,22 @@ export class AutoPlansV2Service {
           continue;
         }
 
-        const openedHistories = new Map<number, boolean>();
-        const pnlMaps = new Map<number, number>();
-        const sizeMaps = new Map<number, number>();
+        const openedHistories = new Map<string, boolean>();
+        const pnlMaps = new Map<string, number>();
+        const sizeMaps = new Map<string, number>();
+        const durationMaps = new Map<string, { min: number; max: number }>();
 
         expert.histories.forEach((item) => {
           if (
             item.action === TradeActionType.TradeOpenedMarket ||
             item.action === TradeActionType.TradeOpenedLimit
           ) {
-            openedHistories.set(item.tradeIndex, true);
+            openedHistories.set(`${item.contractId}-${item.tradeIndex}`, true);
+
+            durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+              min: item.date.getTime(),
+              max: 0,
+            });
           }
 
           if (
@@ -449,17 +455,31 @@ export class AutoPlansV2Service {
             item.action === TradeActionType.TradeClosedSL ||
             item.action === TradeActionType.TradeClosedTP
           ) {
-            openedHistories.set(item.tradeIndex, false);
+            openedHistories.set(`${item.contractId}-${item.tradeIndex}`, false);
+
+            const prevDuration = durationMaps.get(
+              `${item.contractId}-${item.tradeIndex}`,
+            );
+
+            durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+              min: prevDuration?.min || 0,
+              max: item.date.getTime(),
+            });
           }
 
-          const prevPnl = pnlMaps.get(item.tradeIndex) || 0;
+          const prevPnl =
+            pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
 
-          pnlMaps.set(item.tradeIndex, prevPnl + +item.pnl);
+          pnlMaps.set(
+            `${item.contractId}-${item.tradeIndex}`,
+            prevPnl + +item.pnl,
+          );
 
-          const prevSize = sizeMaps.get(item.tradeIndex) || 0;
+          const prevSize =
+            sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
 
           sizeMaps.set(
-            item.tradeIndex,
+            `${item.contractId}-${item.tradeIndex}`,
             Math.max(prevSize, +item.size * +item.leverage),
           );
         });
@@ -491,6 +511,8 @@ export class AutoPlansV2Service {
           .reverse()
           .slice(0, 512);
 
+        let totalDuration = 0;
+
         const pnlRatios = chunkHistories
           .filter(
             (history) =>
@@ -500,15 +522,34 @@ export class AutoPlansV2Service {
               history.action === TradeActionType.TradeClosedTP,
           )
           .map((item) => {
-            const pnl = pnlMaps.get(item.tradeIndex) || 0;
-            const size = sizeMaps.get(item.tradeIndex) || 0;
+            const duration = durationMaps.get(
+              `${item.contractId}-${item.tradeIndex}`,
+            ) || {
+              min: 0,
+              max: 0,
+            };
+
+            totalDuration += duration.max - duration.min;
+
+            const pnl =
+              pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+            const size =
+              sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
             return size > 0 ? (pnl / size) * 100 : null;
           })
           .filter((item) => item !== null);
 
+        const avgDuration =
+          chunkHistories.length > 0 ? totalDuration / chunkHistories.length : 0;
+
         if (pnlRatios.length > 0) {
           const avgPnlP =
             pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
+
+          // if trader is a shorterm trader, skip
+          if (avgDuration < 1000 * 5 * 60) {
+            continue;
+          }
 
           if (avgPnlP < 0.5) {
             continue;
