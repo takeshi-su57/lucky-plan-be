@@ -142,4 +142,31 @@ export class PlansResolver {
   ) {
     return this.plansService.getPlanById(user.address, id);
   }
+
+  @Query(() => [String], { nullable: true })
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getBlacklist(@CurrentUser() user: User) {
+    return this.autoplanV2Service.getBlacklist();
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  addToBlacklist(
+    @Args('address', { type: () => String }) address: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.autoplanV2Service.addToBlacklist(address);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  removeFromBlacklist(
+    @Args('address', { type: () => String }) address: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.autoplanV2Service.removeFromBlacklist(address);
+  }
 }

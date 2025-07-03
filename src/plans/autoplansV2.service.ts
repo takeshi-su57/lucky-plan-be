@@ -26,8 +26,6 @@ import { Pair } from 'src/types';
 
 export type ServiceStatus = 'process' | 'ready';
 
-const blacklist: string[] = [];
-
 @Injectable()
 export class AutoPlansV2Service {
   status: ServiceStatus = 'ready';
@@ -40,6 +38,70 @@ export class AutoPlansV2Service {
     private logger: LogsService,
   ) {
     this.status = 'ready';
+  }
+
+  async addToBlacklist(address: string) {
+    const prevBlacklist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+    });
+
+    const blacklist = prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
+
+    blacklist.push(address.toLowerCase());
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+      create: {
+        key: 'autoplans_v2_blacklist',
+        value: JSON.stringify(blacklist),
+      },
+      update: {
+        value: JSON.stringify(blacklist),
+      },
+    });
+
+    return true;
+  }
+
+  async removeFromBlacklist(address: string) {
+    const prevBlacklist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+    });
+
+    const blacklist = (
+      prevBlacklist ? JSON.parse(prevBlacklist.value) : []
+    ).filter((item: string) => item !== address.toLowerCase());
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+      create: {
+        key: 'autoplans_v2_blacklist',
+        value: JSON.stringify(blacklist),
+      },
+      update: {
+        value: JSON.stringify(blacklist),
+      },
+    });
+
+    return true;
+  }
+
+  async getBlacklist(): Promise<string[]> {
+    const prevBlacklist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+    });
+
+    return prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
   }
 
   private getExpertPnlSnapshot(
@@ -360,6 +422,8 @@ export class AutoPlansV2Service {
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
+      const blacklist = await this.getBlacklist();
+
       for (let i = 0; i < realExpertPnlSnapshots.length; i++) {
         const expert = realExpertPnlSnapshots[i];
 
@@ -412,7 +476,7 @@ export class AutoPlansV2Service {
         const chunkHistories = expert.histories
           .filter((item) => {
             const pair = pairMap.get(
-              `${expert.contractId}-${item.pair}`.toLowerCase(),
+              `${item.contractId}-${item.pair}`.toLowerCase(),
             );
 
             if (!pair) {
@@ -446,7 +510,7 @@ export class AutoPlansV2Service {
           const avgPnlP =
             pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
 
-          if (avgPnlP < 1) {
+          if (avgPnlP < 0.5) {
             continue;
           }
         }
