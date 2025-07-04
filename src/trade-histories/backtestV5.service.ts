@@ -22,6 +22,7 @@ import {
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { ExportFilterV5 } from './dto/trade-history.input';
 import { WholeCompressedHistories } from './entities/trade-history.entity';
+import { Pair } from 'src/types';
 
 const dailyPlans = 8;
 
@@ -30,6 +31,8 @@ export class BacktestV5Service {
   status: 'processing' | 'ready' = 'ready';
   private cache: WholeCompressedHistories | null = null;
   private cachedDateStr: string | null = null;
+  private pairMap: Map<string, Pair> = new Map();
+  private blacklist: string[] = [];
 
   constructor(
     private prismaService: PrismaService,
@@ -40,6 +43,43 @@ export class BacktestV5Service {
     // }, 30_000);
     this.cache = null;
     this.cachedDateStr = null;
+
+    setTimeout(() => {
+      this.initPairMap();
+    }, 60_000);
+
+    setInterval(() => {
+      this.initBlacklist();
+    }, 3600_000);
+  }
+
+  private async initPairMap() {
+    const contracts = await this.prismaService.contract.findMany({
+      where: {
+        isTestnet: false,
+      },
+    });
+
+    for (const contract of contracts) {
+      this.tradingVariableService.getPairs(contract.id).forEach((pair) => {
+        if (pair) {
+          this.pairMap.set(
+            `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
+            pair,
+          );
+        }
+      });
+    }
+  }
+
+  private async initBlacklist() {
+    const prevBlacklist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: 'autoplans_v2_blacklist',
+      },
+    });
+
+    this.blacklist = prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
   }
 
   private getPnlSnapshotDevDetails(
@@ -49,6 +89,14 @@ export class BacktestV5Service {
     histories: TradeHistory[],
     params: ExportFilterV5,
   ): PnlSnapshotDevDetailsV5 {
+    if (this.blacklist.includes(snapshot.address.toLowerCase())) {
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
+    }
+
     // const endDate = new Date(
     //   getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
     // );
@@ -126,6 +174,136 @@ export class BacktestV5Service {
         histories,
         score: 0,
       };
+    }
+
+    const openedHistories = new Map<string, boolean>();
+    const pnlMaps = new Map<string, number>();
+    const sizeMaps = new Map<string, number>();
+    const durationMaps = new Map<string, { min: number; max: number }>();
+
+    rangeHistories.forEach((item) => {
+      if (
+        item.action === TradeActionType.TradeOpenedMarket ||
+        item.action === TradeActionType.TradeOpenedLimit
+      ) {
+        openedHistories.set(`${item.contractId}-${item.tradeIndex}`, true);
+
+        durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+          min: item.date.getTime(),
+          max: 0,
+        });
+      }
+
+      if (
+        item.action === TradeActionType.TradeClosedMarket ||
+        item.action === TradeActionType.TradeClosedLIQ ||
+        item.action === TradeActionType.TradeClosedSL ||
+        item.action === TradeActionType.TradeClosedTP
+      ) {
+        openedHistories.set(`${item.contractId}-${item.tradeIndex}`, false);
+
+        const prevDuration = durationMaps.get(
+          `${item.contractId}-${item.tradeIndex}`,
+        );
+
+        durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+          min: prevDuration?.min || 0,
+          max: item.date.getTime(),
+        });
+      }
+
+      const prevPnl = pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+
+      pnlMaps.set(`${item.contractId}-${item.tradeIndex}`, prevPnl + +item.pnl);
+
+      const prevSize =
+        sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+
+      sizeMaps.set(
+        `${item.contractId}-${item.tradeIndex}`,
+        Math.max(prevSize, +item.size * +item.leverage),
+      );
+    });
+
+    const openedHistoriesArr = Array.from(openedHistories.entries())
+      .filter((item) => item[1])
+      .map((item) => item[0]);
+
+    // if trader holds too many positions, skip
+    if (openedHistoriesArr.length > 17) {
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
+    }
+
+    const chunkHistories = rangeHistories
+      .filter((item) => {
+        const pair = this.pairMap.get(
+          `${item.contractId}-${item.pair}`.toLowerCase(),
+        );
+
+        if (!pair) {
+          return false;
+        }
+
+        return (
+          pair.depth.onePercentDepthAboveUsd > 0n &&
+          pair.depth.onePercentDepthBelowUsd > 0n
+        );
+      })
+      .reverse()
+      .slice(0, 512);
+
+    let totalDuration = 0;
+
+    const pnlRatios = chunkHistories
+      .filter(
+        (history) =>
+          history.action === TradeActionType.TradeClosedMarket ||
+          history.action === TradeActionType.TradeClosedLIQ ||
+          history.action === TradeActionType.TradeClosedSL ||
+          history.action === TradeActionType.TradeClosedTP,
+      )
+      .map((item) => {
+        const duration = durationMaps.get(
+          `${item.contractId}-${item.tradeIndex}`,
+        ) || {
+          min: 0,
+          max: 0,
+        };
+
+        totalDuration += duration.max - duration.min;
+
+        const pnl = pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+        const size = sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+        return size > 0 ? (pnl / size) * 100 : null;
+      })
+      .filter((item) => item !== null);
+
+    const avgDuration =
+      chunkHistories.length > 0 ? totalDuration / chunkHistories.length : 0;
+
+    if (avgDuration < 1000 * 5 * 60) {
+      return {
+        ...snapshot,
+        histories,
+        score: 0,
+      };
+    }
+
+    if (pnlRatios.length > 0) {
+      const avgPnlP =
+        pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
+
+      if (avgPnlP < 0.5) {
+        return {
+          ...snapshot,
+          histories,
+          score: 0,
+        };
+      }
     }
 
     let traderScore = 0;
@@ -1260,7 +1438,7 @@ export class BacktestV5Service {
 
     console.time('getWholeCompressedHistories==============>');
 
-    const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+    const dayGaps = dayjs().diff(dayjs(startDate), 'day') + 2;
 
     const {
       accPnls,
