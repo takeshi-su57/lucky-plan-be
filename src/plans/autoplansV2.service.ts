@@ -385,7 +385,7 @@ export class AutoPlansV2Service {
         scheduledStart: new Date(),
         scheduledEnd: dayjs(new Date())
           .add(3, 'hours')
-          .add(15, 'minutes')
+          .add(5, 'minutes')
           .toDate(),
       };
 
@@ -542,14 +542,14 @@ export class AutoPlansV2Service {
         const avgDuration =
           chunkHistories.length > 0 ? totalDuration / chunkHistories.length : 0;
 
+        // if trader is a shorterm trader, skip
+        if (avgDuration < 1000 * 5 * 60) {
+          continue;
+        }
+
         if (pnlRatios.length > 0) {
           const avgPnlP =
             pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
-
-          // if trader is a shorterm trader, skip
-          if (avgDuration < 1000 * 5 * 60) {
-            continue;
-          }
 
           if (avgPnlP < 0.5) {
             continue;
