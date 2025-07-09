@@ -45,7 +45,6 @@ export class PnlSnapshotsService {
 
   async getPnlSnapshots(
     dateStr: string,
-    contractId: number,
     kind: PnlSnapshotKind,
     first: number,
     after: number | null,
@@ -60,7 +59,7 @@ export class PnlSnapshotsService {
           where: {
             dateStr,
             kind,
-            contractId,
+            contractId: 0,
             accUSDPnl: {
               not: 0,
             },
@@ -74,7 +73,7 @@ export class PnlSnapshotsService {
           where: {
             dateStr,
             kind,
-            contractId,
+            contractId: 0,
             accUSDPnl: {
               not: 0,
             },
@@ -94,7 +93,9 @@ export class PnlSnapshotsService {
         OR: [
           ...pnlRecords.map((item) => ({
             address: item.address,
-            ...(contractId !== 0 ? { contractId } : {}),
+            contractId: {
+              not: 4,
+            },
             date: {
               gt: startDate,
             },

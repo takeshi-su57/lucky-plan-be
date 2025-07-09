@@ -132,14 +132,12 @@ export class TradeHistoriesResolver {
   @Query(() => PnlSnapshotDetailsConnection)
   getPnlSnapshots(
     @Args('dateStr', { type: () => String }) dateStr: string,
-    @Args('contractId', { type: () => Int }) contractId: number,
     @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
-      contractId,
       kind,
       first,
       after,
