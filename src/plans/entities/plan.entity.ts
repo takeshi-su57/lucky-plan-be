@@ -85,4 +85,13 @@ export class ExpertPnlSnapshot extends PnlSnapshot {
 
   @Field(() => [TradeHistory])
   histories: TradeHistory[];
+
+  @Field(() => Float)
+  avgDuration: number;
+
+  @Field(() => Float)
+  avgPnlRatio: number;
+
+  @Field(() => Int)
+  openedPositions: number;
 }

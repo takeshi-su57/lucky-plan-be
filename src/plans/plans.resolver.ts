@@ -178,4 +178,31 @@ export class PlansResolver {
   ) {
     return this.autoplanV2Service.removeFromBlacklist(address);
   }
+
+  @Query(() => [String], { nullable: true })
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getWhitelist(@CurrentUser() user: User) {
+    return this.autoplanV2Service.getWhitelist();
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  addToWhitelist(
+    @Args('params', { type: () => String }) params: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.autoplanV2Service.addToWhitelist(params);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  removeFromWhitelist(
+    @Args('address', { type: () => String }) address: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.autoplanV2Service.removeFromWhitelist(address);
+  }
 }

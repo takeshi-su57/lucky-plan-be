@@ -24,8 +24,19 @@ import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 
 import { Pair } from 'src/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
+import { isAddress } from 'viem';
 
 export type ServiceStatus = 'process' | 'ready';
+
+const BLACKLIST_KEY = 'autoplans_v2_blacklist';
+const WHITELIST_KEY = 'autoplans_v2_whitelist';
+
+export type WhitelistedTrader = {
+  minR2: number;
+  ratio: number;
+  maxSize: number;
+  address: string;
+};
 
 @Injectable()
 export class AutoPlansV2Service {
@@ -41,23 +52,33 @@ export class AutoPlansV2Service {
     this.status = 'ready';
   }
 
+  private parseJSON(value: string) {
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      return null;
+    }
+  }
+
   async addToBlacklist(address: string) {
     const prevBlacklist = await this.prismaService.metadata.findUnique({
       where: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
       },
     });
 
-    const blacklist = prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
+    const blacklist = prevBlacklist
+      ? this.parseJSON(prevBlacklist.value) || []
+      : [];
 
     blacklist.push(address.toLowerCase());
 
     await this.prismaService.metadata.upsert({
       where: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
       },
       create: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
         value: JSON.stringify(blacklist),
       },
       update: {
@@ -71,20 +92,20 @@ export class AutoPlansV2Service {
   async removeFromBlacklist(address: string) {
     const prevBlacklist = await this.prismaService.metadata.findUnique({
       where: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
       },
     });
 
     const blacklist = (
-      prevBlacklist ? JSON.parse(prevBlacklist.value) : []
-    ).filter((item: string) => item !== address.toLowerCase());
+      prevBlacklist ? this.parseJSON(prevBlacklist.value) || [] : []
+    ).filter((item: string) => item.toLowerCase() !== address.toLowerCase());
 
     await this.prismaService.metadata.upsert({
       where: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
       },
       create: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
         value: JSON.stringify(blacklist),
       },
       update: {
@@ -98,18 +119,115 @@ export class AutoPlansV2Service {
   async getBlacklist(): Promise<string[]> {
     const prevBlacklist = await this.prismaService.metadata.findUnique({
       where: {
-        key: 'autoplans_v2_blacklist',
+        key: BLACKLIST_KEY,
       },
     });
 
-    return prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
+    return prevBlacklist ? this.parseJSON(prevBlacklist.value) || [] : [];
+  }
+
+  async addToWhitelist(params: string) {
+    const whitelistedTrader = this.parseJSON(
+      params,
+    ) as WhitelistedTrader | null;
+
+    if (
+      !whitelistedTrader ||
+      !isAddress(whitelistedTrader.address) ||
+      !whitelistedTrader.minR2 ||
+      !whitelistedTrader.ratio ||
+      !whitelistedTrader.maxSize
+    ) {
+      throw new Error('Invalid Whitelisted Trader');
+    }
+
+    const prevWhitelist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: WHITELIST_KEY,
+      },
+    });
+
+    const whitelist = prevWhitelist
+      ? this.parseJSON(prevWhitelist.value) || []
+      : [];
+
+    whitelist.push(whitelistedTrader);
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: WHITELIST_KEY,
+      },
+      create: {
+        key: WHITELIST_KEY,
+        value: JSON.stringify(whitelist),
+      },
+      update: {
+        value: JSON.stringify(whitelist),
+      },
+    });
+
+    return true;
+  }
+
+  async removeFromWhitelist(address: string) {
+    const prevWhitelist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: WHITELIST_KEY,
+      },
+    });
+
+    const whitelist = (
+      prevWhitelist ? this.parseJSON(prevWhitelist.value) || [] : []
+    ).filter(
+      (item: WhitelistedTrader) =>
+        item.address.toLowerCase() !== address.toLowerCase(),
+    );
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: BLACKLIST_KEY,
+      },
+      create: {
+        key: BLACKLIST_KEY,
+        value: JSON.stringify(whitelist),
+      },
+      update: {
+        value: JSON.stringify(whitelist),
+      },
+    });
+
+    return true;
+  }
+
+  async getWhitelist(): Promise<string[]> {
+    const prevWhitelist = await this.prismaService.metadata.findUnique({
+      where: {
+        key: WHITELIST_KEY,
+      },
+    });
+
+    return prevWhitelist
+      ? (
+          (this.parseJSON(prevWhitelist.value) || []) as WhitelistedTrader[]
+        ).map((item) => JSON.stringify(item))
+      : [];
   }
 
   private getExpertPnlSnapshot(
-    filter: ExpertFilterParams,
+    filter: ExpertFilterParams & {
+      whitelistAddress?: string;
+    },
     snapshot: PnlSnapshot,
     histories: TradeHistory[],
   ): (PnlSnapshot & { score: number; histories: TradeHistory[] }) | null {
+    // special filers for whitelisted traders only
+    if (
+      filter.whitelistAddress &&
+      filter.whitelistAddress.toLowerCase() !== snapshot.address.toLowerCase()
+    ) {
+      return null;
+    }
+
     const rangeHistories = histories;
 
     const oneMonthAgoDate = dayjs().subtract(1, 'month').toDate();
@@ -126,10 +244,14 @@ export class AutoPlansV2Service {
       return historyDate.getTime() >= oneMonthAgoDate.getTime();
     });
 
+    if (!isLatestTrader) {
+      return null;
+    }
+
     if (
-      !isLatestTrader ||
-      totalOpenHistories.length < filter.minCount ||
-      totalOpenHistories.length > filter.maxCount
+      !filter.whitelistAddress &&
+      (totalOpenHistories.length < filter.minCount ||
+        totalOpenHistories.length > filter.maxCount)
     ) {
       return null;
     }
@@ -142,7 +264,10 @@ export class AutoPlansV2Service {
 
     const avgSize = totalSize / openHistories.length;
 
-    if (avgSize < filter.minAvgSize || avgSize > filter.maxAvgSize) {
+    if (
+      !filter.whitelistAddress &&
+      (avgSize < filter.minAvgSize || avgSize > filter.maxAvgSize)
+    ) {
       return null;
     }
 
@@ -321,6 +446,20 @@ export class AutoPlansV2Service {
       }
     });
 
+    const wideFilter = {
+      window: 6,
+      n: 2,
+      m: 1,
+      minScore: 10,
+      minAvgSize: 0,
+      maxAvgSize: 1000_000_000,
+      minCount: 0,
+      maxCount: 1000_000_000,
+      minR2: 0.8,
+      ratio: 1,
+      maxSize: 700,
+    };
+
     pnlSnapshotsMapKeys.forEach((key) => {
       const item = JSON.parse(key) as { address: string; contractId: number };
 
@@ -328,7 +467,310 @@ export class AutoPlansV2Service {
       const allHistories = historyRecordsMap.get(item.address) || [];
 
       subPnlRecords.forEach((record) => {
-        for (const filter of bestFilters) {
+        const detail = this.getExpertPnlSnapshot(
+          wideFilter,
+          record,
+          allHistories,
+        );
+
+        if (detail) {
+          const key = record.address.toLowerCase();
+
+          const expert = expertMap.get(key);
+
+          if (!expert || expert.score < detail.score) {
+            expertMap.set(key, {
+              ...detail,
+              maxSize: wideFilter.maxSize,
+              ratio: wideFilter.ratio,
+            });
+          }
+        }
+      });
+    });
+
+    const contracts = await this.prismaService.contract.findMany({
+      where: {
+        isTestnet: false,
+        id: {
+          not: 4,
+        },
+      },
+    });
+
+    const pairMap = new Map<string, Pair>();
+
+    for (const contract of contracts) {
+      this.tradingVariableService.getPairs(contract.id).forEach((pair) => {
+        if (pair) {
+          pairMap.set(
+            `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
+            pair,
+          );
+        }
+      });
+    }
+
+    return Array.from(expertMap.values())
+      .sort((a, b) => b.score - a.score)
+      .map((expert) => {
+        const openedHistories = new Map<string, boolean>();
+        const pnlMaps = new Map<string, number>();
+        const sizeMaps = new Map<string, number>();
+        const durationMaps = new Map<
+          string,
+          { min: number | null; max: number }
+        >();
+
+        expert.histories.forEach((item) => {
+          if (
+            item.action === TradeActionType.TradeOpenedMarket ||
+            item.action === TradeActionType.TradeOpenedLimit
+          ) {
+            openedHistories.set(`${item.contractId}-${item.tradeIndex}`, true);
+
+            durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+              min: item.date.getTime(),
+              max: Date.now(),
+            });
+          }
+
+          if (
+            item.action === TradeActionType.TradeClosedMarket ||
+            item.action === TradeActionType.TradeClosedLIQ ||
+            item.action === TradeActionType.TradeClosedSL ||
+            item.action === TradeActionType.TradeClosedTP
+          ) {
+            openedHistories.set(`${item.contractId}-${item.tradeIndex}`, false);
+
+            const prevDuration = durationMaps.get(
+              `${item.contractId}-${item.tradeIndex}`,
+            );
+
+            durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
+              min: prevDuration?.min || null,
+              max: item.date.getTime(),
+            });
+          }
+
+          const prevPnl =
+            pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+
+          pnlMaps.set(
+            `${item.contractId}-${item.tradeIndex}`,
+            prevPnl + +item.pnl,
+          );
+
+          const prevSize =
+            sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+
+          sizeMaps.set(
+            `${item.contractId}-${item.tradeIndex}`,
+            Math.max(prevSize, +item.size * +item.leverage),
+          );
+        });
+
+        const openedHistoriesArr = Array.from(openedHistories.entries())
+          .filter((item) => item[1])
+          .map((item) => item[0]);
+
+        const chunkForPnlHistories = expert.histories
+          .filter((item) => {
+            const pair = pairMap.get(
+              `${item.contractId}-${item.pair}`.toLowerCase(),
+            );
+
+            if (!pair) {
+              return false;
+            }
+
+            return (
+              pair.depth.onePercentDepthAboveUsd > 0n &&
+              pair.depth.onePercentDepthBelowUsd > 0n
+            );
+          })
+          .reverse()
+          .slice(0, 512);
+
+        let totalDuration = 0;
+        let durationCount = 0;
+
+        expert.histories
+          .reverse()
+          .slice(0, 512)
+          .filter(
+            (history) =>
+              history.action === TradeActionType.TradeClosedMarket ||
+              history.action === TradeActionType.TradeClosedLIQ ||
+              history.action === TradeActionType.TradeClosedSL ||
+              history.action === TradeActionType.TradeClosedTP,
+          )
+          .forEach((item) => {
+            const duration = durationMaps.get(
+              `${item.contractId}-${item.tradeIndex}`,
+            );
+
+            if (duration && duration.min && duration.max) {
+              totalDuration += duration.max - duration.min;
+              durationCount++;
+            }
+          });
+
+        const pnlRatios = chunkForPnlHistories
+          .filter(
+            (history) =>
+              history.action === TradeActionType.TradeClosedMarket ||
+              history.action === TradeActionType.TradeClosedLIQ ||
+              history.action === TradeActionType.TradeClosedSL ||
+              history.action === TradeActionType.TradeClosedTP,
+          )
+          .map((item) => {
+            const pnl =
+              pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+            const size =
+              sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
+            return size > 0 ? (pnl / size) * 100 : null;
+          })
+          .filter((item) => item !== null);
+
+        const avgDuration =
+          durationCount > 0 ? totalDuration / durationCount : 0;
+
+        return {
+          ...expert,
+          openedPositions: openedHistoriesArr.length,
+          avgDuration,
+          avgPnlRatio:
+            pnlRatios.length > 0
+              ? pnlRatios.reduce((acc, item) => acc + item, 0) /
+                pnlRatios.length
+              : 1000_000_000,
+        };
+      });
+  }
+
+  private async filterExpertsForPlans(
+    dateStr: string,
+  ): Promise<
+    Omit<ExpertPnlSnapshot, 'avgDuration' | 'avgPnlRatio' | 'openedPositions'>[]
+  > {
+    const pnlRecords: PnlSnapshot[] =
+      await this.prismaService.pnlSnapshot.findMany({
+        where: {
+          dateStr: dateStr,
+          accUSDPnl: {
+            gt: 100,
+          },
+          kind: PnlSnapshotKind.MONTH,
+          contractId: 0,
+        },
+        orderBy: {
+          accUSDPnl: 'desc',
+        },
+      });
+
+    const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
+
+    pnlRecords.forEach((record) => {
+      // if (record.contractId === 0) {
+      //   return;
+      // }
+
+      const key = JSON.stringify({
+        address: record.address,
+        contractId: record.contractId,
+      });
+
+      const arr = pnlSnapshotsMap.get(key);
+
+      if (arr) {
+        arr.push(record);
+      } else {
+        pnlSnapshotsMap.set(key, [record]);
+      }
+    });
+
+    const pnlSnapshotsMapKeys = Array.from(pnlSnapshotsMap.keys());
+
+    const historyRecords = await this.prismaService.tradeHistory.findMany({
+      where: {
+        OR: [
+          ...pnlSnapshotsMapKeys
+            .map(
+              (item) =>
+                JSON.parse(item) as { address: string; contractId: number },
+            )
+            .map((item) => ({
+              address: item.address,
+              ...(item.contractId !== 0
+                ? { contractId: item.contractId }
+                : { contractId: { not: 4 } }),
+            })),
+        ],
+      },
+      orderBy: [
+        {
+          date: 'asc',
+        },
+        {
+          block: 'asc',
+        },
+      ],
+    });
+
+    const historyRecordsMap = new Map<string, TradeHistory[]>();
+
+    const expertMap = new Map<
+      string,
+      PnlSnapshot & {
+        score: number;
+        histories: TradeHistory[];
+        maxSize: number;
+        ratio: number;
+      }
+    >();
+
+    historyRecords.forEach((record) => {
+      const key = record.address;
+
+      const arr = historyRecordsMap.get(key);
+
+      if (arr) {
+        arr.push(record);
+      } else {
+        historyRecordsMap.set(key, [record]);
+      }
+    });
+
+    const whitelist = await this.getWhitelist();
+
+    const whitelistFilters = whitelist.map((item) => {
+      const params = JSON.parse(item) as WhitelistedTrader;
+
+      return {
+        window: 6,
+        n: 2,
+        m: 1,
+        minScore: 10,
+        minAvgSize: 0,
+        maxAvgSize: 1000_000_000,
+        minCount: 0,
+        maxCount: 1000_000_000,
+        minR2: params.minR2,
+        ratio: params.ratio,
+        maxSize: params.maxSize,
+        whitelistAddress: params.address,
+      };
+    });
+
+    pnlSnapshotsMapKeys.forEach((key) => {
+      const item = JSON.parse(key) as { address: string; contractId: number };
+
+      const subPnlRecords = pnlSnapshotsMap.get(key) || [];
+      const allHistories = historyRecordsMap.get(item.address) || [];
+
+      subPnlRecords.forEach((record) => {
+        for (const filter of [...bestFilters, ...whitelistFilters]) {
           const detail = this.getExpertPnlSnapshot(
             filter,
             record,
@@ -428,7 +870,10 @@ export class AutoPlansV2Service {
         const openedHistories = new Map<string, boolean>();
         const pnlMaps = new Map<string, number>();
         const sizeMaps = new Map<string, number>();
-        const durationMaps = new Map<string, { min: number; max: number }>();
+        const durationMaps = new Map<
+          string,
+          { min: number | null; max: number }
+        >();
 
         expert.histories.forEach((item) => {
           if (
@@ -439,7 +884,7 @@ export class AutoPlansV2Service {
 
             durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
               min: item.date.getTime(),
-              max: 0,
+              max: Date.now(),
             });
           }
 
@@ -456,7 +901,7 @@ export class AutoPlansV2Service {
             );
 
             durationMaps.set(`${item.contractId}-${item.tradeIndex}`, {
-              min: prevDuration?.min || 0,
+              min: prevDuration?.min || null,
               max: item.date.getTime(),
             });
           }
@@ -487,7 +932,7 @@ export class AutoPlansV2Service {
           continue;
         }
 
-        const chunkHistories = expert.histories
+        const chunkForPnlHistories = expert.histories
           .filter((item) => {
             const pair = pairMap.get(
               `${item.contractId}-${item.pair}`.toLowerCase(),
@@ -506,8 +951,30 @@ export class AutoPlansV2Service {
           .slice(0, 512);
 
         let totalDuration = 0;
+        let durationCount = 0;
 
-        const pnlRatios = chunkHistories
+        expert.histories
+          .reverse()
+          .slice(0, 512)
+          .filter(
+            (history) =>
+              history.action === TradeActionType.TradeClosedMarket ||
+              history.action === TradeActionType.TradeClosedLIQ ||
+              history.action === TradeActionType.TradeClosedSL ||
+              history.action === TradeActionType.TradeClosedTP,
+          )
+          .forEach((item) => {
+            const duration = durationMaps.get(
+              `${item.contractId}-${item.tradeIndex}`,
+            );
+
+            if (duration && duration.min && duration.max) {
+              totalDuration += duration.max - duration.min;
+              durationCount++;
+            }
+          });
+
+        const pnlRatios = chunkForPnlHistories
           .filter(
             (history) =>
               history.action === TradeActionType.TradeClosedMarket ||
@@ -516,15 +983,6 @@ export class AutoPlansV2Service {
               history.action === TradeActionType.TradeClosedTP,
           )
           .map((item) => {
-            const duration = durationMaps.get(
-              `${item.contractId}-${item.tradeIndex}`,
-            ) || {
-              min: 0,
-              max: 0,
-            };
-
-            totalDuration += duration.max - duration.min;
-
             const pnl =
               pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
             const size =
@@ -534,7 +992,7 @@ export class AutoPlansV2Service {
           .filter((item) => item !== null);
 
         const avgDuration =
-          chunkHistories.length > 0 ? totalDuration / chunkHistories.length : 0;
+          durationCount > 0 ? totalDuration / durationCount : 0;
 
         // if trader is a shorterm trader, skip
         if (avgDuration < 1000 * 5 * 60) {
@@ -595,7 +1053,7 @@ export class AutoPlansV2Service {
     const dateStr = dayjs().format('YYYY-MM-DD');
 
     try {
-      const allExpertPnlSnapshots = await this.filterExperts(dateStr);
+      const allExpertPnlSnapshots = await this.filterExpertsForPlans(dateStr);
       const allFollowers = await this.prismaService.follower.findMany();
       const followerAddresses = allFollowers.map((item) =>
         item.address.toLowerCase(),
@@ -641,7 +1099,7 @@ export class AutoPlansV2Service {
     const dateStr = dayjs().format('YYYY-MM-DD');
 
     try {
-      const allExpertPnlSnapshots = await this.filterExperts(dateStr);
+      const allExpertPnlSnapshots = await this.filterExpertsForPlans(dateStr);
       const allFollowers = await this.prismaService.follower.findMany();
       const followerAddresses = allFollowers.map((item) =>
         item.address.toLowerCase(),

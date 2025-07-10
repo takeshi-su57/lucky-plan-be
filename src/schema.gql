@@ -213,12 +213,15 @@ scalar DateTime
 type ExpertPnlSnapshot {
   accUSDPnl: Float!
   address: String!
+  avgDuration: Float!
+  avgPnlRatio: Float!
   contractId: Int!
   dateStr: String!
   histories: [TradeHistory!]!
   id: Int!
   kind: PnlSnapshotKind!
   maxSize: Float!
+  openedPositions: Int!
   ratio: Float!
   score: Float!
 }
@@ -422,6 +425,7 @@ enum MissionStatus {
 type Mutation {
   addTagToWalletAccount(input: ChangeUserTagInput!): WalletAccount!
   addToBlacklist(address: String!): Boolean!
+  addToWhitelist(params: String!): Boolean!
   addWalletAccount(input: AddUserInput!): WalletAccount!
   allowAuto(address: String!, allowAuto: Boolean!, budget: Float!, followerContractId: Int!, ratio: Float!): User!
   autoTestingV4(startDate: String!): Boolean!
@@ -453,6 +457,7 @@ type Mutation {
   pauseSystem: Boolean!
   performTask(id: Int!): Boolean!
   removeFromBlacklist(address: String!): Boolean!
+  removeFromWhitelist(address: String!): Boolean!
   removeTagFromWalletAccount(input: ChangeUserTagInput!): WalletAccount!
   resumeSystem(password: String): Boolean!
   startPlan(id: Int!): Boolean!
@@ -639,6 +644,7 @@ type Query {
   getTradeTransactionCounts(addresses: [String!]!, contractIds: [Int!]!): TradeTransactionCount!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
+  getWhitelist: [String!]
   getWholeCompressedHistories(filterParams: ExportFilter!): WholeCompressedHistories!
   getWholeCompressedHistoriesV2(filterParams: [ExportFilterV2!]!): WholeCompressedHistories!
   getWholeCompressedHistoriesV3(filterParams: [ExportFilterV3!]!): WholeCompressedHistories!
