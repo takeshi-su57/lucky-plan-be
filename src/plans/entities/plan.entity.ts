@@ -1,7 +1,17 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  registerEnumType,
+  Float,
+} from '@nestjs/graphql';
 import { PlanStatus } from '@prisma/client';
 
 import { BotForwardDetails } from 'src/bots/entities/bot.entity';
+import {
+  PnlSnapshot,
+  TradeHistory,
+} from 'src/trade-histories/entities/trade-history.entity';
 
 registerEnumType(PlanStatus, {
   name: 'PlanStatus',
@@ -60,4 +70,19 @@ export class PlanConnection {
   @Field(() => [PlanEdge])
   edges: PlanEdge[];
   @Field(() => PlanPageInfo) pageInfo: PlanPageInfo;
+}
+
+@ObjectType()
+export class ExpertPnlSnapshot extends PnlSnapshot {
+  @Field(() => Float)
+  score: number;
+
+  @Field(() => Float)
+  maxSize: number;
+
+  @Field(() => Float)
+  ratio: number;
+
+  @Field(() => [TradeHistory])
+  histories: TradeHistory[];
 }

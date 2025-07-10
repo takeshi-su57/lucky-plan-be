@@ -230,7 +230,7 @@ const size_10000_30000 = [
     maxCount: 16,
     minR2: 0.95,
     ratio: 0.03,
-    maxSize: 7000,
+    maxSize: 700,
   },
 ];
 

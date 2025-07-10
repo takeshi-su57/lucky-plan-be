@@ -15,6 +15,7 @@ import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 import { PlansService } from './plans.service';
 import {
+  ExpertPnlSnapshot,
   Plan,
   PlanConnection,
   PlanForwardDetails,
@@ -25,6 +26,7 @@ import { CurrentUser } from 'src/auth/user.decorator';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/gql-role.guard';
 import { AutoPlansV2Service } from './autoplansV2.service';
+import * as dayjs from 'dayjs';
 
 @Resolver()
 export class PlansResolver {
@@ -141,6 +143,13 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.getPlanById(user.address, id);
+  }
+
+  @Query(() => [ExpertPnlSnapshot])
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getExpertPnlSnapshots(@CurrentUser() user: User) {
+    return this.autoplanV2Service.filterExperts(dayjs().format('YYYY-MM-DD'));
   }
 
   @Query(() => [String], { nullable: true })

@@ -23,6 +23,7 @@ import { TradingVariableService } from 'src/global/trading-variable.service';
 import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 
 import { Pair } from 'src/types';
+import { ExpertPnlSnapshot } from './entities/plan.entity';
 
 export type ServiceStatus = 'process' | 'ready';
 
@@ -231,14 +232,7 @@ export class AutoPlansV2Service {
     };
   }
 
-  private async filterExperts(dateStr: string): Promise<
-    (PnlSnapshot & {
-      score: number;
-      histories: TradeHistory[];
-      maxSize: number;
-      ratio: number;
-    })[]
-  > {
+  async filterExperts(dateStr: string): Promise<ExpertPnlSnapshot[]> {
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
         where: {

@@ -166,16 +166,29 @@ export class TradingVariableService {
     return `${pair?.from}/${pair?.to}`;
   }
 
-  getTradePairs(contractId: number): TradePair[] {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+  getTradePairs(contractIds: number[]): TradePair[] {
+    const pairs: TradePair[] = [];
+
+    for (const contractId of contractIds) {
+      if (!this.tradingVariable[contractId]) {
+        throw new Error('Failed at getting trading variable');
+      }
+
+      pairs.push(
+        ...this.tradingVariable[contractId].pairs.map((pair, index) => ({
+          contractId,
+          pairIndex: index,
+          from: pair?.from || '',
+          to: pair?.to || '',
+          onePercentDepthAboveUsd:
+            pair?.depth.onePercentDepthAboveUsd.toString() || '0',
+          onePercentDepthBelowUsd:
+            pair?.depth.onePercentDepthBelowUsd.toString() || '0',
+        })),
+      );
     }
 
-    return this.tradingVariable[contractId].pairs.map((pair, index) => ({
-      pairIndex: index,
-      from: pair?.from || '',
-      to: pair?.to || '',
-    }));
+    return pairs;
   }
 
   getCollateral(contractId: number, collateralIndex: number) {
