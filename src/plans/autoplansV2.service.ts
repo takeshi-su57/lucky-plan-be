@@ -185,10 +185,10 @@ export class AutoPlansV2Service {
 
     await this.prismaService.metadata.upsert({
       where: {
-        key: BLACKLIST_KEY,
+        key: WHITELIST_KEY,
       },
       create: {
-        key: BLACKLIST_KEY,
+        key: WHITELIST_KEY,
         value: JSON.stringify(whitelist),
       },
       update: {
