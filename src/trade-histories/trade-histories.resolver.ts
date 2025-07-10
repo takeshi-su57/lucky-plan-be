@@ -113,7 +113,8 @@ export class TradeHistoriesResolver {
   @Query(() => [TradeHistory])
   getTradeHistories(
     @Args('address') address: string,
-    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('contractId', { type: () => Int })
+    contractId: number,
   ) {
     return this.tradeHistoriesService.getTradeHistories([address], contractId);
   }

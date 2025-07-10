@@ -212,7 +212,7 @@ export class TradeHistoriesService {
         address: {
           in: addresses.map((address) => address.toLowerCase()),
         },
-        contractId,
+        ...(contractId === 0 ? { contractId: { not: 4 } } : { contractId }),
       },
     });
   }

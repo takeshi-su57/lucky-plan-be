@@ -27,8 +27,10 @@ export class ContractsResolver {
   }
 
   @Query(() => [TradePair])
-  getTradePairs(@Args('contractId', { type: () => Int }) contractId: number) {
-    return this.tradingVariableService.getTradePairs(contractId);
+  getTradePairs(
+    @Args('contractId', { type: () => [Int] }) contractIds: number[],
+  ) {
+    return this.tradingVariableService.getTradePairs(contractIds);
   }
 
   @Query(() => [TradeCollateral])
