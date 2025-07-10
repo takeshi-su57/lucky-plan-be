@@ -11,7 +11,11 @@ import { PubSub } from 'graphql-subscriptions';
 import { BotStatus, User, UserPermission } from '@prisma/client';
 
 import { BotsService } from './bots.service';
-import { BotBackwardDetails, BotConnection } from './entities/bot.entity';
+import {
+  BotBackwardDetails,
+  BotConnection,
+  BotForwardDetails,
+} from './entities/bot.entity';
 import { CreateBotInput, CreateBotAndStrategyInput } from './dto/bot.input';
 
 import { PUB_SUB } from 'src/global/global.module';
@@ -118,5 +122,12 @@ export class BotsResolver {
     @CurrentUser() user: User,
   ) {
     return this.botsService.findByStatus(user.address, status, first, after);
+  }
+
+  @Query(() => [BotForwardDetails])
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getActiveBots(@CurrentUser() user: User) {
+    return this.botsService.getActiveBots(user.address);
   }
 }

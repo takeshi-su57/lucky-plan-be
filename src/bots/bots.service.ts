@@ -18,6 +18,7 @@ import {
   BotConnection,
   BotDetails,
   BotBackwardDetails,
+  BotForwardDetails,
 } from './entities/bot.entity';
 
 import { ActionDetails, ActionItem } from 'src/actions/entities/action.entity';
@@ -367,6 +368,40 @@ export class BotsService {
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
+  }
+
+  async getActiveBots(userId: string): Promise<BotForwardDetails[]> {
+    return await this.prismaService.bot.findMany({
+      where: {
+        status: {
+          in: [BotStatus.Live, BotStatus.Stop],
+        },
+        plan: { userId },
+      },
+      orderBy: { id: 'desc' },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        missions: {
+          include: {
+            targetPosition: true,
+            achievePosition: true,
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   private async findOne(id: number) {
