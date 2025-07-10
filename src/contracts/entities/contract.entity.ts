@@ -32,6 +32,9 @@ export class Contract {
 @ObjectType()
 export class TradePair {
   @Field(() => Int)
+  contractId: number;
+
+  @Field(() => Int)
   pairIndex: number;
 
   @Field()
@@ -39,6 +42,12 @@ export class TradePair {
 
   @Field()
   to: string;
+
+  @Field()
+  onePercentDepthAboveUsd: string;
+
+  @Field()
+  onePercentDepthBelowUsd: string;
 }
 
 @ObjectType()

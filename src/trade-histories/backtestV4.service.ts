@@ -347,7 +347,7 @@ export class BacktestV4Service {
     }
 
     const allPairs = isTestnet
-      ? await this.tradingVariableService.getTradePairs(isTestnet ? 4 : 0)
+      ? await this.tradingVariableService.getTradePairs(isTestnet ? [4] : [0])
       : [];
 
     const pnlRecords: PnlSnapshot[] =
