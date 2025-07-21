@@ -17,7 +17,7 @@ import { Contract } from 'src/contracts/entities/contract.entity';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 import { USDCCollateralIndex } from 'src/utils/constants';
 import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
-import { Mission } from 'src/missions/entities/mission.entity';
+import { MissionForwardDetails } from 'src/missions/entities/mission.entity';
 import {
   ContractExecutionResult,
   FollowerConnection,
@@ -780,9 +780,24 @@ export class FollowerService {
             in: achievePositions.map((position) => position.id),
           },
         },
+        orderBy: { id: 'desc' },
+        include: {
+          targetPosition: true,
+          achievePosition: true,
+          tasks: {
+            include: {
+              action: true,
+              followerActions: {
+                include: {
+                  action: true,
+                },
+              },
+            },
+          },
+        },
       });
 
-      const missionMaps = new Map<string, Mission>();
+      const missionMaps = new Map<string, MissionForwardDetails>();
 
       missions.forEach((mission) => {
         if (!mission.achievePositionId) {
