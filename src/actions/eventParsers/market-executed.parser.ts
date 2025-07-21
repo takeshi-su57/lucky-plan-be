@@ -33,5 +33,7 @@ export function parseMarketExecutedEvent(
 export const marketExecutedEventParser = {
   eventName,
   logParser: parseMarketExecutedEvent,
-  actionParser: actionToEvent<MarketExecutedEventArgs>,
+  actionParser: actionToEvent<
+    MarketExecutedEventArgs & { isManualOpen?: boolean }
+  >,
 };

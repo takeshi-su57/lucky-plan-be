@@ -26,7 +26,11 @@ import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
 import { ActionsService } from 'src/actions/actions.service';
-import { Mission, MissionDetails } from 'src/missions/entities/mission.entity';
+import {
+  ManualParams,
+  Mission,
+  MissionDetails,
+} from 'src/missions/entities/mission.entity';
 import { PUB_SUB } from 'src/global/global.module';
 
 import { leverageUpdateExecutedEventParser } from 'src/actions/eventParsers/leverage-update-executed.parser';
@@ -248,7 +252,11 @@ export class TasksService {
     return openTask;
   }
 
-  async cloneOpenTask(task: TaskDetails, clonedMissionId: number) {
+  async cloneOpenTask(
+    task: TaskDetails,
+    clonedMissionId: number,
+    manualParams?: ManualParams,
+  ) {
     const openEvent = missionEventParsers
       .find((parser) => parser.eventName === task.action.name)!
       .actionParser(task.action);
@@ -262,7 +270,12 @@ export class TasksService {
       t: {
         ...openEvent.args.t,
         openPrice: currentPrice.toString(),
+        collateralAmount:
+          manualParams?.collateralAmount || openEvent.args.t.collateralAmount,
+        leverage: manualParams?.leverage || openEvent.args.t.leverage,
+        long: manualParams?.long || openEvent.args.t.long,
       },
+      isManualOpen: manualParams ? true : false,
     });
 
     const clonedAction = await this.prismaService.action.create({

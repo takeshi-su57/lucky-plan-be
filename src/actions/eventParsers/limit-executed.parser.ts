@@ -29,5 +29,7 @@ export function parseLimitExecutedEvent(
 export const limitExecutedEventParser = {
   eventName,
   logParser: parseLimitExecutedEvent,
-  actionParser: actionToEvent<LimitExecutedEventArgs>,
+  actionParser: actionToEvent<
+    LimitExecutedEventArgs & { isManualOpen?: boolean }
+  >,
 };

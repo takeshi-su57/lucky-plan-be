@@ -4,7 +4,10 @@ import { PubSub } from 'graphql-subscriptions';
 import { User, UserPermission } from '@prisma/client';
 
 import { MissionsService } from './missions.service';
-import { MissionBackwardDetails } from './entities/mission.entity';
+import {
+  ManualParams,
+  MissionBackwardDetails,
+} from './entities/mission.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -26,8 +29,10 @@ export class MissionsResolver {
   cloneMission(
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: User,
-  ) {
-    return this.missionsService.cloneMission(user.address, id);
+    @Args('manualParams', { type: () => ManualParams, nullable: true })
+    manualParams?: ManualParams,
+  ) {  
+    return this.missionsService.cloneMission(user.address, id, manualParams);
   }
 
   @Mutation(() => Boolean)
