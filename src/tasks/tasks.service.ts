@@ -270,10 +270,17 @@ export class TasksService {
       t: {
         ...openEvent.args.t,
         openPrice: currentPrice.toString(),
-        collateralAmount:
-          manualParams?.collateralAmount || openEvent.args.t.collateralAmount,
-        leverage: manualParams?.leverage || openEvent.args.t.leverage,
-        long: manualParams?.long || openEvent.args.t.long,
+        ...(manualParams
+          ? {
+              collateralAmount: manualParams.collateralAmount,
+              leverage: manualParams.leverage,
+              long: manualParams.long,
+            }
+          : {
+              collateralAmount: openEvent.args.t.collateralAmount,
+              leverage: openEvent.args.t.leverage,
+              long: openEvent.args.t.long,
+            }),
       },
       isManualOpen: manualParams ? true : false,
     });
