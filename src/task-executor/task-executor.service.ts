@@ -391,7 +391,7 @@ export class TaskExecutorService {
             const event = missionEventParsers
               .find((parser) => parser.eventName === action.name)!
               .actionParser(action);
-            const { t, collateralPriceUsd } = event.args;
+            const { t, collateralPriceUsd, isManualOpen } = event.args;
 
             const pair = this.tradingVariableService.getPair(
               followerContract.id,
@@ -422,17 +422,22 @@ export class TaskExecutorService {
               );
 
             if (isOpenMissionAction(action)) {
-              const openMissionParams = getOpenMissionParams(
-                strategy,
-                {
-                  leverage: t.leverage,
-                  collateralAmount: BigInt(t.collateralAmount),
-                  collateralPriceUsd: BigInt(collateralPriceUsd),
-                  collateral,
-                },
-                bot.leaderCollateralBaseline,
-                usdcPrice,
-              );
+              const openMissionParams = isManualOpen
+                ? {
+                    collateralAmount: BigInt(t.collateralAmount),
+                    leverage: t.leverage,
+                  }
+                : getOpenMissionParams(
+                    strategy,
+                    {
+                      leverage: t.leverage,
+                      collateralAmount: BigInt(t.collateralAmount),
+                      collateralPriceUsd: BigInt(collateralPriceUsd),
+                      collateral,
+                    },
+                    bot.leaderCollateralBaseline,
+                    usdcPrice,
+                  );
 
               if (openMissionParams.collateralAmount > 0n) {
                 const result = await this.followerService.depositAsset(

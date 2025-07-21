@@ -1,5 +1,12 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  registerEnumType,
+  InputType,
+} from '@nestjs/graphql';
 import { MissionStatus } from '@prisma/client';
+import { IsNotEmpty } from 'class-validator';
 import { BotBackwardDetails, BotDetails } from 'src/bots/entities/bot.entity';
 
 import { Position } from 'src/positions/entities/position.entity';
@@ -58,4 +65,19 @@ export class MissionBackwardDetails extends MissionDetails {
 export class MissionForwardDetails extends MissionDetails {
   @Field(() => [TaskForwardDetails])
   tasks: TaskForwardDetails[];
+}
+
+@InputType()
+export class ManualParams {
+  @IsNotEmpty()
+  @Field()
+  collateralAmount: string;
+
+  @IsNotEmpty()
+  @Field()
+  leverage: number;
+
+  @IsNotEmpty()
+  @Field()
+  long: boolean;
 }

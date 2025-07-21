@@ -27,6 +27,7 @@ import {
 import {
   MissionDetails,
   MissionBackwardDetails,
+  ManualParams,
 } from './entities/mission.entity';
 import {
   MissionCloseInput,
@@ -284,6 +285,7 @@ export class MissionsService {
   private async _cloneMission(
     mission: MissionDetails,
     missionsByBotMap: Map<number, MissionDetails[]>,
+    manualParams?: ManualParams,
   ): Promise<boolean> {
     try {
       const openTask = await this.tasksService.findOpenTask(mission);
@@ -306,7 +308,11 @@ export class MissionsService {
         throw new Error('Cannot clone mission by internal error!');
       }
 
-      await this.tasksService.cloneOpenTask(openTask, clonedMission[0].id);
+      await this.tasksService.cloneOpenTask(
+        openTask,
+        clonedMission[0].id,
+        manualParams,
+      );
 
       return true;
     } catch (error) {
@@ -320,7 +326,7 @@ export class MissionsService {
     }
   }
 
-  async cloneMission(userId: string, id: number) {
+  async cloneMission(userId: string, id: number, manualParams?: ManualParams) {
     const mission = await this.prismaService.mission.findUnique({
       where: {
         id,
@@ -349,7 +355,7 @@ export class MissionsService {
       throw new Error('Invalid mission id!');
     }
 
-    return await this._cloneMission(mission, new Map());
+    return await this._cloneMission(mission, new Map(), manualParams);
   }
 
   async ignoreMission(userId: string, id: number): Promise<boolean> {
