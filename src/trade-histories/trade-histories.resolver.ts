@@ -151,6 +151,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => ExportFilter })
     filterParams: ExportFilter,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestService.getDevPnlSnapshots(dateStr, filterParams);
   }
 
@@ -160,6 +164,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => ExportFilter })
     filterParams: ExportFilter,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestService.getMonthlyDevPnlSnapshots(
       dateStr,
       filterParams,
@@ -171,6 +179,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => ExportFilter })
     filterParams: ExportFilter,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestService.getWholeResultHistories(filterParams);
   }
 
@@ -179,6 +191,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => ExportFilter })
     filterParams: ExportFilter,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestService.getWholeCompressedHistories(filterParams);
   }
 
@@ -187,6 +203,10 @@ export class TradeHistoriesResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestService.getTestingReport(first, after);
   }
 
@@ -195,6 +215,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => [ExportFilterV2] })
     filterParams: ExportFilterV2[],
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV2.getWholeCompressedHistoriesV2(filterParams);
   }
 
@@ -203,6 +227,10 @@ export class TradeHistoriesResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV2.getTestingReportV2(first, after);
   }
 
@@ -211,6 +239,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => [ExportFilterV3] })
     filterParams: ExportFilterV3[],
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV3.getWholeCompressedHistoriesV3(filterParams);
   }
 
@@ -219,6 +251,10 @@ export class TradeHistoriesResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV3.getTestingReportV3(first, after);
   }
 
@@ -230,6 +266,10 @@ export class TradeHistoriesResolver {
     @Args('startDate', { type: () => String }) startDate: string,
     @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV4.getWholeCompressedHistoriesV4(
       startDate,
       filterParams,
@@ -245,6 +285,10 @@ export class TradeHistoriesResolver {
     filterParams: ExportFilterV3[],
     @Args('ratio', { type: () => Float }) ratio: number,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV4.getDevPnlSnapshotsV4(
       dateStr,
       filterParams,
@@ -257,6 +301,10 @@ export class TradeHistoriesResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV4.getTestingReportV4(first, after);
   }
 
@@ -264,6 +312,10 @@ export class TradeHistoriesResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   autoTestingV4(@Args('startDate', { type: () => String }) startDate: string) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV4.autoTesting(startDate);
   }
 
@@ -273,6 +325,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => [ExportFilterV5] })
     filterParams: ExportFilterV5[],
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV5.getDevPnlSnapshotsV5(dateStr, filterParams);
   }
 
@@ -283,6 +339,10 @@ export class TradeHistoriesResolver {
     @Args('filterParams', { type: () => [ExportFilterV5] })
     filterParams: ExportFilterV5[],
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV5.getWholeCompressedHistoriesV5(
       startDate,
       filterParams,
@@ -295,6 +355,10 @@ export class TradeHistoriesResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV5.getTestingReportV5(first, after);
   }
 
@@ -302,6 +366,10 @@ export class TradeHistoriesResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   autoTestingV5() {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
     return this.backtestServiceV5.autoTesting();
   }
 }
