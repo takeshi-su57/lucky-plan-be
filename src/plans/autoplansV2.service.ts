@@ -1047,7 +1047,7 @@ export class AutoPlansV2Service {
               maxCollateral: expert.maxSize,
               minCollateral: 5,
               collateralBaseline: 0,
-              maxLeverage: Math.max(1100, Math.ceil(avgLeverage * 1000)),
+              maxLeverage: Math.max(1100, Math.ceil(2 * avgLeverage * 1000)),
               minLeverage: 1100,
               params: '{}',
             },
