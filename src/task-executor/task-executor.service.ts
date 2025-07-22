@@ -210,6 +210,13 @@ export class TaskExecutorService {
             followerTradeData,
           );
 
+          if (increaseParams === null) {
+            return {
+              success: true,
+              message: `Skipped this position size update because no need to increase position`,
+            };
+          }
+
           if (increaseParams.collateralDelta > 0n) {
             const fee = BigInt(
               Math.max(
@@ -287,12 +294,25 @@ export class TaskExecutorService {
             args: [follower.address as Address, achievePosition!.index],
           });
 
+          const decreaseParams = getPositionDecreaseParams(
+            strategy,
+            args,
+            followerTradeData,
+          );
+
+          if (decreaseParams === null) {
+            return {
+              success: true,
+              message: `Skipped this position size update because no need to decrease position`,
+            };
+          }
+
           tx = await this.tradeService.decreasePositionSize(
             walletClient,
             publicClient,
             followerContract.chainId,
             {
-              ...getPositionDecreaseParams(strategy, args, followerTradeData),
+              ...decreaseParams,
               index: achievePosition!.index,
             },
           );
@@ -437,6 +457,7 @@ export class TaskExecutorService {
                     },
                     bot.leaderCollateralBaseline,
                     usdcPrice,
+                    t.pairIndex,
                   );
 
               if (openMissionParams.collateralAmount > 0n) {

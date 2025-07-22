@@ -4,7 +4,7 @@ import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { erc20Abi, isAddress } from 'viem';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
-import { BotStatus } from '@prisma/client';
+import { BotStatus, MissionStatus } from '@prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PrismaService } from 'src/global/prisma.service';
@@ -778,6 +778,9 @@ export class FollowerService {
         where: {
           achievePositionId: {
             in: achievePositions.map((position) => position.id),
+          },
+          status: {
+            notIn: [MissionStatus.Closed, MissionStatus.Ignored],
           },
         },
         orderBy: { id: 'desc' },

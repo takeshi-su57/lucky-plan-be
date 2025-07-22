@@ -8,39 +8,64 @@ export function getPositionIncreaseParams(
   increaseEventArgs: PositionSizeIncreaseExecutedEventArgs,
   trade: Trade,
 ) {
-  const levL = Number(increaseEventArgs.values.newLeverage);
-  const levF = trade.leverage;
+  const collateralDelta = BigInt(increaseEventArgs.collateralDelta);
+  const newLeverage = Math.min(
+    strategy.maxLeverage,
+    Number(increaseEventArgs.values.newLeverage),
+  );
+  const oldLeverage = Number(trade.leverage);
 
-  if (levL > levF) {
-    const levDelta = levL - levF;
+  const isLeverageUpdate = collateralDelta === 0n;
+
+  if (isLeverageUpdate) {
+    const leverageDelta = newLeverage - oldLeverage;
+
+    // no need to increase position
+    if (leverageDelta <= 0) {
+      return null;
+    }
 
     return {
       collateralDelta: 0n,
-      leverageDelta: levDelta,
+      leverageDelta,
+      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+    };
+  }
+
+  if (newLeverage > oldLeverage) {
+    const leverageDelta = newLeverage - oldLeverage;
+
+    return {
+      collateralDelta: 0n,
+      leverageDelta,
       expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
     };
   }
 
   if (strategy.strategyKey === 'ratioCopy') {
+    const collateralDelta = BigInt(
+      Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio),
+    );
+
     return {
-      collateralDelta: BigInt(
-        Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio),
-      ),
+      collateralDelta,
       leverageDelta: Number(increaseEventArgs.leverageDelta),
       expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
     };
   }
 
-  return {
-    collateralDelta: BigInt(
-      Math.floor(
-        (Number(trade.collateralAmount) * Number(levF - levL)) /
-          Number(levL - 1100),
-      ),
-    ),
-    leverageDelta: 1100,
-    expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
-  };
+  throw new Error(`Unsupported strategy key: ${strategy.strategyKey}`);
+
+  // return {
+  //   collateralDelta: BigInt(
+  //     Math.floor(
+  //       (Number(trade.collateralAmount) * Number(levF - levL)) /
+  //         Number(levL - 1100),
+  //     ),
+  //   ),
+  //   leverageDelta: 1100,
+  //   expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+  // };
 }
 
 export function getPositionDecreaseParams(
@@ -57,9 +82,17 @@ export function getPositionDecreaseParams(
   );
 
   if (deltaLevL > 0) {
+    // no need to decrease position
+    if (
+      Number(decreaseEventArgs.values.newLeverage) >= Number(trade.leverage)
+    ) {
+      return null;
+    }
+
     return {
       collateralDelta: 0n,
-      leverageDelta: Math.min(deltaLevL, trade.leverage - 1100),
+      leverageDelta:
+        Number(trade.leverage) - Number(decreaseEventArgs.values.newLeverage),
       expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
     };
   }
@@ -77,6 +110,8 @@ export function getPositionDecreaseParams(
   };
 }
 
+const DEGEN_PAIRS = [300, 313, 314, 326, 327];
+
 export function getOpenMissionParams(
   strategy: Strategy,
   args: {
@@ -87,6 +122,7 @@ export function getOpenMissionParams(
   },
   leaderCollateralBaseline: number,
   usdcPrice: bigint,
+  pairIndex: number,
 ) {
   const collateralUSDCAmount = Math.floor(
     (Number(args.collateralAmount) / Number(args.collateral.precision)) *
@@ -118,8 +154,15 @@ export function getOpenMissionParams(
   ratioAmount = ratioAmount < maxCollateral ? ratioAmount : maxCollateral;
   ratioAmount = ratioAmount > minCollateral ? ratioAmount : minCollateral;
 
+  const leverage = DEGEN_PAIRS.includes(pairIndex)
+    ? args.leverage
+    : Math.max(
+        strategy.minLeverage,
+        Math.min(strategy.maxLeverage, args.leverage),
+      );
+
   return {
-    leverage: args.leverage,
+    leverage,
     collateralAmount: ratioAmount,
   };
 }

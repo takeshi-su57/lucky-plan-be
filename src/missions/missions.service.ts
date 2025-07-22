@@ -453,6 +453,7 @@ export class MissionsService {
           },
           item.context.bot.leaderCollateralBaseline,
           100_000_000n,
+          t.pairIndex,
         );
 
         // block leader action register if collateral is less than 25 USDC

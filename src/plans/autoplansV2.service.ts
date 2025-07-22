@@ -558,7 +558,7 @@ export class AutoPlansV2Service {
 
           pnlMaps.set(
             `${item.contractId}-${item.tradeIndex}`,
-            prevPnl + +item.pnl,
+            prevPnl + +item.pnl * +item.collateralPriceUsd,
           );
 
           const prevSize =
@@ -566,7 +566,10 @@ export class AutoPlansV2Service {
 
           sizeMaps.set(
             `${item.contractId}-${item.tradeIndex}`,
-            Math.max(prevSize, +item.size * +item.leverage),
+            Math.max(
+              prevSize,
+              +item.size * +item.collateralPriceUsd * +item.leverage,
+            ),
           );
         });
 
@@ -911,7 +914,7 @@ export class AutoPlansV2Service {
 
           pnlMaps.set(
             `${item.contractId}-${item.tradeIndex}`,
-            prevPnl + +item.pnl,
+            prevPnl + +item.pnl * +item.collateralPriceUsd,
           );
 
           const prevSize =
@@ -919,7 +922,10 @@ export class AutoPlansV2Service {
 
           sizeMaps.set(
             `${item.contractId}-${item.tradeIndex}`,
-            Math.max(prevSize, +item.size * +item.leverage),
+            Math.max(
+              prevSize,
+              +item.size * +item.collateralPriceUsd * +item.leverage,
+            ),
           );
         });
 
@@ -974,6 +980,25 @@ export class AutoPlansV2Service {
             }
           });
 
+        let totalLeverage = 0;
+        let openCount = 0;
+
+        expert.histories
+          .reverse()
+
+          .filter(
+            (history) =>
+              history.action === TradeActionType.TradeOpenedMarket ||
+              history.action === TradeActionType.TradeOpenedLimit,
+          )
+          .slice(0, 512)
+          .forEach((item) => {
+            totalLeverage += +item.leverage;
+            openCount++;
+          });
+
+        const avgLeverage = openCount > 0 ? totalLeverage / openCount : 0;
+
         const pnlRatios = chunkForPnlHistories
           .filter(
             (history) =>
@@ -1022,7 +1047,7 @@ export class AutoPlansV2Service {
               maxCollateral: expert.maxSize,
               minCollateral: 5,
               collateralBaseline: 0,
-              maxLeverage: 200000,
+              maxLeverage: Math.max(1100, Math.ceil(avgLeverage * 1000)),
               minLeverage: 1100,
               params: '{}',
             },
