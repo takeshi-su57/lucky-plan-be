@@ -31,6 +31,14 @@ export type ServiceStatus = 'process' | 'ready';
 const BLACKLIST_KEY = 'autoplans_v2_blacklist';
 const WHITELIST_KEY = 'autoplans_v2_whitelist';
 
+const DEGEN_PAIRS = [
+  'BTCDEGEN/USD',
+  'ETHDEGEN/USD',
+  'SOLDEGEN/USD',
+  'XRPDEGEN/USD',
+  'BNBDEGEN/USD',
+];
+
 export type WhitelistedTrader = {
   minR2: number;
   ratio: number;
@@ -993,6 +1001,10 @@ export class AutoPlansV2Service {
           )
           .slice(0, 512)
           .forEach((item) => {
+            if (DEGEN_PAIRS.includes(item.pair.toUpperCase())) {
+              return;
+            }
+
             totalLeverage += +item.leverage;
             openCount++;
           });
