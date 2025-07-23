@@ -204,9 +204,15 @@ export class TaskExecutorService {
             args: [follower.address as Address, achievePosition!.index],
           });
 
+          const collateral = this.tradingVariableService.getCollateral(
+            leaderContractId,
+            args.collateralIndex,
+          );
+
           const increaseParams = getPositionIncreaseParams(
             strategy,
             args,
+            collateral,
             followerTradeData,
           );
 
