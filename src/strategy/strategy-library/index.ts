@@ -6,6 +6,7 @@ import { Strategy } from '../entities/strategy.entity';
 export function getPositionIncreaseParams(
   strategy: Strategy,
   increaseEventArgs: PositionSizeIncreaseExecutedEventArgs,
+  collateral: Collateral,
   trade: Trade,
 ) {
   const collateralDelta = BigInt(increaseEventArgs.collateralDelta);
@@ -43,12 +44,14 @@ export function getPositionIncreaseParams(
   }
 
   if (strategy.strategyKey === 'ratioCopy') {
-    const collateralDelta = BigInt(
-      Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio),
+    const collateralDeltaUSDC = BigInt(
+      (Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
+        Number(collateral.precision)) *
+        1e6,
     );
 
     return {
-      collateralDelta,
+      collateralDelta: collateralDeltaUSDC,
       leverageDelta: Number(increaseEventArgs.leverageDelta),
       expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
     };
