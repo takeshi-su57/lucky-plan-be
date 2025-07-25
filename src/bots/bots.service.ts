@@ -50,7 +50,7 @@ export class BotsService {
     private logger: LogsService,
   ) {}
 
-  async create(
+  private async _create(
     userId: string,
     input: CreateBotInput,
   ): Promise<BotBackwardDetails> {
@@ -89,6 +89,19 @@ export class BotsService {
     });
 
     return newBot;
+  }
+
+  async create(
+    userId: string,
+    input: CreateBotInput,
+  ): Promise<BotBackwardDetails> {
+    const bot = await this._create(userId, input);
+
+    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+      [SUBSCRIPTION_TOKEN.botCreated]: [bot],
+    });
+
+    return bot;
   }
 
   async batchCreateBots(
