@@ -470,7 +470,6 @@ type Mutation {
   stopBot(id: Int!): Boolean!
   stopTask(id: Int!): Boolean!
   updatePlan(updatePlanInput: UpdatePlanInput!): Plan!
-  upgradeSystem: Boolean!
   upsertCategory(input: TagCategoryInput!): TagCategory!
   upsertTag(input: TagInput!): Tag!
   withdrawAllETH(input: WithdrawAllInput!): Boolean!

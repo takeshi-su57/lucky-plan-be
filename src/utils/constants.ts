@@ -25,3 +25,16 @@ export const MAX_GAS = BigInt(0.001 * Math.pow(10, etherUnits.wei));
 
 export const MIN_POSITION_SIZE = 5_000_000n; // 10 USDC
 export const MIN_FEE = 1000_000n; // 1 USDC
+
+export const PATTERNS = {
+  Log: 'LOG',
+  NativeLog: 'NATIVE_LOG',
+  killProcess: 'KILL_PROCESS',
+  ProcessStatus: 'PROCESS_STATUS',
+};
+
+export const SERVICE_NAMES = {
+  REDIS_SERVICE: 'REDIS_SERVICE',
+  API_SERVICE: 'API_SERVICE',
+  LEADERBOARD_SERVICE: 'LEADERBOARD_SERVICE',
+};
