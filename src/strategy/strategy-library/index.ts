@@ -45,9 +45,11 @@ export function getPositionIncreaseParams(
 
   if (strategy.strategyKey === 'ratioCopy') {
     const collateralDeltaUSDC = BigInt(
-      (Math.floor(Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
-        Number(collateral.precision)) *
-        1e6,
+      Math.floor(
+        ((Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
+          Number(collateral.precision)) *
+          1e6,
+      ),
     );
 
     return {
