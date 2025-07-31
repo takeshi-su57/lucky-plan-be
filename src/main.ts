@@ -1,43 +1,54 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import {
-  WinstonModule,
-  utilities as nestWinstonModuleUtilities,
-} from 'nest-winston';
-import * as winston from 'winston';
-import 'winston-daily-rotate-file';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
-import { AppModule } from './app.module';
+import { ApiModule } from './microservices/apiService/api.module';
+import { LeaderboardModule } from './microservices/leaderboardService/leaderboard.module';
+import { SERVICE_NAMES } from './utils/constants';
+
 import 'dotenv';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: WinstonModule.createLogger({
-      level: 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.ms(),
-        nestWinstonModuleUtilities.format.nestLike('Lucky Plan', {
-          colors: true,
-          prettyPrint: true,
-          processId: true,
-          appName: true,
-        }),
-      ),
-      transports: [
-        new winston.transports.DailyRotateFile({
-          filename: 'logs/application-%DATE%.log', // File path format
-          datePattern: 'YYYY-MM-DD', // Create a new file daily
-          maxSize: '20m', // Optional max file size
-        }),
-        new winston.transports.Console(), // Optional: log to console as well
-      ],
-    }),
-  });
+  switch (process.env.SERVICE) {
+    case SERVICE_NAMES.LEADERBOARD_SERVICE: {
+      const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+        LeaderboardModule,
+        {
+          transport: Transport.REDIS,
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          },
+        },
+      );
 
-  app.useGlobalPipes(new ValidationPipe());
-  app.enableCors();
+      await app.listen();
+      break;
+    }
+    case SERVICE_NAMES.API_SERVICE: {
+      const app = await NestFactory.create(ApiModule);
 
-  await app.listen(process.env.PORT || 3000);
+      app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.REDIS,
+        options: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+        },
+      });
+
+      app.useGlobalPipes(new ValidationPipe());
+      app.enableCors();
+
+      await app.startAllMicroservices();
+
+      await app.listen(process.env.PORT || 3000);
+
+      break;
+    }
+    default: {
+      console.log('Invalid service');
+      process.exit(1);
+    }
+  }
 }
 bootstrap();

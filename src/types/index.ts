@@ -165,3 +165,9 @@ export type TradeEventContext<TEventArgs, TContext> = {
 export type CloseMissionActionArgs = {
   expectedPrice: string;
 };
+
+export enum ServiceStatus {
+  KILLED = 'killed',
+  PROCESS = 'process',
+  READY = 'ready',
+}

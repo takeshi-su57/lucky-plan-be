@@ -6,11 +6,11 @@ import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
 import { ChainsService } from 'src/global/chains.service';
 import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
 
-import { BotsService } from './bots/bots.service';
-import { ContractsService } from './contracts/contracts.service';
-import { TradeHistoriesService } from './trade-histories/trade-histories.service';
-import { getReadableError } from './utils';
-import { LogsService } from './loggers/logs.service';
+import { BotsService } from '../../bots/bots.service';
+import { ContractsService } from '../../contracts/contracts.service';
+import { getReadableError } from '../../utils';
+import { LogsService } from '../../loggers/logs.service';
+import { ServiceStatus } from 'src/types';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -18,11 +18,9 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
     .map((item) => [item.signature, item.name]),
 );
 
-export type ServiceStatus = 'process' | 'ready';
-
 @Injectable()
 export class ContractMonitorService {
-  status: { leaderboard: ServiceStatus; bot: ServiceStatus };
+  status: ServiceStatus;
 
   readonly registeredEventNames: string[] = [];
   static BATCH_SIZE = 4000n;
@@ -31,15 +29,14 @@ export class ContractMonitorService {
     private chainsService: ChainsService,
     private botsService: BotsService,
     private contractsService: ContractsService,
-    private tradeHistoriesService: TradeHistoriesService,
     private readonly logger: LogsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
-    this.status = { leaderboard: 'ready', bot: 'ready' };
+    this.status = ServiceStatus.READY;
   }
 
   async checkContractsForBots() {
-    this.status.bot = 'process';
+    this.status = ServiceStatus.PROCESS;
 
     const contracts = await this.contractsService.findAll();
 
@@ -52,7 +49,7 @@ export class ContractMonitorService {
       await this.checkContractForBots(contract);
     }
 
-    this.status.bot = 'ready';
+    this.status = ServiceStatus.READY;
   }
 
   async checkContractForBots(contract: Contract) {
@@ -92,75 +89,6 @@ export class ContractMonitorService {
       await this.logger.log({
         severity: 'Error',
         summary: 'contract-monitor>checkContractForBots',
-        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
-      });
-    }
-  }
-
-  async checkContractsForLeaderboard() {
-    this.status.leaderboard = 'process';
-
-    const contracts = await this.contractsService.findAll();
-
-    for (const contract of contracts) {
-      // temporarily skip testnet contracts
-      if (contract.isTestnet) {
-        continue;
-      }
-
-      await this.checkContractForLeaderboard(contract);
-    }
-
-    this.status.leaderboard = 'ready';
-  }
-
-  async checkContractForLeaderboard(contract: Contract) {
-    try {
-      const currentBlockNumber = await this.chainsService
-        .publicClient(contract.chainId)
-        .getBlockNumber();
-
-      let fromBlock = BigInt(contract.lastLeaderboardBlockNumber) + 1n;
-
-      while (fromBlock <= currentBlockNumber) {
-        const toBlock =
-          fromBlock + ContractMonitorService.BATCH_SIZE < currentBlockNumber
-            ? fromBlock + ContractMonitorService.BATCH_SIZE
-            : currentBlockNumber;
-
-        const actionItems = await this.getLogs(fromBlock, toBlock, contract);
-
-        const block = await this.chainsService
-          .publicClient(contract.chainId)
-          .getBlock({ blockNumber: fromBlock });
-
-        if (actionItems.length > 0) {
-          await this.tradeHistoriesService.handleActionItems(
-            contract.id,
-            actionItems.map((item) => ({
-              ...item,
-              timestamp: new Date(Number(block.timestamp) * 1000),
-            })),
-          );
-        }
-
-        await this.contractsService.updateLastLeaderboardBlockNumber(
-          contract.id,
-          Number(toBlock),
-        );
-
-        await this.logger.log({
-          severity: 'Info',
-          summary: 'contract-monitor>checkContractForLeaderboard',
-          details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        });
-
-        fromBlock = toBlock + 1n;
-      }
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: 'contract-monitor>checkContractForLeaderboard',
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
     }
