@@ -39,8 +39,6 @@ export class ApiService {
     this.stopForTradingVariableLoading = false;
 
     this.reloadTradingVariables();
-
-    this.resumeSystem('admin');
   }
 
   updateProcessStatus(service: string, status: ServiceStatus) {
@@ -71,13 +69,13 @@ export class ApiService {
   }
 
   async resumeSystem(password: string | null) {
-    // if (this.securityService.isSafeApp) {
-    //   if (!password) {
-    //     throw new Error('Required Password');
-    //   }
+    if (this.securityService.isSafeApp) {
+      if (!password) {
+        throw new Error('Required Password');
+      }
 
-    //   await this.securityService.loadPassword(password);
-    // }
+      await this.securityService.loadPassword(password);
+    }
 
     for (const service of microservices) {
       const child = spawn('yarn', ['start'], {
