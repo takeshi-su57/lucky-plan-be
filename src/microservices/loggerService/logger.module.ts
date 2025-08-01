@@ -1,15 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ScheduleModule } from '@nestjs/schedule';
-
-import { LeaderboardController } from './logger.controller';
 
 import { GlobalModule } from '../../global/global.module';
-import { WalletAccountsModule } from '../../wallet-accounts/wallet-accounts.module';
-import { AuthModule } from '../../auth/auth.module';
-import { LogsModule } from '../../loggers/logs.module';
-import { SecurityService } from './logger.service';
+
+import { LoggerController } from './logger.controller';
+import { LogsService } from './logger.service';
+
+import { SERVICE_NAMES } from 'src/utils/constants';
 
 @Module({
   imports: [
@@ -18,7 +16,7 @@ import { SecurityService } from './logger.service';
     }),
     ClientsModule.register([
       {
-        name: 'REDIS_SERVICE',
+        name: SERVICE_NAMES.REDIS_SERVICE,
         transport: Transport.REDIS,
         options: {
           host: process.env.REDIS_HOST || 'localhost',
@@ -26,13 +24,9 @@ import { SecurityService } from './logger.service';
         },
       },
     ]),
-    ScheduleModule.forRoot(),
-    WalletAccountsModule,
-    AuthModule,
     GlobalModule,
-    LogsModule,
   ],
-  controllers: [LeaderboardController],
-  providers: [SecurityService],
+  controllers: [LoggerController],
+  providers: [LogsService],
 })
 export class LeaderboardModule {}
