@@ -100,7 +100,9 @@ export type Trade = {
   openPrice: bigint;
   tp: bigint;
   sl: bigint;
-  __placeholder: bigint;
+  isCounterTrade: boolean;
+  positionSizeToken: bigint;
+  __placeholder: number;
 };
 
 export type TradeInfo = {

@@ -502,20 +502,6 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
-        internalType: 'address',
-        name: '_govEmergencyTimelock',
-        type: 'address',
-      },
-    ],
-    name: 'initializeGovEmergencyTimelock',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x52b3aaca',
-  },
-  {
-    inputs: [
-      {
         internalType: 'address[]',
         name: '_accounts',
         type: 'address[]',
@@ -601,48 +587,6 @@ export const gnsMultiCollatDiamondAbi = [
     inputs: [],
     name: 'WrongLiqParamsThresholds',
     type: 'error',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint16',
-        name: 'newValue',
-        type: 'uint16',
-      },
-    ],
-    name: 'CounterTradeFeeRateMultiplierUpdated',
-    type: 'event',
-    signature:
-      '0xa356cd97c9354bf5880a674ad3e13158304bf539a1d9bf37f509cf36c0cfa14f',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint24',
-        name: 'newValue',
-        type: 'uint24',
-      },
-    ],
-    name: 'CounterTradeMaxLeverageUpdated',
-    type: 'event',
-    signature:
-      '0x85d3acbacec3221f8a0cf8c838f8b33c795a47f7d316b2a98a3d17e9604d2f7e',
   },
   {
     anonymous: false,
@@ -1246,86 +1190,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'view',
     type: 'function',
     signature: '0x3572929c',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getPairCounterTradeFeeRateMultiplier',
-    outputs: [
-      {
-        internalType: 'uint16',
-        name: '',
-        type: 'uint16',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xb3a611f4',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairCounterTradeFeeRateMultipliers',
-    outputs: [
-      {
-        internalType: 'uint16[]',
-        name: '',
-        type: 'uint16[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x92024d34',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getPairCounterTradeMaxLeverage',
-    outputs: [
-      {
-        internalType: 'uint24',
-        name: '',
-        type: 'uint24',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x25b3609b',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairCounterTradeMaxLeverages',
-    outputs: [
-      {
-        internalType: 'uint24[]',
-        name: '',
-        type: 'uint24[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x23b8880f',
   },
   {
     inputs: [
@@ -1984,44 +1848,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0xd0cb753e',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16[]',
-        name: '_indices',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_values',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'setPairCounterTradeFeeRateMultipliers',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x281cad61',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint16[]',
-        name: '_indices',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint24[]',
-        name: '_values',
-        type: 'uint24[]',
-      },
-    ],
-    name: 'setPairCounterTradeMaxLeverages',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x2d9bfbda',
   },
   {
     inputs: [
@@ -3869,114 +3695,6 @@ export const gnsMultiCollatDiamondAbi = [
     inputs: [
       {
         indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newValue',
-        type: 'uint256',
-      },
-    ],
-    name: 'OnePercentSkewDepthUpdated',
-    type: 'event',
-    signature:
-      '0xbe433d32d9112c2fcf91407f28314200753b05ef3e9c85b8a0e9d135e77a6c29',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'oiDeltaCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'oiDeltaToken',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'open',
-        type: 'bool',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'long',
-        type: 'bool',
-      },
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortCollateral',
-            type: 'uint128',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IPriceImpact.PairOiCollateral',
-        name: 'newOiCollateral',
-        type: 'tuple',
-      },
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongToken',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortToken',
-            type: 'uint128',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IPriceImpact.PairOiToken',
-        name: 'newOiToken',
-        type: 'tuple',
-      },
-    ],
-    name: 'PairOiAfterV10Updated',
-    type: 'event',
-    signature:
-      '0x7a50afa193d27f20574d9d7c0bc0100211894a58118f9b152156eea4b1cc9bb7',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
         internalType: 'uint256',
         name: 'pairIndex',
         type: 'uint256',
@@ -4508,204 +4226,6 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getPairOiAfterV10Collateral',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortCollateral',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IPriceImpact.PairOiCollateral',
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x4740ee07',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getPairOiAfterV10Token',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongToken',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortToken',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IPriceImpact.PairOiToken',
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xc87f606f',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairOisAfterV10Collateral',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortCollateral',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IPriceImpact.PairOiCollateral[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x59ebb746',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairOisAfterV10Token',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'oiLongToken',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'oiShortToken',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IPriceImpact.PairOiToken[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x040b8df7',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getPairSkewDepth',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xf0f045a7',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndices',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndices',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairSkewDepths',
-    outputs: [
-      {
-        internalType: 'uint256[]',
-        name: '',
-        type: 'uint256[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xae3ac00c',
-  },
-  {
-    inputs: [
-      {
         internalType: 'uint256',
         name: '_pairIndex',
         type: 'uint256',
@@ -4756,9 +4276,14 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'address',
       },
       {
-        internalType: 'uint16',
+        internalType: 'uint256',
+        name: '_marketPrice',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
         name: '_pairIndex',
-        type: 'uint16',
+        type: 'uint256',
       },
       {
         internalType: 'bool',
@@ -4785,58 +4310,28 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_lastPosIncreaseBlock',
         type: 'uint256',
       },
-    ],
-    name: 'getTradeCumulVolPriceImpactP',
-    outputs: [
       {
-        internalType: 'int256',
-        name: 'priceImpactP',
-        type: 'int256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x6901d442',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
+        internalType: 'enum ITradingStorage.ContractsVersion',
+        name: '_contractsVersion',
         type: 'uint8',
       },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'bool',
-        name: '_long',
-        type: 'bool',
-      },
+    ],
+    name: 'getTradePriceImpact',
+    outputs: [
       {
         internalType: 'uint256',
-        name: '_positionSizeToken',
+        name: 'priceImpactP',
         type: 'uint256',
       },
       {
-        internalType: 'bool',
-        name: '_open',
-        type: 'bool',
-      },
-    ],
-    name: 'getTradeSkewPriceImpactP',
-    outputs: [
-      {
-        internalType: 'int256',
-        name: 'priceImpactP',
-        type: 'int256',
+        internalType: 'uint256',
+        name: 'priceAfterImpact',
+        type: 'uint256',
       },
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0xb8482805',
+    signature: '0xae0d3a07',
   },
   {
     inputs: [
@@ -5040,30 +4535,6 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
-        internalType: 'uint8[]',
-        name: '_collateralIndices',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndices',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint256[]',
-        name: '_depths',
-        type: 'uint256[]',
-      },
-    ],
-    name: 'setPairSkewDepths',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x6826b63b',
-  },
-  {
-    inputs: [
-      {
         internalType: 'uint48',
         name: '_newWindowsCount',
         type: 'uint48',
@@ -5174,45 +4645,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0x9a8c610e',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'uint256',
-        name: '_oiDeltaCollateral',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_oiDeltaToken',
-        type: 'uint256',
-      },
-      {
-        internalType: 'bool',
-        name: '_open',
-        type: 'bool',
-      },
-      {
-        internalType: 'bool',
-        name: '_long',
-        type: 'bool',
-      },
-    ],
-    name: 'updatePairOiAfterV10',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x9c35ee17',
   },
   {
     inputs: [],
@@ -5494,19 +4926,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -5553,7 +4975,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PendingOrderStored',
     type: 'event',
     signature:
-      '0xccf53b8d74e5a945ffc2d30f117912ec53a814c70fab809a11ebcf07fec933a9',
+      '0xc1f6d032e333e12d4ba1d8cdf8c4abc1bcaab7381a4eaa19a918a28f223f519d',
   },
   {
     anonymous: false,
@@ -5672,20 +5094,20 @@ export const gnsMultiCollatDiamondAbi = [
       {
         indexed: false,
         internalType: 'uint64',
+        name: 'newTp',
+        type: 'uint64',
+      },
+      {
+        indexed: false,
+        internalType: 'uint64',
         name: 'newSl',
         type: 'uint64',
       },
       {
         indexed: false,
-        internalType: 'uint160',
-        name: 'newPositionSizeToken',
-        type: 'uint160',
-      },
-      {
-        indexed: false,
-        internalType: 'enum ITradingStorage.PendingOrderType',
-        name: 'pendingOrderType',
-        type: 'uint8',
+        internalType: 'bool',
+        name: 'isPartialIncrease',
+        type: 'bool',
       },
       {
         indexed: false,
@@ -5697,7 +5119,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'TradePositionUpdated',
     type: 'event',
     signature:
-      '0x2412b874f666f2bd61ccfb0bad6a68558833fcfb00fdf60c0b8caed34742bae3',
+      '0xd44377bc88226583e82782aec12182dbe38e1b796330892e34a21a9558611a70',
   },
   {
     anonymous: false,
@@ -5804,19 +5226,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         indexed: false,
@@ -5914,7 +5326,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'TradeStored',
     type: 'event',
     signature:
-      '0xa14af6e9b04a80b4f40bf3946fceabd8e21e03bed8bdfd8d7b99af550efbf792',
+      '0x1a540c278c1838afbb56bb7659257d49132e43ff5e7687a333f8b47327db38ff',
   },
   {
     anonymous: false,
@@ -6027,17 +5439,12 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_isPnlPositive',
         type: 'bool',
       },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
     ],
     name: 'closeTrade',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0xc19089d0',
+    signature: '0x221d25f4',
   },
   {
     inputs: [
@@ -6119,19 +5526,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -6263,19 +5660,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -6549,19 +5936,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade[]',
@@ -6656,19 +6033,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade[]',
@@ -7005,7 +6372,7 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint8',
       },
     ],
-    stateMutability: 'view',
+    stateMutability: 'pure',
     type: 'function',
     signature: '0x9095b119',
   },
@@ -7130,19 +6497,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -7264,19 +6621,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -7401,19 +6748,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
@@ -7424,31 +6761,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'view',
     type: 'function',
     signature: '0x15878e07',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-    ],
-    name: 'getTradeContractsVersion',
-    outputs: [
-      {
-        internalType: 'enum ITradingStorage.ContractsVersion',
-        name: '',
-        type: 'uint8',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x9f245827',
   },
   {
     inputs: [
@@ -7810,19 +7122,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade[]',
@@ -8051,19 +7353,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -8173,19 +7465,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -8230,7 +7512,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x7a45ed7d',
+    signature: '0x93f9384e',
   },
   {
     inputs: [
@@ -8297,19 +7579,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
@@ -8367,11 +7639,6 @@ export const gnsMultiCollatDiamondAbi = [
         internalType: 'struct ITradingStorage.TradeInfo',
         name: '_tradeInfo',
         type: 'tuple',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
       },
     ],
     name: 'storeTrade',
@@ -8439,19 +7706,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
@@ -8461,7 +7718,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x25302af6',
+    signature: '0xd7ec0787',
   },
   {
     inputs: [
@@ -8562,6 +7819,37 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'tuple',
       },
       {
+        internalType: 'uint120',
+        name: '_collateralAmount',
+        type: 'uint120',
+      },
+    ],
+    name: 'updateTradeCollateralAmount',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+    signature: '0x5a68200d',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'user',
+            type: 'address',
+          },
+          {
+            internalType: 'uint32',
+            name: 'index',
+            type: 'uint32',
+          },
+        ],
+        internalType: 'struct ITradingStorage.Id',
+        name: '_tradeId',
+        type: 'tuple',
+      },
+      {
         internalType: 'uint16',
         name: '_maxSlippageP',
         type: 'uint16',
@@ -8608,31 +7896,21 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint64',
       },
       {
-        internalType: 'enum ITradingStorage.PendingOrderType',
-        name: '_pendingOrderType',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint256',
-        name: '_positionSizeTokenDelta',
-        type: 'uint256',
+        internalType: 'bool',
+        name: '_isPartialIncrease',
+        type: 'bool',
       },
       {
         internalType: 'bool',
         name: '_isPnlPositive',
         type: 'bool',
       },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
     ],
     name: 'updateTradePosition',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x338e0a78',
+    signature: '0xbb7af8de',
   },
   {
     inputs: [
@@ -8889,6 +8167,11 @@ export const gnsMultiCollatDiamondAbi = [
   },
   {
     inputs: [],
+    name: 'AboveExposureLimits',
+    type: 'error',
+  },
+  {
+    inputs: [],
     name: 'AlreadyBeingMarketClosed',
     type: 'error',
   },
@@ -9066,51 +8349,6 @@ export const gnsMultiCollatDiamondAbi = [
     anonymous: false,
     inputs: [
       {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'pendingOrderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'collateralAmount',
-        type: 'uint256',
-      },
-    ],
-    name: 'CollateralReturnedAfterTimeout',
-    type: 'event',
-    signature:
-      '0xf7be13f33d17f250cf33acce625397fe761b23c88564ff5d92b9b0dcd5804373',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
         indexed: true,
         internalType: 'address',
         name: 'trader',
@@ -9217,32 +8455,12 @@ export const gnsMultiCollatDiamondAbi = [
           },
           {
             internalType: 'uint256',
-            name: 'existingLiqPrice',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'newLiqPrice',
+            name: 'liqPrice',
             type: 'uint256',
           },
           {
             internalType: 'uint256',
             name: 'govFeeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'newEffectiveLeverage',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'totalTradeAvailableCollateralInDiamond',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'availableCollateralInDiamond',
             type: 'uint256',
           },
         ],
@@ -9255,7 +8473,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'LeverageUpdateExecuted',
     type: 'event',
     signature:
-      '0x2fb840f62af77e2ac17f7499425ebdb903a2c05b9d00b29fe2cec3e308f6a99e',
+      '0xd377bf540561d2182d611090b46189834f8bb72f02121dc896866c06e02e6655',
   },
   {
     anonymous: false,
@@ -9313,51 +8531,6 @@ export const gnsMultiCollatDiamondAbi = [
     type: 'event',
     signature:
       '0xf4181f0fa2e1d3cda20bb810e0427d87916eb5dac8c73a7f779ae13e55ec578f',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'isHoldingFeesRealization',
-        type: 'bool',
-      },
-    ],
-    name: 'ManualNegativePnlRealizationInitiated',
-    type: 'event',
-    signature:
-      '0x11e1b377cb4bbc0d512f0f24dba6d0d1c58727077a201ed09edb79a70c7ccd91',
   },
   {
     anonymous: false,
@@ -9629,11 +8802,6 @@ export const gnsMultiCollatDiamondAbi = [
       {
         components: [
           {
-            internalType: 'bool',
-            name: 'isLeverageUpdate',
-            type: 'bool',
-          },
-          {
             internalType: 'uint256',
             name: 'positionSizeCollateralDelta',
             type: 'uint256',
@@ -9650,74 +8818,22 @@ export const gnsMultiCollatDiamondAbi = [
           },
           {
             internalType: 'uint256',
-            name: 'newLiqPrice',
+            name: 'priceAfterImpact',
             type: 'uint256',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'positionSizeToken',
-                type: 'uint256',
-              },
-              {
-                internalType: 'int256',
-                name: 'fixedSpreadP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'cumulVolPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'skewPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'totalPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'uint64',
-                name: 'priceAfterImpact',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-            name: 'priceImpact',
-            type: 'tuple',
-          },
-          {
             internalType: 'int256',
-            name: 'existingPnlPercent',
+            name: 'existingPnlCollateral',
             type: 'int256',
           },
           {
-            internalType: 'int256',
-            name: 'partialRawPnlCollateral',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'partialNetPnlCollateral',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'pnlToRealizeCollateral',
-            type: 'int256',
+            internalType: 'uint256',
+            name: 'borrowingFeeCollateral',
+            type: 'uint256',
           },
           {
             internalType: 'uint256',
             name: 'closingFeeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'totalAvailableCollateralInDiamond',
             type: 'uint256',
           },
           {
@@ -9750,7 +8866,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PositionSizeDecreaseExecuted',
     type: 'event',
     signature:
-      '0x38297f283e8c7319a10c298de767e2b919d8f506a0c15c6579fb7ad1c049cb43',
+      '0xd994d286871fe96525f071a7c54e68b1183a4d88ccbf0aef2c527c7374d3d130',
   },
   {
     anonymous: false,
@@ -9861,41 +8977,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint256',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'positionSizeToken',
-                type: 'uint256',
-              },
-              {
-                internalType: 'int256',
-                name: 'fixedSpreadP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'cumulVolPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'skewPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'totalPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'uint64',
-                name: 'priceAfterImpact',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-            name: 'priceImpact',
-            type: 'tuple',
+            internalType: 'uint256',
+            name: 'priceAfterImpact',
+            type: 'uint256',
           },
           {
             internalType: 'int256',
@@ -9914,6 +8998,11 @@ export const gnsMultiCollatDiamondAbi = [
           },
           {
             internalType: 'uint256',
+            name: 'borrowingFeeCollateral',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
             name: 'openingFeesCollateral',
             type: 'uint256',
           },
@@ -9927,26 +9016,6 @@ export const gnsMultiCollatDiamondAbi = [
             name: 'newLiqPrice',
             type: 'uint256',
           },
-          {
-            internalType: 'bool',
-            name: 'isCounterTradeValidated',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint256',
-            name: 'exceedingPositionSizeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'counterTradeCollateralToReturn',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'newEffectiveLeverage',
-            type: 'uint256',
-          },
         ],
         indexed: false,
         internalType: 'struct IUpdatePositionSize.IncreasePositionSizeValues',
@@ -9957,7 +9026,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PositionSizeIncreaseExecuted',
     type: 'event',
     signature:
-      '0x3b7323355a4d9442335bf892bd48defd6c1647cb9c7170cb42f41dfba8e95aeb',
+      '0x4627b6cfd38b837edb1d42b0c6c92e6ba06fded47652e32ce388fcaf3d513477',
   },
   {
     anonymous: false,
@@ -10021,51 +9090,6 @@ export const gnsMultiCollatDiamondAbi = [
     type: 'event',
     signature:
       '0xef86ff293bce1d37f4b09f9c27b48f752d86a9fde1109f1bd8b806e05e7bada5',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'amountCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'PositivePnlWithdrawalInitiated',
-    type: 'event',
-    signature:
-      '0xea7566cbc9a88f905eb632e8dda5be1836c4a41b7efdc01190a55c6313f46b34',
   },
   {
     anonymous: false,
@@ -10372,30 +9396,6 @@ export const gnsMultiCollatDiamondAbi = [
     inputs: [
       {
         internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'bool',
-        name: '_isHoldingFees',
-        type: 'bool',
-      },
-    ],
-    name: 'initiateManualNegativePnlRealization',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x5fa7f2ac',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
         name: '_token',
         type: 'address',
       },
@@ -10477,19 +9477,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
@@ -10511,7 +9501,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x5bfcc4f8',
+    signature: '0x4465c3e4',
   },
   {
     inputs: [
@@ -10578,19 +9568,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
@@ -10612,7 +9592,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'payable',
     type: 'function',
-    signature: '0xc267d601',
+    signature: '0x080e83e1',
   },
   {
     inputs: [],
@@ -10813,25 +9793,6 @@ export const gnsMultiCollatDiamondAbi = [
     signature: '0xf401f2bb',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint120',
-        name: '_amountCollateral',
-        type: 'uint120',
-      },
-    ],
-    name: 'withdrawPositivePnl',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x73c96d13',
-  },
-  {
     inputs: [],
     name: 'PendingOrderNotOpen',
     type: 'error',
@@ -10840,22 +9801,16 @@ export const gnsMultiCollatDiamondAbi = [
     anonymous: false,
     inputs: [
       {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
+        indexed: true,
+        internalType: 'address',
+        name: 'trader',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'uint32',
+        name: 'index',
+        type: 'uint32',
       },
       {
         indexed: true,
@@ -10864,61 +9819,16 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint8',
       },
       {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
         indexed: false,
         internalType: 'uint256',
-        name: 'collateralReturned',
+        name: 'amountCollateral',
         type: 'uint256',
       },
     ],
-    name: 'CounterTradeCollateralReturned',
+    name: 'BorrowingFeeCharged',
     type: 'event',
     signature:
-      '0xef777be774c768ea691015b903f20ce16cb0ba341659f1d42fcf0c5e550eb737',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'positionSizeCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'enum ITradingStorage.PendingOrderType',
-        name: 'orderType',
-        type: 'uint8',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'totalFeesCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'FeesProcessed',
-    type: 'event',
-    signature:
-      '0x71555a7cc983000fe069574303ed2e47aa16417d297441f6d5e314bd6c58b2fe',
+      '0xe51bd3297a1287c8baca0874d5647413ea766784f1ae76f8519801bb9f1a14fd',
   },
   {
     anonymous: false,
@@ -11103,19 +10013,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         indexed: false,
@@ -11154,42 +10054,10 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint256',
       },
       {
-        components: [
-          {
-            internalType: 'uint256',
-            name: 'positionSizeToken',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'fixedSpreadP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'cumulVolPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'skewPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint64',
-            name: 'priceAfterImpact',
-            type: 'uint64',
-          },
-        ],
         indexed: false,
-        internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-        name: 'priceImpact',
-        type: 'tuple',
+        internalType: 'uint256',
+        name: 'priceImpactP',
+        type: 'uint256',
       },
       {
         indexed: false,
@@ -11219,7 +10087,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'LimitExecuted',
     type: 'event',
     signature:
-      '0x9c19bc42a9be820f3366fa0563f85e5c227966eaea4c45acd2f7cd868086a17d',
+      '0x33b71dccfeb2f3e0f4ed2a9f7c05255d8c5aa57936b542245a5e63c938301597',
   },
   {
     anonymous: false,
@@ -11368,19 +10236,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         indexed: false,
@@ -11413,42 +10271,10 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint256',
       },
       {
-        components: [
-          {
-            internalType: 'uint256',
-            name: 'positionSizeToken',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'fixedSpreadP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'cumulVolPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'skewPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint64',
-            name: 'priceAfterImpact',
-            type: 'uint64',
-          },
-        ],
         indexed: false,
-        internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-        name: 'priceImpact',
-        type: 'tuple',
+        internalType: 'uint256',
+        name: 'priceImpactP',
+        type: 'uint256',
       },
       {
         indexed: false,
@@ -11472,7 +10298,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'MarketExecuted',
     type: 'event',
     signature:
-      '0xbdc1265da95238ea4c775f66ac8fe748af83982c4b356ac4d0c28a0f512c0a8b',
+      '0x26d428c63a1c5161a75dbe15e1e65bc7bf932acb203db2a47df55b16a60d35b1',
   },
   {
     anonymous: false,
@@ -11513,17 +10339,11 @@ export const gnsMultiCollatDiamondAbi = [
         name: 'cancelReason',
         type: 'uint8',
       },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'collateralReturned',
-        type: 'uint256',
-      },
     ],
     name: 'MarketOpenCanceled',
     type: 'event',
     signature:
-      '0x7eff27ae2299e6454b6a721ec354924d1ceecda0edc94618ebfeb5b9b6483e5e',
+      '0x377325122a5a86014bf0a307dc0c8eab0bf1e2858ff6e1522a7551e6df253782',
   },
   {
     anonymous: false,
@@ -11572,278 +10392,6 @@ export const gnsMultiCollatDiamondAbi = [
     type: 'event',
     signature:
       '0x264425c9f39f6b517f96e5447a9347098bfbe112753fada5068de9fdf6d5168c',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-    ],
-    name: 'TradeHoldingFeesManuallyRealized',
-    type: 'event',
-    signature:
-      '0xf240b757cbca89260c526f72930602eea7037a5938811b377d8505432bfba14f',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'negativePnlCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'existingManuallyRealizedNegativePnlCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newManuallyRealizedNegativePnlCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-    ],
-    name: 'TradeNegativePnlManuallyRealized',
-    type: 'event',
-    signature:
-      '0x28988d91fb2f0718328831fab06ca17ac06c51012794b273d49e6efaf8a60d01',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'user',
-            type: 'address',
-          },
-          {
-            internalType: 'uint32',
-            name: 'index',
-            type: 'uint32',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingStorage.Id',
-        name: 'orderId',
-        type: 'tuple',
-      },
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        components: [
-          {
-            internalType: 'uint256',
-            name: 'positionSizeToken',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'fixedSpreadP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'cumulVolPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'skewPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalPriceImpactP',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint64',
-            name: 'priceAfterImpact',
-            type: 'uint64',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-        name: 'priceImpact',
-        type: 'tuple',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'pnlPercent',
-        type: 'int256',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'withdrawablePositivePnlCollateral',
-        type: 'int256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'pnlInputCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'pnlWithdrawnCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'TradePositivePnlWithdrawn',
-    type: 'event',
-    signature:
-      '0xac5a272a94e67d9c1a1387a28bc2f92e14a42520531afa5f5aa9af2fd4fe87b4',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'collateralSentToTrader',
-        type: 'int256',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'availableCollateralInDiamond',
-        type: 'int256',
-      },
-    ],
-    name: 'TradeValueTransferred',
-    type: 'event',
-    signature:
-      '0xd07db677573b76ac65bf2032122c0272b9fa39e10c90ff094f19d98ee0f88037',
   },
   {
     anonymous: false,
@@ -11962,6 +10510,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -11974,11 +10532,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -11991,7 +10544,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x771eccd5',
+    signature: '0x4b0b5629',
   },
   {
     inputs: [
@@ -12015,6 +10568,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -12027,11 +10590,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -12044,7 +10602,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x6b6dc975',
+    signature: '0xe1d88718',
   },
   {
     inputs: [
@@ -12068,6 +10626,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -12080,11 +10648,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -12097,7 +10660,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x8410fa05',
+    signature: '0xc61a7ad4',
   },
   {
     inputs: [
@@ -12121,6 +10684,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -12135,11 +10708,6 @@ export const gnsMultiCollatDiamondAbi = [
             name: 'low',
             type: 'uint64',
           },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
         ],
         internalType: 'struct ITradingCallbacks.AggregatorAnswer',
         name: '_a',
@@ -12150,7 +10718,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x5578478f',
+    signature: '0x3b0c5938',
   },
   {
     inputs: [
@@ -12208,6 +10776,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -12222,11 +10800,6 @@ export const gnsMultiCollatDiamondAbi = [
             name: 'low',
             type: 'uint64',
           },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
         ],
         internalType: 'struct ITradingCallbacks.AggregatorAnswer',
         name: '_a',
@@ -12237,7 +10810,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x488ce21e',
+    signature: '0x10d8e754',
   },
   {
     inputs: [
@@ -12289,57 +10862,14 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
-            internalType: 'uint64',
-            name: 'open',
-            type: 'uint64',
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
           },
           {
             internalType: 'uint64',
-            name: 'high',
+            name: 'price',
             type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
-        ],
-        internalType: 'struct ITradingCallbacks.AggregatorAnswer',
-        name: '_a',
-        type: 'tuple',
-      },
-    ],
-    name: 'manualHoldingFeesRealizationCallback',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x46be8fd9',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: 'address',
-                name: 'user',
-                type: 'address',
-              },
-              {
-                internalType: 'uint32',
-                name: 'index',
-                type: 'uint32',
-              },
-            ],
-            internalType: 'struct ITradingStorage.Id',
-            name: 'orderId',
-            type: 'tuple',
           },
           {
             internalType: 'uint64',
@@ -12354,64 +10884,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
-        ],
-        internalType: 'struct ITradingCallbacks.AggregatorAnswer',
-        name: '_a',
-        type: 'tuple',
-      },
-    ],
-    name: 'manualNegativePnlRealizationCallback',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x70c4e0c1',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: 'address',
-                name: 'user',
-                type: 'address',
-              },
-              {
-                internalType: 'uint32',
-                name: 'index',
-                type: 'uint32',
-              },
-            ],
-            internalType: 'struct ITradingStorage.Id',
-            name: 'orderId',
-            type: 'tuple',
-          },
-          {
-            internalType: 'uint64',
-            name: 'open',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'high',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -12424,7 +10896,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x0a1cbdba',
+    signature: '0x13ebc2c6',
   },
   {
     inputs: [
@@ -12448,57 +10920,14 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
-            internalType: 'uint64',
-            name: 'open',
-            type: 'uint64',
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
           },
           {
             internalType: 'uint64',
-            name: 'high',
+            name: 'price',
             type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
-        ],
-        internalType: 'struct ITradingCallbacks.AggregatorAnswer',
-        name: '_a',
-        type: 'tuple',
-      },
-    ],
-    name: 'pnlWithdrawalCallback',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x56b9584b',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: 'address',
-                name: 'user',
-                type: 'address',
-              },
-              {
-                internalType: 'uint32',
-                name: 'index',
-                type: 'uint32',
-              },
-            ],
-            internalType: 'struct ITradingStorage.Id',
-            name: 'orderId',
-            type: 'tuple',
           },
           {
             internalType: 'uint64',
@@ -12513,11 +10942,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -12530,7 +10954,7 @@ export const gnsMultiCollatDiamondAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0xdf43c382',
+    signature: '0x92dd2940',
   },
   {
     inputs: [
@@ -12599,11 +11023,6 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_low',
         type: 'uint64',
       },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
     ],
     name: 'validateTriggerCloseOrderCallback',
     outputs: [
@@ -12670,24 +11089,19 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
         name: 't',
         type: 'tuple',
+      },
+      {
+        internalType: 'enum ITradingCallbacks.CancelReason',
+        name: 'cancelReason',
+        type: 'uint8',
       },
       {
         components: [
@@ -12699,11 +11113,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint256',
             name: 'executionPrice',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'executionPriceRaw',
             type: 'uint256',
           },
           {
@@ -12727,75 +11136,23 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'bool',
           },
           {
+            internalType: 'uint256',
+            name: 'collateralLeftInStorage',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'oraclePrice',
+            type: 'uint256',
+          },
+          {
             internalType: 'uint32',
             name: 'limitIndex',
             type: 'uint32',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'positionSizeToken',
-                type: 'uint256',
-              },
-              {
-                internalType: 'int256',
-                name: 'fixedSpreadP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'cumulVolPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'skewPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'totalPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'uint64',
-                name: 'priceAfterImpact',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-            name: 'priceImpact',
-            type: 'tuple',
-          },
-          {
-            internalType: 'enum ITradingCallbacks.CancelReason',
-            name: 'cancelReason',
-            type: 'uint8',
-          },
-          {
             internalType: 'uint256',
-            name: 'collateralToReturn',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint120',
-            name: 'newCollateralAmount',
-            type: 'uint120',
-          },
-          {
-            internalType: 'uint256',
-            name: 'newEffectiveLeverage',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'pnlWithdrawnCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'openingFeeCollateral',
+            name: 'priceImpactP',
             type: 'uint256',
           },
         ],
@@ -12806,7 +11163,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x756c4767',
+    signature: '0x85ea3c78',
   },
   {
     inputs: [
@@ -12845,11 +11202,6 @@ export const gnsMultiCollatDiamondAbi = [
       {
         internalType: 'uint64',
         name: '_low',
-        type: 'uint64',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
         type: 'uint64',
       },
     ],
@@ -12918,24 +11270,19 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint64',
           },
           {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint160',
-            name: 'positionSizeToken',
-            type: 'uint160',
-          },
-          {
-            internalType: 'uint24',
+            internalType: 'uint192',
             name: '__placeholder',
-            type: 'uint24',
+            type: 'uint192',
           },
         ],
         internalType: 'struct ITradingStorage.Trade',
         name: 't',
         type: 'tuple',
+      },
+      {
+        internalType: 'enum ITradingCallbacks.CancelReason',
+        name: 'cancelReason',
+        type: 'uint8',
       },
       {
         components: [
@@ -12947,11 +11294,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint256',
             name: 'executionPrice',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'executionPriceRaw',
             type: 'uint256',
           },
           {
@@ -12975,75 +11317,23 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'bool',
           },
           {
+            internalType: 'uint256',
+            name: 'collateralLeftInStorage',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'oraclePrice',
+            type: 'uint256',
+          },
+          {
             internalType: 'uint32',
             name: 'limitIndex',
             type: 'uint32',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'positionSizeToken',
-                type: 'uint256',
-              },
-              {
-                internalType: 'int256',
-                name: 'fixedSpreadP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'cumulVolPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'skewPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'int256',
-                name: 'totalPriceImpactP',
-                type: 'int256',
-              },
-              {
-                internalType: 'uint64',
-                name: 'priceAfterImpact',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct ITradingCommonUtils.TradePriceImpact',
-            name: 'priceImpact',
-            type: 'tuple',
-          },
-          {
-            internalType: 'enum ITradingCallbacks.CancelReason',
-            name: 'cancelReason',
-            type: 'uint8',
-          },
-          {
             internalType: 'uint256',
-            name: 'collateralToReturn',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint120',
-            name: 'newCollateralAmount',
-            type: 'uint120',
-          },
-          {
-            internalType: 'uint256',
-            name: 'newEffectiveLeverage',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'pnlWithdrawnCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'openingFeeCollateral',
+            name: 'priceImpactP',
             type: 'uint256',
           },
         ],
@@ -13054,7 +11344,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x8bb50a5c',
+    signature: '0xa96ae63b',
   },
   {
     inputs: [],
@@ -13251,12 +11541,6 @@ export const gnsMultiCollatDiamondAbi = [
       },
       {
         indexed: false,
-        internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
         internalType: 'uint64',
         name: 'initialPairAccFee',
         type: 'uint64',
@@ -13271,7 +11555,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'BorrowingInitialAccFeesStored',
     type: 'event',
     signature:
-      '0x16751b75a53406d6ade9d619db939ff215964ee9df735c9f98c66dfd0945d7b0',
+      '0x49a2b4d58db9411e83e598fad88462d2474d8f9aae8a9ba41acdfde33f4f3751',
   },
   {
     anonymous: false,
@@ -13296,12 +11580,6 @@ export const gnsMultiCollatDiamondAbi = [
       },
       {
         indexed: false,
-        internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
         internalType: 'uint64',
         name: 'accFeeLong',
         type: 'uint64',
@@ -13316,7 +11594,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'BorrowingPairAccFeesUpdated',
     type: 'event',
     signature:
-      '0x883b585798396d52a836957cca70dd31805a9533894c7cacf840df2b54dc9bd4',
+      '0x12515cf8712ede0f0e48dd7513c14f22f116a6b3f95bd493da7511cf7dcbadd7',
   },
   {
     anonymous: false,
@@ -13430,10 +11708,10 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint72',
       },
     ],
-    name: 'BorrowingPairOiBeforeV10Updated',
+    name: 'BorrowingPairOiUpdated',
     type: 'event',
     signature:
-      '0x8b1831a3848b8d473b635a40f92ece46bd75c104974fe5946b9477f9d4d90f7b',
+      '0x012adc2457c8405bb9a0f2f3be4cc4bff84f095e6a16535b080facddec7804d3',
   },
   {
     anonymous: false,
@@ -13522,12 +11800,6 @@ export const gnsMultiCollatDiamondAbi = [
       {
         indexed: false,
         internalType: 'uint256',
-        name: 'currentPairPrice',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
         name: 'positionSizeCollateral',
         type: 'uint256',
       },
@@ -13535,48 +11807,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'TradeBorrowingCallbackHandled',
     type: 'event',
     signature:
-      '0x061c9e959e2093660fb08b2abd46b1c3f4e047b281a2277843d339a34cb2b6ff',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'uint8',
-            name: 'collateralIndex',
-            type: 'uint8',
-          },
-          {
-            internalType: 'uint16',
-            name: 'pairIndex',
-            type: 'uint16',
-          },
-          {
-            internalType: 'enum IFundingFees.ParamUpdateType',
-            name: 'updateType',
-            type: 'uint8',
-          },
-          {
-            internalType: 'uint224',
-            name: 'newValue',
-            type: 'uint224',
-          },
-        ],
-        internalType: 'struct IFundingFees.PendingParamUpdate',
-        name: '_paramUpdate',
-        type: 'tuple',
-      },
-      {
-        internalType: 'uint256',
-        name: '_currentPairPrice',
-        type: 'uint256',
-      },
-    ],
-    name: 'borrowingParamUpdateCallback',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xe5990cfd',
+      '0x1d4556af371eac83495a853ba4f1af8a2d4e0c76ab08719dbd24b372cfc0acc3',
   },
   {
     inputs: [
@@ -14241,7 +12472,7 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint16',
       },
     ],
-    name: 'getBorrowingPairOiBeforeV10',
+    name: 'getBorrowingPairOi',
     outputs: [
       {
         components: [
@@ -14273,7 +12504,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0xb87499c5',
+    signature: '0x0077b57e',
   },
   {
     inputs: [
@@ -14290,11 +12521,6 @@ export const gnsMultiCollatDiamondAbi = [
       {
         internalType: 'uint256',
         name: '_currentBlock',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_currentPairPrice',
         type: 'uint256',
       },
     ],
@@ -14323,7 +12549,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0xf103da7a',
+    signature: '0x0c7be6ca',
   },
   {
     inputs: [
@@ -14393,7 +12619,7 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'bool',
       },
     ],
-    name: 'getPairOiBeforeV10Collateral',
+    name: 'getPairOiCollateral',
     outputs: [
       {
         internalType: 'uint256',
@@ -14403,7 +12629,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x99fdbf59',
+    signature: '0xeb2ea3a2',
   },
   {
     inputs: [
@@ -14418,7 +12644,7 @@ export const gnsMultiCollatDiamondAbi = [
         type: 'uint16',
       },
     ],
-    name: 'getPairOisBeforeV10Collateral',
+    name: 'getPairOisCollateral',
     outputs: [
       {
         internalType: 'uint256',
@@ -14433,7 +12659,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x951abd74',
+    signature: '0xf6f7c948',
   },
   {
     inputs: [
@@ -14474,11 +12700,6 @@ export const gnsMultiCollatDiamondAbi = [
             name: 'leverage',
             type: 'uint256',
           },
-          {
-            internalType: 'uint256',
-            name: 'currentPairPrice',
-            type: 'uint256',
-          },
         ],
         internalType: 'struct IBorrowingFees.BorrowingFeeInput',
         name: '_input',
@@ -14495,7 +12716,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x19e31460',
+    signature: '0x0804db93',
   },
   {
     inputs: [
@@ -14542,9 +12763,9 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'uint256',
           },
           {
-            internalType: 'int256',
-            name: 'additionalFeeCollateral',
-            type: 'int256',
+            internalType: 'bool',
+            name: 'useBorrowingFees',
+            type: 'bool',
           },
           {
             components: [
@@ -14578,26 +12799,6 @@ export const gnsMultiCollatDiamondAbi = [
             name: 'liquidationParams',
             type: 'tuple',
           },
-          {
-            internalType: 'uint64',
-            name: 'currentPairPrice',
-            type: 'uint64',
-          },
-          {
-            internalType: 'bool',
-            name: 'isCounterTrade',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint256',
-            name: 'partialCloseMultiplier',
-            type: 'uint256',
-          },
-          {
-            internalType: 'bool',
-            name: 'beforeOpened',
-            type: 'bool',
-          },
         ],
         internalType: 'struct IBorrowingFees.LiqPriceInput',
         name: '_input',
@@ -14614,7 +12815,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0xef6c0449',
+    signature: '0x61ddacb0',
   },
   {
     inputs: [
@@ -14653,17 +12854,12 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_long',
         type: 'bool',
       },
-      {
-        internalType: 'uint256',
-        name: '_currentPairPrice',
-        type: 'uint256',
-      },
     ],
     name: 'handleTradeBorrowingCallback',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x7f81e5ab',
+    signature: '0xfc79e929',
   },
   {
     inputs: [
@@ -14718,17 +12914,12 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_long',
         type: 'bool',
       },
-      {
-        internalType: 'uint256',
-        name: '_currentPairPrice',
-        type: 'uint256',
-      },
     ],
     name: 'resetTradeBorrowingFees',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x2e47dc6a',
+    signature: '0x4fa72788',
   },
   {
     inputs: [
@@ -14965,40 +13156,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0xeb1802f8',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'bool',
-        name: '_long',
-        type: 'bool',
-      },
-      {
-        internalType: 'bool',
-        name: '_increase',
-        type: 'bool',
-      },
-      {
-        internalType: 'uint256',
-        name: '_amountCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'updatePairOiBeforeV10',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xeba37dd8',
   },
   {
     inputs: [
@@ -15372,21 +13529,6 @@ export const gnsMultiCollatDiamondAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
-        internalType: 'bytes32',
-        name: 'jobId',
-        type: 'bytes32',
-      },
-    ],
-    name: 'ParamUpdateJobIdUpdated',
-    type: 'event',
-    signature:
-      '0x47b440e213065ce71d2660828d52a17e40915af406469be6b9af861a9465427b',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
         components: [
           {
             internalType: 'address',
@@ -15449,29 +13591,24 @@ export const gnsMultiCollatDiamondAbi = [
       {
         components: [
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'open',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'high',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'low',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
-            name: 'current',
-            type: 'uint56',
-          },
-          {
-            internalType: 'uint32',
+            internalType: 'uint64',
             name: 'ts',
-            type: 'uint32',
+            type: 'uint64',
           },
         ],
         indexed: false,
@@ -15482,29 +13619,24 @@ export const gnsMultiCollatDiamondAbi = [
       {
         components: [
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'open',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'high',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'low',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
-            name: 'current',
-            type: 'uint56',
-          },
-          {
-            internalType: 'uint32',
+            internalType: 'uint64',
             name: 'ts',
-            type: 'uint32',
+            type: 'uint64',
           },
         ],
         indexed: false,
@@ -15516,7 +13648,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PriceReceived',
     type: 'event',
     signature:
-      '0x3a04fb08b64cb936309a028bdae0de177886d0c0288836c98f6eec09b9688799',
+      '0xa412cea1596decdadbb4b2b716e8efe35b7d319fbda462bd9c37b9d46a001dee',
   },
   {
     anonymous: false,
@@ -15598,19 +13730,9 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint64',
               },
               {
-                internalType: 'bool',
-                name: 'isCounterTrade',
-                type: 'bool',
-              },
-              {
-                internalType: 'uint160',
-                name: 'positionSizeToken',
-                type: 'uint160',
-              },
-              {
-                internalType: 'uint24',
+                internalType: 'uint192',
                 name: '__placeholder',
-                type: 'uint24',
+                type: 'uint192',
               },
             ],
             internalType: 'struct ITradingStorage.Trade',
@@ -15656,20 +13778,8 @@ export const gnsMultiCollatDiamondAbi = [
       {
         indexed: false,
         internalType: 'uint256',
-        name: 'positionSizeCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
         name: 'fromBlock',
         type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'isCounterTrade',
-        type: 'bool',
       },
       {
         indexed: false,
@@ -15699,7 +13809,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'PriceRequested',
     type: 'event',
     signature:
-      '0xb388bf2f3f0bb2fde6ffeb60ae5f6ade4679631a026ce552771baebbb0ddb682',
+      '0xbf65a2efd7b0d6f18e30be9668d59e0bb7092d6fa0f20587e40330e5f9147f8e',
   },
   {
     anonymous: false,
@@ -15724,6 +13834,16 @@ export const gnsMultiCollatDiamondAbi = [
             type: 'tuple',
           },
           {
+            internalType: 'uint256',
+            name: 'spreadP',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'price',
+            type: 'uint64',
+          },
+          {
             internalType: 'uint64',
             name: 'open',
             type: 'uint64',
@@ -15736,11 +13856,6 @@ export const gnsMultiCollatDiamondAbi = [
           {
             internalType: 'uint64',
             name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
             type: 'uint64',
           },
         ],
@@ -15759,7 +13874,7 @@ export const gnsMultiCollatDiamondAbi = [
     name: 'TradingCallbackExecuted',
     type: 'event',
     signature:
-      '0x938c91bae128d4539ee8f6494f37cd5fd7a6ac2393f8b4c353fdd056c964cc81',
+      '0x3c7b39f62241be54daf88ab94fbb4f3b7e92a2abb908f2d2b4ce3d14dadd5a4f',
   },
   {
     anonymous: false,
@@ -16062,11 +14177,6 @@ export const gnsMultiCollatDiamondAbi = [
         name: '_positionSizeCollateral',
         type: 'uint256',
       },
-      {
-        internalType: 'bool',
-        name: '_isCounterTrade',
-        type: 'bool',
-      },
     ],
     name: 'getLinkFee',
     outputs: [
@@ -16078,7 +14188,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'view',
     type: 'function',
-    signature: '0x43f03e71',
+    signature: '0xde38f77c',
   },
   {
     inputs: [],
@@ -16185,20 +14295,6 @@ export const gnsMultiCollatDiamondAbi = [
     signature: '0x40884c52',
   },
   {
-    inputs: [],
-    name: 'getParamUpdateJobId',
-    outputs: [
-      {
-        internalType: 'bytes32',
-        name: '',
-        type: 'bytes32',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xc4296c90',
-  },
-  {
     inputs: [
       {
         internalType: 'bytes32',
@@ -16221,101 +14317,19 @@ export const gnsMultiCollatDiamondAbi = [
   {
     inputs: [
       {
+        internalType: 'uint8',
+        name: '_collateralIndex',
+        type: 'uint8',
+      },
+      {
+        internalType: 'uint16',
+        name: '_pairIndex',
+        type: 'uint16',
+      },
+      {
         components: [
           {
-            internalType: 'uint8',
-            name: 'collateralIndex',
-            type: 'uint8',
-          },
-          {
-            internalType: 'uint16',
-            name: 'pairIndex',
-            type: 'uint16',
-          },
-          {
             components: [
-              {
-                components: [
-                  {
-                    internalType: 'address',
-                    name: 'user',
-                    type: 'address',
-                  },
-                  {
-                    internalType: 'uint32',
-                    name: 'index',
-                    type: 'uint32',
-                  },
-                  {
-                    internalType: 'uint16',
-                    name: 'pairIndex',
-                    type: 'uint16',
-                  },
-                  {
-                    internalType: 'uint24',
-                    name: 'leverage',
-                    type: 'uint24',
-                  },
-                  {
-                    internalType: 'bool',
-                    name: 'long',
-                    type: 'bool',
-                  },
-                  {
-                    internalType: 'bool',
-                    name: 'isOpen',
-                    type: 'bool',
-                  },
-                  {
-                    internalType: 'uint8',
-                    name: 'collateralIndex',
-                    type: 'uint8',
-                  },
-                  {
-                    internalType: 'enum ITradingStorage.TradeType',
-                    name: 'tradeType',
-                    type: 'uint8',
-                  },
-                  {
-                    internalType: 'uint120',
-                    name: 'collateralAmount',
-                    type: 'uint120',
-                  },
-                  {
-                    internalType: 'uint64',
-                    name: 'openPrice',
-                    type: 'uint64',
-                  },
-                  {
-                    internalType: 'uint64',
-                    name: 'tp',
-                    type: 'uint64',
-                  },
-                  {
-                    internalType: 'uint64',
-                    name: 'sl',
-                    type: 'uint64',
-                  },
-                  {
-                    internalType: 'bool',
-                    name: 'isCounterTrade',
-                    type: 'bool',
-                  },
-                  {
-                    internalType: 'uint160',
-                    name: 'positionSizeToken',
-                    type: 'uint160',
-                  },
-                  {
-                    internalType: 'uint24',
-                    name: '__placeholder',
-                    type: 'uint24',
-                  },
-                ],
-                internalType: 'struct ITradingStorage.Trade',
-                name: 'trade',
-                type: 'tuple',
-              },
               {
                 internalType: 'address',
                 name: 'user',
@@ -16327,49 +14341,109 @@ export const gnsMultiCollatDiamondAbi = [
                 type: 'uint32',
               },
               {
+                internalType: 'uint16',
+                name: 'pairIndex',
+                type: 'uint16',
+              },
+              {
+                internalType: 'uint24',
+                name: 'leverage',
+                type: 'uint24',
+              },
+              {
+                internalType: 'bool',
+                name: 'long',
+                type: 'bool',
+              },
+              {
                 internalType: 'bool',
                 name: 'isOpen',
                 type: 'bool',
               },
               {
-                internalType: 'enum ITradingStorage.PendingOrderType',
-                name: 'orderType',
+                internalType: 'uint8',
+                name: 'collateralIndex',
                 type: 'uint8',
               },
               {
-                internalType: 'uint32',
-                name: 'createdBlock',
-                type: 'uint32',
+                internalType: 'enum ITradingStorage.TradeType',
+                name: 'tradeType',
+                type: 'uint8',
               },
               {
-                internalType: 'uint16',
-                name: 'maxSlippageP',
-                type: 'uint16',
+                internalType: 'uint120',
+                name: 'collateralAmount',
+                type: 'uint120',
+              },
+              {
+                internalType: 'uint64',
+                name: 'openPrice',
+                type: 'uint64',
+              },
+              {
+                internalType: 'uint64',
+                name: 'tp',
+                type: 'uint64',
+              },
+              {
+                internalType: 'uint64',
+                name: 'sl',
+                type: 'uint64',
+              },
+              {
+                internalType: 'uint192',
+                name: '__placeholder',
+                type: 'uint192',
               },
             ],
-            internalType: 'struct ITradingStorage.PendingOrder',
-            name: 'pendingOrder',
+            internalType: 'struct ITradingStorage.Trade',
+            name: 'trade',
             type: 'tuple',
           },
           {
-            internalType: 'uint256',
-            name: 'positionSizeCollateral',
-            type: 'uint256',
+            internalType: 'address',
+            name: 'user',
+            type: 'address',
           },
           {
-            internalType: 'uint256',
-            name: 'fromBlock',
-            type: 'uint256',
+            internalType: 'uint32',
+            name: 'index',
+            type: 'uint32',
           },
           {
             internalType: 'bool',
-            name: 'isCounterTrade',
+            name: 'isOpen',
             type: 'bool',
           },
+          {
+            internalType: 'enum ITradingStorage.PendingOrderType',
+            name: 'orderType',
+            type: 'uint8',
+          },
+          {
+            internalType: 'uint32',
+            name: 'createdBlock',
+            type: 'uint32',
+          },
+          {
+            internalType: 'uint16',
+            name: 'maxSlippageP',
+            type: 'uint16',
+          },
         ],
-        internalType: 'struct IPriceAggregator.GetPriceInput',
-        name: '_input',
+        internalType: 'struct ITradingStorage.PendingOrder',
+        name: '_pendingOrder',
         type: 'tuple',
+      },
+      {
+        internalType: 'uint256',
+        name: '_positionSizeCollateral',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
+        name: '_fromBlock',
+        type: 'uint256',
       },
     ],
     name: 'getPrice',
@@ -16394,7 +14468,7 @@ export const gnsMultiCollatDiamondAbi = [
     ],
     stateMutability: 'nonpayable',
     type: 'function',
-    signature: '0x09c48942',
+    signature: '0x18fc5876',
   },
   {
     inputs: [
@@ -16473,29 +14547,24 @@ export const gnsMultiCollatDiamondAbi = [
       {
         components: [
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'open',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'high',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
+            internalType: 'uint64',
             name: 'low',
-            type: 'uint56',
+            type: 'uint64',
           },
           {
-            internalType: 'uint56',
-            name: 'current',
-            type: 'uint56',
-          },
-          {
-            internalType: 'uint32',
+            internalType: 'uint64',
             name: 'ts',
-            type: 'uint32',
+            type: 'uint64',
           },
         ],
         internalType: 'struct IPriceAggregator.OrderAnswer[]',
@@ -16592,20 +14661,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0x94db9ef7',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: '_jobId',
-        type: 'bytes32',
-      },
-    ],
-    name: 'initializeParamUpdateJobId',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x299e40a4',
   },
   {
     inputs: [
@@ -16775,20 +14830,6 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0xaa564b10',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: '_jobId',
-        type: 'bytes32',
-      },
-    ],
-    name: 'setParamUpdateJobId',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x989f7ceb',
   },
   {
     inputs: [
@@ -17334,2154 +15375,5 @@ export const gnsMultiCollatDiamondAbi = [
     stateMutability: 'nonpayable',
     type: 'function',
     signature: '0xe085d2a7',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint24',
-        name: 'absoluteRatePerSecondCap',
-        type: 'uint24',
-      },
-    ],
-    name: 'AbsoluteRatePerSecondCapUpdated',
-    type: 'event',
-    signature:
-      '0x0b444e27c2586586cb35a038930568f126a5336d95b2660d68e68af7808b77f7',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint24',
-        name: 'absoluteVelocityPerYearCap',
-        type: 'uint24',
-      },
-    ],
-    name: 'AbsoluteVelocityPerYearCapUpdated',
-    type: 'event',
-    signature:
-      '0xb50ac6e10456acb2102aaead8ce37514bb8e48e762f50af65702280277e87ba9',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'deltaCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint128',
-        name: 'newAlreadyTransferredNegativePnlCollateral',
-        type: 'uint128',
-      },
-    ],
-    name: 'AlreadyTransferredNegativePnlStored',
-    type: 'event',
-    signature:
-      '0x7d2f9b1befe8a24ce8c53815ddf90df19a619c1bafb9bf5baf80844eebec2885',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'aprMultiplierEnabled',
-        type: 'bool',
-      },
-    ],
-    name: 'AprMultiplierEnabledUpdated',
-    type: 'event',
-    signature:
-      '0x4bc715745c73399a9396d0d1183d3d5d5511cd3967ddc68a7c6f5a52bea43bf1',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint24',
-        name: 'borrowingRatePerSecondP',
-        type: 'uint24',
-      },
-    ],
-    name: 'BorrowingRatePerSecondPUpdated',
-    type: 'event',
-    signature:
-      '0xd18737da4ad863459b9a73fbdc2bd03de833f7a506f86558beb2c4bcb1489117',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'fundingFeesEnabled',
-        type: 'bool',
-      },
-    ],
-    name: 'FundingFeesEnabledUpdated',
-    type: 'event',
-    signature:
-      '0xb9170ccd0b593501ecc19ed567a064a0a52063f10d7f556e88791605f0aa13ce',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint64',
-        name: 'currentPairPrice',
-        type: 'uint64',
-      },
-      {
-        components: [
-          {
-            internalType: 'int256',
-            name: 'fundingFeeCollateral',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral_old',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalFeeCollateral',
-            type: 'int256',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IFundingFees.TradeHoldingFees',
-        name: 'tradeHoldingFees',
-        type: 'tuple',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'availableCollateralInDiamond',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'amountSentToVaultCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newRealizedTradingFeesCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'newRealizedPnlCollateral',
-        type: 'int256',
-      },
-    ],
-    name: 'HoldingFeesChargedOnTrade',
-    type: 'event',
-    signature:
-      '0x15899f852ac1a2c43a151e9be38095efa336a692424358cb47dc1d988184e594',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint64',
-        name: 'currentPairPrice',
-        type: 'uint64',
-      },
-      {
-        components: [
-          {
-            internalType: 'int256',
-            name: 'fundingFeeCollateral',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral_old',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalFeeCollateral',
-            type: 'int256',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IFundingFees.TradeHoldingFees',
-        name: 'tradeHoldingFees',
-        type: 'tuple',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'newRealizedPnlCollateral',
-        type: 'int256',
-      },
-    ],
-    name: 'HoldingFeesRealizedOnTrade',
-    type: 'event',
-    signature:
-      '0x7cd7b1f62cf5218ff4d0f07bc63dc9a36a8e8832a7beb954d4f547cef9d8e34b',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint128',
-        name: 'newManuallyRealizedNegativePnlCollateral',
-        type: 'uint128',
-      },
-    ],
-    name: 'ManuallyRealizedNegativePnlCollateralStored',
-    type: 'event',
-    signature:
-      '0xdf3c780aba0c5e6d73194f72ae259d8dc727b5ee4636fd1dd95d8eac7f44872e',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint80',
-        name: 'maxSkewCollateral',
-        type: 'uint80',
-      },
-    ],
-    name: 'MaxSkewCollateralUpdated',
-    type: 'event',
-    signature:
-      '0x431f5c2627e641b4e4fec9c46037bf459d0601f47fc54053bff744e42a83f5ed',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'enum IFundingFees.ParamUpdateType',
-        name: 'updateType',
-        type: 'uint8',
-      },
-      {
-        indexed: false,
-        internalType: 'uint224',
-        name: 'newValue',
-        type: 'uint224',
-      },
-    ],
-    name: 'ParamUpdateRequested',
-    type: 'event',
-    signature:
-      '0xebfdad45bba07fbefdf033f44c0265bf7f4b11845b0a06c11f6feca010403cbc',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'accBorrowingFeeP',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint32',
-            name: 'lastBorrowingUpdateTs',
-            type: 'uint32',
-          },
-          {
-            internalType: 'uint96',
-            name: '__placeholder',
-            type: 'uint96',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IFundingFees.PairBorrowingFeeData',
-        name: 'data',
-        type: 'tuple',
-      },
-    ],
-    name: 'PendingAccBorrowingFeesStored',
-    type: 'event',
-    signature:
-      '0x55799a6e7fc552f7f3857b49577715215be79f08c88e33d95d253861e723e509',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        components: [
-          {
-            internalType: 'int128',
-            name: 'accFundingFeeLongP',
-            type: 'int128',
-          },
-          {
-            internalType: 'int128',
-            name: 'accFundingFeeShortP',
-            type: 'int128',
-          },
-          {
-            internalType: 'int56',
-            name: 'lastFundingRatePerSecondP',
-            type: 'int56',
-          },
-          {
-            internalType: 'uint32',
-            name: 'lastFundingUpdateTs',
-            type: 'uint32',
-          },
-          {
-            internalType: 'uint168',
-            name: '__placeholder',
-            type: 'uint168',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IFundingFees.PairFundingFeeData',
-        name: 'data',
-        type: 'tuple',
-      },
-    ],
-    name: 'PendingAccFundingFeesStored',
-    type: 'event',
-    signature:
-      '0x9ad7756fe7cdebb43c0f9ebcfa8072a52db88489b7bd7ea12764610a2082c3c7',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'pnlCollateral',
-        type: 'int256',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'newRealizedPnlCollateral',
-        type: 'int256',
-      },
-    ],
-    name: 'PnlRealizedOnOpenTrade',
-    type: 'event',
-    signature:
-      '0x94423d7323f62cf3416097b1a4efa462bb70e4af4d1746cbaddb4283e5d0ca2e',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint112',
-        name: 'skewCoefficientPerYear',
-        type: 'uint112',
-      },
-    ],
-    name: 'SkewCoefficientPerYearUpdated',
-    type: 'event',
-    signature:
-      '0xab26606cbd35e2037fdb7a3200f1bb8a998f837bcd72e818b3ac9d19a08630b6',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'uint32',
-        name: 'thetaThresholdUsd',
-        type: 'uint32',
-      },
-    ],
-    name: 'ThetaThresholdUsdUpdated',
-    type: 'event',
-    signature:
-      '0x7932474ec928122785868b95a5c9029cbc14dde6c96033ffedc13ef591d42967',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'positionSizeCollateralDelta',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'existingPositionSizeCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newCollateralAmount',
-        type: 'uint256',
-      },
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'realizedTradingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'realizedPnlCollateral',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'manuallyRealizedNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'alreadyTransferredNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'virtualAvailableCollateralInDiamond',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: '__placeholder',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'initialAccFundingFeeP',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'initialAccBorrowingFeeP',
-            type: 'uint128',
-          },
-        ],
-        indexed: false,
-        internalType: 'struct IFundingFees.TradeFeesData',
-        name: 'newTradeFeesData',
-        type: 'tuple',
-      },
-    ],
-    name: 'TradeFeesDataDownscaled',
-    type: 'event',
-    signature:
-      '0x94b6dd6695c6b27738d956607d487ce2b47ce52de3efb85dafbbee304e33a152',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: false,
-        internalType: 'uint16',
-        name: 'pairIndex',
-        type: 'uint16',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'long',
-        type: 'bool',
-      },
-      {
-        indexed: false,
-        internalType: 'uint64',
-        name: 'currentPairPrice',
-        type: 'uint64',
-      },
-      {
-        indexed: false,
-        internalType: 'int128',
-        name: 'newInitialAccFundingFeeP',
-        type: 'int128',
-      },
-      {
-        indexed: false,
-        internalType: 'uint128',
-        name: 'newInitialAccBorrowingFeeP',
-        type: 'uint128',
-      },
-    ],
-    name: 'TradeInitialAccFeesStored',
-    type: 'event',
-    signature:
-      '0xe2246a51b73f6ea7ff0fee771119006fb1c0040340321b0cef01749b7fc71c7a',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'uint8',
-        name: 'collateralIndex',
-        type: 'uint8',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'tradingFeesCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'finalTradingFeesCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newRealizedFeesCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'int256',
-        name: 'newRealizedPnlCollateral',
-        type: 'int256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'amountSentFromVaultCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'TradingFeesRealized',
-    type: 'event',
-    signature:
-      '0x59d7d10c2807ddd24b509adb00c02f796e45ac11d3c8dadd625b3c6b001380ae',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'trader',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint32',
-        name: 'index',
-        type: 'uint32',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newTradeCollateralAmount',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'currentManuallyRealizedNegativePnlCollateral',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'manuallyRealizedNegativePnlCollateralCapped',
-        type: 'bool',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'virtualAvailableCollateralInDiamondDelta',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newVirtualAvailableCollateralInDiamond',
-        type: 'uint256',
-      },
-    ],
-    name: 'VirtualAvailableCollateralInDiamondStored',
-    type: 'event',
-    signature:
-      '0x227c94b0811e2f4e8812f4995373cd0d8aa78ba41f1cd6ad61c233135929b303',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_positionSizeCollateralDelta',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_existingPositionSizeCollateral',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_newCollateralAmount',
-        type: 'uint256',
-      },
-    ],
-    name: 'downscaleTradeFeesData',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x9d4f1bd4',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-    ],
-    name: 'getMaxSkewCollateral',
-    outputs: [
-      {
-        internalType: 'uint80',
-        name: '',
-        type: 'uint80',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xed8a204c',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairBorrowingFeeData',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'accBorrowingFeeP',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint32',
-            name: 'lastBorrowingUpdateTs',
-            type: 'uint32',
-          },
-          {
-            internalType: 'uint96',
-            name: '__placeholder',
-            type: 'uint96',
-          },
-        ],
-        internalType: 'struct IFundingFees.PairBorrowingFeeData[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xf4d6301f',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairBorrowingFeeParams',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint24',
-            name: 'borrowingRatePerSecondP',
-            type: 'uint24',
-          },
-          {
-            internalType: 'uint232',
-            name: '__placeholder',
-            type: 'uint232',
-          },
-        ],
-        internalType: 'struct IFundingFees.BorrowingFeeParams[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x3d64f422',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairFundingFeeData',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'int128',
-            name: 'accFundingFeeLongP',
-            type: 'int128',
-          },
-          {
-            internalType: 'int128',
-            name: 'accFundingFeeShortP',
-            type: 'int128',
-          },
-          {
-            internalType: 'int56',
-            name: 'lastFundingRatePerSecondP',
-            type: 'int56',
-          },
-          {
-            internalType: 'uint32',
-            name: 'lastFundingUpdateTs',
-            type: 'uint32',
-          },
-          {
-            internalType: 'uint168',
-            name: '__placeholder',
-            type: 'uint168',
-          },
-        ],
-        internalType: 'struct IFundingFees.PairFundingFeeData[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xb26b98fd',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairFundingFeeParams',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint112',
-            name: 'skewCoefficientPerYear',
-            type: 'uint112',
-          },
-          {
-            internalType: 'uint24',
-            name: 'absoluteVelocityPerYearCap',
-            type: 'uint24',
-          },
-          {
-            internalType: 'uint24',
-            name: 'absoluteRatePerSecondCap',
-            type: 'uint24',
-          },
-          {
-            internalType: 'uint32',
-            name: 'thetaThresholdUsd',
-            type: 'uint32',
-          },
-          {
-            internalType: 'bool',
-            name: 'fundingFeesEnabled',
-            type: 'bool',
-          },
-          {
-            internalType: 'bool',
-            name: 'aprMultiplierEnabled',
-            type: 'bool',
-          },
-          {
-            internalType: 'uint48',
-            name: '__placeholder',
-            type: 'uint48',
-          },
-        ],
-        internalType: 'struct IFundingFees.FundingFeeParams[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x606a9c45',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-    ],
-    name: 'getPairGlobalParamsArray',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint80',
-            name: 'maxSkewCollateral',
-            type: 'uint80',
-          },
-          {
-            internalType: 'uint176',
-            name: '__placeholder',
-            type: 'uint176',
-          },
-        ],
-        internalType: 'struct IFundingFees.PairGlobalParams[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x6fa58305',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'getPairPendingAccBorrowingFees',
-    outputs: [
-      {
-        internalType: 'uint128',
-        name: 'accBorrowingFeeP',
-        type: 'uint128',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x1154c1f7',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'getPairPendingAccFundingFees',
-    outputs: [
-      {
-        internalType: 'int128',
-        name: 'accFundingFeeLongP',
-        type: 'int128',
-      },
-      {
-        internalType: 'int128',
-        name: 'accFundingFeeShortP',
-        type: 'int128',
-      },
-      {
-        internalType: 'int56',
-        name: 'currentFundingRatePerSecondP',
-        type: 'int56',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x5d971a0d',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint32[]',
-        name: '_index',
-        type: 'uint32[]',
-      },
-    ],
-    name: 'getPendingParamUpdates',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint8',
-            name: 'collateralIndex',
-            type: 'uint8',
-          },
-          {
-            internalType: 'uint16',
-            name: 'pairIndex',
-            type: 'uint16',
-          },
-          {
-            internalType: 'enum IFundingFees.ParamUpdateType',
-            name: 'updateType',
-            type: 'uint8',
-          },
-          {
-            internalType: 'uint224',
-            name: 'newValue',
-            type: 'uint224',
-          },
-        ],
-        internalType: 'struct IFundingFees.PendingParamUpdate[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xc411b6cb',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'getTradeBorrowingFeesCollateral',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xf202b4d4',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-    ],
-    name: 'getTradeFeesData',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'realizedTradingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'realizedPnlCollateral',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'manuallyRealizedNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'alreadyTransferredNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'virtualAvailableCollateralInDiamond',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: '__placeholder',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'initialAccFundingFeeP',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'initialAccBorrowingFeeP',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IFundingFees.TradeFeesData',
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x62a6ace6',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address[]',
-        name: '_trader',
-        type: 'address[]',
-      },
-      {
-        internalType: 'uint32[]',
-        name: '_index',
-        type: 'uint32[]',
-      },
-    ],
-    name: 'getTradeFeesDataArray',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'realizedTradingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'realizedPnlCollateral',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'manuallyRealizedNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'alreadyTransferredNegativePnlCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'virtualAvailableCollateralInDiamond',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: '__placeholder',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'initialAccFundingFeeP',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'initialAccBorrowingFeeP',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IFundingFees.TradeFeesData[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x2b9455fd',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'getTradeFundingFeesCollateral',
-    outputs: [
-      {
-        internalType: 'int256',
-        name: '',
-        type: 'int256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xac10e38d',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-    ],
-    name: 'getTradeManuallyRealizedNegativePnlCollateral',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x4763fe5d',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'getTradePendingHoldingFeesCollateral',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'int256',
-            name: 'fundingFeeCollateral',
-            type: 'int256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'borrowingFeeCollateral_old',
-            type: 'uint256',
-          },
-          {
-            internalType: 'int256',
-            name: 'totalFeeCollateral',
-            type: 'int256',
-          },
-        ],
-        internalType: 'struct IFundingFees.TradeHoldingFees',
-        name: 'tradeHoldingFees',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x668cdc31',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-    ],
-    name: 'getTradeRealizedPnlCollateral',
-    outputs: [
-      {
-        internalType: 'int256',
-        name: 'realizedPnlCollateral',
-        type: 'int256',
-      },
-      {
-        internalType: 'uint256',
-        name: 'realizedTradingFeesCollateral',
-        type: 'uint256',
-      },
-      {
-        internalType: 'int256',
-        name: 'totalRealizedPnlCollateral',
-        type: 'int256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0xb15eb822',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-    ],
-    name: 'getTradeRealizedTradingFeesCollateral',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x8753d72c',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address[]',
-        name: '_trader',
-        type: 'address[]',
-      },
-      {
-        internalType: 'uint32[]',
-        name: '_index',
-        type: 'uint32[]',
-      },
-    ],
-    name: 'getTradeUiRealizedPnlDataArray',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'uint128',
-            name: 'realizedTradingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'realizedOldBorrowingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'realizedNewBorrowingFeesCollateral',
-            type: 'uint128',
-          },
-          {
-            internalType: 'int128',
-            name: 'realizedFundingFeesCollateral',
-            type: 'int128',
-          },
-          {
-            internalType: 'int128',
-            name: 'realizedPnlPartialCloseCollateral',
-            type: 'int128',
-          },
-          {
-            internalType: 'uint128',
-            name: 'pnlWithdrawnCollateral',
-            type: 'uint128',
-          },
-        ],
-        internalType: 'struct IFundingFees.UiRealizedPnlData[]',
-        name: '',
-        type: 'tuple[]',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-    signature: '0x047314c5',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: 'address',
-                name: 'user',
-                type: 'address',
-              },
-              {
-                internalType: 'uint32',
-                name: 'index',
-                type: 'uint32',
-              },
-            ],
-            internalType: 'struct ITradingStorage.Id',
-            name: 'orderId',
-            type: 'tuple',
-          },
-          {
-            internalType: 'uint64',
-            name: 'open',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'high',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'low',
-            type: 'uint64',
-          },
-          {
-            internalType: 'uint64',
-            name: 'current',
-            type: 'uint64',
-          },
-        ],
-        internalType: 'struct ITradingCallbacks.AggregatorAnswer',
-        name: '_answer',
-        type: 'tuple',
-      },
-    ],
-    name: 'pendingParamUpdateCallback',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x5246b961',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'realizeHoldingFeesOnOpenTrade',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x7f5347c3',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'int256',
-        name: '_pnlCollateral',
-        type: 'int256',
-      },
-    ],
-    name: 'realizePnlOnOpenTrade',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xc120d700',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_feesCollateral',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'realizeTradingFeesOnOpenTrade',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'finalFeesCollateral',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xfd84264d',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'enum IFundingFees.ParamUpdateType',
-        name: '_updateType',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint224',
-        name: '_newValue',
-        type: 'uint224',
-      },
-    ],
-    name: 'requestParamUpdate',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x41f84f2b',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint24[]',
-        name: '_absoluteRatePerSecondCap',
-        type: 'uint24[]',
-      },
-    ],
-    name: 'setAbsoluteRatePerSecondCap',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x1cff93a8',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint24[]',
-        name: '_absoluteVelocityPerYearCap',
-        type: 'uint24[]',
-      },
-    ],
-    name: 'setAbsoluteVelocityPerYearCap',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x96ebeace',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'bool[]',
-        name: '_aprMultiplierEnabled',
-        type: 'bool[]',
-      },
-    ],
-    name: 'setAprMultiplierEnabled',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xe8cf0b70',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint24[]',
-        name: '_borrowingRatePerSecondP',
-        type: 'uint24[]',
-      },
-    ],
-    name: 'setBorrowingRatePerSecondP',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xdbb69ab4',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'bool[]',
-        name: '_fundingFeesEnabled',
-        type: 'bool[]',
-      },
-    ],
-    name: 'setFundingFeesEnabled',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x7b4ee84d',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint80[]',
-        name: '_maxSkewCollateral',
-        type: 'uint80[]',
-      },
-    ],
-    name: 'setMaxSkewCollateral',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x270f61ca',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint112[]',
-        name: '_skewCoefficientPerYear',
-        type: 'uint112[]',
-      },
-    ],
-    name: 'setSkewCoefficientPerYear',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xb6fa94a3',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint8[]',
-        name: '_collateralIndex',
-        type: 'uint8[]',
-      },
-      {
-        internalType: 'uint16[]',
-        name: '_pairIndex',
-        type: 'uint16[]',
-      },
-      {
-        internalType: 'uint32[]',
-        name: '_thetaThresholdUsd',
-        type: 'uint32[]',
-      },
-    ],
-    name: 'setThetaThresholdUsd',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x3adcbe28',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_deltaCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'storeAlreadyTransferredNegativePnl',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xa9d21a85',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_amountCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'storeManuallyRealizedNegativePnlCollateral',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0xd3cca1f2',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint8',
-        name: '_collateralIndex',
-        type: 'uint8',
-      },
-      {
-        internalType: 'uint16',
-        name: '_pairIndex',
-        type: 'uint16',
-      },
-      {
-        internalType: 'bool',
-        name: '_long',
-        type: 'bool',
-      },
-      {
-        internalType: 'uint64',
-        name: '_currentPairPrice',
-        type: 'uint64',
-      },
-    ],
-    name: 'storeTradeInitialAccFees',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x8514cdf5',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_deltaCollateral',
-        type: 'uint256',
-      },
-    ],
-    name: 'storeUiPnlWithdrawnCollateral',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x5f804979',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'int256',
-        name: '_deltaCollateral',
-        type: 'int256',
-      },
-    ],
-    name: 'storeUiRealizedPnlPartialCloseCollateral',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x2e4f2b16',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_trader',
-        type: 'address',
-      },
-      {
-        internalType: 'uint32',
-        name: '_index',
-        type: 'uint32',
-      },
-      {
-        internalType: 'uint256',
-        name: '_newTradeCollateralAmount',
-        type: 'uint256',
-      },
-    ],
-    name: 'storeVirtualAvailableCollateralInDiamond',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-    signature: '0x86d43b8a',
   },
 ] as const;

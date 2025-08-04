@@ -253,12 +253,6 @@ export const gTokenAbi = [
         name: 'assetsLessDeplete',
         type: 'uint256',
       },
-      {
-        indexed: false,
-        internalType: 'bool',
-        name: 'burn',
-        type: 'bool',
-      },
     ],
     name: 'AssetsReceived',
     type: 'event',
@@ -305,6 +299,31 @@ export const gTokenAbi = [
     anonymous: false,
     inputs: [],
     name: 'DailyAccPnlDeltaReset',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'asset',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'delegatee',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'bool',
+        name: 'success',
+        type: 'bool',
+      },
+    ],
+    name: 'Delegated',
     type: 'event',
   },
   {
@@ -909,6 +928,32 @@ export const gTokenAbi = [
   },
   {
     inputs: [],
+    name: 'accBlockWeightedMarketCap',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'accBlockWeightedMarketCapLastStored',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'accPnlPerToken',
     outputs: [
       {
@@ -1397,60 +1442,6 @@ export const gTokenAbi = [
         internalType: 'struct IGToken.LockedDeposit',
         name: '',
         type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getTotalDepleted',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'assets',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: 'gns',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getTotalDiscounts',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'unlocked',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: 'locked',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getTotalRefilled',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'assets',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: 'gns',
-        type: 'uint256',
       },
     ],
     stateMutability: 'view',
@@ -2215,11 +2206,6 @@ export const gTokenAbi = [
         name: 'user',
         type: 'address',
       },
-      {
-        internalType: 'bool',
-        name: '_burn',
-        type: 'bool',
-      },
     ],
     name: 'receiveAssets',
     outputs: [],
@@ -2347,7 +2333,46 @@ export const gTokenAbi = [
   },
   {
     inputs: [],
+    name: 'totalDepleted',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalDepletedGns',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'totalDeposited',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalDiscounts',
     outputs: [
       {
         internalType: 'uint256',
@@ -2366,6 +2391,45 @@ export const gTokenAbi = [
         internalType: 'int256',
         name: '',
         type: 'int256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalLockedDiscounts',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalRefilled',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalRefilledGns',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
       },
     ],
     stateMutability: 'view',
@@ -2567,6 +2631,19 @@ export const gTokenAbi = [
       },
     ],
     name: 'updateAdmin',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_delegatee',
+        type: 'address',
+      },
+    ],
+    name: 'updateDelegatee',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',

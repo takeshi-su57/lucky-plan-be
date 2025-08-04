@@ -357,8 +357,10 @@ export class TradeHistoriesService {
                   Number(collateral.precision),
               )}`,
               leverage,
-              pnl: `${-Number(
-                Number(args.values.borrowingFeeCollateral) /
+              pnl: `${Number(
+                (-Number(args.values.openingFeesCollateral) +
+                  Number(args.values.existingPnlCollateral) +
+                  Number(args.values.oldPosSizePlusPnlCollateral)) /
                   Number(collateral.precision),
               )}`,
               tradeId: null,
@@ -396,7 +398,7 @@ export class TradeHistoriesService {
               address: actionItem.item.position.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
               contractId,
-              price: `${Number(args.values.priceAfterImpact) / 1e10}`,
+              price: `${Number(args.values.priceImpact.priceAfterImpact) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
               size: `${Number(
