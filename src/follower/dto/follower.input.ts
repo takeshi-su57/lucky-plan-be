@@ -48,6 +48,75 @@ export class CloseTradeInput {
 }
 
 @InputType()
+export class UpdateSlInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  newSl: number;
+}
+
+@InputType()
+export class UpdateTpInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  newTp: number;
+}
+
+@InputType()
+export class WithdrawPositivePnlInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  amountCollateral: number;
+}
+
+@InputType()
 export class CancelOrderAfterTimeoutInput {
   @IsNotEmpty()
   @IsWalletAddress()

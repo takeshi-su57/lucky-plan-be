@@ -9,6 +9,7 @@ import { positionSizeDecreaseExecutedEventParser } from 'src/actions/eventParser
 import { positionSizeIncreaseExecutedEventParser } from 'src/actions/eventParsers/position-size-increase-executed.parser';
 
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
+import { tradePositivePnlWithdrawnEventParser } from 'src/actions/eventParsers/trade-positive-pnl-withdrawn.parser';
 
 import { PendingOrderType, RegisteredEventType } from 'src/types';
 import { Action, ActionItem } from '../entities/action.entity';
@@ -44,6 +45,7 @@ export const missionCanceledEventNames = missionCanceledEventParsers.map(
 
 export const eventParsers = [
   marketOrderInitiatedEventParser,
+  tradePositivePnlWithdrawnEventParser,
   ...missionEventParsers,
   ...updateEventParsers,
   ...missionCanceledEventParsers,

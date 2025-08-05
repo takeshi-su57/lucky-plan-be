@@ -12,6 +12,9 @@ import {
   CloseTradeInput,
   CancelOrderAfterTimeoutInput,
   WithdrawAllInput,
+  UpdateSlInput,
+  UpdateTpInput,
+  WithdrawPositivePnlInput,
 } from './dto/follower.input';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
@@ -101,6 +104,30 @@ export class FollowerResolver {
     @CurrentUser() user: User,
   ) {
     return this.followerService.closeTradeMarket(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updateSl(@Args('input') input: UpdateSlInput, @CurrentUser() user: User) {
+    return this.followerService.updateSl(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updateTp(@Args('input') input: UpdateTpInput, @CurrentUser() user: User) {
+    return this.followerService.updateTp(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  withdrawPositivePnl(
+    @Args('input') input: WithdrawPositivePnlInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.withdrawPositivePnl(user.address, input);
   }
 
   @Mutation(() => ContractExecutionResult)

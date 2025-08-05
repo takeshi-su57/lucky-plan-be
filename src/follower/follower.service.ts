@@ -29,6 +29,9 @@ import { TradeService } from 'src/global/trade.service';
 import {
   CancelOrderAfterTimeoutInput,
   CloseTradeInput,
+  UpdateSlInput,
+  UpdateTpInput,
+  WithdrawPositivePnlInput,
 } from './dto/follower.input';
 import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
@@ -846,7 +849,7 @@ export class FollowerService {
       const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
-          address: input.address,
+          address: input.address.toLowerCase(),
         },
       });
 
@@ -936,6 +939,339 @@ export class FollowerService {
       await this.logger.log({
         severity: 'Error',
         summary: `FollowerService>closeTradeMarket tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async updateSl(
+    userId: string,
+    input: UpdateSlInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const walletClient = this.chainsService.walletClient(
+        mnemonic,
+        contract.chainId,
+        follower,
+      );
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      tx = await this.tradeService.updateSl(
+        walletClient,
+        publicClient,
+        contract.chainId,
+        {
+          index: input.index,
+          newSl: BigInt(input.newSl),
+        },
+      );
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade sl updated`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>updateSl tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>updateSl tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async updateTp(
+    userId: string,
+    input: UpdateTpInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const walletClient = this.chainsService.walletClient(
+        mnemonic,
+        contract.chainId,
+        follower,
+      );
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      tx = await this.tradeService.updateTp(
+        walletClient,
+        publicClient,
+        contract.chainId,
+        {
+          index: input.index,
+          newTp: BigInt(input.newTp),
+        },
+      );
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade tp updated`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>updateTp tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>updateTp tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async withdrawPositivePnl(
+    userId: string,
+    input: WithdrawPositivePnlInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const mnemonic = user.mnemonic || '';
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const walletClient = this.chainsService.walletClient(
+        mnemonic,
+        contract.chainId,
+        follower,
+      );
+      const publicClient = this.chainsService.publicClient(contract.chainId);
+
+      tx = await this.tradeService.withdrawPositivePnl(
+        walletClient,
+        publicClient,
+        contract.chainId,
+        {
+          index: input.index,
+          amountCollateral: BigInt(input.amountCollateral),
+        },
+      );
+
+      if (tx) {
+        const transaction = await publicClient.waitForTransactionReceipt({
+          hash: tx as `0x${string}`,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade positive pnl withdrawn`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>withdrawPositivePnl tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawPositivePnl tx: ${tx}`,
         details: getReadableError(err),
       });
 

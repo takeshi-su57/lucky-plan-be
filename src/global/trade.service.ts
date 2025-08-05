@@ -211,4 +211,25 @@ export class TradeService {
 
     return await wallet.writeContract(request);
   }
+
+  async withdrawPositivePnl(
+    wallet: WalletClient,
+    publicClient: PublicClient,
+    chainId: number,
+    args: {
+      index: number;
+      amountCollateral: bigint;
+    },
+  ) {
+    const { request } = await publicClient.simulateContract({
+      account: wallet.account,
+      address: addresses[chainId.toString() as keyof typeof addresses].global
+        .gnsMultiCollatDiamond as Address,
+      abi: gnsMultiCollatDiamondAbi,
+      functionName: 'withdrawPositivePnl',
+      args: [args.index, args.amountCollateral],
+    });
+
+    return await wallet.writeContract(request);
+  }
 }
