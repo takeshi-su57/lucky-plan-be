@@ -45,9 +45,9 @@ export class ContractMonitorService {
 
     for (const contract of contracts) {
       // temporarily skip testnet contracts
-      // if (contract.isTestnet) {
-      //   continue;
-      // }
+      if (contract.isTestnet) {
+        continue;
+      }
 
       await this.checkContractForBots(contract);
     }
@@ -104,9 +104,9 @@ export class ContractMonitorService {
 
     for (const contract of contracts) {
       // temporarily skip testnet contracts
-      // if (contract.isTestnet) {
-      //   continue;
-      // }
+      if (contract.isTestnet) {
+        continue;
+      }
 
       await this.checkContractForLeaderboard(contract);
     }
