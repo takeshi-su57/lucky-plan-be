@@ -104,7 +104,7 @@ model TradeHistory {
   tradeId            String?
   block              Int
   date               DateTime
-  isCounterTrade     Boolean         @default(false)
+  isCounterTrade     Boolean?        @default(false)
   meta               String?
 
   @@index([address, contractId, block(sort: Asc)])
