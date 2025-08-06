@@ -65,9 +65,8 @@ export class UpdateSlInput {
   index: number;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
-  newSl: number;
+  newSl: string;
 }
 
 @InputType()
@@ -88,9 +87,8 @@ export class UpdateTpInput {
   index: number;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
-  newTp: number;
+  newTp: string;
 }
 
 @InputType()
@@ -111,9 +109,8 @@ export class WithdrawPositivePnlInput {
   index: number;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
-  amountCollateral: number;
+  amountCollateral: string;
 }
 
 @InputType()
