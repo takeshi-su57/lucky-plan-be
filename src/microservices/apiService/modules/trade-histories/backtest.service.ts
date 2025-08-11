@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   PnlSnapshotKind,
-  TestingReportV5,
+  TestingReport,
   TradeActionType,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
@@ -24,6 +24,7 @@ import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { GnsV10Service } from 'src/global/gnsV10.service';
+import { LogsService } from 'src/global/logs.service';
 
 const dailyPlans = 8;
 
@@ -38,20 +39,18 @@ export class BacktestService {
   constructor(
     private prismaService: PrismaService,
     private gnsV10Service: GnsV10Service,
+    private logger: LogsService,
   ) {
     // setTimeout(() => {
     //   this.autoTesting();
     // }, 30_000);
     this.cache = null;
     this.cachedDateStr = null;
+  }
 
-    setTimeout(() => {
-      this.initPairMap();
-    }, 60_000);
-
-    setInterval(() => {
-      this.initBlacklist();
-    }, 3600_000);
+  async init() {
+    await this.initPairMap();
+    await this.initBlacklist();
   }
 
   private async initPairMap() {
@@ -464,9 +463,10 @@ export class BacktestService {
     const nodes: PnlSnapshotDevDetails[] = [];
 
     for (let i = 0; i < pnlRecords.length; i += CHUNK) {
-      console.log(
-        `Processing chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
-      );
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `Processing chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
+      });
 
       const chunk = pnlRecords.slice(i, i + CHUNK);
 
@@ -531,12 +531,16 @@ export class BacktestService {
         }
       });
 
-      console.log(
-        `Ended chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
-      );
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `Ended chunk ${i / CHUNK + 1} of ${Math.ceil(pnlRecords.length / CHUNK)}`,
+      });
     }
 
-    console.log('total leaders ==>', nodes.length);
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: `total leaders ==>${nodes.length}`,
+    });
 
     return nodes.sort((a, b) => b.score - a.score).slice(0, 100);
   }
@@ -1513,15 +1517,15 @@ export class BacktestService {
   }
 
   async getTestingReport(first: number, after: number | null) {
-    const records: TestingReportV5[] = after
-      ? await this.prismaService.testingReportV5.findMany({
+    const records: TestingReport[] = after
+      ? await this.prismaService.testingReport.findMany({
           skip: after ? 1 : undefined,
           take: first,
           cursor: {
             id: after,
           },
         })
-      : await this.prismaService.testingReportV5.findMany({
+      : await this.prismaService.testingReport.findMany({
           take: first,
         });
 
@@ -1635,7 +1639,7 @@ export class BacktestService {
       const regression = new SimpleLinearRegression(xs, usdArr);
       const score = regression.score(xs, usdArr);
 
-      await this.prismaService.testingReportV5.create({
+      await this.prismaService.testingReport.create({
         data: {
           window: params.window,
           minR2: params.minR2,
@@ -1687,7 +1691,7 @@ export class BacktestService {
     const sizeScales = [0, 300, 2000, 5000, 10000, 30000, 100000, 1000000000];
     const countScales = [0, 16, 32, 64, 128, 256, 512, 1000000000];
 
-    await this.prismaService.testingReportV5.deleteMany();
+    await this.prismaService.testingReport.deleteMany();
 
     for (const window of windowScales) {
       for (const penalty of penaltyScales) {
@@ -1722,13 +1726,22 @@ export class BacktestService {
           }
         }
 
-        console.log(`Done penalty ${penalty}`);
+        this.logger.nativeLog({
+          severity: 'Info',
+          summary: `Done penalty ${penalty}`,
+        });
       }
 
-      console.log(`Done window ${window}`);
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `Done window ${window}`,
+      });
     }
 
-    console.log('Finished');
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'Finished',
+    });
 
     return true;
   }

@@ -44,6 +44,7 @@ import { TaskUpdateInput } from 'src/microservices/apiService/modules/tasks/dto/
 
 import { MIN_FEE } from 'src/utils/constants';
 import { marketOrderInitiatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-order-initiated.parser';
+import { ServiceStatus } from 'src/types';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -53,7 +54,7 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 
 @Injectable()
 export class TaskExecutorService {
-  status: 'process' | 'ready' = 'ready';
+  status: ServiceStatus = ServiceStatus.READY;
   readonly registeredEventNames: string[] = [];
 
   constructor(
@@ -67,6 +68,7 @@ export class TaskExecutorService {
     private readonly gnsV10Service: GnsV10Service,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
+    this.status = ServiceStatus.READY;
   }
 
   private async performTask(
@@ -102,7 +104,9 @@ export class TaskExecutorService {
         throw new Error('User not found');
       }
 
-      const mnemonic = await this.followerService.getMnemonic(user.mnemonic);
+      const mnemonic = await this.followerService.getMnemonic(
+        user.mnemonic || '',
+      );
 
       switch (action.name) {
         case tradeMaxClosingSlippagePUpdatedEventParser.eventName: {
@@ -780,7 +784,7 @@ export class TaskExecutorService {
     try {
       await this.logger.log({
         severity: 'Info',
-        summary: 'TaskExecutorService>performAvailableTasks',
+        summary: 'TaskExecutorService>performAvailableTasksByUser',
       });
 
       const allTasks = await this.prismaService.task.findMany({
@@ -911,7 +915,7 @@ export class TaskExecutorService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: 'TaskExecutorService>performAvailableTasks',
+        summary: 'TaskExecutorService>performAvailableTasksByUser',
         details: getReadableError(err),
       });
     }
@@ -973,14 +977,9 @@ export class TaskExecutorService {
   }
 
   async performAvailableTasks() {
-    this.status = 'process';
+    this.status = ServiceStatus.PROCESS;
 
     try {
-      await this.logger.log({
-        severity: 'Info',
-        summary: 'TaskExecutorService>performAvailableTasks',
-      });
-
       const allUsers = await this.prismaService.user.findMany({
         where: {
           permission: {
@@ -1000,6 +999,6 @@ export class TaskExecutorService {
       });
     }
 
-    this.status = 'ready';
+    this.status = ServiceStatus.READY;
   }
 }

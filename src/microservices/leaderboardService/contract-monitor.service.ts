@@ -45,9 +45,9 @@ export class ContractMonitorService {
 
     for (const contract of contracts) {
       // temporarily skip testnet contracts
-      if (contract.isTestnet) {
-        continue;
-      }
+      // if (contract.isTestnet) {
+      //   continue;
+      // }
 
       await this.checkContractForLeaderboard(contract);
     }
@@ -93,7 +93,7 @@ export class ContractMonitorService {
 
         await this.logger.log({
           severity: 'Info',
-          summary: 'contract-monitor>checkContractForLeaderboard',
+          summary: 'leaderboard>contract-monitor>checkContractForLeaderboard',
           details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         });
 
@@ -102,7 +102,7 @@ export class ContractMonitorService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: 'contract-monitor>checkContractForLeaderboard',
+        summary: 'leaderboard>contract-monitor>checkContractForLeaderboard',
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
     }
@@ -142,7 +142,7 @@ export class ContractMonitorService {
         } catch (err) {
           this.logger.nativeLog({
             severity: 'Error',
-            summary: 'contract-monitor.service>parseEventLog',
+            summary: 'leaderboard>contract-monitor.service>parseEventLog',
             details: getReadableError(err),
           });
         }

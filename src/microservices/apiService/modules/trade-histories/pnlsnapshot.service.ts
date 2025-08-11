@@ -736,7 +736,10 @@ export class PnlSnapshotsService {
     while (
       startDate.getTime() < dayjs(new Date()).endOf('day').toDate().getTime()
     ) {
-      console.log(`Completed: ${dayjs(startDate).format('YYYY-MM-DD')}`);
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `Completed: ${dayjs(startDate).format('YYYY-MM-DD')}`,
+      });
 
       await this.dynamicSnapshotBuild(dayjs(startDate).format('YYYY-MM-DD'));
       startDate = dayjs(startDate).add(1, 'day').toDate();

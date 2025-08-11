@@ -100,7 +100,7 @@ export class BotsService {
   ): Promise<BotBackwardDetails> {
     const bot = await this._create(userId, input);
 
-    this.redisClient.emit(PATTERNS.Bots.BotCreated, [bot]);
+    await this.redisClient.emit(PATTERNS.Bots.BotCreated, [bot]);
 
     return bot;
   }
@@ -136,7 +136,7 @@ export class BotsService {
       bots.push(bot);
     }
 
-    this.redisClient.emit(PATTERNS.Bots.BotCreated, bots);
+    await this.redisClient.emit(PATTERNS.Bots.BotCreated, bots);
 
     return bots;
   }
@@ -252,6 +252,8 @@ export class BotsService {
 
       const BATCH_SIZE = 20;
 
+      const updatedBots: BotBackwardDetails[] = [];
+
       for (let i = 0; i < bots.length; i += BATCH_SIZE) {
         const batchBots = bots.slice(i, i + BATCH_SIZE);
 
@@ -264,7 +266,9 @@ export class BotsService {
                 item.status !== MissionStatus.Ignored,
             )
           ) {
-            await this._kill(bot);
+            const updatedBot = await this._kill(bot);
+
+            updatedBots.push(updatedBot);
           } else if (
             bot.status === BotStatus.Live ||
             bot.status === BotStatus.Stop
@@ -274,6 +278,10 @@ export class BotsService {
         });
 
         await Promise.allSettled(promises);
+      }
+
+      if (updatedBots.length > 0) {
+        await this.redisClient.emit(PATTERNS.Bots.BotUpdated, updatedBots);
       }
     } catch (err) {
       await this.logger.log({
@@ -301,8 +309,6 @@ export class BotsService {
       },
     });
 
-    this.redisClient.emit(PATTERNS.Bots.BotUpdated, [updatedBot]);
-
     return updatedBot;
   }
 
@@ -316,7 +322,11 @@ export class BotsService {
       throw new Error('Invalid bot id');
     }
 
-    return this._update(input);
+    const updatedBot = await this._update(input);
+
+    await this.redisClient.emit(PATTERNS.Bots.BotUpdated, [updatedBot]);
+
+    return updatedBot;
   }
 
   async findByStatus(
@@ -435,7 +445,7 @@ export class BotsService {
    * @param id
    * @returns
    */
-  private async _live(bot: BotBackwardDetails): Promise<boolean> {
+  private async _live(bot: BotBackwardDetails): Promise<BotBackwardDetails> {
     if (bot.status !== BotStatus.Created) {
       throw new Error('Invalid bot status');
     }
@@ -472,7 +482,7 @@ export class BotsService {
       throw new Error('Invalid user id');
     }
 
-    const mnemonic = await this.followersService.getMnemonic(userId);
+    const mnemonic = await this.followersService.getMnemonic(user.mnemonic);
 
     const collateralInfo = this.gnsV10Service.getCollateral(
       bot.followerContractId,
@@ -507,15 +517,13 @@ export class BotsService {
       bot.followerContract.chainId,
     );
 
-    await this._update({
+    return await this._update({
       id: bot.id,
       leaderStartedBlock: Number(leaderBlockNumber),
       followerStartedBlock: Number(followerBlockNumber),
       startedAt: new Date(),
       status: BotStatus.Live,
     });
-
-    return true;
   }
 
   async live(userId: string, id: number): Promise<boolean> {
@@ -531,7 +539,25 @@ export class BotsService {
       throw new Error('Invalid bot id');
     }
 
-    await this._live(bot);
+    const updatedBot = await this._live(bot);
+
+    await this.redisClient.emit(PATTERNS.Bots.BotUpdated, [updatedBot]);
+
+    return true;
+  }
+
+  async batchLiveBots(bots: BotBackwardDetails[]): Promise<boolean> {
+    const updatedBots: BotBackwardDetails[] = [];
+
+    for (const bot of bots) {
+      const updatedBot = await this._live(bot);
+
+      updatedBots.push(updatedBot);
+    }
+
+    if (updatedBots.length > 0) {
+      await this.redisClient.emit(PATTERNS.Bots.BotUpdated, updatedBots);
+    }
 
     return true;
   }
@@ -571,7 +597,25 @@ export class BotsService {
       throw new Error('Invalid bot id');
     }
 
-    await this._stop(bot);
+    const updatedBot = await this._stop(bot);
+
+    await this.redisClient.emit(PATTERNS.Bots.BotUpdated, [updatedBot]);
+
+    return true;
+  }
+
+  async batchStopBots(bots: BotBackwardDetails[]): Promise<boolean> {
+    const updatedBots: BotBackwardDetails[] = [];
+
+    for (const bot of bots) {
+      const updatedBot = await this._stop(bot);
+
+      updatedBots.push(updatedBot);
+    }
+
+    if (updatedBots.length > 0) {
+      await this.redisClient.emit(PATTERNS.Bots.BotUpdated, updatedBots);
+    }
 
     return true;
   }

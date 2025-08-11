@@ -3,7 +3,7 @@
 # ------------------------------------------------------
 
 type AccPnl {
-  date: DateTime!
+  date: Date!
   in: Float!
   inOut: Float!
   out: Float!
@@ -20,7 +20,7 @@ type AccessToken {
 type Action {
   args: String!
   blockNumber: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   id: Int!
   name: String!
   orderInBlock: Int!
@@ -32,7 +32,7 @@ input AddUserInput {
 }
 
 type BotBackwardDetails {
-  endedAt: DateTime
+  endedAt: Date
   follower: Follower!
   followerAddress: String!
   followerContract: Contract!
@@ -48,7 +48,7 @@ type BotBackwardDetails {
   leaderStartedBlock: Int
   plan: Plan!
   planId: Int!
-  startedAt: DateTime
+  startedAt: Date
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
@@ -61,11 +61,11 @@ type BotConnection {
 
 type BotCount {
   botCount: Int!
-  date: DateTime!
+  date: Date!
 }
 
 type BotDetails {
-  endedAt: DateTime
+  endedAt: Date
   follower: Follower!
   followerAddress: String!
   followerContract: Contract!
@@ -80,7 +80,7 @@ type BotDetails {
   leaderEndedBlock: Int
   leaderStartedBlock: Int
   planId: Int!
-  startedAt: DateTime
+  startedAt: Date
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
@@ -92,7 +92,7 @@ type BotEdge {
 }
 
 type BotForwardDetails {
-  endedAt: DateTime
+  endedAt: Date
   follower: Follower!
   followerAddress: String!
   followerContract: Contract!
@@ -108,7 +108,7 @@ type BotForwardDetails {
   leaderStartedBlock: Int
   missions: [MissionForwardDetails!]!
   planId: Int!
-  startedAt: DateTime
+  startedAt: Date
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
@@ -188,8 +188,8 @@ input CreateBotInput {
 
 input CreatePlanInput {
   description: String!
-  scheduledEnd: DateTime!
-  scheduledStart: DateTime!
+  scheduledEnd: Date!
+  scheduledStart: Date!
   title: String!
 }
 
@@ -205,10 +205,8 @@ input CreateStrategyInput {
   strategyKey: String!
 }
 
-"""
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
-"""
-scalar DateTime
+"""Date custom scalar type"""
+scalar Date
 
 type ExpertPnlSnapshot {
   accUSDPnl: Float!
@@ -301,8 +299,8 @@ input GetUserByAddressInput {
 input GetUserTransactionCountsInput {
   address: String!
   contractId: Int!
-  endedAt: DateTime
-  startedAt: DateTime
+  endedAt: Date
+  startedAt: Date
 }
 
 type Log {
@@ -311,7 +309,7 @@ type Log {
   id: Int!
   severity: LogSeverity!
   summary: String!
-  timestamp: DateTime!
+  timestamp: Date!
 }
 
 enum LogSeverity {
@@ -350,11 +348,11 @@ input ManualParams {
 type Mission {
   achievePositionId: Int
   botId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   id: Int!
   status: MissionStatus!
   targetPositionId: Int!
-  updatedAt: DateTime!
+  updatedAt: Date!
 }
 
 type MissionBackwardDetails {
@@ -362,25 +360,25 @@ type MissionBackwardDetails {
   achievePositionId: Int
   bot: BotBackwardDetails!
   botId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   id: Int!
   status: MissionStatus!
   targetPosition: Position!
   targetPositionId: Int!
-  updatedAt: DateTime!
+  updatedAt: Date!
 }
 
 type MissionForwardDetails {
   achievePosition: Position
   achievePositionId: Int
   botId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   id: Int!
   status: MissionStatus!
   targetPosition: Position!
   targetPositionId: Int!
   tasks: [TaskForwardDetails!]!
-  updatedAt: DateTime!
+  updatedAt: Date!
 }
 
 type MissionShallowBackwardDetails {
@@ -388,12 +386,12 @@ type MissionShallowBackwardDetails {
   achievePositionId: Int
   bot: BotDetails!
   botId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   id: Int!
   status: MissionStatus!
   targetPosition: Position!
   targetPositionId: Int!
-  updatedAt: DateTime!
+  updatedAt: Date!
 }
 
 enum MissionStatus {
@@ -433,7 +431,7 @@ type Mutation {
   generateNewFollower: Follower!
   getToken(signature: String!, timestamp: String!, walletAddress: String!): AccessToken!
   ignoreMission(id: Int!): Boolean!
-  initializePnlSnapshot(beginingDate: DateTime!, isForceBuild: Boolean!): Boolean!
+  initializePnlSnapshot(beginingDate: Date!, isForceBuild: Boolean!): Boolean!
   liveBot(id: Int!): Boolean!
   makeSafeApp(password: String!): Boolean!
   pauseSystem: Boolean!
@@ -459,11 +457,11 @@ type Mutation {
 
 type Plan {
   description: String!
-  endedAt: DateTime
+  endedAt: Date
   id: Int!
-  scheduledEnd: DateTime!
-  scheduledStart: DateTime!
-  startedAt: DateTime
+  scheduledEnd: Date!
+  scheduledStart: Date!
+  startedAt: Date
   status: PlanStatus!
   title: String!
   userId: String!
@@ -482,11 +480,11 @@ type PlanEdge {
 type PlanForwardDetails {
   bots: [BotForwardDetails!]!
   description: String!
-  endedAt: DateTime
+  endedAt: Date
   id: Int!
-  scheduledEnd: DateTime!
-  scheduledStart: DateTime!
-  startedAt: DateTime
+  scheduledEnd: Date!
+  scheduledStart: Date!
+  startedAt: Date
   status: PlanStatus!
   title: String!
   userId: String!
@@ -689,7 +687,7 @@ input TagInput {
 type TaskBackwardDetails {
   action: Action!
   actionId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   followerActions: [FollowerActionDetails!]!
   id: Int!
   logs: [String!]!
@@ -701,7 +699,7 @@ type TaskBackwardDetails {
 type TaskForwardDetails {
   action: Action!
   actionId: Int!
-  createdAt: DateTime!
+  createdAt: Date!
   followerActions: [FollowerActionDetails!]!
   id: Int!
   logs: [String!]!
@@ -802,7 +800,7 @@ type TradeHistory {
   collateralIndex: Int!
   collateralPriceUsd: String!
   contractId: Int!
-  date: DateTime!
+  date: Date!
   id: Int!
   isCounterTrade: Boolean
   leverage: Int!
@@ -835,11 +833,11 @@ type TradeTransactionCount {
 
 input UpdatePlanInput {
   description: String
-  endedAt: DateTime
+  endedAt: Date
   id: Int!
-  scheduledEnd: DateTime
-  scheduledStart: DateTime
-  startedAt: DateTime
+  scheduledEnd: Date
+  scheduledStart: Date
+  startedAt: Date
   status: PlanStatus!
   title: String
 }

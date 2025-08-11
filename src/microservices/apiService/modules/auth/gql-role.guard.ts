@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { UserPermission } from '@prisma/client';
 import { ROLES_KEY } from './roles.decorator';
+import { LogsService } from 'src/global/logs.service';
 
 const PermissionPriority = {
   [UserPermission.Admin]: 2,
@@ -12,7 +13,10 @@ const PermissionPriority = {
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private logger: LogsService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserPermission[]>(
@@ -38,7 +42,10 @@ export class RolesGuard implements CanActivate {
     const userPermission =
       PermissionPriority[user.permission as UserPermission];
 
-    console.log(user, userPermission, maximumPermission);
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: `user: ${JSON.stringify(user)} userPermission: ${userPermission} maximumPermission: ${maximumPermission}`,
+    });
 
     return userPermission >= maximumPermission;
   }

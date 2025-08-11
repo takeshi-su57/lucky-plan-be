@@ -40,7 +40,7 @@ export class PlansService {
       },
     });
 
-    this.redisClient.emit(PATTERNS.Plans.PlanCreated, plan);
+    await this.redisClient.emit(PATTERNS.Plans.PlanCreated, plan);
 
     return plan;
   }
@@ -92,7 +92,7 @@ export class PlansService {
       include: {},
     });
 
-    this.redisClient.emit(PATTERNS.Plans.PlanUpdated, plan);
+    await this.redisClient.emit(PATTERNS.Plans.PlanUpdated, plan);
 
     return plan;
   }
@@ -210,7 +210,15 @@ export class PlansService {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
-        bots: true,
+        bots: {
+          include: {
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
+          },
+        },
       },
     });
 
@@ -218,11 +226,9 @@ export class PlansService {
       throw new Error('Plan is not in created status');
     }
 
-    for (const bot of plan.bots) {
-      if (bot.status === BotStatus.Created) {
-        await this.botService.live(plan.userId, bot.id);
-      }
-    }
+    await this.botService.batchLiveBots(
+      plan.bots.filter((bot) => bot.status === BotStatus.Created),
+    );
 
     await this._update({
       id,
@@ -243,7 +249,15 @@ export class PlansService {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
       include: {
-        bots: true,
+        bots: {
+          include: {
+            follower: true,
+            strategy: true,
+            leaderContract: true,
+            followerContract: true,
+            plan: true,
+          },
+        },
       },
     });
 
@@ -251,11 +265,9 @@ export class PlansService {
       throw new Error('Plan is not in started status');
     }
 
-    for (const bot of plan.bots) {
-      if (bot.status === BotStatus.Live) {
-        await this.botService.stop(plan.userId, bot.id);
-      }
-    }
+    await this.botService.batchStopBots(
+      plan.bots.filter((bot) => bot.status === BotStatus.Live),
+    );
 
     await this._update({
       id,
@@ -312,6 +324,8 @@ export class PlansService {
         }
       }
     } catch (err) {
+      console.log(err);
+
       await this.logger.log({
         severity: 'Error',
         summary: 'PlansService>checkAndUpdateAllPlans',

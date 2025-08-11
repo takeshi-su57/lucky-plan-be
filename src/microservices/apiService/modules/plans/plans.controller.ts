@@ -12,14 +12,14 @@ export class PlansController {
 
   @EventPattern(PATTERNS.Plans.PlanCreated)
   async handlePlanCreated(@Payload() plan: Plan) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.planCreated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.planCreated, {
       [SUBSCRIPTION_TOKEN.planCreated]: plan,
     });
   }
 
   @EventPattern(PATTERNS.Plans.PlanUpdated)
   async handlePlanUpdated(@Payload() plan: Plan) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.planUpdated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.planUpdated, {
       [SUBSCRIPTION_TOKEN.planUpdated]: plan,
     });
   }

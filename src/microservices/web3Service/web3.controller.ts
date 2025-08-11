@@ -1,4 +1,4 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
 import {
   ClientProxy,
   EventPattern,
@@ -24,14 +24,18 @@ import {
 import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
 
 import { Web3Service } from './web3.service';
+import { LogsService } from 'src/global/logs.service';
 
 @Controller()
-export class Web3Controller {
+export class Web3Controller implements OnApplicationBootstrap {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly web3Service: Web3Service,
-  ) {
-    this.client.emit(PATTERNS.ProcessStatus, {
+    private readonly logger: LogsService,
+  ) {}
+
+  async onApplicationBootstrap() {
+    await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.WEB3_SERVICE,
       status: ServiceStatus.READY,
     });
@@ -39,8 +43,14 @@ export class Web3Controller {
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
+    await this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'Leaderboard service killProcess',
+      details: 'received kill process event',
+    });
+
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      service: SERVICE_NAMES.WEB3_SERVICE,
       status: ServiceStatus.KILLED,
     });
 

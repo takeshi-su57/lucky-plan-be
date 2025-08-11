@@ -24,12 +24,14 @@ import {
   TradingVariable,
   WithdrawPositivePnlPayload,
 } from './types';
+import { LogsService } from 'src/global/logs.service';
 
 @Injectable()
 export class GnsV10Service {
   constructor(
     private readonly contractsService: ContractsService,
     private readonly chainsService: ChainsService,
+    private readonly logger: LogsService,
   ) {}
 
   async openTrade(payload: OpenTradePayload) {
@@ -392,6 +394,12 @@ export class GnsV10Service {
   }
 
   async getTradingVariable(contractId: number): Promise<TradingVariable> {
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'GnsV10Service>getTradingVariable',
+      details: `Started loading trading variable for contract: ${contractId}`,
+    });
+
     const contract = await this.contractsService.findOne(contractId);
 
     const refData = await this.chainsService.readWithSemaphore(

@@ -12,14 +12,14 @@ export class MissionsController {
 
   @EventPattern(PATTERNS.Missions.MissionCreated)
   async handleMissionCreated(@Payload() missions: MissionBackwardDetails[]) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionCreated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.missionCreated, {
       [SUBSCRIPTION_TOKEN.missionCreated]: missions,
     });
   }
 
   @EventPattern(PATTERNS.Missions.MissionUpdated)
   async handleMissionUpdated(@Payload() missions: MissionBackwardDetails[]) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.missionUpdated, {
       [SUBSCRIPTION_TOKEN.missionUpdated]: missions,
     });
   }

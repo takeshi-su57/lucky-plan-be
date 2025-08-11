@@ -100,7 +100,7 @@ export class MissionsService {
       newMissions.map((mission) => mission.id),
     );
 
-    this.redisClient.emit(PATTERNS.Missions.MissionCreated, missions);
+    await this.redisClient.emit(PATTERNS.Missions.MissionCreated, missions);
 
     return missions;
   }
@@ -130,7 +130,7 @@ export class MissionsService {
       updatedMissions.map((mission) => mission.id),
     );
 
-    this.redisClient.emit(PATTERNS.Missions.MissionUpdated, missions);
+    await this.redisClient.emit(PATTERNS.Missions.MissionUpdated, missions);
 
     return updatedMissions;
   }

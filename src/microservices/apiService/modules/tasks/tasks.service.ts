@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MissionStatus, TaskStatus } from '@prisma/client';
+import { ClientProxy } from '@nestjs/microservices';
 import { PubSub } from 'graphql-subscriptions';
 
 import {
@@ -20,14 +21,18 @@ import { Action } from 'src/microservices/apiService/modules/actions/entities/ac
 
 import { CreateFollowerActionInput } from 'src/microservices/apiService/modules/follower-actions/dto/follower-action.input';
 
-import { CloseMissionAction, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import {
+  CloseMissionAction,
+  PATTERNS,
+  SERVICE_NAMES,
+  SUBSCRIPTION_TOKEN,
+} from 'src/utils/constants';
 
 import {
   ManualParams,
   Mission,
   MissionDetails,
 } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
-import { PUB_SUB } from 'src/global/global.module';
 
 import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
@@ -45,7 +50,7 @@ import { GnsV10Service } from 'src/global/gnsV10.service';
 @Injectable()
 export class TasksService {
   constructor(
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private gnsV10Service: GnsV10Service,
     private followerActionsService: FollowerActionsService,
@@ -325,9 +330,7 @@ export class TasksService {
 
     const tasks = await this.getTasks(newTasks.map((task) => task.id));
 
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskCreated, {
-      [SUBSCRIPTION_TOKEN.taskCreated]: tasks,
-    });
+    this.redisClient.emit(PATTERNS.Tasks.TaskCreated, tasks);
 
     return newTasks;
   }
@@ -354,9 +357,7 @@ export class TasksService {
 
     const tasks = await this.getTasks(updatedTasks.map((task) => task.id));
 
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.taskUpdated, {
-      [SUBSCRIPTION_TOKEN.taskUpdated]: tasks,
-    });
+    this.redisClient.emit(PATTERNS.Tasks.TaskUpdated, tasks);
   }
 
   async stopTask(userId: string, id: number): Promise<boolean> {

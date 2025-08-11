@@ -1,4 +1,4 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
 import { ClientProxy, EventPattern } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as dayjs from 'dayjs';
@@ -15,8 +15,9 @@ import { ContractMonitorService } from './contract-monitor.service';
 import { LogsService } from 'src/global/logs.service';
 
 @Controller()
-export class LeaderboardController {
+export class LeaderboardController implements OnApplicationBootstrap {
   private isReceivedKillProcess = false;
+  private isAppBootstrapped = false;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
@@ -28,11 +29,11 @@ export class LeaderboardController {
     this.isReceivedKillProcess = false;
   }
 
-  private async reloadTradingVariables() {
-    if (this.gnsV10Service.status !== ServiceStatus.READY) {
-      return;
-    }
+  onApplicationBootstrap() {
+    this.isAppBootstrapped = true;
+  }
 
+  private async reloadTradingVariables() {
     this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     const promise = new Promise((resolve) =>
@@ -45,20 +46,26 @@ export class LeaderboardController {
 
     await this.gnsV10Service.loadTradingVariables();
 
-    console.log('trading variables reloaded');
+    await this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'trading variables reloaded',
+    });
   }
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
     this.isReceivedKillProcess = true;
 
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'web3 service killProcess',
+      details: 'received kill process event',
+    });
+
     while (true) {
       await delay(1000);
 
-      if (
-        this.gnsV10Service.status !== ServiceStatus.READY ||
-        this.contractMonitorService.status !== ServiceStatus.READY
-      ) {
+      if (this.contractMonitorService.status !== ServiceStatus.READY) {
         continue;
       }
 
@@ -79,23 +86,21 @@ export class LeaderboardController {
   async checkContractsForLeaderboard() {
     if (
       this.gnsV10Service.status !== ServiceStatus.READY ||
-      this.isReceivedKillProcess
+      this.isReceivedKillProcess ||
+      this.contractMonitorService.status !== ServiceStatus.READY
     ) {
       return;
     }
 
-    if (this.contractMonitorService.status === ServiceStatus.READY) {
-      await this.contractMonitorService.checkContractsForLeaderboard();
-    }
+    await this.contractMonitorService.checkContractsForLeaderboard();
   }
 
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
-    if (this.isReceivedKillProcess) {
-      return;
-    }
-
-    if (this.pnlSnapshotService.status !== ServiceStatus.READY) {
+    if (
+      this.isReceivedKillProcess ||
+      this.pnlSnapshotService.status !== ServiceStatus.READY
+    ) {
       return;
     }
 
@@ -115,17 +120,32 @@ export class LeaderboardController {
   }
 
   @EventPattern(PATTERNS.ProcessStatus)
-  updateProcessStatus(data: { service: string; status: ServiceStatus }) {
-    if (data.service === SERVICE_NAMES.WEB3_SERVICE) {
-      this.gnsV10Service.status = data.status;
+  async updateProcessStatus(data: { service: string; status: ServiceStatus }) {
+    if (
+      data.service === SERVICE_NAMES.WEB3_SERVICE &&
+      data.status === ServiceStatus.READY
+    ) {
+      await this.logger.nativeLog({
+        severity: 'Info',
+        summary: 'leaderboard.controller>updateProcessStatus',
+        details: `web3 service is ready, reloading trading variables`,
+      });
 
-      if (data.status === ServiceStatus.READY) {
-        this.reloadTradingVariables().then(() =>
-          this.client.emit(PATTERNS.ProcessStatus, {
-            service: SERVICE_NAMES.LEADERBOARD_SERVICE,
-            status: ServiceStatus.READY,
-          }),
-        );
+      while (true) {
+        await delay(1000);
+
+        if (!this.isAppBootstrapped) {
+          continue;
+        }
+
+        await this.reloadTradingVariables();
+
+        await this.client.emit(PATTERNS.ProcessStatus, {
+          service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+          status: ServiceStatus.READY,
+        });
+
+        break;
       }
     }
   }

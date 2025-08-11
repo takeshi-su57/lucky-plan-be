@@ -37,10 +37,10 @@ export class Plan {
   @Field(() => Date, { nullable: true })
   endedAt: Date | null;
 
-  @Field(() => Date)
+  @Field()
   scheduledStart: Date;
 
-  @Field(() => Date)
+  @Field()
   scheduledEnd: Date;
 
   @Field(() => PlanStatus)

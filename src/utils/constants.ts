@@ -51,6 +51,10 @@ export const PATTERNS = {
     PlanCreated: 'PLAN_CREATED',
     PlanUpdated: 'PLAN_UPDATED',
   },
+  Tasks: {
+    TaskCreated: 'TASK_CREATED',
+    TaskUpdated: 'TASK_UPDATED',
+  },
   Gns: {
     OpenTrade: 'OPEN_TRADE',
     CloseTradeMarket: 'CLOSE_TRADE_MARKET',

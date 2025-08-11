@@ -12,14 +12,14 @@ export class BotsController {
 
   @EventPattern(PATTERNS.Bots.BotCreated)
   async handleBotCreated(@Payload() bots: BotBackwardDetails[]) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.botCreated, {
       [SUBSCRIPTION_TOKEN.botCreated]: bots,
     });
   }
 
   @EventPattern(PATTERNS.Bots.BotUpdated)
   async handleBotUpdated(@Payload() bots: BotBackwardDetails[]) {
-    this.pubSub.publish(SUBSCRIPTION_TOKEN.botUpdated, {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.botUpdated, {
       [SUBSCRIPTION_TOKEN.botUpdated]: bots,
     });
   }

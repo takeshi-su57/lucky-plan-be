@@ -11,7 +11,10 @@ import { ServiceStatus } from 'src/types';
 import { delay } from '../../utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
+import { BacktestService } from './modules/trade-histories/backtest.service';
+
 import { GnsV10Service } from 'src/global/gnsV10.service';
+import { LogsService } from 'src/global/logs.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -25,12 +28,14 @@ const microservices = [
 @Injectable()
 export class ApiService {
   isPaused = true;
-
   private serviceStatus: Record<string, ServiceStatus> = {};
+
   constructor(
     private gnsV10Service: GnsV10Service,
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
+    private backtestService: BacktestService,
+    private logger: LogsService,
   ) {
     this.isPaused = true;
 
@@ -39,13 +44,20 @@ export class ApiService {
     });
   }
 
-  updateProcessStatus(service: string, status: ServiceStatus) {
-    if (service === SERVICE_NAMES.WEB3_SERVICE) {
-      this.gnsV10Service.status = status;
+  async updateProcessStatus(service: string, status: ServiceStatus) {
+    if (
+      service === SERVICE_NAMES.WEB3_SERVICE &&
+      status === ServiceStatus.READY
+    ) {
+      await this.logger.nativeLog({
+        severity: 'Info',
+        summary: 'api.service>updateProcessStatus',
+        details: `web3 service is ready, reloading trading variables`,
+      });
 
-      if (status === ServiceStatus.READY) {
-        this.reloadTradingVariables();
-      }
+      await this.reloadTradingVariables();
+
+      await this.backtestService.init();
     }
 
     this.serviceStatus[service] = status;
@@ -57,8 +69,6 @@ export class ApiService {
     // wait for all services to be ready
     while (true) {
       await delay(1000);
-
-      console.log('serviceStatus ===>', this.serviceStatus);
 
       const isAllKilled = Object.entries(this.serviceStatus).every(
         ([_, status]) => status === ServiceStatus.KILLED,
@@ -91,28 +101,21 @@ export class ApiService {
         },
       });
 
-      child.on('message', (message) => {
-        console.log('message ===>', message);
-      });
-
-      child.stdout.on('data', (data) => {
-        console.log(`[${service}] ${data}`);
-      });
-
       child.stderr.on('data', (data) => {
         console.error(`[${service} error] ${data}`);
       });
 
       child.on('exit', (code) => {
-        console.log(`[${service}] exited with code ${code}`);
+        this.logger.nativeLog({
+          severity: 'Info',
+          summary: `[${service}] exited with code ${code}`,
+        });
       });
     }
 
     // wait for all services to be ready
     while (true) {
       await delay(10000);
-
-      console.log('serviceStatus ===>', this.serviceStatus);
 
       const killedServices = Object.entries(this.serviceStatus).filter(
         ([_, status]) => status === 'killed',
@@ -183,23 +186,16 @@ export class ApiService {
   }
 
   private async reloadTradingVariables() {
-    if (this.gnsV10Service.status !== ServiceStatus.READY) {
-      return;
-    }
-
     this.gnsV10Service.status = ServiceStatus.PAUSED;
 
-    const promise = new Promise((resolve) =>
-      setTimeout(() => {
-        resolve(true);
-      }, 20_000),
-    );
-
-    await promise;
+    await delay(20_000);
 
     await this.gnsV10Service.loadTradingVariables();
 
-    console.log('trading variables reloaded');
+    await this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'trading variables reloaded',
+    });
   }
 
   getServerTime() {

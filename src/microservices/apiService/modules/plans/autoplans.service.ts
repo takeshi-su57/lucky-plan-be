@@ -63,7 +63,11 @@ export class AutoPlansService {
     try {
       return JSON.parse(value);
     } catch (err) {
-      console.log(err);
+      this.logger.nativeLog({
+        severity: 'Error',
+        summary: 'autoplans.service>parseJSON',
+        details: getReadableError(err),
+      });
       return null;
     }
   }

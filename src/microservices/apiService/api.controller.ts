@@ -47,16 +47,13 @@ export class ApiController {
   async executeCronForAutoPlans() {
     if (
       this.gnsV10Service.status !== ServiceStatus.READY ||
-      this.apiService.isPaused
+      this.apiService.isPaused ||
+      this.autoPlansService.status !== ServiceStatus.READY
     ) {
       return;
     }
 
     try {
-      if (this.autoPlansService.status !== ServiceStatus.READY) {
-        return;
-      }
-
       await this.gnsV10Service.loadTradingVariables();
 
       await this.autoPlansService.createAutoPlans();

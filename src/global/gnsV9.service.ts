@@ -53,16 +53,8 @@ export class GnsV9Service {
     this.tradingVariable = {};
 
     for (const contract of contracts) {
-      console.log(
-        `Started loading trading variable for contract: ${contract.chainId}`,
-      );
-
       this.tradingVariable[contract.id] = await this.getTradingVariable(
         contract.id,
-      );
-
-      console.log(
-        `Ended loading trading variable for contract: ${contract.chainId}`,
       );
     }
 

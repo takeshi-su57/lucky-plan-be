@@ -1,20 +1,22 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
 import { ClientProxy, EventPattern } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay } from 'src/utils';
+import { delay, getReadableError } from 'src/utils';
 
 import { GnsV10Service } from 'src/global/gnsV10.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
 import { ContractMonitorService } from './contract-monitor.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
+import { LogsService } from 'src/global/logs.service';
 
 @Controller()
-export class TradingController {
+export class TradingController implements OnApplicationBootstrap {
   private isReceivedKillProcess = false;
+  private isAppBootstrapped = false;
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
@@ -22,15 +24,16 @@ export class TradingController {
     private readonly gnsV10Service: GnsV10Service,
     private readonly botsService: BotsService,
     private readonly taskExecutorService: TaskExecutorService,
+    private readonly logger: LogsService,
   ) {
     this.isReceivedKillProcess = false;
   }
 
-  private async reloadTradingVariables() {
-    if (this.gnsV10Service.status !== 'ready') {
-      return;
-    }
+  onApplicationBootstrap() {
+    this.isAppBootstrapped = true;
+  }
 
+  private async reloadTradingVariables() {
     this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     const promise = new Promise((resolve) =>
@@ -43,18 +46,26 @@ export class TradingController {
 
     await this.gnsV10Service.loadTradingVariables();
 
-    console.log('trading variables reloaded');
+    await this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'trading variables reloaded',
+    });
   }
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
     this.isReceivedKillProcess = true;
 
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'Trading service killProcess',
+      details: 'received kill process event',
+    });
+
     while (true) {
       await delay(1000);
 
       if (
-        this.gnsV10Service.status !== ServiceStatus.READY ||
         this.contractMonitorService.status !== ServiceStatus.READY ||
         this.botsService.status !== ServiceStatus.READY
       ) {
@@ -78,33 +89,65 @@ export class TradingController {
   async executeCronForBotMonitor() {
     if (
       this.isReceivedKillProcess ||
+      this.gnsV10Service.status !== ServiceStatus.READY ||
+      this.contractMonitorService.status !== ServiceStatus.READY ||
+      this.taskExecutorService.status !== ServiceStatus.READY
+    ) {
+      return;
+    }
+
+    await this.contractMonitorService.checkContractsForBots();
+    await this.taskExecutorService.performAvailableTasks();
+    await this.taskExecutorService.handleFailedTasks();
+  }
+
+  @Cron(CronExpression.EVERY_3_HOURS)
+  async executeCronForReloadTradingVariables() {
+    if (
+      this.isReceivedKillProcess ||
       this.gnsV10Service.status !== ServiceStatus.READY
     ) {
       return;
     }
 
-    if (
-      this.contractMonitorService.status === 'ready' &&
-      this.taskExecutorService.status === 'ready'
-    ) {
-      await this.contractMonitorService.checkContractsForBots();
-      await this.taskExecutorService.performAvailableTasks();
-      await this.taskExecutorService.handleFailedTasks();
+    try {
+      await this.reloadTradingVariables();
+    } catch (err) {
+      this.logger.nativeLog({
+        severity: 'Error',
+        summary: 'trading.controller>executeCronForReloadTradingVariables',
+        details: getReadableError(err),
+      });
     }
   }
 
   @EventPattern(PATTERNS.ProcessStatus)
-  updateProcessStatus(data: { service: string; status: ServiceStatus }) {
-    if (data.service === SERVICE_NAMES.WEB3_SERVICE) {
-      this.gnsV10Service.status = data.status;
+  async updateProcessStatus(data: { service: string; status: ServiceStatus }) {
+    if (
+      data.service === SERVICE_NAMES.WEB3_SERVICE &&
+      data.status === ServiceStatus.READY
+    ) {
+      await this.logger.nativeLog({
+        severity: 'Info',
+        summary: 'trading.controller>updateProcessStatus',
+        details: `web3 service is ready, reloading trading variables`,
+      });
 
-      if (data.status === ServiceStatus.READY) {
-        this.reloadTradingVariables().then(() =>
-          this.client.emit(PATTERNS.ProcessStatus, {
-            service: SERVICE_NAMES.TRADING_SERVICE,
-            status: ServiceStatus.READY,
-          }),
-        );
+      while (true) {
+        await delay(1000);
+
+        if (!this.isAppBootstrapped) {
+          continue;
+        }
+
+        await this.reloadTradingVariables();
+
+        await this.client.emit(PATTERNS.ProcessStatus, {
+          service: SERVICE_NAMES.TRADING_SERVICE,
+          status: ServiceStatus.READY,
+        });
+
+        break;
       }
     }
   }

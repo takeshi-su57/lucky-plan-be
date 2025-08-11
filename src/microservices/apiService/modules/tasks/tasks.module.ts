@@ -5,9 +5,11 @@ import { FollowerActionsModule } from 'src/microservices/apiService/modules/foll
 
 import { TasksService } from './tasks.service';
 import { TasksResolver } from './tasks.resolver';
+import { TasksController } from './tasks.controller';
 
 @Module({
   imports: [FollowerActionsModule, ActionsModule],
+  controllers: [TasksController],
   providers: [TasksResolver, TasksService],
   exports: [TasksService],
 })

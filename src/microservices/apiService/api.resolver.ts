@@ -66,8 +66,8 @@ export class ApiResolver {
   }
 
   @Query(() => Boolean)
-  isSafeApp() {
-    return this.securityService.isSafeApp;
+  async isSafeApp() {
+    return await this.securityService.isSafeApp();
   }
 
   @Query(() => Boolean)

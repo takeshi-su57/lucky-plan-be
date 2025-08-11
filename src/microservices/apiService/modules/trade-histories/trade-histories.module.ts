@@ -12,6 +12,6 @@ import { BacktestService } from './backtest.service';
     PnlSnapshotsService,
     BacktestService,
   ],
-  exports: [TradeHistoriesService, PnlSnapshotsService],
+  exports: [TradeHistoriesService, PnlSnapshotsService, BacktestService],
 })
 export class TradeHistoriesModule {}

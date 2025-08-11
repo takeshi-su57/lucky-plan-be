@@ -10,11 +10,11 @@ export class LogsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
   ) {}
 
-  nativeLog(logInput: CreateLogInput) {
-    this.redisClient.emit(PATTERNS.Log.NativeLogEvent, logInput);
+  async nativeLog(logInput: CreateLogInput) {
+    await this.redisClient.emit(PATTERNS.Log.NativeLogEvent, logInput);
   }
 
-  async log(createLogInput: CreateLogInput): Promise<void> {
-    this.redisClient.emit(PATTERNS.Log.LogEvent, createLogInput);
+  async log(createLogInput: CreateLogInput) {
+    await this.redisClient.emit(PATTERNS.Log.LogEvent, createLogInput);
   }
 }

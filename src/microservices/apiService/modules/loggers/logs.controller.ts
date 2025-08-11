@@ -12,11 +12,11 @@ export class LogsController {
 
   @EventPattern(PATTERNS.Log.NativeLogEvent)
   async nativeLog(@Payload() payload: CreateLogInput) {
-    return this.logService.nativeLog(payload);
+    await this.logService.nativeLog(payload);
   }
 
   @EventPattern(PATTERNS.Log.LogEvent)
   async log(@Payload() payload: CreateLogInput) {
-    return this.logService.log(payload);
+    await this.logService.log(payload);
   }
 }
