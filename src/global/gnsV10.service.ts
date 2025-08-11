@@ -42,7 +42,7 @@ export class GnsV10Service {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
   ) {
-    this.status = ServiceStatus.READY;
+    this.status = ServiceStatus.KILLED;
     this.tradingVariable = {};
   }
 

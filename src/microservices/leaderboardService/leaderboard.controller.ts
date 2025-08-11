@@ -16,7 +16,6 @@ import { LogsService } from 'src/global/logs.service';
 
 @Controller()
 export class LeaderboardController {
-  private stopForTradingVariableLoading = false;
   private isReceivedKillProcess = false;
 
   constructor(
@@ -26,23 +25,15 @@ export class LeaderboardController {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {
-    this.stopForTradingVariableLoading = false;
     this.isReceivedKillProcess = false;
-
-    this.reloadTradingVariables().then(() => {
-      this.client.emit(PATTERNS.ProcessStatus, {
-        service: SERVICE_NAMES.LEADERBOARD_SERVICE,
-        status: ServiceStatus.READY,
-      });
-    });
   }
 
   private async reloadTradingVariables() {
-    if (this.gnsV10Service.status !== 'ready') {
+    if (this.gnsV10Service.status !== ServiceStatus.READY) {
       return;
     }
 
-    this.stopForTradingVariableLoading = true;
+    this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     const promise = new Promise((resolve) =>
       setTimeout(() => {
@@ -51,8 +42,6 @@ export class LeaderboardController {
     );
 
     await promise;
-
-    this.stopForTradingVariableLoading = false;
 
     await this.gnsV10Service.loadTradingVariables();
 
@@ -67,8 +56,8 @@ export class LeaderboardController {
       await delay(1000);
 
       if (
-        this.gnsV10Service.status !== 'ready' ||
-        this.contractMonitorService.status !== 'ready'
+        this.gnsV10Service.status !== ServiceStatus.READY ||
+        this.contractMonitorService.status !== ServiceStatus.READY
       ) {
         continue;
       }
@@ -89,14 +78,13 @@ export class LeaderboardController {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkContractsForLeaderboard() {
     if (
-      this.stopForTradingVariableLoading ||
-      this.gnsV10Service.status !== 'ready' ||
+      this.gnsV10Service.status !== ServiceStatus.READY ||
       this.isReceivedKillProcess
     ) {
       return;
     }
 
-    if (this.contractMonitorService.status === 'ready') {
+    if (this.contractMonitorService.status === ServiceStatus.READY) {
       await this.contractMonitorService.checkContractsForLeaderboard();
     }
   }
@@ -107,7 +95,7 @@ export class LeaderboardController {
       return;
     }
 
-    if (this.pnlSnapshotService.status !== 'ready') {
+    if (this.pnlSnapshotService.status !== ServiceStatus.READY) {
       return;
     }
 
@@ -123,6 +111,22 @@ export class LeaderboardController {
         summary: 'leaderboard.controller>executeCronForSnapshot',
         details: getReadableError(err),
       });
+    }
+  }
+
+  @EventPattern(PATTERNS.ProcessStatus)
+  updateProcessStatus(data: { service: string; status: ServiceStatus }) {
+    if (data.service === SERVICE_NAMES.WEB3_SERVICE) {
+      this.gnsV10Service.status = data.status;
+
+      if (data.status === ServiceStatus.READY) {
+        this.reloadTradingVariables().then(() =>
+          this.client.emit(PATTERNS.ProcessStatus, {
+            service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+            status: ServiceStatus.READY,
+          }),
+        );
+      }
     }
   }
 }

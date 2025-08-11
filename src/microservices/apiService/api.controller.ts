@@ -28,34 +28,32 @@ export class ApiController {
   @Cron(CronExpression.EVERY_MINUTE)
   async checkAndUpdateAllBots() {
     if (
-      this.apiService.stopForTradingVariableLoading ||
-      this.gnsV10Service.status !== 'ready' ||
+      this.gnsV10Service.status !== ServiceStatus.READY ||
       this.apiService.isPaused
     ) {
       return;
     }
 
-    if (this.botsService.status === 'ready') {
+    if (this.botsService.status === ServiceStatus.READY) {
       await this.botsService.checkAndUpdateAllBots();
     }
 
-    if (this.plansService.status === 'ready') {
+    if (this.plansService.status === ServiceStatus.READY) {
       await this.plansService.checkAndUpdateAllPlans();
     }
   }
 
   @Cron(CronExpression.EVERY_3_HOURS)
-  async executeCronForSnapshot() {
+  async executeCronForAutoPlans() {
     if (
-      this.apiService.stopForTradingVariableLoading ||
-      this.gnsV10Service.status !== 'ready' ||
+      this.gnsV10Service.status !== ServiceStatus.READY ||
       this.apiService.isPaused
     ) {
       return;
     }
 
     try {
-      if (this.autoPlansService.status !== 'ready') {
+      if (this.autoPlansService.status !== ServiceStatus.READY) {
         return;
       }
 
@@ -65,7 +63,7 @@ export class ApiController {
     } catch (err) {
       this.logger.nativeLog({
         severity: 'Error',
-        summary: 'api.controller>executeCronForSnapshot',
+        summary: 'api.controller>executeCronForAutoPlans',
         details: getReadableError(err),
       });
     }

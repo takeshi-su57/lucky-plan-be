@@ -25,8 +25,7 @@ import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
 import { TradeHistory } from '../trade-histories/entities/trade-history.entity';
-
-export type ServiceStatus = 'process' | 'ready';
+import { ServiceStatus } from 'src/types';
 
 const BLACKLIST_KEY = 'autoplans_v2_blacklist';
 const WHITELIST_KEY = 'autoplans_v2_whitelist';
@@ -48,7 +47,7 @@ export type WhitelistedTrader = {
 
 @Injectable()
 export class AutoPlansService {
-  status: ServiceStatus = 'ready';
+  status: ServiceStatus = ServiceStatus.READY;
 
   constructor(
     private prismaService: PrismaService,
@@ -57,7 +56,7 @@ export class AutoPlansService {
     private botService: BotsService,
     private logger: LogsService,
   ) {
-    this.status = 'ready';
+    this.status = ServiceStatus.READY;
   }
 
   private parseJSON(value: string) {
@@ -1086,7 +1085,7 @@ export class AutoPlansService {
   }
 
   async createAutoPlans() {
-    this.status = 'process';
+    this.status = ServiceStatus.PROCESS;
 
     const dateStr = dayjs().format('YYYY-MM-DD');
 
@@ -1130,7 +1129,7 @@ export class AutoPlansService {
       });
     }
 
-    this.status = 'ready';
+    this.status = ServiceStatus.READY;
   }
 
   async createAutoPlansForUser(userId: string) {

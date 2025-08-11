@@ -12,7 +12,7 @@ import {
   CreateBotInput,
 } from './dto/bot.input';
 
-import { ActionContext, BotContext } from 'src/types';
+import { ActionContext, BotContext, ServiceStatus } from 'src/types';
 import {
   BotConnection,
   BotDetails,
@@ -43,7 +43,7 @@ import { GnsV10Service } from 'src/global/gnsV10.service';
 
 @Injectable()
 export class BotsService {
-  status: 'ready' | 'progress' = 'ready';
+  status: ServiceStatus = ServiceStatus.READY;
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
@@ -226,7 +226,7 @@ export class BotsService {
   }
 
   async checkAndUpdateAllBots() {
-    this.status = 'progress';
+    this.status = ServiceStatus.PROCESS;
 
     try {
       await this.logger.log({
@@ -283,7 +283,7 @@ export class BotsService {
       });
     }
 
-    this.status = 'ready';
+    this.status = ServiceStatus.READY;
   }
 
   private async _update(input: BotUpdateInput): Promise<BotBackwardDetails> {

@@ -14,7 +14,6 @@ import { TaskExecutorService } from '../apiService/modules/task-executor/task-ex
 
 @Controller()
 export class TradingController {
-  private stopForTradingVariableLoading = false;
   private isReceivedKillProcess = false;
 
   constructor(
@@ -24,15 +23,7 @@ export class TradingController {
     private readonly botsService: BotsService,
     private readonly taskExecutorService: TaskExecutorService,
   ) {
-    this.stopForTradingVariableLoading = false;
     this.isReceivedKillProcess = false;
-
-    this.reloadTradingVariables().then(() => {
-      this.client.emit(PATTERNS.ProcessStatus, {
-        service: SERVICE_NAMES.TRADING_SERVICE,
-        status: ServiceStatus.READY,
-      });
-    });
   }
 
   private async reloadTradingVariables() {
@@ -40,7 +31,7 @@ export class TradingController {
       return;
     }
 
-    this.stopForTradingVariableLoading = true;
+    this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     const promise = new Promise((resolve) =>
       setTimeout(() => {
@@ -49,8 +40,6 @@ export class TradingController {
     );
 
     await promise;
-
-    this.stopForTradingVariableLoading = false;
 
     await this.gnsV10Service.loadTradingVariables();
 
@@ -65,9 +54,9 @@ export class TradingController {
       await delay(1000);
 
       if (
-        this.gnsV10Service.status !== 'ready' ||
-        this.contractMonitorService.status !== 'ready' ||
-        this.botsService.status !== 'ready'
+        this.gnsV10Service.status !== ServiceStatus.READY ||
+        this.contractMonitorService.status !== ServiceStatus.READY ||
+        this.botsService.status !== ServiceStatus.READY
       ) {
         continue;
       }
@@ -88,9 +77,8 @@ export class TradingController {
   @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
     if (
-      this.stopForTradingVariableLoading ||
       this.isReceivedKillProcess ||
-      this.gnsV10Service.status !== 'ready'
+      this.gnsV10Service.status !== ServiceStatus.READY
     ) {
       return;
     }
@@ -102,6 +90,22 @@ export class TradingController {
       await this.contractMonitorService.checkContractsForBots();
       await this.taskExecutorService.performAvailableTasks();
       await this.taskExecutorService.handleFailedTasks();
+    }
+  }
+
+  @EventPattern(PATTERNS.ProcessStatus)
+  updateProcessStatus(data: { service: string; status: ServiceStatus }) {
+    if (data.service === SERVICE_NAMES.WEB3_SERVICE) {
+      this.gnsV10Service.status = data.status;
+
+      if (data.status === ServiceStatus.READY) {
+        this.reloadTradingVariables().then(() =>
+          this.client.emit(PATTERNS.ProcessStatus, {
+            service: SERVICE_NAMES.TRADING_SERVICE,
+            status: ServiceStatus.READY,
+          }),
+        );
+      }
     }
   }
 }

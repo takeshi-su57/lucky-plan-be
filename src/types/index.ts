@@ -36,9 +36,10 @@ export type CloseMissionActionArgs = {
 };
 
 export enum ServiceStatus {
-  KILLED = 'killed',
-  PROCESS = 'process',
   READY = 'ready',
+  PROCESS = 'process',
+  PAUSED = 'paused',
+  KILLED = 'killed',
 }
 
 export type EncryptedData = {

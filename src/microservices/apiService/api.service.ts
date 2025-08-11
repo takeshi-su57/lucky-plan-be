@@ -25,7 +25,6 @@ const microservices = [
 @Injectable()
 export class ApiService {
   isPaused = true;
-  stopForTradingVariableLoading = false;
 
   private serviceStatus: Record<string, ServiceStatus> = {};
   constructor(
@@ -34,9 +33,6 @@ export class ApiService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
   ) {
     this.isPaused = true;
-    this.stopForTradingVariableLoading = false;
-
-    this.reloadTradingVariables();
 
     microservices.forEach((service) => {
       this.serviceStatus[service] = ServiceStatus.KILLED;
@@ -44,6 +40,14 @@ export class ApiService {
   }
 
   updateProcessStatus(service: string, status: ServiceStatus) {
+    if (service === SERVICE_NAMES.WEB3_SERVICE) {
+      this.gnsV10Service.status = status;
+
+      if (status === ServiceStatus.READY) {
+        this.reloadTradingVariables();
+      }
+    }
+
     this.serviceStatus[service] = status;
   }
 
@@ -179,11 +183,11 @@ export class ApiService {
   }
 
   private async reloadTradingVariables() {
-    if (this.gnsV10Service.status !== 'ready') {
+    if (this.gnsV10Service.status !== ServiceStatus.READY) {
       return;
     }
 
-    this.stopForTradingVariableLoading = true;
+    this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     const promise = new Promise((resolve) =>
       setTimeout(() => {
@@ -192,8 +196,6 @@ export class ApiService {
     );
 
     await promise;
-
-    this.stopForTradingVariableLoading = false;
 
     await this.gnsV10Service.loadTradingVariables();
 

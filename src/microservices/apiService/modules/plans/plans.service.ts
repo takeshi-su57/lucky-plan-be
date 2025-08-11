@@ -15,10 +15,11 @@ import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { ServiceStatus } from 'src/types';
 
 @Injectable()
 export class PlansService {
-  status: 'ready' | 'progress' = 'ready';
+  status: ServiceStatus = ServiceStatus.READY;
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
@@ -272,7 +273,7 @@ export class PlansService {
   }
 
   async checkAndUpdateAllPlans() {
-    this.status = 'progress';
+    this.status = ServiceStatus.PROCESS;
 
     try {
       const plans = await this.prisma.plan.findMany({
@@ -318,6 +319,6 @@ export class PlansService {
       });
     }
 
-    this.status = 'ready';
+    this.status = ServiceStatus.READY;
   }
 }
