@@ -8,13 +8,13 @@ import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.s
 import { FollowerService } from 'src/microservices/apiService/modules/follower/follower.service';
 import { LogsService } from 'src/global/logs.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 import { Web3Service } from 'src/global/web3.service';
 
-import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { leverageUpdateExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/leverage-update-executed.parser';
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-decrease-executed.parser';
+import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/trade-max-closing-slippage-p-updated.parser';
+import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
 
 import {
   eventParsers,
@@ -23,15 +23,16 @@ import {
   isCloseMissionAction,
   missionEventParsers,
   eventToActionParser,
-} from 'src/microservices/apiService/modules/actions/eventParsers';
+} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 
-import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v9/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
   getOpenMissionParams,
   getPositionDecreaseParams,
   getPositionIncreaseParams,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
-import { CloseMissionActionArgs, TradeType } from 'src/types';
+import { CloseMissionActionArgs } from 'src/types';
+import { TradeType } from 'src/microservices/web3Service/platform/gns/v10/types';
 
 import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
 
@@ -42,7 +43,7 @@ import { getReadableError } from 'src/utils';
 import { TaskUpdateInput } from 'src/microservices/apiService/modules/tasks/dto/task.input';
 
 import { MIN_FEE } from 'src/utils/constants';
-import { marketOrderInitiatedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-order-initiated.parser';
+import { marketOrderInitiatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-order-initiated.parser';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -63,7 +64,7 @@ export class TaskExecutorService {
     private readonly logger: LogsService,
     private readonly actionsService: ActionsService,
     private readonly web3Service: Web3Service,
-    private readonly gnsV9Service: GnsV9Service,
+    private readonly gnsV10Service: GnsV10Service,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
   }
@@ -108,7 +109,7 @@ export class TaskExecutorService {
           const { args } =
             tradeMaxClosingSlippagePUpdatedEventParser.actionParser(action);
 
-          tx = await this.gnsV9Service.updateMaxClosingSlippageP({
+          tx = await this.gnsV10Service.updateMaxClosingSlippageP({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -125,7 +126,7 @@ export class TaskExecutorService {
             leverageUpdateExecutedEventParser.actionParser(action);
 
           if (!args.isIncrease) {
-            const followerTradeData = await this.gnsV9Service.getTrade({
+            const followerTradeData = await this.gnsV10Service.getTrade({
               contractId: followerContract.id,
               args: {
                 address: follower.address as Address,
@@ -168,7 +169,7 @@ export class TaskExecutorService {
             }
           }
 
-          tx = await this.gnsV9Service.updateLeverage({
+          tx = await this.gnsV10Service.updateLeverage({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -184,7 +185,7 @@ export class TaskExecutorService {
           const { args } =
             positionSizeIncreaseExecutedEventParser.actionParser(action);
 
-          const followerTradeData = await this.gnsV9Service.getTrade({
+          const followerTradeData = await this.gnsV10Service.getTrade({
             contractId: followerContract.id,
             args: {
               address: follower.address as Address,
@@ -192,7 +193,7 @@ export class TaskExecutorService {
             },
           });
 
-          const collateral = this.gnsV9Service.getCollateral(
+          const collateral = this.gnsV10Service.getCollateral(
             leaderContractId,
             args.collateralIndex,
           );
@@ -264,7 +265,7 @@ export class TaskExecutorService {
             }
           }
 
-          tx = await this.gnsV9Service.increasePositionSize({
+          tx = await this.gnsV10Service.increasePositionSize({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -281,7 +282,7 @@ export class TaskExecutorService {
           const { args } =
             positionSizeDecreaseExecutedEventParser.actionParser(action);
 
-          const followerTradeData = await this.gnsV9Service.getTrade({
+          const followerTradeData = await this.gnsV10Service.getTrade({
             contractId: followerContract.id,
             args: {
               address: follower.address as Address,
@@ -302,7 +303,7 @@ export class TaskExecutorService {
             };
           }
 
-          tx = await this.gnsV9Service.decreasePositionSize({
+          tx = await this.gnsV10Service.decreasePositionSize({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -356,7 +357,7 @@ export class TaskExecutorService {
         case CloseMissionAction: {
           const args = JSON.parse(action.args) as CloseMissionActionArgs;
 
-          tx = await this.gnsV9Service.closeTradeMarket({
+          tx = await this.gnsV10Service.closeTradeMarket({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -414,7 +415,7 @@ export class TaskExecutorService {
               .actionParser(action);
             const { t, collateralPriceUsd, isManualOpen } = event.args;
 
-            const pair = this.gnsV9Service.getPair(
+            const pair = this.gnsV10Service.getPair(
               followerContract.id,
               t.pairIndex,
             );
@@ -430,11 +431,11 @@ export class TaskExecutorService {
               );
             }
 
-            const collateral = this.gnsV9Service.getCollateral(
+            const collateral = this.gnsV10Service.getCollateral(
               leaderContractId,
               t.collateralIndex,
             );
-            const usdcPrice = await this.gnsV9Service.getCollateralPrice({
+            const usdcPrice = await this.gnsV10Service.getCollateralPrice({
               contractId: followerContract.id,
               args: {
                 collateralIndex:
@@ -488,7 +489,7 @@ export class TaskExecutorService {
                 }
               }
 
-              tx = await this.gnsV9Service.openTrade({
+              tx = await this.gnsV10Service.openTrade({
                 mnemonic,
                 accountIndex: follower.accountIndex,
                 contractId: followerContract.id,
@@ -508,7 +509,9 @@ export class TaskExecutorService {
                     openPrice: BigInt(t.openPrice),
                     tp: 0n,
                     sl: 0n,
-                    __placeholder: BigInt(t.__placeholder),
+                    isCounterTrade: false,
+                    positionSizeToken: 0n,
+                    __placeholder: Number(t.__placeholder),
                   },
                   maxSlippageP: 1000,
                 },
@@ -518,7 +521,7 @@ export class TaskExecutorService {
             }
 
             if (isCloseMissionAction(action)) {
-              tx = await this.gnsV9Service.closeTradeMarket({
+              tx = await this.gnsV10Service.closeTradeMarket({
                 mnemonic,
                 accountIndex: follower.accountIndex,
                 contractId: followerContract.id,

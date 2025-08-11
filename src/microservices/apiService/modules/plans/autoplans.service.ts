@@ -2,19 +2,19 @@ import { Injectable } from '@nestjs/common';
 import {
   PnlSnapshotKind,
   PnlSnapshot,
-  TradeHistory,
   TradeActionType,
   UserPermission,
   User,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
+import { isAddress } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 import { getReadableError } from 'src/utils';
 import { CreatePlanInput } from './dto/plan.input';
@@ -22,9 +22,9 @@ import { CreateBotAndStrategyInput } from 'src/microservices/apiService/modules/
 
 import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 
-import { Pair } from 'src/types';
+import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
-import { isAddress } from 'viem';
+import { TradeHistory } from '../trade-histories/entities/trade-history.entity';
 
 export type ServiceStatus = 'process' | 'ready';
 
@@ -52,7 +52,7 @@ export class AutoPlansService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     private planService: PlansService,
     private botService: BotsService,
     private logger: LogsService,
@@ -510,7 +510,7 @@ export class AutoPlansService {
     const pairMap = new Map<string, Pair>();
 
     for (const contract of contracts) {
-      this.gnsV9Service.getPairs(contract.id).forEach((pair) => {
+      this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
         if (pair) {
           pairMap.set(
             `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
@@ -858,7 +858,7 @@ export class AutoPlansService {
       const pairMap = new Map<string, Pair>();
 
       for (const contract of contracts) {
-        this.gnsV9Service.getPairs(contract.id).forEach((pair) => {
+        this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
           if (pair) {
             pairMap.set(
               `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),

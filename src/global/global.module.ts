@@ -10,6 +10,7 @@ import { SecurityService } from './security.service';
 import { LogsService } from './logs.service';
 
 import { GnsV9Service } from './gnsV9.service';
+import { GnsV10Service } from './gnsV10.service';
 import { Web3Service } from './web3.service';
 
 export const PUB_SUB = Symbol('PUB_SUB');
@@ -44,6 +45,7 @@ export const PUB_SUB = Symbol('PUB_SUB');
       useValue: new PubSub(),
     },
     GnsV9Service,
+    GnsV10Service,
     Web3Service,
   ],
   exports: [
@@ -53,6 +55,7 @@ export const PUB_SUB = Symbol('PUB_SUB');
     PUB_SUB,
     LogsService,
     GnsV9Service,
+    GnsV10Service,
     Web3Service,
   ],
 })

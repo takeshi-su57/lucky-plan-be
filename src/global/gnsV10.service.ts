@@ -20,7 +20,8 @@ import {
   GetCollateralPricePayload,
   GetCollateralPriceReturnType,
   TradingVariable,
-} from 'src/microservices/web3Service/platform/gns/v9/types';
+  WithdrawPositivePnlPayload,
+} from 'src/microservices/web3Service/platform/gns/v10/types';
 
 import { bigIntSafeJsonStringify, bigIntSafeJsonParse } from 'src/utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
@@ -33,7 +34,7 @@ import {
 } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 
 @Injectable()
-export class GnsV9Service {
+export class GnsV10Service {
   private tradingVariable: Record<number, TradingVariable> = {};
   public status: ServiceStatus;
 
@@ -167,6 +168,20 @@ export class GnsV9Service {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.DecreasePositionSize, bigIntSafeJsonStringify(data))
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
+  }
+
+  async withdrawPositivePnl(data: WithdrawPositivePnlPayload) {
+    return await new Promise<`0x${string}`>((resolve, reject) => {
+      this.redisClient
+        .send(
+          PATTERNS.Gns.V10.WithdrawPositivePnl,
+          bigIntSafeJsonStringify(data),
+        )
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),

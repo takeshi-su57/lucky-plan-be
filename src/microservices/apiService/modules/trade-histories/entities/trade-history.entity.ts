@@ -73,6 +73,12 @@ export class TradeHistory {
 
   @Field(() => Date)
   date: Date;
+
+  @Field(() => Boolean, { nullable: true })
+  isCounterTrade: boolean | null;
+
+  @Field(() => String, { nullable: true })
+  meta: string | null;
 }
 
 @ObjectType()

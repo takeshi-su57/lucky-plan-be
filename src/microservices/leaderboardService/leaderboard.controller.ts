@@ -9,7 +9,7 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 import { ContractMonitorService } from './contract-monitor.service';
 import { LogsService } from 'src/global/logs.service';
@@ -22,7 +22,7 @@ export class LeaderboardController {
   constructor(
     private contractMonitorService: ContractMonitorService,
     private pnlSnapshotService: PnlSnapshotsService,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {
@@ -38,7 +38,7 @@ export class LeaderboardController {
   }
 
   private async reloadTradingVariables() {
-    if (this.gnsV9Service.status !== 'ready') {
+    if (this.gnsV10Service.status !== 'ready') {
       return;
     }
 
@@ -54,7 +54,7 @@ export class LeaderboardController {
 
     this.stopForTradingVariableLoading = false;
 
-    await this.gnsV9Service.loadTradingVariables();
+    await this.gnsV10Service.loadTradingVariables();
 
     console.log('trading variables reloaded');
   }
@@ -67,7 +67,7 @@ export class LeaderboardController {
       await delay(1000);
 
       if (
-        this.gnsV9Service.status !== 'ready' ||
+        this.gnsV10Service.status !== 'ready' ||
         this.contractMonitorService.status !== 'ready'
       ) {
         continue;
@@ -90,7 +90,7 @@ export class LeaderboardController {
   async checkContractsForLeaderboard() {
     if (
       this.stopForTradingVariableLoading ||
-      this.gnsV9Service.status !== 'ready' ||
+      this.gnsV10Service.status !== 'ready' ||
       this.isReceivedKillProcess
     ) {
       return;

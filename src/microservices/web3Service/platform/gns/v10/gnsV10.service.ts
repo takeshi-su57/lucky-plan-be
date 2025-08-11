@@ -22,10 +22,11 @@ import {
   GetTradePayload,
   GetCollateralPricePayload,
   TradingVariable,
+  WithdrawPositivePnlPayload,
 } from './types';
 
 @Injectable()
-export class GnsV9Service {
+export class GnsV10Service {
   constructor(
     private readonly contractsService: ContractsService,
     private readonly chainsService: ChainsService,
@@ -298,6 +299,36 @@ export class GnsV9Service {
             payload.args.leverageDelta,
             payload.args.expectedPrice,
           ],
+        });
+      },
+    );
+
+    return await this.chainsService.writeWithMutex(
+      contract.chainId,
+      payload.mnemonic,
+      payload.accountIndex,
+      async (wallet) => {
+        return await wallet.writeContract(request);
+      },
+    );
+  }
+
+  async withdrawPositivePnl(payload: WithdrawPositivePnlPayload) {
+    const contract = await this.contractsService.findOne(payload.contractId);
+
+    const account = mnemonicToAccount(payload.mnemonic, {
+      accountIndex: payload.accountIndex,
+    });
+
+    const { request } = await this.chainsService.readWithSemaphore(
+      contract.chainId,
+      async (publicClient) => {
+        return await publicClient.simulateContract({
+          account,
+          address: contract.address as Address,
+          abi: gnsMultiCollatDiamondAbi,
+          functionName: 'withdrawPositivePnl',
+          args: [payload.args.index, payload.args.amountCollateral],
         });
       },
     );

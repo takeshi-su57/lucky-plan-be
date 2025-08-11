@@ -7,13 +7,13 @@ import {
   TradePair,
 } from './entities/contract.entity';
 
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 @Resolver(() => Contract)
 export class ContractsResolver {
   constructor(
     private readonly contractsService: ContractsService,
-    private readonly gnsV9Service: GnsV9Service,
+    private readonly gnsV10Service: GnsV10Service,
   ) {}
 
   @Query(() => [Contract])
@@ -30,13 +30,13 @@ export class ContractsResolver {
   getTradePairs(
     @Args('contractId', { type: () => [Int] }) contractIds: number[],
   ) {
-    return this.gnsV9Service.getTradePairs(contractIds);
+    return this.gnsV10Service.getTradePairs(contractIds);
   }
 
   @Query(() => [TradeCollateral])
   getTradeCollaterals(
     @Args('contractId', { type: () => Int }) contractId: number,
   ) {
-    return this.gnsV9Service.getTradeCollaterals(contractId);
+    return this.gnsV10Service.getTradeCollaterals(contractId);
   }
 }

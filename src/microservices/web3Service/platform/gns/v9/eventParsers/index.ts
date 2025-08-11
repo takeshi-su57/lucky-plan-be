@@ -1,17 +1,20 @@
-import { leverageUpdateExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/leverage-update-executed.parser';
+import { leverageUpdateExecutedEventParser } from './leverage-update-executed.parser';
 // import { leverageUpdateInitiatedEventParser } from 'src/actions/eventParsers/leverage-update-initiated.parser';
-import { limitExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/limit-executed.parser';
-import { marketCloseCanceledEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-close-canceled';
-import { marketExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-executed.parser';
-import { marketOpenCanceledEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-open-canceled';
-import { marketOrderInitiatedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-order-initiated.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-decrease-executed.parser';
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-increase-executed.parser';
+import { limitExecutedEventParser } from './limit-executed.parser';
+import { marketCloseCanceledEventParser } from './market-close-canceled';
+import { marketExecutedEventParser } from './market-executed.parser';
+import { marketOpenCanceledEventParser } from './market-open-canceled';
+import { marketOrderInitiatedEventParser } from './market-order-initiated.parser';
+import { positionSizeDecreaseExecutedEventParser } from './position-size-decrease-executed.parser';
+import { positionSizeIncreaseExecutedEventParser } from './position-size-increase-executed.parser';
 
-import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
+import { tradeMaxClosingSlippagePUpdatedEventParser } from './trade-max-closing-slippage-p-updated.parser';
 
-import { PendingOrderType, RegisteredEventType } from 'src/types';
-import { Action, ActionItem } from '../entities/action.entity';
+import { PendingOrderType, RegisteredEventType } from '../types';
+import {
+  Action,
+  ActionItem,
+} from 'src/microservices/apiService/modules/actions/entities/action.entity';
 
 export const missionEventParsers = [
   limitExecutedEventParser,

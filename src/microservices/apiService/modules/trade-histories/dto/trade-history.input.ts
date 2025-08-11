@@ -40,6 +40,10 @@ export type CreateTradeHistoryInput = {
   block: number;
 
   date: Date;
+
+  isCounterTrade: boolean;
+
+  meta: string;
 };
 
 @InputType()

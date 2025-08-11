@@ -8,7 +8,7 @@ import {
   isOpenMissionAction,
   missionEventNames,
   missionEventParsers,
-} from 'src/microservices/apiService/modules/actions/eventParsers';
+} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 
 import { ActionContext, BotContext, MissionContext } from 'src/types';
 import {
@@ -29,7 +29,7 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 import { LogsService } from 'src/global/logs.service';
 
 import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
@@ -41,7 +41,7 @@ export class MissionsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     private readonly logger: LogsService,
   ) {}
 
@@ -416,7 +416,7 @@ export class MissionsService {
           .actionParser(item.action);
         const { t, collateralPriceUsd } = event.args;
 
-        const pair = this.gnsV9Service.getPair(
+        const pair = this.gnsV10Service.getPair(
           item.context.bot.followerContractId,
           t.pairIndex,
         );
@@ -425,7 +425,7 @@ export class MissionsService {
           return false;
         }
 
-        const collateral = this.gnsV9Service.getCollateral(
+        const collateral = this.gnsV10Service.getCollateral(
           item.context.bot.leaderContractId,
           t.collateralIndex,
         );

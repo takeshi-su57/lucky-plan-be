@@ -214,6 +214,16 @@ export type DecreasePositionSizePayload = {
   };
 };
 
+export type WithdrawPositivePnlPayload = {
+  mnemonic: string;
+  accountIndex: number;
+  contractId: number;
+  args: {
+    index: number;
+    amountCollateral: bigint;
+  };
+};
+
 export type GetPendingOrdersPayload = {
   contractId: number;
   args: {

@@ -19,6 +19,9 @@ import { PnlSnapshot } from 'src/microservices/apiService/modules/trade-historie
 import {
   CancelOrderAfterTimeoutInput,
   CloseTradeInput,
+  UpdateSlInput,
+  UpdateTpInput,
+  WithdrawPositivePnlInput,
 } from './dto/follower.input';
 import { getReadableError } from 'src/utils';
 import { EncryptedData } from 'src/types';
@@ -29,7 +32,7 @@ import { LogsService } from 'src/global/logs.service';
 import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { Web3Service } from 'src/global/web3.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 @Injectable()
 export class FollowerService {
@@ -37,7 +40,7 @@ export class FollowerService {
     private prismaService: PrismaService,
     private contractService: ContractsService,
     private web3Service: Web3Service,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
     private securityService: SecurityService,
@@ -114,7 +117,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV9Service.getCollateral(
+      const collateralInfo = this.gnsV10Service.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -245,7 +248,7 @@ export class FollowerService {
         return true;
       }
 
-      const collateralInfo = this.gnsV9Service.getCollateral(
+      const collateralInfo = this.gnsV10Service.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -331,7 +334,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV9Service.getCollateral(
+      const collateralInfo = this.gnsV10Service.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -445,7 +448,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV9Service.getCollateral(
+      const collateralInfo = this.gnsV10Service.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -521,7 +524,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV9Service.getCollateral(
+      const collateralInfo = this.gnsV10Service.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -628,7 +631,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const pendingOrders = await this.gnsV9Service.getPendingOrders({
+      const pendingOrders = await this.gnsV10Service.getPendingOrders({
         contractId,
         args: {
           address: address as Address,
@@ -668,7 +671,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const trades = await this.gnsV9Service.getTrades({
+      const trades = await this.gnsV10Service.getTrades({
         contractId,
         args: {
           address: address as Address,
@@ -778,7 +781,7 @@ export class FollowerService {
 
       const follower = await this.prismaService.follower.findUnique({
         where: {
-          address: input.address,
+          address: input.address.toLowerCase(),
         },
       });
 
@@ -802,11 +805,11 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const currentPrice = await this.gnsV9Service.getPairPrice(
+      const currentPrice = await this.gnsV10Service.getPairPrice(
         input.pairIndex,
       );
 
-      tx = await this.gnsV9Service.closeTradeMarket({
+      tx = await this.gnsV10Service.closeTradeMarket({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -878,6 +881,324 @@ export class FollowerService {
     }
   }
 
+  async updateSl(
+    userId: string,
+    input: UpdateSlInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      tx = await this.gnsV10Service.updateSl({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          newSl: BigInt(input.newSl),
+        },
+      });
+
+      if (tx) {
+        const transaction = await this.web3Service.waitForTransactionReceipt({
+          chainId: contract.chainId,
+          hash: tx as `0x${string}`,
+          confirmations: 1,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade sl updated`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>updateSl tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>updateSl tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async updateTp(
+    userId: string,
+    input: UpdateTpInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      tx = await this.gnsV10Service.updateTp({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          newTp: BigInt(input.newTp),
+        },
+      });
+
+      if (tx) {
+        const transaction = await this.web3Service.waitForTransactionReceipt({
+          chainId: contract.chainId,
+          hash: tx as `0x${string}`,
+          confirmations: 1,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade tp updated`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>updateTp tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>updateTp tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async withdrawPositivePnl(
+    userId: string,
+    input: WithdrawPositivePnlInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const contract = await this.contractService.findOne(input.contractId);
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      tx = await this.gnsV10Service.withdrawPositivePnl({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          amountCollateral: BigInt(input.amountCollateral),
+        },
+      });
+
+      if (tx) {
+        const transaction = await this.web3Service.waitForTransactionReceipt({
+          chainId: contract.chainId,
+          hash: tx as `0x${string}`,
+          confirmations: 1,
+        });
+
+        if (transaction.status === 'success') {
+          return {
+            success: true,
+            message: `Trade positive pnl withdrawn`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        } else {
+          await this.logger.log({
+            severity: 'Error',
+            summary: `FollowerService>withdrawPositivePnl tx: ${tx}`,
+            details: JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+          });
+
+          return {
+            success: false,
+            message: `${JSON.stringify(transaction.logs, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            )} tx: ${tx}`,
+            address: input.address,
+            index: input.index,
+            contractId: input.contractId,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>withdrawPositivePnl tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
   async cancelOrderAfterTimeout(
     userId: string,
     input: CancelOrderAfterTimeoutInput,
@@ -888,7 +1209,7 @@ export class FollowerService {
       const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
-          address: input.address,
+          address: input.address.toLowerCase(),
         },
       });
       const user = await this.prismaService.user.findUnique({
@@ -911,7 +1232,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV9Service.cancelOrderAfterTimeout({
+      tx = await this.gnsV10Service.cancelOrderAfterTimeout({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1049,7 +1370,7 @@ export class FollowerService {
   ): Promise<FollowerConnection> {
     const contract = await this.contractService.findOne(contractId);
 
-    const collateralInfo = this.gnsV9Service.getCollateral(
+    const collateralInfo = this.gnsV10Service.getCollateral(
       contractId,
       USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
     );

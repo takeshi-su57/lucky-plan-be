@@ -51,7 +51,7 @@ export const PATTERNS = {
     PlanCreated: 'PLAN_CREATED',
     PlanUpdated: 'PLAN_UPDATED',
   },
-  GnsV9: {
+  Gns: {
     OpenTrade: 'OPEN_TRADE',
     CloseTradeMarket: 'CLOSE_TRADE_MARKET',
     CancelOrderAfterTimeout: 'CANCEL_ORDER_AFTER_TIMEOUT',
@@ -66,6 +66,9 @@ export const PATTERNS = {
     GetTrade: 'GET_TRADE',
     GetTradingVariable: 'GET_TRADING_VARIABLE',
     GetCollateralPrice: 'GET_COLLATERAL_PRICE',
+    V10: {
+      WithdrawPositivePnl: 'WITHDRAW_POSITIVE_PNL',
+    },
   },
   Web3: {
     Erc20Transfer: 'ERC20_TRANSFER',

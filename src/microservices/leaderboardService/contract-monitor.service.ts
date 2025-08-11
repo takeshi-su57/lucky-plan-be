@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
 import { Contract } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v9/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
   eventParsers,
   eventToActionParser,
-} from 'src/microservices/apiService/modules/actions/eventParsers';
+} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 import { getReadableError } from '../../utils';
 import { ServiceStatus } from 'src/types';
 

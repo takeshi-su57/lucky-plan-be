@@ -64,3 +64,69 @@ export class CancelOrderAfterTimeoutInput {
   @Field(() => Int)
   index: number;
 }
+
+@InputType()
+export class UpdateSlInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @Field(() => String)
+  newSl: string;
+}
+
+@InputType()
+export class UpdateTpInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @Field(() => String)
+  newTp: string;
+}
+
+@InputType()
+export class WithdrawPositivePnlInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @Field(() => String)
+  amountCollateral: string;
+}

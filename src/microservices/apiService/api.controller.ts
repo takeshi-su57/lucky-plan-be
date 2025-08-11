@@ -8,7 +8,7 @@ import { PATTERNS } from 'src/utils/constants';
 
 import { LogsService } from 'src/global/logs.service';
 import { ApiService } from './api.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 import { BotsService } from './modules/bots/bots.service';
 import { PlansService } from './modules/plans/plans.service';
 import { AutoPlansService } from './modules/plans/autoplans.service';
@@ -20,7 +20,7 @@ export class ApiController {
     private readonly apiService: ApiService,
     private readonly logger: LogsService,
     private readonly autoPlansService: AutoPlansService,
-    private readonly gnsV9Service: GnsV9Service,
+    private readonly gnsV10Service: GnsV10Service,
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
   ) {}
@@ -29,7 +29,7 @@ export class ApiController {
   async checkAndUpdateAllBots() {
     if (
       this.apiService.stopForTradingVariableLoading ||
-      this.gnsV9Service.status !== 'ready' ||
+      this.gnsV10Service.status !== 'ready' ||
       this.apiService.isPaused
     ) {
       return;
@@ -48,7 +48,7 @@ export class ApiController {
   async executeCronForSnapshot() {
     if (
       this.apiService.stopForTradingVariableLoading ||
-      this.gnsV9Service.status !== 'ready' ||
+      this.gnsV10Service.status !== 'ready' ||
       this.apiService.isPaused
     ) {
       return;
@@ -59,7 +59,7 @@ export class ApiController {
         return;
       }
 
-      await this.gnsV9Service.loadTradingVariables();
+      await this.gnsV10Service.loadTradingVariables();
 
       await this.autoPlansService.createAutoPlans();
     } catch (err) {

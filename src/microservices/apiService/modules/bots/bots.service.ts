@@ -39,7 +39,7 @@ import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/microservices/apiService/modules/strategy/strategy.service';
 import { LogsService } from 'src/global/logs.service';
 import { Web3Service } from 'src/global/web3.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 @Injectable()
 export class BotsService {
@@ -49,7 +49,7 @@ export class BotsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly web3Service: Web3Service,
-    private readonly gnsV9Service: GnsV9Service,
+    private readonly gnsV10Service: GnsV10Service,
     private readonly missionsService: MissionsService,
     private readonly followersService: FollowerService,
     private readonly actionsService: ActionsService,
@@ -474,7 +474,7 @@ export class BotsService {
 
     const mnemonic = await this.followersService.getMnemonic(userId);
 
-    const collateralInfo = this.gnsV9Service.getCollateral(
+    const collateralInfo = this.gnsV10Service.getCollateral(
       bot.followerContractId,
       USDCCollateralIndex[
         followerContract.chainId as keyof typeof USDCCollateralIndex

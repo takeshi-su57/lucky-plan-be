@@ -9,9 +9,10 @@ import {
   isCloseMissionAction,
   isSameUpdateAction,
   missionEventParsers,
-} from 'src/microservices/apiService/modules/actions/eventParsers';
+} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+import { ActionContext, MissionContext } from 'src/types';
+import { CancelReason } from 'src/microservices/web3Service/platform/gns/v10/types';
 
-import { ActionContext, CancelReason, MissionContext } from 'src/types';
 import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
@@ -28,25 +29,25 @@ import {
 } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 import { PUB_SUB } from 'src/global/global.module';
 
-import { leverageUpdateExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/leverage-update-executed.parser';
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-decrease-executed.parser';
-import { marketCloseCanceledEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-close-canceled';
-import { marketOrderInitiatedEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-order-initiated.parser';
-import { marketOpenCanceledEventParser } from 'src/microservices/apiService/modules/actions/eventParsers/market-open-canceled';
+import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { marketCloseCanceledEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-close-canceled';
+import { marketOrderInitiatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-order-initiated.parser';
+import { marketOpenCanceledEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-open-canceled';
 
 import { FollowerActionsService } from 'src/microservices/apiService/modules/follower-actions/follower-actions.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 @Injectable()
 export class TasksService {
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private prismaService: PrismaService,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     private followerActionsService: FollowerActionsService,
     private actionsService: ActionsService,
     private readonly logger: LogsService,
@@ -175,7 +176,7 @@ export class TasksService {
       .find((parser) => parser.eventName === openTask.action.name)!
       .actionParser(openTask.action);
 
-    const currentPrice = await this.gnsV9Service.getPairPrice(
+    const currentPrice = await this.gnsV10Service.getPairPrice(
       openEvent.args.t.pairIndex,
     );
 
@@ -260,7 +261,7 @@ export class TasksService {
       .find((parser) => parser.eventName === task.action.name)!
       .actionParser(task.action);
 
-    const currentPrice = await this.gnsV9Service.getPairPrice(
+    const currentPrice = await this.gnsV10Service.getPairPrice(
       openEvent.args.t.pairIndex,
     );
 
@@ -740,7 +741,9 @@ export class TasksService {
     }
 
     for (const item of manualCloseActions) {
-      const currentPrice = await this.gnsV9Service.getPairPrice(item.pairIndex);
+      const currentPrice = await this.gnsV10Service.getPairPrice(
+        item.pairIndex,
+      );
 
       const newAction = await this.actionsService.createCloseMissionAction(
         item.targetPositionId,

@@ -11,24 +11,25 @@ import { ServiceStatus } from 'src/types';
 import { delay } from '../../utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const microservices = [SERVICE_NAMES.LEADERBOARD_SERVICE];
+const microservices = [
+  SERVICE_NAMES.LEADERBOARD_SERVICE,
+  SERVICE_NAMES.TRADING_SERVICE,
+  SERVICE_NAMES.WEB3_SERVICE,
+];
 
 @Injectable()
 export class ApiService {
   isPaused = true;
   stopForTradingVariableLoading = false;
 
-  private serviceStatus: Record<string, ServiceStatus> = {
-    [SERVICE_NAMES.LEADERBOARD_SERVICE]: ServiceStatus.KILLED,
-  };
-
+  private serviceStatus: Record<string, ServiceStatus> = {};
   constructor(
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
   ) {
@@ -36,6 +37,10 @@ export class ApiService {
     this.stopForTradingVariableLoading = false;
 
     this.reloadTradingVariables();
+
+    microservices.forEach((service) => {
+      this.serviceStatus[service] = ServiceStatus.KILLED;
+    });
   }
 
   updateProcessStatus(service: string, status: ServiceStatus) {
@@ -174,7 +179,7 @@ export class ApiService {
   }
 
   private async reloadTradingVariables() {
-    if (this.gnsV9Service.status !== 'ready') {
+    if (this.gnsV10Service.status !== 'ready') {
       return;
     }
 
@@ -190,7 +195,7 @@ export class ApiService {
 
     this.stopForTradingVariableLoading = false;
 
-    await this.gnsV9Service.loadTradingVariables();
+    await this.gnsV10Service.loadTradingVariables();
 
     console.log('trading variables reloaded');
   }

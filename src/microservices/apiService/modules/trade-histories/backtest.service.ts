@@ -3,7 +3,6 @@ import {
   PnlSnapshotKind,
   TestingReportV5,
   TradeActionType,
-  TradeHistory,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -16,14 +15,15 @@ import {
   PnlSnapshotDetails,
   PnlSnapshotDevDetails,
   TestingReportEdge,
+  TradeHistory,
 } from './entities/trade-history.entity';
 import { ExportFilter } from './dto/trade-history.input';
 import { WholeCompressedHistories } from './entities/trade-history.entity';
-import { Pair } from 'src/types';
+import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
 import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsV9Service } from 'src/global/gnsV9.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
 
 const dailyPlans = 8;
 
@@ -37,7 +37,7 @@ export class BacktestService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsV9Service: GnsV9Service,
+    private gnsV10Service: GnsV10Service,
   ) {
     // setTimeout(() => {
     //   this.autoTesting();
@@ -62,7 +62,7 @@ export class BacktestService {
     });
 
     for (const contract of contracts) {
-      this.gnsV9Service.getPairs(contract.id).forEach((pair) => {
+      this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
         if (pair) {
           this.pairMap.set(
             `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
@@ -575,7 +575,7 @@ export class BacktestService {
     }
 
     const allPairs = isTestnet
-      ? await this.gnsV9Service.getTradePairs(isTestnet ? [4] : [0])
+      ? await this.gnsV10Service.getTradePairs(isTestnet ? [4] : [0])
       : [];
 
     const pnlRecords: PnlSnapshot[] =
@@ -1016,7 +1016,7 @@ export class BacktestService {
     }
 
     const allPairs = isTestnet
-      ? await this.gnsV9Service.getTradePairs(isTestnet ? [4] : [0])
+      ? await this.gnsV10Service.getTradePairs(isTestnet ? [4] : [0])
       : [];
 
     const pnlRecords: PnlSnapshot[] =

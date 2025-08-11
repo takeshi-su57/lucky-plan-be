@@ -1,5 +1,5 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
-import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v9/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 
 export const eventName = 'MarketOpenCanceled';
