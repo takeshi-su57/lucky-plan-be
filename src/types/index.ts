@@ -1,20 +1,20 @@
 import { Address } from 'viem';
 
-import { MarketExecutedEvent } from 'src/actions/eventParsers/market-executed.parser';
-import { LimitExecutedEvent } from 'src/actions/eventParsers/limit-executed.parser';
-import { TradeMaxClosingSlippagePUpdatedEvent } from 'src/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { LeverageUpdateExecutedEvent } from 'src/actions/eventParsers/leverage-update-executed.parser';
-import { PositionSizeDecreaseExecutedEvent } from 'src/actions/eventParsers/position-size-decrease-executed.parser';
-import { PositionSizeIncreaseExecutedEvent } from 'src/actions/eventParsers/position-size-increase-executed.parser';
-import { MarketOrderInitiatedEvent } from 'src/actions/eventParsers/market-order-initiated.parser';
+import { MarketExecutedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/market-executed.parser';
+import { LimitExecutedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/limit-executed.parser';
+import { TradeMaxClosingSlippagePUpdatedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/trade-max-closing-slippage-p-updated.parser';
+import { LeverageUpdateExecutedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/leverage-update-executed.parser';
+import { PositionSizeDecreaseExecutedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-decrease-executed.parser';
+import { PositionSizeIncreaseExecutedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/position-size-increase-executed.parser';
+import { MarketOrderInitiatedEvent } from 'src/microservices/apiService/modules/actions/eventParsers/market-order-initiated.parser';
 
-import { MarketOpenCanceledEvent } from 'src/actions/eventParsers/market-open-canceled';
+import { MarketOpenCanceledEvent } from 'src/microservices/apiService/modules/actions/eventParsers/market-open-canceled';
 
-import { ActionDetails } from 'src/actions/entities/action.entity';
-import { BotDetails } from 'src/bots/entities/bot.entity';
-import { TaskDetails } from 'src/tasks/entities/task.entity';
-import { MarketCloseCanceledEvent } from 'src/actions/eventParsers/market-close-canceled';
-import { MissionDetails } from 'src/missions/entities/mission.entity';
+import { ActionDetails } from 'src/microservices/apiService/modules/actions/entities/action.entity';
+import { BotDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
+import { TaskDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
+import { MarketCloseCanceledEvent } from 'src/microservices/apiService/modules/actions/eventParsers/market-close-canceled';
+import { MissionDetails } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 
 export enum TradeType {
   TRADE,
@@ -171,3 +171,13 @@ export enum ServiceStatus {
   PROCESS = 'process',
   READY = 'ready',
 }
+
+export type EncryptedData = {
+  ivHex: string;
+  encrypted: string;
+};
+
+export type TradingVariable = {
+  pairs: (Pair | undefined)[];
+  collaterals: Collateral[];
+};

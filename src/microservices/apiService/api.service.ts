@@ -1,20 +1,17 @@
 import { Injectable, Inject } from '@nestjs/common';
-
 import { ClientProxy } from '@nestjs/microservices';
 import { spawn } from 'child_process';
-import * as path from 'path';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-
 import 'dotenv';
 
-import { TradingVariableService } from '../../global/trading-variable.service';
-import { SecurityService } from '../../global/security.service';
 import { ServiceStatus } from 'src/types';
 
 import { delay } from '../../utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { SecurityService } from './modules/security/security.service';
+import { GnsV9Service } from 'src/global/gnsV9.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -31,7 +28,7 @@ export class ApiService {
   };
 
   constructor(
-    private tradingVariableService: TradingVariableService,
+    private gnsV9Service: GnsV9Service,
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
   ) {
@@ -46,7 +43,7 @@ export class ApiService {
   }
 
   async pauseSystem() {
-    await this.client.emit(PATTERNS.killProcess, {});
+    await this.client.emit(PATTERNS.killProcessEvent, {});
 
     // wait for all services to be ready
     while (true) {
@@ -177,7 +174,7 @@ export class ApiService {
   }
 
   private async reloadTradingVariables() {
-    if (this.tradingVariableService.status !== 'ready') {
+    if (this.gnsV9Service.status !== 'ready') {
       return;
     }
 
@@ -193,7 +190,7 @@ export class ApiService {
 
     this.stopForTradingVariableLoading = false;
 
-    await this.tradingVariableService.loadTradingVariables();
+    await this.gnsV9Service.loadTradingVariables();
 
     console.log('trading variables reloaded');
   }

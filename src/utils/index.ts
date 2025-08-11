@@ -1,5 +1,8 @@
-import { ActionItem, Action } from 'src/actions/entities/action.entity';
-import { PositionInfo } from 'src/positions/entities/position.entity';
+import {
+  ActionItem,
+  Action,
+} from 'src/microservices/apiService/modules/actions/entities/action.entity';
+import { PositionInfo } from 'src/microservices/apiService/modules/positions/entities/position.entity';
 import { TradeEvent } from 'src/types';
 
 export function eventToAction(
@@ -55,4 +58,42 @@ export async function delay(ms: number) {
   const promise = new Promise((resolve) => setTimeout(resolve, ms));
 
   await promise;
+}
+
+export function bigIntSafeJsonStringify(obj: unknown) {
+  return JSON.stringify(obj, (_, v) =>
+    typeof v === 'bigint' ? { isBigInt: true, value: v.toString() } : v,
+  );
+}
+
+export function bigIntSafeJsonParse<T>(json: string): T {
+  const obj = JSON.parse(json);
+
+  const safeObj = (obj: unknown): unknown => {
+    if (Array.isArray(obj)) {
+      return obj.map((item: unknown) => {
+        if (typeof item === 'object' && item !== null) {
+          if ('isBigInt' in item && 'value' in item && item.isBigInt) {
+            return BigInt(item.value as string);
+          }
+
+          return safeObj(item);
+        }
+
+        return item;
+      });
+    } else if (typeof obj === 'object' && obj !== null) {
+      if ('isBigInt' in obj && 'value' in obj && obj.isBigInt) {
+        return BigInt(obj.value as string);
+      }
+
+      return Object.fromEntries(
+        Object.entries(obj).map(([key, value]) => [key, safeObj(value)]),
+      );
+    }
+
+    return obj;
+  };
+
+  return safeObj(obj) as T;
 }

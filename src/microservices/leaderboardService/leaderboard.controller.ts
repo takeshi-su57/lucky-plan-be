@@ -6,31 +6,26 @@ import * as dayjs from 'dayjs';
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay } from 'src/utils';
+import { delay, getReadableError } from 'src/utils';
 
-import { PnlSnapshotsService } from 'src/trade-histories/pnlsnapshot.service';
-import { TradingVariableService } from 'src/global/trading-variable.service';
-import { BotsService } from 'src/bots/bots.service';
-import { PlansService } from 'src/plans/plans.service';
-import { AutoPlansV2Service } from 'src/plans/autoplansV2.service';
+import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
+import { GnsV9Service } from 'src/global/gnsV9.service';
+
 import { ContractMonitorService } from './contract-monitor.service';
+import { LogsService } from 'src/global/logs.service';
 
 @Controller()
 export class LeaderboardController {
   private stopForTradingVariableLoading = false;
-  private pnlCount = 1;
   private isReceivedKillProcess = false;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
     private pnlSnapshotService: PnlSnapshotsService,
-    private tradingVariableService: TradingVariableService,
-    private botsService: BotsService,
-    private plansService: PlansService,
-    private autoPlansV2Service: AutoPlansV2Service,
+    private gnsV9Service: GnsV9Service,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
+    private readonly logger: LogsService,
   ) {
-    this.pnlCount = 1;
     this.stopForTradingVariableLoading = false;
     this.isReceivedKillProcess = false;
 
@@ -43,7 +38,7 @@ export class LeaderboardController {
   }
 
   private async reloadTradingVariables() {
-    if (this.tradingVariableService.status !== 'ready') {
+    if (this.gnsV9Service.status !== 'ready') {
       return;
     }
 
@@ -59,12 +54,12 @@ export class LeaderboardController {
 
     this.stopForTradingVariableLoading = false;
 
-    await this.tradingVariableService.loadTradingVariables();
+    await this.gnsV9Service.loadTradingVariables();
 
     console.log('trading variables reloaded');
   }
 
-  @EventPattern(PATTERNS.killProcess)
+  @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
     this.isReceivedKillProcess = true;
 
@@ -72,10 +67,8 @@ export class LeaderboardController {
       await delay(1000);
 
       if (
-        this.tradingVariableService.status !== 'ready' ||
-        this.contractMonitorService.status !== 'ready' ||
-        this.botsService.status !== 'ready' ||
-        this.plansService.status !== 'ready'
+        this.gnsV9Service.status !== 'ready' ||
+        this.contractMonitorService.status !== 'ready'
       ) {
         continue;
       }
@@ -93,30 +86,11 @@ export class LeaderboardController {
     }, 10_000);
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async checkAndUpdateAllBots() {
-    if (
-      this.stopForTradingVariableLoading ||
-      this.tradingVariableService.status !== 'ready' ||
-      this.isReceivedKillProcess
-    ) {
-      return;
-    }
-
-    if (this.botsService.status === 'ready') {
-      await this.botsService.checkAndUpdateAllBots();
-    }
-
-    if (this.plansService.status === 'ready') {
-      await this.plansService.checkAndUpdateAllPlans();
-    }
-  }
-
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkContractsForLeaderboard() {
     if (
       this.stopForTradingVariableLoading ||
-      this.tradingVariableService.status !== 'ready' ||
+      this.gnsV9Service.status !== 'ready' ||
       this.isReceivedKillProcess
     ) {
       return;
@@ -133,21 +107,22 @@ export class LeaderboardController {
       return;
     }
 
-    if (this.pnlSnapshotService.status === 'ready') {
+    if (this.pnlSnapshotService.status !== 'ready') {
+      return;
+    }
+
+    try {
+      await this.reloadTradingVariables();
+
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
-
-      if (
-        this.autoPlansV2Service.status === 'ready' &&
-        this.pnlCount % 3 === 0
-      ) {
-        await this.reloadTradingVariables();
-
-        await this.autoPlansV2Service.createAutoPlans();
-      }
-
-      this.pnlCount = this.pnlCount + 1;
+    } catch (err) {
+      this.logger.nativeLog({
+        severity: 'Error',
+        summary: 'leaderboard.controller>executeCronForSnapshot',
+        details: getReadableError(err),
+      });
     }
   }
 }

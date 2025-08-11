@@ -6,8 +6,6 @@ import {
   PublicClient,
   http,
   fallback,
-  Address,
-  AbiEvent,
 } from 'viem';
 import { english, mnemonicToAccount } from 'viem/accounts';
 import {
@@ -20,11 +18,8 @@ import {
   avalanche,
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
-import { Mutex } from 'async-mutex';
+import { Mutex, Semaphore } from 'async-mutex';
 import 'dotenv';
-
-import { EncryptedData, SecurityService } from '../global/security.service';
-import { Follower } from 'src/follower/entities/follower.entity';
 
 const privateRPCProviders = [
   {
@@ -156,11 +151,11 @@ export class ChainsService {
   readonly availableChains: Chain[];
   readonly freePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
-  private readMutexs: Record<number, Mutex>;
-  private writeMutexs: Record<number, Mutex>;
+  private readSemaphores: Record<number, Semaphore>;
+  private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
 
-  constructor(private securityService: SecurityService) {
+  constructor() {
     this.availableChains = [
       arbitrum,
       polygon,
@@ -172,7 +167,7 @@ export class ChainsService {
     this.freePublicClients = {};
     this.paidPublicClients = {};
     this.walletClients = {};
-    this.readMutexs = {};
+    this.readSemaphores = {};
     this.writeMutexs = {};
 
     this.availableChains.forEach((chain) => {
@@ -208,8 +203,8 @@ export class ChainsService {
         },
       }) as unknown as PublicClient;
 
-      this.readMutexs[chain.id] = new Mutex();
-      this.writeMutexs[chain.id] = new Mutex();
+      this.readSemaphores[chain.id] = new Semaphore(19);
+      this.writeMutexs[chain.id] = {};
     });
   }
 
@@ -237,32 +232,59 @@ export class ChainsService {
     return this.freePublicClients[chainId];
   }
 
-  private walletClient(
-    mnemonicStr: string,
-    chainId: number,
-    follower: Follower,
-  ): WalletClient {
-    if (this.walletClients[chainId]?.[follower.address]) {
-      return this.walletClients[chainId][follower.address];
+  private publicClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
     }
 
+    const freeClient = this.freePublicClient(chainId);
+    const paidClient = this.paidPublicClient(chainId);
+
+    return new Proxy(freeClient, {
+      get(target, prop, receiver) {
+        const origMethod = Reflect.get(target, prop, receiver);
+
+        if (typeof origMethod !== 'function') {
+          return origMethod;
+        }
+
+        return async (...args: any[]) => {
+          try {
+            return await origMethod.apply(freeClient, args);
+          } catch (err: any) {
+            if (err && typeof err === 'object' && 'cause' in err) {
+              const paidMethod = Reflect.get(paidClient, prop, receiver);
+              return await paidMethod.apply(paidClient, args);
+            }
+            throw err;
+          }
+        };
+      },
+    });
+  }
+
+  private walletClient(
+    chainId: number,
+    mnemonic: string,
+    accountIndex: number,
+  ): WalletClient {
     const chain = this.getChainByChainId(chainId);
 
     if (!chain) {
       throw new Error('Invalid chain id');
     }
 
-    const mnemonic = this.securityService.isSafeApp
-      ? this.securityService.decrypt(JSON.parse(mnemonicStr) as EncryptedData)
-      : mnemonicStr;
-
     if (!validateMnemonic(mnemonic, english)) {
       throw new Error('Wrong mnemonic, plz check seed the db metadata');
     }
 
     const account = mnemonicToAccount(mnemonic, {
-      accountIndex: follower.accountIndex,
+      accountIndex,
     });
+
+    if (this.walletClients[chainId]?.[account.address.toLowerCase()]) {
+      return this.walletClients[chainId][account.address.toLowerCase()];
+    }
 
     const client = createWalletClient({
       account,
@@ -293,58 +315,33 @@ export class ChainsService {
     return client;
   }
 
-  private async readWithFailover<T>(
+  async readWithSemaphore<T>(
     chainId: number,
-    fn: (c: PublicClient) => Promise<T>,
+    callback: (c: PublicClient) => Promise<T>,
   ): Promise<T> {
-    const freeClient = this.freePublicClient(chainId);
-    const paidClient = this.paidPublicClient(chainId);
-
-    try {
-      return await fn(freeClient);
-    } catch (err: unknown) {
-      if (typeof err === 'object' && err !== null && 'cause' in (err as any)) {
-        return await fn(paidClient);
-      }
-
-      throw err;
-    }
-  }
-
-  async getBlockNumber(chainId: number) {
-    return await this.readMutexs[chainId].runExclusive(async () => {
-      return await this.readWithFailover(
-        chainId,
-        async (client) => await client.getBlockNumber(),
-      );
+    return await this.readSemaphores[chainId].runExclusive(async () => {
+      return await callback(this.publicClient(chainId));
     });
   }
 
-  async getBlock(chainId: number, blockNumber: bigint) {
-    return await this.readMutexs[chainId].runExclusive(async () => {
-      return await this.readWithFailover(
-        chainId,
-        async (client) => await client.getBlock({ blockNumber }),
-      );
-    });
-  }
-
-  async getLogs(
+  async writeWithMutex<T>(
     chainId: number,
-    address: Address,
-    fromBlock: bigint,
-    toBlock: bigint,
-  ) {
-    return await this.readMutexs[chainId].runExclusive(async () => {
-      return await this.readWithFailover(
-        chainId,
-        async (client) =>
-          await client.getLogs<AbiEvent>({
-            address,
-            fromBlock,
-            toBlock,
-          }),
-      );
+    mnemonic: string,
+    accountIndex: number,
+    callback: (c: WalletClient) => Promise<T>,
+  ): Promise<T> {
+    const account = mnemonicToAccount(mnemonic, {
+      accountIndex,
+    });
+
+    if (!this.writeMutexs[chainId][account.address.toLowerCase()]) {
+      this.writeMutexs[chainId][account.address.toLowerCase()] = new Mutex();
+    }
+
+    return await this.writeMutexs[chainId][
+      account.address.toLowerCase()
+    ].runExclusive(async () => {
+      return await callback(this.walletClient(chainId, mnemonic, accountIndex));
     });
   }
 }

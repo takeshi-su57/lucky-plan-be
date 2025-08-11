@@ -1,40 +1,35 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { join } from 'path';
 
 import { ApiService } from './api.service';
-import { ContractMonitorService } from './contract-monitor.service';
 
 import { GlobalModule } from '../../global/global.module';
-import { WalletAccountsModule } from '../../wallet-accounts/wallet-accounts.module';
-import { AuthModule } from '../../auth/auth.module';
-import { FollowerModule } from '../../follower/follower.module';
-import { StrategyModule } from '../../strategy/strategy.module';
-import { ContractsModule } from '../../contracts/contracts.module';
-import { BotsModule } from '../../bots/bots.module';
-import { PositionsModule } from '../../positions/positions.module';
-import { MissionsModule } from '../../missions/missions.module';
-import { TasksModule } from '../../tasks/tasks.module';
-import { ActionsModule } from '../../actions/actions.module';
-import { FollowerActionsModule } from '../../follower-actions/follower-actions.module';
-import { TradeHistoriesModule } from '../../trade-histories/trade-histories.module';
-import { TaskExecutorModule } from '../../task-executor/task-executor.module';
-import { PlansModule } from '../../plans/plans.module';
-import { LogsModule } from '../../loggers/logs.module';
+import { WalletAccountsModule } from './modules/wallet-accounts/wallet-accounts.module';
+import { FollowerModule } from './modules/follower/follower.module';
+import { StrategyModule } from './modules/strategy/strategy.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
+import { BotsModule } from './modules/bots/bots.module';
+import { PositionsModule } from './modules/positions/positions.module';
+import { MissionsModule } from './modules/missions/missions.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { ActionsModule } from './modules/actions/actions.module';
+import { FollowerActionsModule } from './modules/follower-actions/follower-actions.module';
+import { TradeHistoriesModule } from './modules/trade-histories/trade-histories.module';
+import { TaskExecutorModule } from './modules/task-executor/task-executor.module';
+import { PlansModule } from './modules/plans/plans.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { LogsModule } from './modules/loggers/logs.module';
+import { SecurityModule } from './modules/security/security.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -43,20 +38,10 @@ import { ApiController } from './api.controller';
       },
       sortSchema: true,
     }),
-    ClientsModule.register([
-      {
-        name: 'REDIS_SERVICE',
-        transport: Transport.REDIS,
-        options: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379'),
-        },
-      },
-    ]),
+    GlobalModule,
     ScheduleModule.forRoot(),
     WalletAccountsModule,
     AuthModule,
-    GlobalModule,
     FollowerModule,
     StrategyModule,
     ContractsModule,
@@ -70,8 +55,9 @@ import { ApiController } from './api.controller';
     TaskExecutorModule,
     PlansModule,
     LogsModule,
+    SecurityModule,
   ],
   controllers: [ApiController],
-  providers: [ApiService, ContractMonitorService, ApiResolver],
+  providers: [ApiService, ApiResolver],
 })
 export class ApiModule {}

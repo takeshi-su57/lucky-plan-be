@@ -1,0 +1,16 @@
+import { Module } from '@nestjs/common';
+
+import { TasksModule } from 'src/microservices/apiService/modules/tasks/tasks.module';
+import { MissionsModule } from 'src/microservices/apiService/modules/missions/missions.module';
+import { FollowerModule } from 'src/microservices/apiService/modules/follower/follower.module';
+import { ActionsModule } from 'src/microservices/apiService/modules/actions/actions.module';
+
+import { TaskExecutorService } from './task-executor.service';
+import { TaskExecutorResolver } from './task-executor.resolver';
+
+@Module({
+  imports: [TasksModule, MissionsModule, ActionsModule, FollowerModule],
+  providers: [TaskExecutorResolver, TaskExecutorService],
+  exports: [TaskExecutorService],
+})
+export class TaskExecutorModule {}

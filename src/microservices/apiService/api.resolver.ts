@@ -6,13 +6,13 @@ import {
   ObjectType,
   Args,
 } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { UserPermission } from '@prisma/client';
 
 import { ApiService } from './api.service';
-import { GqlAuthGuard } from '../../auth/gql-auth.guard';
-import { UseGuards } from '@nestjs/common';
-import { RolesGuard } from '../../auth/gql-role.guard';
-import { UserPermission } from '@prisma/client';
-import { Roles } from '../../auth/roles.decorator';
+import { GqlAuthGuard } from './modules/auth/gql-auth.guard';
+import { RolesGuard } from './modules/auth/gql-role.guard';
+import { Roles } from './modules/auth/roles.decorator';
 import { SecurityService } from '../../global/security.service';
 
 @ObjectType()
