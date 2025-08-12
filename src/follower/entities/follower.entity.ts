@@ -1,8 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import {
-  Mission,
-  MissionForwardDetails,
-} from 'src/missions/entities/mission.entity';
+import { MissionExtForwardDetails } from 'src/missions/entities/mission.entity';
 import { PnlSnapshot } from 'src/trade-histories/entities/trade-history.entity';
 
 @ObjectType()
@@ -28,8 +25,8 @@ export class FollowerTrade {
   @Field(() => Int)
   index: number;
 
-  @Field(() => MissionForwardDetails, { nullable: true })
-  mission: MissionForwardDetails | null;
+  @Field(() => MissionExtForwardDetails, { nullable: true })
+  mission: MissionExtForwardDetails | null;
 
   @Field()
   params: string;
