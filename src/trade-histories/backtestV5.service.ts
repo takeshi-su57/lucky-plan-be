@@ -46,11 +46,11 @@ export class BacktestV5Service {
 
     setTimeout(() => {
       this.initPairMap();
-    }, 60_000);
+    }, 300_000);
 
     setInterval(() => {
       this.initBlacklist();
-    }, 3600_000);
+    }, 7200_000);
   }
 
   private async initPairMap() {
