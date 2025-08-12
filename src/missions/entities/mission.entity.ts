@@ -7,7 +7,11 @@ import {
 } from '@nestjs/graphql';
 import { MissionStatus } from '@prisma/client';
 import { IsNotEmpty } from 'class-validator';
-import { BotBackwardDetails, BotDetails } from 'src/bots/entities/bot.entity';
+import {
+  Bot,
+  BotBackwardDetails,
+  BotDetails,
+} from 'src/bots/entities/bot.entity';
 
 import { Position } from 'src/positions/entities/position.entity';
 import { TaskForwardDetails } from 'src/tasks/entities/task.entity';
@@ -65,6 +69,12 @@ export class MissionBackwardDetails extends MissionDetails {
 export class MissionForwardDetails extends MissionDetails {
   @Field(() => [TaskForwardDetails])
   tasks: TaskForwardDetails[];
+}
+
+@ObjectType()
+export class MissionExtForwardDetails extends MissionForwardDetails {
+  @Field(() => Bot)
+  bot: Bot;
 }
 
 @InputType()
