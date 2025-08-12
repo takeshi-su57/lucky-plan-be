@@ -1,67 +1,68 @@
 import { Controller } from '@nestjs/common';
-import { EventPattern } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { LogSeverity } from '@prisma/client';
+import { EventPattern } from '@nestjs/microservices';
 
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS } from 'src/utils/constants';
 
-import { LogsService } from 'src/loggers/logs.service';
+import { LogsService } from 'src/global/logs.service';
 import { ApiService } from './api.service';
-import { SecurityService } from 'src/global/security.service';
-import { TradingVariableService } from 'src/global/trading-variable.service';
-import { TaskExecutorService } from 'src/task-executor/task-executor.service';
-import { ContractMonitorService } from './contract-monitor.service';
+import { GnsV10Service } from 'src/global/gnsV10.service';
+import { BotsService } from './modules/bots/bots.service';
+import { PlansService } from './modules/plans/plans.service';
+import { AutoPlansService } from './modules/plans/autoplans.service';
+import { getReadableError } from 'src/utils';
 
 @Controller()
 export class ApiController {
   constructor(
     private readonly apiService: ApiService,
     private readonly logger: LogsService,
-    private readonly securityService: SecurityService,
-    private readonly tradingVariableService: TradingVariableService,
-    private readonly contractMonitorService: ContractMonitorService,
-    private readonly taskExecutorService: TaskExecutorService,
+    private readonly autoPlansService: AutoPlansService,
+    private readonly gnsV10Service: GnsV10Service,
+    private readonly botsService: BotsService,
+    private readonly plansService: PlansService,
   ) {}
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
-  async executeCronForBotMonitor() {
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkAndUpdateAllBots() {
     if (
-      this.apiService.isPaused ||
-      this.apiService.stopForTradingVariableLoading ||
-      !this.securityService.isReady() ||
-      this.tradingVariableService.status !== 'ready'
+      this.gnsV10Service.status !== ServiceStatus.READY ||
+      this.apiService.isPaused
     ) {
       return;
     }
 
-    if (
-      this.contractMonitorService.status === 'ready' &&
-      this.taskExecutorService.status === 'ready'
-    ) {
-      await this.contractMonitorService.checkContractsForBots();
-      await this.taskExecutorService.performAvailableTasks();
-      await this.taskExecutorService.handleFailedTasks();
+    if (this.botsService.status === ServiceStatus.READY) {
+      await this.botsService.checkAndUpdateAllBots();
+    }
+
+    if (this.plansService.status === ServiceStatus.READY) {
+      await this.plansService.checkAndUpdateAllPlans();
     }
   }
 
-  @EventPattern(PATTERNS.Log)
-  log(data: { severity: string; summary: string; details: string }) {
-    this.logger.log({
-      severity: data.severity as LogSeverity,
-      summary: data.summary,
-      details: data.details,
-    });
-  }
+  @Cron(CronExpression.EVERY_3_HOURS)
+  async executeCronForAutoPlans() {
+    if (
+      this.apiService.isPaused ||
+      this.autoPlansService.status !== ServiceStatus.READY
+    ) {
+      return;
+    }
 
-  @EventPattern(PATTERNS.NativeLog)
-  nativeLog(data: { severity: string; summary: string; details: string }) {
-    this.logger.nativeLog({
-      severity: data.severity as LogSeverity,
-      summary: data.summary,
-      details: data.details,
-    });
+    try {
+      await this.gnsV10Service.loadTradingVariables();
+
+      await this.autoPlansService.createAutoPlans();
+    } catch (err) {
+      this.logger.nativeLog({
+        severity: 'Error',
+        summary: 'api.controller>executeCronForAutoPlans',
+        details: getReadableError(err),
+      });
+    }
   }
 
   @EventPattern(PATTERNS.ProcessStatus)

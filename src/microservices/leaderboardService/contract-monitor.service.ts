@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { Address, AbiEvent, decodeEventLog } from 'viem';
+import { Address, decodeEventLog } from 'viem';
 import { Contract } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi } from 'src/abi/GNSMultiCollatDiamond';
-import { ChainsService } from 'src/global/chains.service';
-import { eventParsers, eventToActionParser } from 'src/actions/eventParsers';
-
-import { BotsService } from '../../bots/bots.service';
-import { ContractsService } from '../../contracts/contracts.service';
-import { TradeHistoriesService } from '../../trade-histories/trade-histories.service';
+import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
+import {
+  eventParsers,
+  eventToActionParser,
+} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 import { getReadableError } from '../../utils';
-import { LogsService } from '../../loggers/logs.service';
 import { ServiceStatus } from 'src/types';
+
+import { ContractsService } from '../apiService/modules/contracts/contracts.service';
+import { TradeHistoriesService } from '../apiService/modules/trade-histories/trade-histories.service';
+import { LogsService } from '../../global/logs.service';
+import { Web3Service } from '../../global/web3.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -27,7 +29,7 @@ export class ContractMonitorService {
   static BATCH_SIZE = 4000n;
 
   constructor(
-    private chainsService: ChainsService,
+    private web3Service: Web3Service,
     private contractsService: ContractsService,
     private tradeHistoriesService: TradeHistoriesService,
     private readonly logger: LogsService,
@@ -43,9 +45,9 @@ export class ContractMonitorService {
 
     for (const contract of contracts) {
       // temporarily skip testnet contracts
-      if (contract.isTestnet) {
-        continue;
-      }
+      // if (contract.isTestnet) {
+      //   continue;
+      // }
 
       await this.checkContractForLeaderboard(contract);
     }
@@ -55,9 +57,9 @@ export class ContractMonitorService {
 
   async checkContractForLeaderboard(contract: Contract) {
     try {
-      const currentBlockNumber = await this.chainsService
-        .publicClient(contract.chainId)
-        .getBlockNumber();
+      const currentBlockNumber = await this.web3Service.getBlockNumber(
+        contract.chainId,
+      );
 
       let fromBlock = BigInt(contract.lastLeaderboardBlockNumber) + 1n;
 
@@ -69,9 +71,10 @@ export class ContractMonitorService {
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);
 
-        const block = await this.chainsService
-          .publicClient(contract.chainId)
-          .getBlock({ blockNumber: fromBlock });
+        const block = await this.web3Service.getBlock({
+          chainId: contract.chainId,
+          blockNumber: fromBlock,
+        });
 
         if (actionItems.length > 0) {
           await this.tradeHistoriesService.handleActionItems(
@@ -90,7 +93,7 @@ export class ContractMonitorService {
 
         await this.logger.log({
           severity: 'Info',
-          summary: 'contract-monitor>checkContractForLeaderboard',
+          summary: 'leaderboard>contract-monitor>checkContractForLeaderboard',
           details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         });
 
@@ -99,7 +102,7 @@ export class ContractMonitorService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: 'contract-monitor>checkContractForLeaderboard',
+        summary: 'leaderboard>contract-monitor>checkContractForLeaderboard',
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
     }
@@ -107,13 +110,12 @@ export class ContractMonitorService {
 
   async getLogs(fromBlock: bigint, toBlock: bigint, contract: Contract) {
     return (
-      await this.chainsService
-        .publicClient(contract.chainId)
-        .getLogs<AbiEvent>({
-          address: contract.address as Address,
-          fromBlock,
-          toBlock,
-        })
+      await this.web3Service.getLogs({
+        chainId: contract.chainId,
+        address: contract.address as Address,
+        fromBlock,
+        toBlock,
+      })
     )
       .filter(
         (log) =>
@@ -140,7 +142,7 @@ export class ContractMonitorService {
         } catch (err) {
           this.logger.nativeLog({
             severity: 'Error',
-            summary: 'contract-monitor.service>parseEventLog',
+            summary: 'leaderboard>contract-monitor.service>parseEventLog',
             details: getReadableError(err),
           });
         }
