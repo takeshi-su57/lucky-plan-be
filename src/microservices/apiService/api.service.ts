@@ -194,7 +194,8 @@ export class ApiService {
 
     await this.logger.nativeLog({
       severity: 'Info',
-      summary: 'trading variables reloaded',
+      summary: 'api.service>reloadTradingVariables',
+      details: 'trading variables reloaded',
     });
   }
 

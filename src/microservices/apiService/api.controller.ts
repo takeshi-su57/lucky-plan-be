@@ -46,7 +46,6 @@ export class ApiController {
   @Cron(CronExpression.EVERY_3_HOURS)
   async executeCronForAutoPlans() {
     if (
-      this.gnsV10Service.status !== ServiceStatus.READY ||
       this.apiService.isPaused ||
       this.autoPlansService.status !== ServiceStatus.READY
     ) {

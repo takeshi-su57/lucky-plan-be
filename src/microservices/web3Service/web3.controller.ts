@@ -25,6 +25,7 @@ import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
 
 import { Web3Service } from './web3.service';
 import { LogsService } from 'src/global/logs.service';
+import { delay } from 'src/utils';
 
 @Controller()
 export class Web3Controller implements OnApplicationBootstrap {
@@ -35,6 +36,8 @@ export class Web3Controller implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    await delay(60_000);
+
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.WEB3_SERVICE,
       status: ServiceStatus.READY,

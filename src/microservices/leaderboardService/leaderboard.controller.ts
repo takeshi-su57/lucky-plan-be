@@ -36,19 +36,14 @@ export class LeaderboardController implements OnApplicationBootstrap {
   private async reloadTradingVariables() {
     this.gnsV10Service.status = ServiceStatus.PAUSED;
 
-    const promise = new Promise((resolve) =>
-      setTimeout(() => {
-        resolve(true);
-      }, 20_000),
-    );
-
-    await promise;
+    await delay(20_000);
 
     await this.gnsV10Service.loadTradingVariables();
 
     await this.logger.nativeLog({
       severity: 'Info',
-      summary: 'trading variables reloaded',
+      summary: 'leaderboard.controller>reloadTradingVariables',
+      details: 'trading variables reloaded',
     });
   }
 
