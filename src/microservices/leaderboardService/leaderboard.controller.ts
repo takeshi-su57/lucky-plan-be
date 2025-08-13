@@ -9,7 +9,7 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 import { ContractMonitorService } from './contract-monitor.service';
 import { LogsService } from 'src/global/logs.service';
@@ -24,7 +24,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
   constructor(
     private contractMonitorService: ContractMonitorService,
     private pnlSnapshotService: PnlSnapshotsService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
@@ -37,11 +37,11 @@ export class LeaderboardController implements OnApplicationBootstrap {
   }
 
   private async reloadTradingVariables() {
-    this.gnsV10Service.status = ServiceStatus.PAUSED;
+    this.gnsService.status = ServiceStatus.PAUSED;
 
     await delay(20_000);
 
-    await this.gnsV10Service.loadTradingVariables();
+    await this.gnsService.loadTradingVariables();
 
     await this.logger.nativeLog({
       severity: 'Info',
@@ -83,7 +83,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkContractsForLeaderboard() {
     if (
-      this.gnsV10Service.status !== ServiceStatus.READY ||
+      this.gnsService.status !== ServiceStatus.READY ||
       this.isReceivedKillProcess ||
       this.contractMonitorService.status !== ServiceStatus.READY
     ) {

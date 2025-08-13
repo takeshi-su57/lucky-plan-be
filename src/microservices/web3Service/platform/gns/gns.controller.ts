@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 
-import { GnsV9Service } from './gnsV9.service';
+import { GnsService } from './gns.service';
 import { PATTERNS } from 'src/utils/constants';
 import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
 import {
@@ -18,18 +18,19 @@ import {
   GetTradesPayload,
   GetTradePayload,
   GetCollateralPricePayload,
-} from './types';
+  WithdrawPositivePnlPayload,
+} from './v10/types';
 
 @Controller()
-export class GnsV9Controller {
-  constructor(private readonly gnsV9Service: GnsV9Service) {}
+export class GnsController {
+  constructor(private readonly gnsService: GnsService) {}
 
   @MessagePattern(PATTERNS.Gns.OpenTrade)
   async openTrade(
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.openTrade(
+    return await this.gnsService.openTrade(
       bigIntSafeJsonParse<OpenTradePayload>(data),
     );
   }
@@ -39,7 +40,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.updateMaxClosingSlippageP(
+    return await this.gnsService.updateMaxClosingSlippageP(
       bigIntSafeJsonParse<UpdateMaxClosingSlippagePPayload>(data),
     );
   }
@@ -49,7 +50,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.closeTradeMarket(
+    return await this.gnsService.closeTradeMarket(
       bigIntSafeJsonParse<CloseTradeMarketPayload>(data),
     );
   }
@@ -59,7 +60,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.cancelOrderAfterTimeout(
+    return await this.gnsService.cancelOrderAfterTimeout(
       bigIntSafeJsonParse<CancelOrderAfterTimeoutPayload>(data),
     );
   }
@@ -69,7 +70,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.updateTp(
+    return await this.gnsService.updateTp(
       bigIntSafeJsonParse<UpdateTpPayload>(data),
     );
   }
@@ -79,7 +80,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.updateSl(
+    return await this.gnsService.updateSl(
       bigIntSafeJsonParse<UpdateSlPayload>(data),
     );
   }
@@ -89,7 +90,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.updateLeverage(
+    return await this.gnsService.updateLeverage(
       bigIntSafeJsonParse<UpdateLeveragePayload>(data),
     );
   }
@@ -99,7 +100,7 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.increasePositionSize(
+    return await this.gnsService.increasePositionSize(
       bigIntSafeJsonParse<IncreasePositionSizePayload>(data),
     );
   }
@@ -109,8 +110,18 @@ export class GnsV9Controller {
     @Payload()
     data: string,
   ) {
-    return await this.gnsV9Service.decreasePositionSize(
+    return await this.gnsService.decreasePositionSize(
       bigIntSafeJsonParse<DecreasePositionSizePayload>(data),
+    );
+  }
+
+  @MessagePattern(PATTERNS.Gns.V10.WithdrawPositivePnl)
+  async withdrawPositivePnl(
+    @Payload()
+    data: string,
+  ) {
+    return await this.gnsService.withdrawPositivePnl(
+      bigIntSafeJsonParse<WithdrawPositivePnlPayload>(data),
     );
   }
 
@@ -120,7 +131,7 @@ export class GnsV9Controller {
     data: string,
   ) {
     return bigIntSafeJsonStringify(
-      await this.gnsV9Service.getPendingOrders(
+      await this.gnsService.getPendingOrders(
         bigIntSafeJsonParse<GetPendingOrdersPayload>(data),
       ),
     );
@@ -132,7 +143,7 @@ export class GnsV9Controller {
     data: string,
   ) {
     return bigIntSafeJsonStringify(
-      await this.gnsV9Service.getTrades(
+      await this.gnsService.getTrades(
         bigIntSafeJsonParse<GetTradesPayload>(data),
       ),
     );
@@ -144,7 +155,7 @@ export class GnsV9Controller {
     data: string,
   ) {
     return bigIntSafeJsonStringify(
-      await this.gnsV9Service.getTrade(
+      await this.gnsService.getTrade(
         bigIntSafeJsonParse<GetTradePayload>(data),
       ),
     );
@@ -156,7 +167,7 @@ export class GnsV9Controller {
     contractId: number,
   ) {
     return bigIntSafeJsonStringify(
-      await this.gnsV9Service.getTradingVariable(contractId),
+      await this.gnsService.getTradingVariable(contractId),
     );
   }
 
@@ -166,7 +177,7 @@ export class GnsV9Controller {
     data: string,
   ) {
     return bigIntSafeJsonStringify(
-      await this.gnsV9Service.getCollateralPrice(
+      await this.gnsService.getCollateralPrice(
         bigIntSafeJsonParse<GetCollateralPricePayload>(data),
       ),
     );

@@ -32,7 +32,7 @@ import { LogsService } from 'src/global/logs.service';
 import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { Web3Service } from 'src/global/web3.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 @Injectable()
 export class FollowerService {
@@ -40,7 +40,7 @@ export class FollowerService {
     private prismaService: PrismaService,
     private contractService: ContractsService,
     private web3Service: Web3Service,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
     private securityService: SecurityService,
@@ -117,7 +117,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -249,7 +249,7 @@ export class FollowerService {
         return true;
       }
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -337,7 +337,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -453,7 +453,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -530,7 +530,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -637,7 +637,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const pendingOrders = await this.gnsV10Service.getPendingOrders({
+      const pendingOrders = await this.gnsService.getPendingOrders({
         contractId,
         priority: ChainPriority.LOW,
         args: {
@@ -678,7 +678,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const trades = await this.gnsV10Service.getTrades({
+      const trades = await this.gnsService.getTrades({
         contractId,
         priority: ChainPriority.LOW,
         args: {
@@ -813,11 +813,9 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const currentPrice = await this.gnsV10Service.getPairPrice(
-        input.pairIndex,
-      );
+      const currentPrice = await this.gnsService.getPairPrice(input.pairIndex);
 
-      tx = await this.gnsV10Service.closeTradeMarket({
+      tx = await this.gnsService.closeTradeMarket({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -924,7 +922,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.updateSl({
+      tx = await this.gnsService.updateSl({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1031,7 +1029,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.updateTp({
+      tx = await this.gnsService.updateTp({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1138,7 +1136,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.withdrawPositivePnl({
+      tx = await this.gnsService.withdrawPositivePnl({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1244,7 +1242,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.cancelOrderAfterTimeout({
+      tx = await this.gnsService.cancelOrderAfterTimeout({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1383,7 +1381,7 @@ export class FollowerService {
   ): Promise<FollowerConnection> {
     const contract = await this.contractService.findOne(contractId);
 
-    const collateralInfo = this.gnsV10Service.getCollateral(
+    const collateralInfo = this.gnsService.getCollateral(
       contractId,
       USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
     );

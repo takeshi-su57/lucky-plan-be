@@ -9,7 +9,7 @@ import { ChainsService } from './chains.service';
 import { Web3Controller } from './web3.controller';
 import { Web3Service } from './web3.service';
 
-import { GnsV10Module } from './platform/gns/v10/gnsV10.module';
+import { GnsModule } from './platform/gns/gns.module';
 
 @Global()
 @Module({
@@ -25,7 +25,7 @@ export class Web3ServiceGlobalModule {}
     GlobalModule,
     Web3ServiceGlobalModule,
     ContractsModule,
-    GnsV10Module,
+    GnsModule,
   ],
   controllers: [Web3Controller],
   providers: [Web3Service],

@@ -32,7 +32,7 @@ import {
 } from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 @Injectable()
 export class TradeHistoriesService {
@@ -40,7 +40,7 @@ export class TradeHistoriesService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
 
@@ -600,7 +600,7 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.collateralIndex,
             );
@@ -609,7 +609,7 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
+              pair: this.gnsService.getPairName(
                 contractId,
                 Number(args.pairIndex),
               ),
@@ -651,14 +651,14 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.collateralIndex,
             );
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
+              pair: this.gnsService.getPairName(
                 contractId,
                 Number(args.pairIndex),
               ),
@@ -700,14 +700,14 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.collateralIndex,
             );
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
+              pair: this.gnsService.getPairName(
                 contractId,
                 Number(args.pairIndex),
               ),
@@ -742,7 +742,7 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.t.collateralIndex,
             );
@@ -757,7 +757,7 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
+              pair: this.gnsService.getPairName(
                 contractId,
                 Number(args.t.pairIndex),
               ),
@@ -790,7 +790,7 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.t.collateralIndex,
             );
@@ -817,7 +817,7 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
+              pair: this.gnsService.getPairName(
                 contractId,
                 Number(args.t.pairIndex),
               ),
@@ -848,17 +848,14 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               contractId,
               args.collateralIndex,
             );
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsV10Service.getPairName(
-                contractId,
-                Number(args.index),
-              ),
+              pair: this.gnsService.getPairName(contractId, Number(args.index)),
               block: actionItem.blockNumber,
               address: actionItem.item.position.address.toLowerCase(),
               action: TradeActionType.TradePosPnlRealized,

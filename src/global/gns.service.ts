@@ -34,7 +34,7 @@ import {
 } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 
 @Injectable()
-export class GnsV10Service {
+export class GnsService {
   private tradingVariable: Record<number, TradingVariable> = {};
   public status: ServiceStatus;
 

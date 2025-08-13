@@ -29,7 +29,7 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
@@ -41,7 +41,7 @@ export class MissionsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private readonly logger: LogsService,
   ) {}
 
@@ -416,7 +416,7 @@ export class MissionsService {
           .actionParser(item.action);
         const { t, collateralPriceUsd } = event.args;
 
-        const pair = this.gnsV10Service.getPair(
+        const pair = this.gnsService.getPair(
           item.context.bot.followerContractId,
           t.pairIndex,
         );
@@ -425,7 +425,7 @@ export class MissionsService {
           return false;
         }
 
-        const collateral = this.gnsV10Service.getCollateral(
+        const collateral = this.gnsService.getCollateral(
           item.context.bot.leaderContractId,
           t.collateralIndex,
         );

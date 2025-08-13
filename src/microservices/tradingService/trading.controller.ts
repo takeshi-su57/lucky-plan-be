@@ -7,7 +7,7 @@ import { ServiceStatus } from 'src/types';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
 import { ContractMonitorService } from './contract-monitor.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
@@ -22,7 +22,7 @@ export class TradingController implements OnApplicationBootstrap {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly contractMonitorService: ContractMonitorService,
-    private readonly gnsV10Service: GnsV10Service,
+    private readonly gnsService: GnsService,
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
@@ -36,11 +36,11 @@ export class TradingController implements OnApplicationBootstrap {
   }
 
   private async reloadTradingVariables() {
-    this.gnsV10Service.status = ServiceStatus.PAUSED;
+    this.gnsService.status = ServiceStatus.PAUSED;
 
     await delay(20_000);
 
-    await this.gnsV10Service.loadTradingVariables();
+    await this.gnsService.loadTradingVariables();
 
     await this.logger.nativeLog({
       severity: 'Info',
@@ -86,7 +86,7 @@ export class TradingController implements OnApplicationBootstrap {
   async executeCronForBotMonitor() {
     if (
       this.isReceivedKillProcess ||
-      this.gnsV10Service.status !== ServiceStatus.READY ||
+      this.gnsService.status !== ServiceStatus.READY ||
       this.contractMonitorService.status !== ServiceStatus.READY ||
       this.taskExecutorService.status !== ServiceStatus.READY
     ) {
@@ -102,7 +102,7 @@ export class TradingController implements OnApplicationBootstrap {
   async checkAndUpdateAllBots() {
     if (
       this.isReceivedKillProcess ||
-      this.gnsV10Service.status !== ServiceStatus.READY
+      this.gnsService.status !== ServiceStatus.READY
     ) {
       return;
     }

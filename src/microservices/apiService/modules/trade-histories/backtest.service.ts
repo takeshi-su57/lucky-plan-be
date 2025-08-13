@@ -23,7 +23,7 @@ import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
 import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 const dailyPlans = 8;
@@ -38,7 +38,7 @@ export class BacktestService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private logger: LogsService,
   ) {
     // setTimeout(() => {
@@ -61,7 +61,7 @@ export class BacktestService {
     });
 
     for (const contract of contracts) {
-      this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
+      this.gnsService.getPairs(contract.id).forEach((pair) => {
         if (pair) {
           this.pairMap.set(
             `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
@@ -579,7 +579,7 @@ export class BacktestService {
     }
 
     const allPairs = isTestnet
-      ? await this.gnsV10Service.getTradePairs(isTestnet ? [4] : [0])
+      ? await this.gnsService.getTradePairs(isTestnet ? [4] : [0])
       : [];
 
     const pnlRecords: PnlSnapshot[] =
@@ -1020,7 +1020,7 @@ export class BacktestService {
     }
 
     const allPairs = isTestnet
-      ? await this.gnsV10Service.getTradePairs(isTestnet ? [4] : [0])
+      ? await this.gnsService.getTradePairs(isTestnet ? [4] : [0])
       : [];
 
     const pnlRecords: PnlSnapshot[] =

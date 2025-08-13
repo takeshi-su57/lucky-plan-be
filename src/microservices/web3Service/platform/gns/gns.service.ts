@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Address, zeroAddress } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 
-import { gnsMultiCollatDiamondAbi } from './abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { ChainsService } from 'src/microservices/web3Service/chains.service';
@@ -23,12 +23,12 @@ import {
   GetCollateralPricePayload,
   TradingVariable,
   WithdrawPositivePnlPayload,
-} from './types';
+} from './v10/types';
 import { LogsService } from 'src/global/logs.service';
 import { ChainPriority } from 'src/types';
 
 @Injectable()
-export class GnsV10Service {
+export class GnsService {
   constructor(
     private readonly contractsService: ContractsService,
     private readonly chainsService: ChainsService,
@@ -410,7 +410,7 @@ export class GnsV10Service {
   async getTradingVariable(contractId: number): Promise<TradingVariable> {
     this.logger.nativeLog({
       severity: 'Info',
-      summary: 'GnsV10Service>getTradingVariable',
+      summary: 'GnsService>getTradingVariable',
       details: `Started loading trading variable for contract: ${contractId}`,
     });
 

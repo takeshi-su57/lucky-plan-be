@@ -43,14 +43,14 @@ import { FollowerActionsService } from 'src/microservices/apiService/modules/fol
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 @Injectable()
 export class TasksService {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private followerActionsService: FollowerActionsService,
     private actionsService: ActionsService,
     private readonly logger: LogsService,
@@ -179,7 +179,7 @@ export class TasksService {
       .find((parser) => parser.eventName === openTask.action.name)!
       .actionParser(openTask.action);
 
-    const currentPrice = await this.gnsV10Service.getPairPrice(
+    const currentPrice = await this.gnsService.getPairPrice(
       openEvent.args.t.pairIndex,
     );
 
@@ -264,7 +264,7 @@ export class TasksService {
       .find((parser) => parser.eventName === task.action.name)!
       .actionParser(task.action);
 
-    const currentPrice = await this.gnsV10Service.getPairPrice(
+    const currentPrice = await this.gnsService.getPairPrice(
       openEvent.args.t.pairIndex,
     );
 
@@ -740,9 +740,7 @@ export class TasksService {
     }
 
     for (const item of manualCloseActions) {
-      const currentPrice = await this.gnsV10Service.getPairPrice(
-        item.pairIndex,
-      );
+      const currentPrice = await this.gnsService.getPairPrice(item.pairIndex);
 
       const newAction = await this.actionsService.createCloseMissionAction(
         item.targetPositionId,

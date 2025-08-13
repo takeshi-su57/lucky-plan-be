@@ -13,7 +13,7 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
 import { BacktestService } from './modules/trade-histories/backtest.service';
 
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 dayjs.extend(utc);
@@ -31,7 +31,7 @@ export class ApiService {
   private serviceStatus: Record<string, ServiceStatus> = {};
 
   constructor(
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private backtestService: BacktestService,
@@ -186,11 +186,11 @@ export class ApiService {
   }
 
   async reloadTradingVariables() {
-    this.gnsV10Service.status = ServiceStatus.PAUSED;
+    this.gnsService.status = ServiceStatus.PAUSED;
 
     await delay(20_000);
 
-    await this.gnsV10Service.loadTradingVariables();
+    await this.gnsService.loadTradingVariables();
 
     await this.logger.nativeLog({
       severity: 'Info',
