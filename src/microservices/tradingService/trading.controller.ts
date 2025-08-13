@@ -12,6 +12,7 @@ import { BotsService } from 'src/microservices/apiService/modules/bots/bots.serv
 import { ContractMonitorService } from './contract-monitor.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
 import { LogsService } from 'src/global/logs.service';
+import { PlansService } from '../apiService/modules/plans/plans.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
@@ -23,6 +24,7 @@ export class TradingController implements OnApplicationBootstrap {
     private readonly contractMonitorService: ContractMonitorService,
     private readonly gnsV10Service: GnsV10Service,
     private readonly botsService: BotsService,
+    private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
     private readonly logger: LogsService,
   ) {
@@ -94,6 +96,24 @@ export class TradingController implements OnApplicationBootstrap {
     await this.contractMonitorService.checkContractsForBots();
     await this.taskExecutorService.performAvailableTasks();
     await this.taskExecutorService.handleFailedTasks();
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkAndUpdateAllBots() {
+    if (
+      this.isReceivedKillProcess ||
+      this.gnsV10Service.status !== ServiceStatus.READY
+    ) {
+      return;
+    }
+
+    if (this.botsService.status === ServiceStatus.READY) {
+      await this.botsService.checkAndUpdateAllBots();
+    }
+
+    if (this.plansService.status === ServiceStatus.READY) {
+      await this.plansService.checkAndUpdateAllPlans();
+    }
   }
 
   @Cron(CronExpression.EVERY_3_HOURS)

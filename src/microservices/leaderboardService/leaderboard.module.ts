@@ -8,6 +8,7 @@ import { ContractsModule } from '../apiService/modules/contracts/contracts.modul
 import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trade-histories.module';
 
 import { ContractMonitorService } from './contract-monitor.service';
+import { PlansModule } from '../apiService/modules/plans/plans.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ContractMonitorService } from './contract-monitor.service';
     GlobalModule,
     ContractsModule,
     TradeHistoriesModule,
+    PlansModule,
   ],
   controllers: [LeaderboardController],
   providers: [ContractMonitorService],

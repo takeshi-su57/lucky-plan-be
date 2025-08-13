@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MissionStatus, TaskStatus } from '@prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
-import { PubSub } from 'graphql-subscriptions';
 
 import {
   missionEventNames,
@@ -25,7 +24,6 @@ import {
   CloseMissionAction,
   PATTERNS,
   SERVICE_NAMES,
-  SUBSCRIPTION_TOKEN,
 } from 'src/utils/constants';
 
 import {

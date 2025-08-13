@@ -13,16 +13,19 @@ import { GnsV10Service } from 'src/global/gnsV10.service';
 
 import { ContractMonitorService } from './contract-monitor.service';
 import { LogsService } from 'src/global/logs.service';
+import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
 
 @Controller()
 export class LeaderboardController implements OnApplicationBootstrap {
   private isReceivedKillProcess = false;
   private isAppBootstrapped = false;
+  private count = 0;
 
   constructor(
     private contractMonitorService: ContractMonitorService,
     private pnlSnapshotService: PnlSnapshotsService,
     private gnsV10Service: GnsV10Service,
+    private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {
@@ -53,7 +56,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
     this.logger.nativeLog({
       severity: 'Info',
-      summary: 'web3 service killProcess',
+      summary: 'leaderboard service killProcess',
       details: 'received kill process event',
     });
 
@@ -105,6 +108,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
+
+      if (this.count % 3 === 0) {
+        await this.autoPlansService.createAutoPlans();
+      }
+
+      this.count++;
     } catch (err) {
       this.logger.nativeLog({
         severity: 'Error',

@@ -185,7 +185,7 @@ export class ApiService {
     return this.isPaused;
   }
 
-  private async reloadTradingVariables() {
+  async reloadTradingVariables() {
     this.gnsV10Service.status = ServiceStatus.PAUSED;
 
     await delay(20_000);
