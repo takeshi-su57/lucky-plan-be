@@ -12,7 +12,12 @@ import {
   CreateBotInput,
 } from './dto/bot.input';
 
-import { ActionContext, BotContext, ServiceStatus } from 'src/types';
+import {
+  ActionContext,
+  BotContext,
+  ChainPriority,
+  ServiceStatus,
+} from 'src/types';
 import {
   BotConnection,
   BotDetails,
@@ -205,6 +210,7 @@ export class BotsService {
 
       const ethBalance = await this.web3Service.nativeBalance({
         chainId: followerContract.chainId,
+        priority: ChainPriority.LOW,
         address: follower.address as Address,
       });
 
@@ -496,6 +502,7 @@ export class BotsService {
       erc20ContractAddress: collateralInfo.collateral,
       address: follower.address as Address,
       spender: followerContract.address as Address,
+      priority: ChainPriority.LOW,
     });
 
     if (allowance < 1000000n) {

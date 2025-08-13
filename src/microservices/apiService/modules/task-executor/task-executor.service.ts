@@ -31,7 +31,7 @@ import {
   getPositionDecreaseParams,
   getPositionIncreaseParams,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
-import { CloseMissionActionArgs } from 'src/types';
+import { ChainPriority, CloseMissionActionArgs } from 'src/types';
 import { TradeType } from 'src/microservices/web3Service/platform/gns/v10/types';
 
 import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
@@ -132,6 +132,7 @@ export class TaskExecutorService {
           if (!args.isIncrease) {
             const followerTradeData = await this.gnsV10Service.getTrade({
               contractId: followerContract.id,
+              priority: ChainPriority.HIGH,
               args: {
                 address: follower.address as Address,
                 index: achievePosition!.index,
@@ -191,6 +192,7 @@ export class TaskExecutorService {
 
           const followerTradeData = await this.gnsV10Service.getTrade({
             contractId: followerContract.id,
+            priority: ChainPriority.HIGH,
             args: {
               address: follower.address as Address,
               index: achievePosition!.index,
@@ -288,6 +290,7 @@ export class TaskExecutorService {
 
           const followerTradeData = await this.gnsV10Service.getTrade({
             contractId: followerContract.id,
+            priority: ChainPriority.HIGH,
             args: {
               address: follower.address as Address,
               index: achievePosition!.index,
@@ -321,6 +324,7 @@ export class TaskExecutorService {
             const transaction =
               await this.web3Service.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
+                priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
                 confirmations: 1,
               });
@@ -375,6 +379,7 @@ export class TaskExecutorService {
             const transaction =
               await this.web3Service.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
+                priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
                 confirmations: 1,
               });
@@ -441,6 +446,7 @@ export class TaskExecutorService {
             );
             const usdcPrice = await this.gnsV10Service.getCollateralPrice({
               contractId: followerContract.id,
+              priority: ChainPriority.HIGH,
               args: {
                 collateralIndex:
                   USDCCollateralIndex[
@@ -539,6 +545,7 @@ export class TaskExecutorService {
                 const transaction =
                   await this.web3Service.waitForTransactionReceipt({
                     hash: tx as `0x${string}`,
+                    priority: ChainPriority.HIGH,
                     chainId: followerContract.chainId,
                     confirmations: 1,
                   });
@@ -589,6 +596,7 @@ export class TaskExecutorService {
 
         const transaction = await this.web3Service.waitForTransactionReceipt({
           hash: tx as `0x${string}`,
+          priority: ChainPriority.HIGH,
           chainId: followerContract.chainId,
           confirmations: 1,
         });
@@ -642,6 +650,7 @@ export class TaskExecutorService {
 
     const transaction = await this.web3Service.waitForTransactionReceipt({
       hash: tx,
+      priority: ChainPriority.HIGH,
       chainId: bot.followerContract.chainId,
       confirmations: 1,
     });

@@ -46,3 +46,9 @@ export type EncryptedData = {
   ivHex: string;
   encrypted: string;
 };
+
+export enum ChainPriority {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}

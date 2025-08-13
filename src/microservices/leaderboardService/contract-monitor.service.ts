@@ -8,7 +8,7 @@ import {
   eventToActionParser,
 } from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
 import { getReadableError } from '../../utils';
-import { ServiceStatus } from 'src/types';
+import { ChainPriority, ServiceStatus } from 'src/types';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { TradeHistoriesService } from '../apiService/modules/trade-histories/trade-histories.service';
@@ -73,6 +73,7 @@ export class ContractMonitorService {
 
         const block = await this.web3Service.getBlock({
           chainId: contract.chainId,
+          priority: ChainPriority.HIGH,
           blockNumber: fromBlock,
         });
 
@@ -112,6 +113,7 @@ export class ContractMonitorService {
     return (
       await this.web3Service.getLogs({
         chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
         address: contract.address as Address,
         fromBlock,
         toBlock,

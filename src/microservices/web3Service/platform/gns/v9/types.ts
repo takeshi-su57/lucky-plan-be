@@ -10,6 +10,7 @@ import { PositionSizeIncreaseExecutedEvent } from './eventParsers/position-size-
 import { MarketOrderInitiatedEvent } from './eventParsers/market-order-initiated.parser';
 import { MarketOpenCanceledEvent } from './eventParsers/market-open-canceled';
 import { MarketCloseCanceledEvent } from './eventParsers/market-close-canceled';
+import { ChainPriority } from 'src/types';
 
 export enum TradeType {
   TRADE,
@@ -216,6 +217,7 @@ export type DecreasePositionSizePayload = {
 
 export type GetPendingOrdersPayload = {
   contractId: number;
+  priority: ChainPriority;
   args: {
     address: Address;
   };
@@ -228,6 +230,7 @@ export type GetPendingOrdersReturnType = ReadContractReturnType<
 
 export type GetTradesPayload = {
   contractId: number;
+  priority: ChainPriority;
   args: {
     address: Address;
   };
@@ -240,6 +243,7 @@ export type GetTradesReturnType = ReadContractReturnType<
 
 export type GetTradePayload = {
   contractId: number;
+  priority: ChainPriority;
   args: {
     address: Address;
     index: number;
@@ -253,6 +257,7 @@ export type GetTradeReturnType = ReadContractReturnType<
 
 export type GetCollateralPricePayload = {
   contractId: number;
+  priority: ChainPriority;
   args: {
     collateralIndex: number;
   };

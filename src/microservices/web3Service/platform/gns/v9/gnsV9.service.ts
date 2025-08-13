@@ -23,6 +23,7 @@ import {
   GetCollateralPricePayload,
   TradingVariable,
 } from './types';
+import { ChainPriority } from 'src/types';
 
 @Injectable()
 export class GnsV9Service {
@@ -40,6 +41,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -70,6 +72,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -100,6 +103,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -130,6 +134,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -160,6 +165,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -190,6 +196,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -220,6 +227,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -250,6 +258,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -286,6 +295,7 @@ export class GnsV9Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -317,6 +327,7 @@ export class GnsV9Service {
 
     return await this.chainsService.readWithSemaphore(
       contract.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,
@@ -333,6 +344,7 @@ export class GnsV9Service {
 
     return await this.chainsService.readWithSemaphore(
       contract.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,
@@ -349,6 +361,7 @@ export class GnsV9Service {
 
     return await this.chainsService.readWithSemaphore(
       contract.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,
@@ -365,6 +378,7 @@ export class GnsV9Service {
 
     const refData = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.multicall({
           contracts: [
@@ -391,6 +405,7 @@ export class GnsV9Service {
 
     const pairsData = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.multicall({
           contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
@@ -413,6 +428,7 @@ export class GnsV9Service {
 
     const depthData = await this.chainsService.readWithSemaphore(
       contract.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,
@@ -452,6 +468,7 @@ export class GnsV9Service {
 
     return await this.chainsService.readWithSemaphore(
       contract.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,

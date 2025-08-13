@@ -24,7 +24,7 @@ import {
   WithdrawPositivePnlInput,
 } from './dto/follower.input';
 import { getReadableError } from 'src/utils';
-import { EncryptedData } from 'src/types';
+import { ChainPriority, EncryptedData } from 'src/types';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
@@ -167,6 +167,7 @@ export class FollowerService {
           chainId: contract.chainId,
           hash: tx as `0x${string}`,
           confirmations: 6,
+          priority: ChainPriority.LOW,
         });
 
         return transaction.status === 'success';
@@ -277,6 +278,7 @@ export class FollowerService {
         case 'eth': {
           const gas = await this.web3Service.estimateGas({
             chainId: contract.chainId,
+            priority: ChainPriority.LOW,
             accountAddress: follower.address as Address,
             toAddress: masterFollower.address as Address,
             amount,
@@ -307,6 +309,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 6,
         });
@@ -343,6 +346,7 @@ export class FollowerService {
 
       const usdcBalance = await this.web3Service.erc20Balance({
         chainId: contract.chainId,
+        priority: ChainPriority.LOW,
         erc20ContractAddress: collateralInfo.collateral,
         address: address as Address,
       });
@@ -379,6 +383,7 @@ export class FollowerService {
 
       const ethBalance = await this.web3Service.nativeBalance({
         chainId: contract.chainId,
+        priority: ChainPriority.LOW,
         address: address as Address,
       });
 
@@ -496,6 +501,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 6,
         });
@@ -633,6 +639,7 @@ export class FollowerService {
 
       const pendingOrders = await this.gnsV10Service.getPendingOrders({
         contractId,
+        priority: ChainPriority.LOW,
         args: {
           address: address as Address,
         },
@@ -673,6 +680,7 @@ export class FollowerService {
 
       const trades = await this.gnsV10Service.getTrades({
         contractId,
+        priority: ChainPriority.LOW,
         args: {
           address: address as Address,
         },
@@ -822,6 +830,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -928,6 +937,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1034,6 +1044,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1140,6 +1151,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1244,6 +1256,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1404,6 +1417,7 @@ export class FollowerService {
           entity.accountIndex === 1
             ? await this.web3Service.erc20Balance({
                 chainId: contract.chainId,
+                priority: ChainPriority.LOW,
                 erc20ContractAddress: collateralInfo.collateral,
                 address: entity.address as Address,
               })
@@ -1415,6 +1429,7 @@ export class FollowerService {
           entity.accountIndex === 1
             ? await this.web3Service.nativeBalance({
                 chainId: contract.chainId,
+                priority: ChainPriority.LOW,
                 address: entity.address as Address,
               })
             : 0n;

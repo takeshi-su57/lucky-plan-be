@@ -20,6 +20,8 @@ import {
   NativeBalancePayload,
   GetBlockPayload,
   GetLogsPayload,
+  EstimateFeesPerGasPayload,
+  GetBlockNumberPayload,
 } from './types';
 import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
 
@@ -129,16 +131,20 @@ export class Web3Controller implements OnApplicationBootstrap {
   }
 
   @MessagePattern(PATTERNS.Web3.EstimateFeesPerGas)
-  async estimateFeesPerGas(@Payload() chainId: number) {
+  async estimateFeesPerGas(@Payload() payload: string) {
     return bigIntSafeJsonStringify(
-      await this.web3Service.estimateFeesPerGas(chainId),
+      await this.web3Service.estimateFeesPerGas(
+        bigIntSafeJsonParse<EstimateFeesPerGasPayload>(payload),
+      ),
     );
   }
 
   @MessagePattern(PATTERNS.Web3.GetBlockNumber)
-  async getBlockNumber(@Payload() chainId: number) {
+  async getBlockNumber(@Payload() payload: string) {
     return bigIntSafeJsonStringify(
-      await this.web3Service.getBlockNumber(chainId),
+      await this.web3Service.getBlockNumber(
+        bigIntSafeJsonParse<GetBlockNumberPayload>(payload),
+      ),
     );
   }
 

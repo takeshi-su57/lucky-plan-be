@@ -12,7 +12,7 @@ import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { getReadableError } from '../../utils';
 import { LogsService } from '../../global/logs.service';
-import { ServiceStatus } from 'src/types';
+import { ChainPriority, ServiceStatus } from 'src/types';
 import { Web3Service } from '../../global/web3.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
@@ -101,6 +101,7 @@ export class ContractMonitorService {
     return (
       await this.web3Service.getLogs({
         chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
         address: contract.address as Address,
         fromBlock,
         toBlock,
