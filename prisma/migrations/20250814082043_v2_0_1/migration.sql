@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Contract" ALTER COLUMN "toBlock" DROP NOT NULL,
+ALTER COLUMN "toBlock" DROP DEFAULT;

@@ -19,14 +19,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         key: 'password',
         initialValue: 'init',
       },
-      mnemonic: {
-        key: 'mnemonic',
-        initialValue: 'init',
-      },
-      availableChainIds: {
-        key: 'availableChainIds',
-        initialValue: 'init',
-      },
     };
   }
 

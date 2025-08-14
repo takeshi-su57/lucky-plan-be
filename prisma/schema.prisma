@@ -48,6 +48,15 @@ model Strategy {
   bots Bot[]
 }
 
+enum Platform {
+  GNS
+}
+
+enum Version {
+  V9
+  V10
+}
+
 enum ContractStatus {
   Live
   Dead
@@ -55,10 +64,14 @@ enum ContractStatus {
 
 model Contract {
   id                         Int            @id @default(autoincrement())
+  platform                   Platform       @default(GNS)
+  version                    Version        @default(V9)
   chainId                    Int
   address                    String
   description                String
   isTestnet                  Boolean        @default(false)
+  fromBlock                  Int            @default(0)
+  toBlock                    Int?
   lastBlockNumber            Int
   lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
@@ -68,7 +81,59 @@ model Contract {
   followerBots Bot[]      @relation("followerBots")
   positions    Position[]
 
-  @@unique([chainId, address])
+  @@unique([chainId, address, version, platform])
+}
+
+model EventLog {
+  id         Int      @id @default(autoincrement())
+  contractId Int
+  jsonLog    String
+  block      Int
+  logIndex   Int
+  date       DateTime
+
+  @@unique([contractId, block, logIndex])
+}
+
+model PerpTradingEventLog {
+  id         Int      @id @default(autoincrement())
+  contractId Int
+  jsonLog    String
+  usdPnl     Float
+  block      Int
+  logIndex   Int
+  date       DateTime
+
+  @@unique([contractId, block, logIndex])
+}
+
+enum PnlSnapshotKind {
+  DAY
+  WEEK
+  MONTH
+  THREE_MONTH
+  ALL_TIME
+}
+
+model PnlSnapshotV2 {
+  id         Int             @id @default(autoincrement())
+  platform   Platform
+  version    Version
+  contractId Int
+  address    String
+  dateStr    String // YYYY-MM-DD
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
+
+  @@unique([address, contractId, dateStr, kind])
+  @@index([accUSDPnl(sort: Desc)])
+  @@index([platform])
+}
+
+model PnlSnapshotV2InitializedFlag {
+  id      Int     @id @default(autoincrement())
+  dateStr String  @unique // YYYY-MM-DD
+  isInit  Boolean @default(false)
 }
 
 enum TradeActionType {
@@ -108,14 +173,6 @@ model TradeHistory {
   meta               String?
 
   @@index([address, contractId, block(sort: Asc)])
-}
-
-enum PnlSnapshotKind {
-  DAY
-  WEEK
-  MONTH
-  THREE_MONTH
-  ALL_TIME
 }
 
 model PnlSnapshot {
