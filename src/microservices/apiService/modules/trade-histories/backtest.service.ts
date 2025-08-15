@@ -458,6 +458,14 @@ export class BacktestService {
         },
       });
 
+    const testContracts = await this.prismaService.contract.findMany({
+      where: {
+        isTestnet: true,
+      },
+    });
+
+    const testContractIds = testContracts.map((item) => item.id);
+
     const CHUNK = 100;
 
     const nodes: PnlSnapshotDevDetails[] = [];
@@ -479,7 +487,7 @@ export class BacktestService {
                 ? { contractId: item.contractId }
                 : {
                     contractId: {
-                      not: 4,
+                      notIn: testContractIds,
                     },
                   }),
             })),

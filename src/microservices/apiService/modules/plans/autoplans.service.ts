@@ -387,6 +387,14 @@ export class AutoPlansService {
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
 
+    const testContracts = await this.prismaService.contract.findMany({
+      where: {
+        isTestnet: true,
+      },
+    });
+
+    const testContractIds = testContracts.map((item) => item.id);
+
     pnlRecords.forEach((record) => {
       // if (record.contractId === 0) {
       //   return;
@@ -420,7 +428,7 @@ export class AutoPlansService {
               address: item.address,
               ...(item.contractId !== 0
                 ? { contractId: item.contractId }
-                : { contractId: { not: 4 } }),
+                : { contractId: { notIn: testContractIds } }),
             })),
         ],
       },
@@ -504,9 +512,6 @@ export class AutoPlansService {
     const contracts = await this.prismaService.contract.findMany({
       where: {
         isTestnet: false,
-        id: {
-          not: 4,
-        },
       },
     });
 
@@ -852,9 +857,6 @@ export class AutoPlansService {
       const contracts = await this.prismaService.contract.findMany({
         where: {
           isTestnet: false,
-          id: {
-            not: 4,
-          },
         },
       });
 

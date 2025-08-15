@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 
 import { PrismaService } from 'src/global/prisma.service';
 
@@ -6,10 +7,15 @@ import {
   CreateContractInput,
   ChangeContractStatusInput,
 } from './dto/contract.input';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { ContractStatus } from '@prisma/client';
 
 @Injectable()
 export class ContractsService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
+  ) {}
 
   async create(input: CreateContractInput) {
     return await this.prismaService.contract.create({
@@ -64,5 +70,45 @@ export class ContractsService {
     }
 
     return contract;
+  }
+
+  async getAdaptionStatus() {
+    return await new Promise<string>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.GetAdaptionStatus, {})
+        .subscribe({
+          next: (data) => resolve(JSON.stringify(data)),
+          error: (err) => reject(err),
+        });
+    });
+  }
+
+  async startAdaption(contractId: number, shouldRestart: boolean) {
+    return await new Promise<boolean>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.StartAdaption, { contractId, shouldRestart })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
+  }
+
+  async liveContract(contractId: number) {
+    return await this.prismaService.contract.update({
+      where: { id: contractId },
+      data: {
+        status: ContractStatus.Live,
+      },
+    });
+  }
+
+  async disableContract(contractId: number) {
+    return await this.prismaService.contract.update({
+      where: { id: contractId },
+      data: {
+        status: ContractStatus.Dead,
+      },
+    });
   }
 }
