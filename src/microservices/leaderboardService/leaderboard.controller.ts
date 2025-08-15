@@ -5,6 +5,7 @@ import {
   MessagePattern,
 } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Platform } from '@prisma/client';
 import * as dayjs from 'dayjs';
 
 import { ServiceStatus } from 'src/types';
@@ -104,10 +105,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
   @MessagePattern(PATTERNS.Leaderboard.BuildPnlSnapshotV2)
   async buildPnlSnapshotV2(payload: {
+    platform: Platform;
     dateStr: string;
     isForceBuild: boolean;
   }) {
     return this.pnlSnapshotV2Service.buildSnapshots(
+      payload.platform,
       payload.dateStr,
       payload.isForceBuild,
     );
@@ -115,10 +118,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
   @MessagePattern(PATTERNS.Leaderboard.DynamicSnapshotV2Build)
   async dynamicSnapshotV2Build(payload: {
+    platform: Platform;
     dateStr: string;
     isForceBuild: boolean;
   }) {
     return this.pnlSnapshotV2Service.buildSnapshots(
+      payload.platform,
       payload.dateStr,
       payload.isForceBuild,
     );
@@ -126,10 +131,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
   @MessagePattern(PATTERNS.Leaderboard.InitializePnlSnapshotV2)
   async initializePnlSnapshotV2(payload: {
+    platform: Platform;
     beginingDate: Date;
     isForceBuild: boolean;
   }) {
     return this.pnlSnapshotV2Service.initializePnlSnapshot(
+      payload.platform,
       payload.beginingDate,
       payload.isForceBuild,
     );

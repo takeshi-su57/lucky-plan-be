@@ -77,6 +77,9 @@ export class PnlSnapshotV2InitializedFlag {
   @Field(() => Int)
   id: number;
 
+  @Field(() => Platform)
+  platform: Platform;
+
   @Field(() => String)
   dateStr: string;
 

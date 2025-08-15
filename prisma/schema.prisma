@@ -131,9 +131,12 @@ model PnlSnapshotV2 {
 }
 
 model PnlSnapshotV2InitializedFlag {
-  id      Int     @id @default(autoincrement())
-  dateStr String  @unique // YYYY-MM-DD
-  isInit  Boolean @default(false)
+  id       Int      @id @default(autoincrement())
+  platform Platform
+  dateStr  String // YYYY-MM-DD
+  isInit   Boolean  @default(false)
+
+  @@unique([platform, dateStr])
 }
 
 enum TradeActionType {

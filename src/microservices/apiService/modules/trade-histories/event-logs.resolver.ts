@@ -29,6 +29,7 @@ export class EventLogsResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async buildPnlSnapshotsV2(
+    @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
@@ -36,6 +37,7 @@ export class EventLogsResolver {
       (resolve, reject) => {
         this.redisClient
           .send(PATTERNS.Leaderboard.BuildPnlSnapshotV2, {
+            platform,
             dateStr,
             isForceBuild,
           })
@@ -51,12 +53,14 @@ export class EventLogsResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async dynamicSnapshotBuildV2(
+    @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
     return await new Promise<PnlSnapshotV2InitializedFlag>(
       (resolve, reject) => {
         this.redisClient
           .send(PATTERNS.Leaderboard.DynamicSnapshotV2Build, {
+            platform,
             dateStr,
           })
           .subscribe({
@@ -71,6 +75,7 @@ export class EventLogsResolver {
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async initializePnlSnapshotV2(
+    @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
@@ -78,6 +83,7 @@ export class EventLogsResolver {
       (resolve, reject) => {
         this.redisClient
           .send(PATTERNS.Leaderboard.InitializePnlSnapshotV2, {
+            platform,
             beginingDate,
             isForceBuild,
           })
@@ -91,14 +97,22 @@ export class EventLogsResolver {
 
   @Query(() => PnlSnapshotV2InitializedFlag, { nullable: true })
   isPnlSnapshotV2Initialized(
+    @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return this.pnlSnapshotsV2Service.isPnlSnapshotInitialized(dateStr);
+    return this.pnlSnapshotsV2Service.isPnlSnapshotInitialized(
+      platform,
+      dateStr,
+    );
   }
 
   @Query(() => [PnlSnapshotV2InitializedFlag])
-  getPnlSnapshotV2InitializedFlag() {
-    return this.pnlSnapshotsV2Service.getAllPnlSnapshotInitializedFlag();
+  getPnlSnapshotV2InitializedFlag(
+    @Args('platform', { type: () => Platform }) platform: Platform,
+  ) {
+    return this.pnlSnapshotsV2Service.getAllPnlSnapshotInitializedFlag(
+      platform,
+    );
   }
 
   @Query(() => [PerpTradingEventLog])

@@ -162,10 +162,11 @@ export class PnlSnapshotsV2Service {
     };
   }
 
-  private async removeNegativePnlSnapshot(dateStr: string) {
+  private async removeNegativePnlSnapshot(platform: Platform, dateStr: string) {
     const { count } = await this.prismaService.pnlSnapshotV2.deleteMany({
       where: {
         accUSDPnl: { lte: 0 },
+        platform,
         dateStr,
       },
     });
@@ -177,14 +178,17 @@ export class PnlSnapshotsV2Service {
     });
   }
 
-  async dynamicSnapshotBuild(dateStr: string) {
+  async dynamicSnapshotBuild(platform: Platform, dateStr: string) {
     this.status = ServiceStatus.PROCESS;
 
     const BATCH_SIZE = 1000;
     const lastDayStr = dayjs(dateStr).subtract(1, 'day').format('YYYY-MM-DD');
 
     try {
-      const isInitialized = await this.isPnlSnapshotInitialized(lastDayStr);
+      const isInitialized = await this.isPnlSnapshotInitialized(
+        platform,
+        lastDayStr,
+      );
 
       if (!isInitialized?.isInit) {
         throw new Error('Pnl snapshot is not initialized');
@@ -193,7 +197,12 @@ export class PnlSnapshotsV2Service {
       const lowerBound = dayjs(dateStr).startOf('day').toDate().getTime();
       const upperBound = dayjs(dateStr).endOf('day').toDate().getTime();
 
-      await this.prismaService.pnlSnapshotV2.deleteMany({ where: { dateStr } });
+      await this.prismaService.pnlSnapshotV2.deleteMany({
+        where: {
+          platform,
+          dateStr,
+        },
+      });
 
       const testContractIdsMap = new Map<number, boolean>();
 
@@ -222,12 +231,14 @@ export class PnlSnapshotsV2Service {
               },
               where: {
                 dateStr: lastDayStr,
+                platform,
               },
             })
           : await this.prismaService.pnlSnapshotV2.findMany({
               take: BATCH_SIZE,
               where: {
                 dateStr: lastDayStr,
+                platform,
               },
             });
 
@@ -267,6 +278,7 @@ export class PnlSnapshotsV2Service {
                   id: cursorId,
                 },
                 where: {
+                  platform,
                   date: {
                     gte: new Date(pastLowerBound),
                     lte: new Date(pastUpperBound),
@@ -291,6 +303,7 @@ export class PnlSnapshotsV2Service {
                     gte: new Date(pastLowerBound),
                     lte: new Date(pastUpperBound),
                   },
+                  platform,
                   contractId: {
                     notIn: testContractIds,
                   },
@@ -395,6 +408,7 @@ export class PnlSnapshotsV2Service {
                 id: currentCursorId,
               },
               where: {
+                platform,
                 date: {
                   gte: new Date(lowerBound),
                   lte: new Date(upperBound),
@@ -415,6 +429,7 @@ export class PnlSnapshotsV2Service {
           : await this.prismaService.perpTradingEventLog.findMany({
               take: BATCH_SIZE,
               where: {
+                platform,
                 date: {
                   gte: new Date(lowerBound),
                   lte: new Date(upperBound),
@@ -524,12 +539,16 @@ export class PnlSnapshotsV2Service {
       const pnlSnapshotInitializedFlag =
         await this.prismaService.pnlSnapshotV2InitializedFlag.upsert({
           where: {
-            dateStr,
+            platform_dateStr: {
+              platform,
+              dateStr,
+            },
           },
           update: {
             isInit: true,
           },
           create: {
+            platform,
             dateStr,
             isInit: true,
           },
@@ -550,12 +569,19 @@ export class PnlSnapshotsV2Service {
     }
   }
 
-  async buildSnapshots(dateStr: string, isForceBuild: boolean) {
+  async buildSnapshots(
+    platform: Platform,
+    dateStr: string,
+    isForceBuild: boolean,
+  ) {
     this.status = ServiceStatus.PROCESS;
 
     try {
       if (!isForceBuild) {
-        const isInitialized = await this.isPnlSnapshotInitialized(dateStr);
+        const isInitialized = await this.isPnlSnapshotInitialized(
+          platform,
+          dateStr,
+        );
 
         if (isInitialized?.isInit) {
           this.status = ServiceStatus.READY;
@@ -594,6 +620,7 @@ export class PnlSnapshotsV2Service {
                 id: cursorId,
               },
               where: {
+                platform,
                 date: {
                   lte: upperBound,
                 },
@@ -613,6 +640,7 @@ export class PnlSnapshotsV2Service {
           : await this.prismaService.perpTradingEventLog.findMany({
               take: BATCH_SIZE,
               where: {
+                platform,
                 date: {
                   lte: upperBound,
                 },
@@ -719,12 +747,16 @@ export class PnlSnapshotsV2Service {
       const pnlSnapshotInitializedFlag =
         await this.prismaService.pnlSnapshotV2InitializedFlag.upsert({
           where: {
-            dateStr,
+            platform_dateStr: {
+              platform,
+              dateStr,
+            },
           },
           update: {
             isInit: true,
           },
           create: {
+            platform,
             dateStr,
             isInit: true,
           },
@@ -745,9 +777,17 @@ export class PnlSnapshotsV2Service {
     }
   }
 
-  async initializePnlSnapshot(beginingDate: Date, isForceBuild: boolean) {
+  async initializePnlSnapshot(
+    platform: Platform,
+    beginingDate: Date,
+    isForceBuild: boolean,
+  ) {
     if (isForceBuild) {
-      await this.buildSnapshots(dayjs(beginingDate).format('YYYY-MM-DD'), true);
+      await this.buildSnapshots(
+        platform,
+        dayjs(beginingDate).format('YYYY-MM-DD'),
+        true,
+      );
     }
 
     let startDate = dayjs(beginingDate).add(1, 'day').toDate();
@@ -759,10 +799,12 @@ export class PnlSnapshotsV2Service {
       });
 
       const result = await this.dynamicSnapshotBuild(
+        platform,
         dayjs(startDate).format('YYYY-MM-DD'),
       );
 
       await this.removeNegativePnlSnapshot(
+        platform,
         dayjs(startDate).subtract(3, 'day').format('YYYY-MM-DD'),
       );
 
@@ -776,16 +818,22 @@ export class PnlSnapshotsV2Service {
     return true;
   }
 
-  async isPnlSnapshotInitialized(dateStr: string) {
+  async isPnlSnapshotInitialized(platform: Platform, dateStr: string) {
     return await this.prismaService.pnlSnapshotV2InitializedFlag.findUnique({
       where: {
-        dateStr,
+        platform_dateStr: {
+          platform,
+          dateStr,
+        },
       },
     });
   }
 
-  async getAllPnlSnapshotInitializedFlag() {
+  async getAllPnlSnapshotInitializedFlag(platform: Platform) {
     return await this.prismaService.pnlSnapshotV2InitializedFlag.findMany({
+      where: {
+        platform,
+      },
       orderBy: {
         dateStr: 'desc',
       },
