@@ -11,9 +11,10 @@ import { EventLogsResolver } from './event-logs.resolver';
 
 @Module({
   providers: [
-    EventLogsResolver,
     TradeHistoriesResolver,
     TradeHistoriesService,
+    EventLogsResolver,
+    EventLogsService,
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
