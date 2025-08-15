@@ -98,6 +98,8 @@ model EventLog {
 model PerpTradingEventLog {
   id         Int      @id @default(autoincrement())
   contractId Int
+  platform   Platform
+  address    String
   jsonLog    String
   usdPnl     Float
   block      Int
@@ -116,16 +118,14 @@ enum PnlSnapshotKind {
 }
 
 model PnlSnapshotV2 {
-  id         Int             @id @default(autoincrement())
-  platform   Platform
-  version    Version
-  contractId Int
-  address    String
-  dateStr    String // YYYY-MM-DD
-  kind       PnlSnapshotKind
-  accUSDPnl  Float
+  id        Int             @id @default(autoincrement())
+  platform  Platform
+  address   String
+  dateStr   String // YYYY-MM-DD
+  kind      PnlSnapshotKind
+  accUSDPnl Float
 
-  @@unique([address, contractId, dateStr, kind])
+  @@unique([address, platform, dateStr, kind])
   @@index([accUSDPnl(sort: Desc)])
   @@index([platform])
 }
