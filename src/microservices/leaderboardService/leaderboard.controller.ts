@@ -1,5 +1,9 @@
 import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
-import { ClientProxy, EventPattern } from '@nestjs/microservices';
+import {
+  ClientProxy,
+  EventPattern,
+  MessagePattern,
+} from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as dayjs from 'dayjs';
 
@@ -11,9 +15,11 @@ import { delay, getReadableError } from 'src/utils';
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
 import { GnsService } from 'src/global/gns.service';
 
-import { ContractMonitorService } from './contract-monitor.service';
+import { LeaderboardService } from './leaderboard.service';
 import { LogsService } from 'src/global/logs.service';
 import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
+import { StartAdaptionPayload } from './types';
+import { PnlSnapshotsV2Service } from '../apiService/modules/trade-histories/pnlsnapshotV2.service';
 
 @Controller()
 export class LeaderboardController implements OnApplicationBootstrap {
@@ -22,8 +28,9 @@ export class LeaderboardController implements OnApplicationBootstrap {
   private count = 0;
 
   constructor(
-    private contractMonitorService: ContractMonitorService,
+    private leaderboardService: LeaderboardService,
     private pnlSnapshotService: PnlSnapshotsService,
+    private pnlSnapshotV2Service: PnlSnapshotsV2Service,
     private gnsService: GnsService,
     private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
@@ -63,7 +70,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
     while (true) {
       await delay(1000);
 
-      if (this.contractMonitorService.status !== ServiceStatus.READY) {
+      if (this.leaderboardService.status !== ServiceStatus.READY) {
         continue;
       }
 
@@ -80,17 +87,93 @@ export class LeaderboardController implements OnApplicationBootstrap {
     }, 10_000);
   }
 
+  @MessagePattern(PATTERNS.Leaderboard.GetAdaptionStatus)
+  getAdaptionStatus() {
+    return this.leaderboardService.getAllStatus();
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.StartAdaption)
+  startAdaption(payload: StartAdaptionPayload) {
+    this.leaderboardService.startAdaption(
+      payload.contractId,
+      payload.shouldRestart,
+    );
+
+    return true;
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.BuildPnlSnapshotV2)
+  async buildPnlSnapshotV2(payload: {
+    dateStr: string;
+    isForceBuild: boolean;
+  }) {
+    return this.pnlSnapshotV2Service.buildSnapshots(
+      payload.dateStr,
+      payload.isForceBuild,
+    );
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.DynamicSnapshotV2Build)
+  async dynamicSnapshotV2Build(payload: {
+    dateStr: string;
+    isForceBuild: boolean;
+  }) {
+    return this.pnlSnapshotV2Service.buildSnapshots(
+      payload.dateStr,
+      payload.isForceBuild,
+    );
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.InitializePnlSnapshotV2)
+  async initializePnlSnapshotV2(payload: {
+    beginingDate: Date;
+    isForceBuild: boolean;
+  }) {
+    return this.pnlSnapshotV2Service.initializePnlSnapshot(
+      payload.beginingDate,
+      payload.isForceBuild,
+    );
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.BuildPnlSnapshot)
+  async buildPnlSnapshot(payload: { dateStr: string; isForceBuild: boolean }) {
+    return this.pnlSnapshotService.buildSnapshots(
+      payload.dateStr,
+      payload.isForceBuild,
+    );
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.DynamicSnapshotBuild)
+  async dynamicSnapshotBuild(payload: { dateStr: string }) {
+    return this.pnlSnapshotService.dynamicSnapshotBuild(payload.dateStr);
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.InitializePnlSnapshot)
+  async initializePnlSnapshot(payload: {
+    beginingDate: Date;
+    isForceBuild: boolean;
+  }) {
+    return this.pnlSnapshotService.initializePnlSnapshot(
+      payload.beginingDate,
+      payload.isForceBuild,
+    );
+  }
+
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkContractsForLeaderboard() {
+    const isLeaderboardBusy = Object.values(
+      this.leaderboardService.status,
+    ).some((status) => status === ServiceStatus.PROCESS);
+
     if (
       this.gnsService.status !== ServiceStatus.READY ||
       this.isReceivedKillProcess ||
-      this.contractMonitorService.status !== ServiceStatus.READY
+      isLeaderboardBusy
     ) {
       return;
     }
 
-    await this.contractMonitorService.checkContractsForLeaderboard();
+    await this.leaderboardService.checkContractsForLeaderboard();
   }
 
   @Cron(CronExpression.EVERY_HOUR)
