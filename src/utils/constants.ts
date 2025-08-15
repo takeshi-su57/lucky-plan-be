@@ -88,6 +88,16 @@ export const PATTERNS = {
     GetBlock: 'GET_BLOCK',
     GetLogs: 'GET_LOGS',
   },
+  Leaderboard: {
+    GetAdaptionStatus: 'GET_ADAPTION_STATUS',
+    StartAdaption: 'START_ADAPTION',
+    BuildPnlSnapshotV2: 'BUILD_PNL_SNAPSHOT_V2',
+    DynamicSnapshotV2Build: 'DYNAMIC_SNAPSHOT_V2_BUILD',
+    InitializePnlSnapshotV2: 'INITIALIZE_PNL_SNAPSHOT_V2',
+    BuildPnlSnapshot: 'BUILD_PNL_SNAPSHOT',
+    DynamicSnapshotBuild: 'DYNAMIC_SNAPSHOT_BUILD',
+    InitializePnlSnapshot: 'INITIALIZE_PNL_SNAPSHOT',
+  },
 };
 
 export const SERVICE_NAMES = {
@@ -96,5 +106,4 @@ export const SERVICE_NAMES = {
   LEADERBOARD_SERVICE: 'LEADERBOARD_SERVICE',
   TRADING_SERVICE: 'TRADING_SERVICE',
   WEB3_SERVICE: 'WEB3_SERVICE',
-  ADAPTION_SERVICE: 'ADAPTION_SERVICE',
 };

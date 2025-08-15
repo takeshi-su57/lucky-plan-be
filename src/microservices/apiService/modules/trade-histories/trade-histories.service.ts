@@ -17,6 +17,12 @@ import { marketExecutedEventParser } from 'src/microservices/web3Service/platfor
 import { limitExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/limit-executed.parser';
 import { tradePositivePnlWithdrawnEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/trade-positive-pnl-withdrawn.parser';
 
+import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/market-executed.parser';
+import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/limit-executed.parser';
+
 import {
   CancelReason,
   PendingOrderType,
@@ -323,265 +329,265 @@ export class TradeHistoriesService {
       });
   }
 
-  // async handleActionItemsV9(
-  //   contractId: number,
-  //   actionItems: { item: ActionItem; blockNumber: number; timestamp: Date }[],
-  // ) {
-  //   const historyInputs = actionItems
-  //     .map((actionItem) => {
-  //       switch (actionItem.item.name) {
-  //         case positionSizeIncreaseExecutedEventParser.eventName: {
-  //           const { args } =
-  //             positionSizeIncreaseExecutedEventParser.actionParser(
-  //               actionItem.item,
-  //             );
+  async handleActionItemsV9(
+    contractId: number,
+    actionItems: { item: ActionItem; blockNumber: number; timestamp: Date }[],
+  ) {
+    const historyInputs = actionItems
+      .map((actionItem) => {
+        switch (actionItem.item.name) {
+          case positionSizeIncreaseExecutedV9EventParser.eventName: {
+            const { args } =
+              positionSizeIncreaseExecutedV9EventParser.actionParser(
+                actionItem.item,
+              );
 
-  //           if (args.cancelReason !== CancelReason.NONE) {
-  //             return null;
-  //           }
+            if (args.cancelReason !== CancelReason.NONE) {
+              return null;
+            }
 
-  //           const collateral = this.gnsV9Service.getCollateral(
-  //             contractId,
-  //             args.collateralIndex,
-  //           );
+            const collateral = this.gnsService.getCollateral(
+              contractId,
+              args.collateralIndex,
+            );
 
-  //           const leverage = Number(args.values.newLeverage) / 1000;
+            const leverage = Number(args.values.newLeverage) / 1000;
 
-  //           return {
-  //             date: actionItem.timestamp,
-  //             pair: this.gnsV9Service.getPairName(
-  //               contractId,
-  //               Number(args.pairIndex),
-  //             ),
-  //             block: actionItem.blockNumber,
-  //             address: actionItem.item.position.address.toLowerCase(),
-  //             action: TradeActionType.TradePosSizeIncrease,
-  //             contractId,
-  //             price: `${Number(args.values.newOpenPrice) / 1e10}`,
-  //             collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
-  //             long: Number(args.long),
-  //             size: `${Number(
-  //               Number(args.values.newCollateralAmount) /
-  //                 Number(collateral.precision),
-  //             )}`,
-  //             leverage,
-  //             pnl: `${-Number(
-  //               Number(args.values.borrowingFeeCollateral) /
-  //                 Number(collateral.precision),
-  //             )}`,
-  //             tradeId: null,
-  //             collateralIndex: Number(args.collateralIndex),
-  //             tradeIndex: Number(args.index),
-  //             collateralDelta: `${
-  //               Number(args.collateralDelta) / Number(collateral.precision)
-  //             }`,
-  //             leverageDelta: Number(args.leverageDelta) / 1e3,
-  //             marketPrice: `${Number(args.oraclePrice) / 1e10}`,
-  //           } as CreateTradeHistoryInput;
-  //         }
-  //         case positionSizeDecreaseExecutedEventParser.eventName: {
-  //           const { args } =
-  //             positionSizeDecreaseExecutedEventParser.actionParser(
-  //               actionItem.item,
-  //             );
+            return {
+              date: actionItem.timestamp,
+              pair: this.gnsService.getPairName(
+                contractId,
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradePosSizeIncrease,
+              contractId,
+              price: `${Number(args.values.newOpenPrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
+              long: Number(args.long),
+              size: `${Number(
+                Number(args.values.newCollateralAmount) /
+                  Number(collateral.precision),
+              )}`,
+              leverage,
+              pnl: `${-Number(
+                Number(args.values.borrowingFeeCollateral) /
+                  Number(collateral.precision),
+              )}`,
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: `${
+                Number(args.collateralDelta) / Number(collateral.precision)
+              }`,
+              leverageDelta: Number(args.leverageDelta) / 1e3,
+              marketPrice: `${Number(args.oraclePrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
+          }
+          case positionSizeDecreaseExecutedV9EventParser.eventName: {
+            const { args } =
+              positionSizeDecreaseExecutedV9EventParser.actionParser(
+                actionItem.item,
+              );
 
-  //           if (args.cancelReason !== CancelReason.NONE) {
-  //             return null;
-  //           }
+            if (args.cancelReason !== CancelReason.NONE) {
+              return null;
+            }
 
-  //           const collateral = this.gnsV9Service.getCollateral(
-  //             contractId,
-  //             args.collateralIndex,
-  //           );
+            const collateral = this.gnsService.getCollateral(
+              contractId,
+              args.collateralIndex,
+            );
 
-  //           return {
-  //             date: actionItem.timestamp,
-  //             pair: this.gnsV9Service.getPairName(
-  //               contractId,
-  //               Number(args.pairIndex),
-  //             ),
-  //             block: actionItem.blockNumber,
-  //             address: actionItem.item.position.address.toLowerCase(),
-  //             action: TradeActionType.TradePosSizeDecrease,
-  //             contractId,
-  //             price: `${Number(args.values.priceAfterImpact) / 1e10}`,
-  //             collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
-  //             long: Number(args.long),
-  //             size: `${Number(
-  //               Number(args.values.newCollateralAmount) /
-  //                 Number(collateral.precision),
-  //             )}`,
-  //             leverage: Number(args.values.newLeverage) / 1e3,
-  //             pnl: `${Number(
-  //               (Number(args.values.collateralSentToTrader) -
-  //                 Number(args.collateralDelta)) /
-  //                 Number(collateral.precision),
-  //             )}`,
-  //             tradeId: null,
-  //             collateralIndex: Number(args.collateralIndex),
-  //             tradeIndex: Number(args.index),
-  //             collateralDelta: `${
-  //               -Number(args.collateralDelta) / Number(collateral.precision)
-  //             }`,
-  //             leverageDelta: Number(args.leverageDelta) / 1e3,
-  //             marketPrice: `${Number(args.oraclePrice) / 1e10}`,
-  //           } as CreateTradeHistoryInput;
-  //         }
-  //         case leverageUpdateExecutedEventParser.eventName: {
-  //           const { args } = leverageUpdateExecutedEventParser.actionParser(
-  //             actionItem.item,
-  //           );
+            return {
+              date: actionItem.timestamp,
+              pair: this.gnsService.getPairName(
+                contractId,
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradePosSizeDecrease,
+              contractId,
+              price: `${Number(args.values.priceAfterImpact) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
+              long: Number(args.long),
+              size: `${Number(
+                Number(args.values.newCollateralAmount) /
+                  Number(collateral.precision),
+              )}`,
+              leverage: Number(args.values.newLeverage) / 1e3,
+              pnl: `${Number(
+                (Number(args.values.collateralSentToTrader) -
+                  Number(args.collateralDelta)) /
+                  Number(collateral.precision),
+              )}`,
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: `${
+                -Number(args.collateralDelta) / Number(collateral.precision)
+              }`,
+              leverageDelta: Number(args.leverageDelta) / 1e3,
+              marketPrice: `${Number(args.oraclePrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
+          }
+          case leverageUpdateExecutedV9EventParser.eventName: {
+            const { args } = leverageUpdateExecutedV9EventParser.actionParser(
+              actionItem.item,
+            );
 
-  //           if (args.cancelReason !== CancelReason.NONE) {
-  //             return null;
-  //           }
+            if (args.cancelReason !== CancelReason.NONE) {
+              return null;
+            }
 
-  //           const collateral = this.gnsV9Service.getCollateral(
-  //             contractId,
-  //             args.collateralIndex,
-  //           );
+            const collateral = this.gnsService.getCollateral(
+              contractId,
+              args.collateralIndex,
+            );
 
-  //           return {
-  //             date: actionItem.timestamp,
-  //             pair: this.gnsV9Service.getPairName(
-  //               contractId,
-  //               Number(args.pairIndex),
-  //             ),
-  //             block: actionItem.blockNumber,
-  //             address: actionItem.item.position.address.toLowerCase(),
-  //             action: TradeActionType.TradeLeverageUpdate,
-  //             contractId,
-  //             price: `${Number(args.oraclePrice) / 1e10}`,
-  //             collateralPriceUsd: '0',
-  //             long: 0,
-  //             size: `${Number(
-  //               Number(args.values.newCollateralAmount) /
-  //                 Number(collateral.precision),
-  //             )}`,
-  //             leverage: Number(args.values.newLeverage) / 1e3,
-  //             pnl: '0',
-  //             tradeId: null,
-  //             collateralIndex: Number(args.collateralIndex),
-  //             tradeIndex: Number(args.index),
-  //             collateralDelta: `${
-  //               ((args.isIncrease ? 1 : -1) * Number(args.collateralDelta)) /
-  //               Number(collateral.precision)
-  //             }`,
-  //             leverageDelta: null,
-  //             marketPrice: null,
-  //           } as CreateTradeHistoryInput;
-  //         }
-  //         case marketExecutedEventParser.eventName: {
-  //           const { args } = marketExecutedEventParser.actionParser(
-  //             actionItem.item,
-  //           );
+            return {
+              date: actionItem.timestamp,
+              pair: this.gnsService.getPairName(
+                contractId,
+                Number(args.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: TradeActionType.TradeLeverageUpdate,
+              contractId,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: '0',
+              long: 0,
+              size: `${Number(
+                Number(args.values.newCollateralAmount) /
+                  Number(collateral.precision),
+              )}`,
+              leverage: Number(args.values.newLeverage) / 1e3,
+              pnl: '0',
+              tradeId: null,
+              collateralIndex: Number(args.collateralIndex),
+              tradeIndex: Number(args.index),
+              collateralDelta: `${
+                ((args.isIncrease ? 1 : -1) * Number(args.collateralDelta)) /
+                Number(collateral.precision)
+              }`,
+              leverageDelta: null,
+              marketPrice: null,
+            } as CreateTradeHistoryInput;
+          }
+          case marketExecutedV9EventParser.eventName: {
+            const { args } = marketExecutedV9EventParser.actionParser(
+              actionItem.item,
+            );
 
-  //           const collateral = this.gnsV9Service.getCollateral(
-  //             contractId,
-  //             args.t.collateralIndex,
-  //           );
+            const collateral = this.gnsService.getCollateral(
+              contractId,
+              args.t.collateralIndex,
+            );
 
-  //           const pnl = args.open
-  //             ? '0'
-  //             : `${Number(
-  //                 (Number(args.amountSentToTrader) -
-  //                   Number(args.t.collateralAmount)) /
-  //                   Number(collateral.precision),
-  //               )}`;
+            const pnl = args.open
+              ? '0'
+              : `${Number(
+                  (Number(args.amountSentToTrader) -
+                    Number(args.t.collateralAmount)) /
+                    Number(collateral.precision),
+                )}`;
 
-  //           return {
-  //             date: actionItem.timestamp,
-  //             pair: this.gnsV9Service.getPairName(
-  //               contractId,
-  //               Number(args.t.pairIndex),
-  //             ),
-  //             block: actionItem.blockNumber,
-  //             address: actionItem.item.position.address.toLowerCase(),
-  //             action: args.open
-  //               ? TradeActionType.TradeOpenedMarket
-  //               : TradeActionType.TradeClosedMarket,
-  //             contractId,
-  //             price: `${Number(args.oraclePrice) / 1e10}`,
-  //             collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
-  //             long: Number(args.t.long),
-  //             size: `${Number(
-  //               Number(args.t.collateralAmount) / Number(collateral.precision),
-  //             )}`,
-  //             leverage: Number(args.t.leverage) / 1e3,
-  //             pnl: pnl,
-  //             tradeId: null,
-  //             collateralIndex: Number(args.t.collateralIndex),
-  //             tradeIndex: Number(args.t.index),
-  //             collateralDelta: null,
-  //             leverageDelta: null,
-  //             marketPrice: `${Number(args.marketPrice) / 1e10}`,
-  //           } as CreateTradeHistoryInput;
-  //         }
-  //         case limitExecutedEventParser.eventName: {
-  //           const { args } = limitExecutedEventParser.actionParser(
-  //             actionItem.item,
-  //           );
+            return {
+              date: actionItem.timestamp,
+              pair: this.gnsService.getPairName(
+                contractId,
+                Number(args.t.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: args.open
+                ? TradeActionType.TradeOpenedMarket
+                : TradeActionType.TradeClosedMarket,
+              contractId,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
+              long: Number(args.t.long),
+              size: `${Number(
+                Number(args.t.collateralAmount) / Number(collateral.precision),
+              )}`,
+              leverage: Number(args.t.leverage) / 1e3,
+              pnl: pnl,
+              tradeId: null,
+              collateralIndex: Number(args.t.collateralIndex),
+              tradeIndex: Number(args.t.index),
+              collateralDelta: null,
+              leverageDelta: null,
+              marketPrice: `${Number(args.marketPrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
+          }
+          case limitExecutedV9EventParser.eventName: {
+            const { args } = limitExecutedV9EventParser.actionParser(
+              actionItem.item,
+            );
 
-  //           const collateral = this.gnsV9Service.getCollateral(
-  //             contractId,
-  //             args.t.collateralIndex,
-  //           );
+            const collateral = this.gnsService.getCollateral(
+              contractId,
+              args.t.collateralIndex,
+            );
 
-  //           const actionNameMap: Record<string, string> = {
-  //             [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
-  //             [PendingOrderType.LIQ_CLOSE]: TradeActionType.TradeClosedLIQ,
-  //             [PendingOrderType.SL_CLOSE]: TradeActionType.TradeClosedSL,
-  //             [PendingOrderType.TP_CLOSE]: TradeActionType.TradeClosedTP,
-  //           };
+            const actionNameMap: Record<string, string> = {
+              [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
+              [PendingOrderType.LIQ_CLOSE]: TradeActionType.TradeClosedLIQ,
+              [PendingOrderType.SL_CLOSE]: TradeActionType.TradeClosedSL,
+              [PendingOrderType.TP_CLOSE]: TradeActionType.TradeClosedTP,
+            };
 
-  //           if (!actionNameMap[args.orderType]) {
-  //             return null;
-  //           }
+            if (!actionNameMap[args.orderType]) {
+              return null;
+            }
 
-  //           const pnl =
-  //             args.orderType === PendingOrderType.LIMIT_OPEN
-  //               ? '0'
-  //               : `${Number(
-  //                   (Number(args.amountSentToTrader) -
-  //                     Number(args.t.collateralAmount)) /
-  //                     Number(collateral.precision),
-  //                 )}`;
+            const pnl =
+              args.orderType === PendingOrderType.LIMIT_OPEN
+                ? '0'
+                : `${Number(
+                    (Number(args.amountSentToTrader) -
+                      Number(args.t.collateralAmount)) /
+                      Number(collateral.precision),
+                  )}`;
 
-  //           return {
-  //             date: actionItem.timestamp,
-  //             pair: this.gnsV9Service.getPairName(
-  //               contractId,
-  //               Number(args.t.pairIndex),
-  //             ),
-  //             block: actionItem.blockNumber,
-  //             address: actionItem.item.position.address.toLowerCase(),
-  //             action: actionNameMap[args.orderType],
-  //             contractId,
-  //             price: `${Number(args.oraclePrice) / 1e10}`,
-  //             collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
-  //             long: Number(args.t.long),
-  //             size: `${Number(
-  //               Number(args.t.collateralAmount) / Number(collateral.precision),
-  //             )}`,
-  //             leverage: Number(args.t.leverage) / 1e3,
-  //             pnl: pnl,
-  //             tradeId: null,
-  //             collateralIndex: Number(args.t.collateralIndex),
-  //             tradeIndex: Number(args.t.index),
-  //             collateralDelta: null,
-  //             leverageDelta: null,
-  //             marketPrice: `${Number(args.marketPrice) / 1e10}`,
-  //           } as CreateTradeHistoryInput;
-  //         }
-  //         default: {
-  //           return null;
-  //         }
-  //       }
-  //     })
-  //     .filter((item): item is CreateTradeHistoryInput => !!item);
+            return {
+              date: actionItem.timestamp,
+              pair: this.gnsService.getPairName(
+                contractId,
+                Number(args.t.pairIndex),
+              ),
+              block: actionItem.blockNumber,
+              address: actionItem.item.position.address.toLowerCase(),
+              action: actionNameMap[args.orderType],
+              contractId,
+              price: `${Number(args.oraclePrice) / 1e10}`,
+              collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
+              long: Number(args.t.long),
+              size: `${Number(
+                Number(args.t.collateralAmount) / Number(collateral.precision),
+              )}`,
+              leverage: Number(args.t.leverage) / 1e3,
+              pnl: pnl,
+              tradeId: null,
+              collateralIndex: Number(args.t.collateralIndex),
+              tradeIndex: Number(args.t.index),
+              collateralDelta: null,
+              leverageDelta: null,
+              marketPrice: `${Number(args.marketPrice) / 1e10}`,
+            } as CreateTradeHistoryInput;
+          }
+          default: {
+            return null;
+          }
+        }
+      })
+      .filter((item): item is CreateTradeHistoryInput => !!item);
 
-  //   await this.createMany(historyInputs);
-  // }
+    await this.createMany(historyInputs);
+  }
 
   async handleActionItems(
     contractId: number,

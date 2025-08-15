@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
-import { Contract } from '@prisma/client';
+import { Contract, ContractStatus } from '@prisma/client';
 
 import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
@@ -44,10 +44,9 @@ export class ContractMonitorService {
     const contracts = await this.contractsService.findAll();
 
     for (const contract of contracts) {
-      // temporarily skip testnet contracts
-      // if (contract.isTestnet) {
-      //   continue;
-      // }
+      if (contract.status === ContractStatus.Dead) {
+        continue;
+      }
 
       await this.checkContractForBots(contract);
     }
