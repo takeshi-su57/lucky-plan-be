@@ -61,7 +61,7 @@ export class Web3Controller implements OnApplicationBootstrap {
 
     setTimeout(() => {
       process.exit(0);
-    }, 10_000);
+    }, 60_000);
   }
 
   @MessagePattern(PATTERNS.Web3.Erc20Transfer)
