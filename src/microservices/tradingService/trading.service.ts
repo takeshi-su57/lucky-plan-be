@@ -22,7 +22,8 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 );
 
 @Injectable()
-export class ContractMonitorService {
+export class TradingService {
+  isReceivedKillProcess = false;
   status: ServiceStatus;
 
   readonly registeredEventNames: string[] = [];
@@ -36,6 +37,7 @@ export class ContractMonitorService {
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
+    this.isReceivedKillProcess = false;
   }
 
   async checkContractsForBots() {
@@ -43,29 +45,32 @@ export class ContractMonitorService {
 
     const contracts = await this.contractsService.findAll();
 
-    for (const contract of contracts) {
-      if (contract.status === ContractStatus.Dead) {
-        continue;
-      }
+    const promises = contracts
+      .filter((contract) => contract.status === ContractStatus.Live)
+      .map((contract) => this.checkContractForBots(contract));
 
-      await this.checkContractForBots(contract);
-    }
+    await Promise.allSettled(promises);
 
     this.status = ServiceStatus.READY;
   }
 
   async checkContractForBots(contract: Contract) {
     try {
-      const currentBlockNumber = await this.web3Service.getBlockNumber(
-        contract.chainId,
-      );
+      const currentBlockNumber = await this.web3Service.getBlockNumber({
+        chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
+      });
 
       let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
 
       while (fromBlock <= currentBlockNumber) {
+        if (this.isReceivedKillProcess) {
+          break;
+        }
+
         const toBlock =
-          fromBlock + ContractMonitorService.BATCH_SIZE < currentBlockNumber
-            ? fromBlock + ContractMonitorService.BATCH_SIZE
+          fromBlock + TradingService.BATCH_SIZE < currentBlockNumber
+            ? fromBlock + TradingService.BATCH_SIZE
             : currentBlockNumber;
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);

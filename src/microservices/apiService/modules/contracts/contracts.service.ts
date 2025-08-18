@@ -9,12 +9,15 @@ import {
 } from './dto/contract.input';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { ContractStatus } from '@prisma/client';
+import { ChainPriority } from 'src/types';
+import { Web3Service } from 'src/global/web3.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
+    private web3Service: Web3Service,
   ) {}
 
   async create(input: CreateContractInput) {
@@ -95,10 +98,22 @@ export class ContractsService {
   }
 
   async liveContract(contractId: number) {
+    const contract = await this.findOne(contractId);
+
+    if (contract.status === ContractStatus.Live) {
+      throw new Error('Contract is already live');
+    }
+
+    const currentBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: contract.chainId,
+      priority: ChainPriority.LOW,
+    });
+
     return await this.prismaService.contract.update({
       where: { id: contractId },
       data: {
         status: ContractStatus.Live,
+        lastBlockNumber: Number(currentBlockNumber),
       },
     });
   }

@@ -80,9 +80,10 @@ const info = {
 
 @Injectable()
 export class LeaderboardService {
+  isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 3000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private readonly web3Service: Web3Service,
@@ -92,7 +93,9 @@ export class LeaderboardService {
     private readonly logger: LogsService,
     private readonly gnsService: GnsService,
     private readonly prismaService: PrismaService,
-  ) {}
+  ) {
+    this.isReceivedKillProcess = false;
+  }
 
   getAllStatus() {
     return this.status;
@@ -101,22 +104,22 @@ export class LeaderboardService {
   async checkContractsForLeaderboard() {
     const contracts = await this.contractsService.findAll();
 
-    for (const contract of contracts) {
-      if (contract.status === ContractStatus.Dead) {
-        continue;
-      }
+    const promises = contracts
+      .filter((contract) => contract.status === ContractStatus.Live)
+      .map((contract) => this.startAdaption(contract.id, false));
 
-      await this.startAdaption(contract.id, false);
-    }
+    await Promise.allSettled(promises);
   }
 
   async startAdaption(contractId: number, shouldRestart: boolean) {
+    this.status[contractId] = ServiceStatus.PROCESS;
     try {
       const contract = await this.contractsService.findOne(contractId);
 
-      const currentBlockNumber = await this.web3Service.getBlockNumber(
-        contract.chainId,
-      );
+      const currentBlockNumber = await this.web3Service.getBlockNumber({
+        chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
+      });
 
       let fromBlock = shouldRestart
         ? BigInt(contract.fromBlock)
@@ -128,11 +131,22 @@ export class LeaderboardService {
 
       await this.cleanLogs(
         contract.platform,
+        contract.id,
         Number(fromBlock),
         Number(endBlock),
       );
 
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'leaderboard>startAdaption',
+        details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(endBlock)}`,
+      });
+
       while (fromBlock <= endBlock) {
+        if (this.isReceivedKillProcess) {
+          break;
+        }
+
         const toBlock =
           fromBlock + LeaderboardService.BATCH_SIZE < endBlock
             ? fromBlock + LeaderboardService.BATCH_SIZE
@@ -147,6 +161,12 @@ export class LeaderboardService {
             toBlock,
           })
         ).filter((log) => log.topics.length > 0);
+
+        const block = await this.web3Service.getBlock({
+          chainId: contract.chainId,
+          priority: ChainPriority.HIGH,
+          blockNumber: fromBlock,
+        });
 
         const eventLogs = logs
           .filter(
@@ -187,12 +207,6 @@ export class LeaderboardService {
           ),
         );
 
-        const block = await this.web3Service.getBlock({
-          chainId: contract.chainId,
-          priority: ChainPriority.HIGH,
-          blockNumber: fromBlock,
-        });
-
         if (contract.platform === Platform.GNS) {
           if (contract.version === Version.V9) {
             await this.handleEventLogForGnsV9({
@@ -230,16 +244,26 @@ export class LeaderboardService {
         summary: 'leaderboard>startAdaption',
         details: `contractId:${contractId} ${getReadableError(err)}`,
       });
+    } finally {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'leaderboard>startAdaption>finally',
+        details: `contractId:${contractId}`,
+      });
+
+      this.status[contractId] = ServiceStatus.READY;
     }
   }
 
   private async cleanLogs(
     platform: Platform,
+    contractId: number,
     fromBlock: number,
     endBlock: number,
   ) {
     await this.prismaService.eventLog.deleteMany({
       where: {
+        contractId,
         block: {
           gte: Number(fromBlock),
           lte: Number(endBlock),
@@ -249,6 +273,7 @@ export class LeaderboardService {
 
     await this.prismaService.perpTradingEventLog.deleteMany({
       where: {
+        contractId,
         block: {
           gte: Number(fromBlock),
           lte: Number(endBlock),
@@ -259,6 +284,7 @@ export class LeaderboardService {
     if (platform === Platform.GNS) {
       await this.prismaService.tradeHistory.deleteMany({
         where: {
+          contractId,
           block: {
             gte: Number(fromBlock),
             lte: Number(endBlock),
@@ -453,7 +479,7 @@ export class LeaderboardService {
     }[];
   }) {
     const actionItems = perpTradeEventLogs.map((log) => {
-      const parsed = eventToActionParserV9(contract.id, log.eventLog as any);
+      const parsed = eventToActionParserV10(contract.id, log.eventLog as any);
 
       return {
         item: parsed,

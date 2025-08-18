@@ -24,7 +24,6 @@ import { PnlSnapshotsV2Service } from '../apiService/modules/trade-histories/pnl
 
 @Controller()
 export class LeaderboardController implements OnApplicationBootstrap {
-  private isReceivedKillProcess = false;
   private isAppBootstrapped = false;
   private count = 0;
 
@@ -36,9 +35,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
     private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
-  ) {
-    this.isReceivedKillProcess = false;
-  }
+  ) {}
 
   onApplicationBootstrap() {
     this.isAppBootstrapped = true;
@@ -60,7 +57,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
-    this.isReceivedKillProcess = true;
+    this.leaderboardService.isReceivedKillProcess = true;
 
     this.logger.nativeLog({
       severity: 'Info',
@@ -71,7 +68,11 @@ export class LeaderboardController implements OnApplicationBootstrap {
     while (true) {
       await delay(1000);
 
-      if (this.leaderboardService.status !== ServiceStatus.READY) {
+      const isBusy = Object.values(this.leaderboardService.status).some(
+        (status) => status === ServiceStatus.PROCESS,
+      );
+
+      if (isBusy) {
         continue;
       }
 
@@ -174,7 +175,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
     if (
       this.gnsService.status !== ServiceStatus.READY ||
-      this.isReceivedKillProcess ||
+      this.leaderboardService.isReceivedKillProcess ||
       isLeaderboardBusy
     ) {
       return;
@@ -186,7 +187,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
     if (
-      this.isReceivedKillProcess ||
+      this.leaderboardService.isReceivedKillProcess ||
       this.pnlSnapshotService.status !== ServiceStatus.READY
     ) {
       return;

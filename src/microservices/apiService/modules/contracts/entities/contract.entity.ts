@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { ContractStatus } from '@prisma/client';
+import { ContractStatus, Platform, Version } from '@prisma/client';
 
 registerEnumType(ContractStatus, {
   name: 'ContractStatus',
@@ -9,6 +9,12 @@ registerEnumType(ContractStatus, {
 export class Contract {
   @Field(() => Int)
   id: number;
+
+  @Field(() => Platform)
+  platform: Platform;
+
+  @Field(() => Version)
+  version: Version;
 
   @Field(() => Int)
   chainId: number;
@@ -24,6 +30,18 @@ export class Contract {
 
   @Field(() => String)
   description: string;
+
+  @Field(() => Int)
+  fromBlock: number;
+
+  @Field(() => Int, { nullable: true })
+  toBlock: number | null;
+
+  @Field(() => Int)
+  lastBlockNumber: number;
+
+  @Field(() => Int)
+  lastLeaderboardBlockNumber: number;
 
   @Field(() => ContractStatus)
   status: ContractStatus;

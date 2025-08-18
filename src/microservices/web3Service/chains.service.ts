@@ -207,7 +207,7 @@ export class ChainsService {
       }) as unknown as PublicClient;
 
       this.readSemaphores[chain.id] = {
-        [ChainPriority.HIGH]: new Semaphore(10),
+        [ChainPriority.HIGH]: new Semaphore(30),
         [ChainPriority.MEDIUM]: new Semaphore(5),
         [ChainPriority.LOW]: new Semaphore(1),
       };

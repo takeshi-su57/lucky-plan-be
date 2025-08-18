@@ -284,9 +284,10 @@ export class FollowerService {
             amount,
           });
 
-          const { maxFeePerGas } = await this.web3Service.estimateFeesPerGas(
-            contract.chainId,
-          );
+          const { maxFeePerGas } = await this.web3Service.estimateFeesPerGas({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+          });
 
           tx = await this.web3Service.nativeTransfer({
             chainId: contract.chainId,

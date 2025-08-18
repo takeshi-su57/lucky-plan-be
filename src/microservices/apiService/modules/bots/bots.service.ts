@@ -279,7 +279,7 @@ export class BotsService {
             bot.status === BotStatus.Live ||
             bot.status === BotStatus.Stop
           ) {
-            await this.reBalanceAsset(bot);
+            // await this.reBalanceAsset(bot);
           }
         });
 
@@ -472,7 +472,7 @@ export class BotsService {
     //   throw new Error('Invalid bot status');
     // }
 
-    await this.reBalanceAsset(bot);
+    // await this.reBalanceAsset(bot);
 
     const {
       followerContract,
@@ -516,13 +516,15 @@ export class BotsService {
       });
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber(
-      bot.leaderContract.chainId,
-    );
+    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.leaderContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber(
-      bot.followerContract.chainId,
-    );
+    const followerBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.followerContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
     return await this._update({
       id: bot.id,
@@ -574,13 +576,15 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber(
-      bot.leaderContract.chainId,
-    );
+    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.leaderContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber(
-      bot.followerContract.chainId,
-    );
+    const followerBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.followerContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
     return await this._update({
       id: bot.id,
