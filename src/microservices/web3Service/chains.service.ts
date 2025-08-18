@@ -19,7 +19,10 @@ import {
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
+
 import 'dotenv';
+
+import { ChainPriority } from 'src/types';
 
 const privateRPCProviders = [
   {
@@ -151,7 +154,7 @@ export class ChainsService {
   readonly availableChains: Chain[];
   readonly freePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
-  private readSemaphores: Record<number, Semaphore>;
+  private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
 
@@ -203,7 +206,11 @@ export class ChainsService {
         },
       }) as unknown as PublicClient;
 
-      this.readSemaphores[chain.id] = new Semaphore(19);
+      this.readSemaphores[chain.id] = {
+        [ChainPriority.HIGH]: new Semaphore(30),
+        [ChainPriority.MEDIUM]: new Semaphore(5),
+        [ChainPriority.LOW]: new Semaphore(1),
+      };
       this.writeMutexs[chain.id] = {};
     });
   }
@@ -317,11 +324,14 @@ export class ChainsService {
 
   async readWithSemaphore<T>(
     chainId: number,
+    priority: ChainPriority,
     callback: (c: PublicClient) => Promise<T>,
   ): Promise<T> {
-    return await this.readSemaphores[chainId].runExclusive(async () => {
-      return await callback(this.publicClient(chainId));
-    });
+    return await this.readSemaphores[chainId][priority].runExclusive(
+      async () => {
+        return await callback(this.publicClient(chainId));
+      },
+    );
   }
 
   async writeWithMutex<T>(

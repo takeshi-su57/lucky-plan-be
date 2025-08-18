@@ -14,7 +14,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 import { getReadableError } from 'src/utils';
 import { CreatePlanInput } from './dto/plan.input';
@@ -51,7 +51,7 @@ export class AutoPlansService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private planService: PlansService,
     private botService: BotsService,
     private logger: LogsService,
@@ -387,6 +387,14 @@ export class AutoPlansService {
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
 
+    const testContracts = await this.prismaService.contract.findMany({
+      where: {
+        isTestnet: true,
+      },
+    });
+
+    const testContractIds = testContracts.map((item) => item.id);
+
     pnlRecords.forEach((record) => {
       // if (record.contractId === 0) {
       //   return;
@@ -420,7 +428,7 @@ export class AutoPlansService {
               address: item.address,
               ...(item.contractId !== 0
                 ? { contractId: item.contractId }
-                : { contractId: { not: 4 } }),
+                : { contractId: { notIn: testContractIds } }),
             })),
         ],
       },
@@ -504,16 +512,13 @@ export class AutoPlansService {
     const contracts = await this.prismaService.contract.findMany({
       where: {
         isTestnet: false,
-        id: {
-          not: 4,
-        },
       },
     });
 
     const pairMap = new Map<string, Pair>();
 
     for (const contract of contracts) {
-      this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
+      this.gnsService.getPairs(contract.id).forEach((pair) => {
         if (pair) {
           pairMap.set(
             `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
@@ -852,16 +857,13 @@ export class AutoPlansService {
       const contracts = await this.prismaService.contract.findMany({
         where: {
           isTestnet: false,
-          id: {
-            not: 4,
-          },
         },
       });
 
       const pairMap = new Map<string, Pair>();
 
       for (const contract of contracts) {
-        this.gnsV10Service.getPairs(contract.id).forEach((pair) => {
+        this.gnsService.getPairs(contract.id).forEach((pair) => {
           if (pair) {
             pairMap.set(
               `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),

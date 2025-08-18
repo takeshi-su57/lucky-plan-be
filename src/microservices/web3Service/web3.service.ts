@@ -14,7 +14,10 @@ import {
   WaitForTransactionReceiptPayload,
   GetBlockPayload,
   GetLogsPayload,
+  EstimateFeesPerGasPayload,
+  GetBlockNumberPayload,
 } from './types';
+import { ChainPriority } from 'src/types';
 
 @Injectable()
 export class Web3Service {
@@ -27,6 +30,7 @@ export class Web3Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       payload.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -51,6 +55,7 @@ export class Web3Service {
   async erc20Allowance(payload: Erc20AllowancePayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: payload.erc20ContractAddress,
@@ -69,6 +74,7 @@ export class Web3Service {
 
     const { request } = await this.chainsService.readWithSemaphore(
       payload.chainId,
+      ChainPriority.HIGH,
       async (publicClient) => {
         return await publicClient.simulateContract({
           account,
@@ -113,6 +119,7 @@ export class Web3Service {
   async erc20Balance(payload: Erc20BalancePayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.readContract({
           address: payload.erc20ContractAddress,
@@ -127,6 +134,7 @@ export class Web3Service {
   async nativeBalance(payload: NativeBalancePayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.getBalance({ address: payload.address });
       },
@@ -136,6 +144,7 @@ export class Web3Service {
   async waitForTransactionReceipt(payload: WaitForTransactionReceiptPayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.waitForTransactionReceipt({
           hash: payload.hash,
@@ -148,6 +157,7 @@ export class Web3Service {
   async estimateGas(payload: EstimateGasPayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.estimateGas({
           account: payload.accountAddress,
@@ -158,18 +168,20 @@ export class Web3Service {
     );
   }
 
-  async estimateFeesPerGas(chainId: number) {
+  async estimateFeesPerGas(payload: EstimateFeesPerGasPayload) {
     return await this.chainsService.readWithSemaphore(
-      chainId,
+      payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.estimateFeesPerGas();
       },
     );
   }
 
-  async getBlockNumber(chainId: number) {
+  async getBlockNumber(payload: GetBlockNumberPayload) {
     return await this.chainsService.readWithSemaphore(
-      chainId,
+      payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.getBlockNumber();
       },
@@ -179,6 +191,7 @@ export class Web3Service {
   async getBlock(payload: GetBlockPayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.getBlock({
           blockNumber: payload.blockNumber,
@@ -190,6 +203,7 @@ export class Web3Service {
   async getLogs(payload: GetLogsPayload) {
     return await this.chainsService.readWithSemaphore(
       payload.chainId,
+      payload.priority,
       async (publicClient) => {
         return await publicClient.getLogs({
           fromBlock: payload.fromBlock,

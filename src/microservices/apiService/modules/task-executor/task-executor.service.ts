@@ -8,7 +8,7 @@ import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.s
 import { FollowerService } from 'src/microservices/apiService/modules/follower/follower.service';
 import { LogsService } from 'src/global/logs.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { Web3Service } from 'src/global/web3.service';
 
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/trade-max-closing-slippage-p-updated.parser';
@@ -31,7 +31,7 @@ import {
   getPositionDecreaseParams,
   getPositionIncreaseParams,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
-import { CloseMissionActionArgs } from 'src/types';
+import { ChainPriority, CloseMissionActionArgs } from 'src/types';
 import { TradeType } from 'src/microservices/web3Service/platform/gns/v10/types';
 
 import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
@@ -65,7 +65,7 @@ export class TaskExecutorService {
     private readonly logger: LogsService,
     private readonly actionsService: ActionsService,
     private readonly web3Service: Web3Service,
-    private readonly gnsV10Service: GnsV10Service,
+    private readonly gnsService: GnsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
@@ -113,7 +113,7 @@ export class TaskExecutorService {
           const { args } =
             tradeMaxClosingSlippagePUpdatedEventParser.actionParser(action);
 
-          tx = await this.gnsV10Service.updateMaxClosingSlippageP({
+          tx = await this.gnsService.updateMaxClosingSlippageP({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -130,8 +130,9 @@ export class TaskExecutorService {
             leverageUpdateExecutedEventParser.actionParser(action);
 
           if (!args.isIncrease) {
-            const followerTradeData = await this.gnsV10Service.getTrade({
+            const followerTradeData = await this.gnsService.getTrade({
               contractId: followerContract.id,
+              priority: ChainPriority.HIGH,
               args: {
                 address: follower.address as Address,
                 index: achievePosition!.index,
@@ -173,7 +174,7 @@ export class TaskExecutorService {
             }
           }
 
-          tx = await this.gnsV10Service.updateLeverage({
+          tx = await this.gnsService.updateLeverage({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -189,15 +190,16 @@ export class TaskExecutorService {
           const { args } =
             positionSizeIncreaseExecutedEventParser.actionParser(action);
 
-          const followerTradeData = await this.gnsV10Service.getTrade({
+          const followerTradeData = await this.gnsService.getTrade({
             contractId: followerContract.id,
+            priority: ChainPriority.HIGH,
             args: {
               address: follower.address as Address,
               index: achievePosition!.index,
             },
           });
 
-          const collateral = this.gnsV10Service.getCollateral(
+          const collateral = this.gnsService.getCollateral(
             leaderContractId,
             args.collateralIndex,
           );
@@ -269,7 +271,7 @@ export class TaskExecutorService {
             }
           }
 
-          tx = await this.gnsV10Service.increasePositionSize({
+          tx = await this.gnsService.increasePositionSize({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -286,8 +288,9 @@ export class TaskExecutorService {
           const { args } =
             positionSizeDecreaseExecutedEventParser.actionParser(action);
 
-          const followerTradeData = await this.gnsV10Service.getTrade({
+          const followerTradeData = await this.gnsService.getTrade({
             contractId: followerContract.id,
+            priority: ChainPriority.HIGH,
             args: {
               address: follower.address as Address,
               index: achievePosition!.index,
@@ -307,7 +310,7 @@ export class TaskExecutorService {
             };
           }
 
-          tx = await this.gnsV10Service.decreasePositionSize({
+          tx = await this.gnsService.decreasePositionSize({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -321,6 +324,7 @@ export class TaskExecutorService {
             const transaction =
               await this.web3Service.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
+                priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
                 confirmations: 1,
               });
@@ -361,7 +365,7 @@ export class TaskExecutorService {
         case CloseMissionAction: {
           const args = JSON.parse(action.args) as CloseMissionActionArgs;
 
-          tx = await this.gnsV10Service.closeTradeMarket({
+          tx = await this.gnsService.closeTradeMarket({
             mnemonic,
             accountIndex: follower.accountIndex,
             contractId: followerContract.id,
@@ -375,6 +379,7 @@ export class TaskExecutorService {
             const transaction =
               await this.web3Service.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
+                priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
                 confirmations: 1,
               });
@@ -419,7 +424,7 @@ export class TaskExecutorService {
               .actionParser(action);
             const { t, collateralPriceUsd, isManualOpen } = event.args;
 
-            const pair = this.gnsV10Service.getPair(
+            const pair = this.gnsService.getPair(
               followerContract.id,
               t.pairIndex,
             );
@@ -435,12 +440,13 @@ export class TaskExecutorService {
               );
             }
 
-            const collateral = this.gnsV10Service.getCollateral(
+            const collateral = this.gnsService.getCollateral(
               leaderContractId,
               t.collateralIndex,
             );
-            const usdcPrice = await this.gnsV10Service.getCollateralPrice({
+            const usdcPrice = await this.gnsService.getCollateralPrice({
               contractId: followerContract.id,
+              priority: ChainPriority.HIGH,
               args: {
                 collateralIndex:
                   USDCCollateralIndex[
@@ -493,7 +499,7 @@ export class TaskExecutorService {
                 }
               }
 
-              tx = await this.gnsV10Service.openTrade({
+              tx = await this.gnsService.openTrade({
                 mnemonic,
                 accountIndex: follower.accountIndex,
                 contractId: followerContract.id,
@@ -525,7 +531,7 @@ export class TaskExecutorService {
             }
 
             if (isCloseMissionAction(action)) {
-              tx = await this.gnsV10Service.closeTradeMarket({
+              tx = await this.gnsService.closeTradeMarket({
                 mnemonic,
                 accountIndex: follower.accountIndex,
                 contractId: followerContract.id,
@@ -539,6 +545,7 @@ export class TaskExecutorService {
                 const transaction =
                   await this.web3Service.waitForTransactionReceipt({
                     hash: tx as `0x${string}`,
+                    priority: ChainPriority.HIGH,
                     chainId: followerContract.chainId,
                     confirmations: 1,
                   });
@@ -589,6 +596,7 @@ export class TaskExecutorService {
 
         const transaction = await this.web3Service.waitForTransactionReceipt({
           hash: tx as `0x${string}`,
+          priority: ChainPriority.HIGH,
           chainId: followerContract.chainId,
           confirmations: 1,
         });
@@ -642,6 +650,7 @@ export class TaskExecutorService {
 
     const transaction = await this.web3Service.waitForTransactionReceipt({
       hash: tx,
+      priority: ChainPriority.HIGH,
       chainId: bot.followerContract.chainId,
       confirmations: 1,
     });

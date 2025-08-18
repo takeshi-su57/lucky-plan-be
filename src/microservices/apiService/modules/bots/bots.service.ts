@@ -12,7 +12,12 @@ import {
   CreateBotInput,
 } from './dto/bot.input';
 
-import { ActionContext, BotContext, ServiceStatus } from 'src/types';
+import {
+  ActionContext,
+  BotContext,
+  ChainPriority,
+  ServiceStatus,
+} from 'src/types';
 import {
   BotConnection,
   BotDetails,
@@ -39,7 +44,7 @@ import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/microservices/apiService/modules/strategy/strategy.service';
 import { LogsService } from 'src/global/logs.service';
 import { Web3Service } from 'src/global/web3.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 @Injectable()
 export class BotsService {
@@ -49,7 +54,7 @@ export class BotsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly web3Service: Web3Service,
-    private readonly gnsV10Service: GnsV10Service,
+    private readonly gnsService: GnsService,
     private readonly missionsService: MissionsService,
     private readonly followersService: FollowerService,
     private readonly actionsService: ActionsService,
@@ -205,6 +210,7 @@ export class BotsService {
 
       const ethBalance = await this.web3Service.nativeBalance({
         chainId: followerContract.chainId,
+        priority: ChainPriority.LOW,
         address: follower.address as Address,
       });
 
@@ -273,7 +279,7 @@ export class BotsService {
             bot.status === BotStatus.Live ||
             bot.status === BotStatus.Stop
           ) {
-            await this.reBalanceAsset(bot);
+            // await this.reBalanceAsset(bot);
           }
         });
 
@@ -466,7 +472,7 @@ export class BotsService {
     //   throw new Error('Invalid bot status');
     // }
 
-    await this.reBalanceAsset(bot);
+    // await this.reBalanceAsset(bot);
 
     const {
       followerContract,
@@ -484,7 +490,7 @@ export class BotsService {
 
     const mnemonic = await this.followersService.getMnemonic(user.mnemonic);
 
-    const collateralInfo = this.gnsV10Service.getCollateral(
+    const collateralInfo = this.gnsService.getCollateral(
       bot.followerContractId,
       USDCCollateralIndex[
         followerContract.chainId as keyof typeof USDCCollateralIndex
@@ -496,6 +502,7 @@ export class BotsService {
       erc20ContractAddress: collateralInfo.collateral,
       address: follower.address as Address,
       spender: followerContract.address as Address,
+      priority: ChainPriority.LOW,
     });
 
     if (allowance < 1000000n) {
@@ -509,13 +516,15 @@ export class BotsService {
       });
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber(
-      bot.leaderContract.chainId,
-    );
+    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.leaderContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber(
-      bot.followerContract.chainId,
-    );
+    const followerBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.followerContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
     return await this._update({
       id: bot.id,
@@ -567,13 +576,15 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber(
-      bot.leaderContract.chainId,
-    );
+    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.leaderContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber(
-      bot.followerContract.chainId,
-    );
+    const followerBlockNumber = await this.web3Service.getBlockNumber({
+      chainId: bot.followerContract.chainId,
+      priority: ChainPriority.HIGH,
+    });
 
     return await this._update({
       id: bot.id,

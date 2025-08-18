@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 
 import { ContractsService } from './contracts.service';
 import {
@@ -7,13 +7,20 @@ import {
   TradePair,
 } from './entities/contract.entity';
 
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
+import { Roles } from '../auth/roles.decorator';
+import { UserPermission } from '@prisma/client';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from '../auth/gql-auth.guard';
+import { RolesGuard } from '../auth/gql-role.guard';
+import { CurrentUser } from '../auth/user.decorator';
+import { User } from '../auth/entities/auth.entity';
 
 @Resolver(() => Contract)
 export class ContractsResolver {
   constructor(
     private readonly contractsService: ContractsService,
-    private readonly gnsV10Service: GnsV10Service,
+    private readonly gnsService: GnsService,
   ) {}
 
   @Query(() => [Contract])
@@ -30,13 +37,51 @@ export class ContractsResolver {
   getTradePairs(
     @Args('contractId', { type: () => [Int] }) contractIds: number[],
   ) {
-    return this.gnsV10Service.getTradePairs(contractIds);
+    return this.gnsService.getTradePairs(contractIds);
   }
 
   @Query(() => [TradeCollateral])
   getTradeCollaterals(
     @Args('contractId', { type: () => Int }) contractId: number,
   ) {
-    return this.gnsV10Service.getTradeCollaterals(contractId);
+    return this.gnsService.getTradeCollaterals(contractId);
+  }
+
+  @Query(() => String)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getAdaptionStatus(@CurrentUser() _user: User) {
+    return this.contractsService.getAdaptionStatus();
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  startAdaption(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('shouldRestart', { type: () => Boolean }) shouldRestart: boolean,
+    @CurrentUser() _user: User,
+  ) {
+    return this.contractsService.startAdaption(contractId, shouldRestart);
+  }
+
+  @Mutation(() => Contract)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  liveContract(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @CurrentUser() _user: User,
+  ) {
+    return this.contractsService.liveContract(contractId);
+  }
+
+  @Mutation(() => Contract)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  disableContract(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @CurrentUser() _user: User,
+  ) {
+    return this.contractsService.disableContract(contractId);
   }
 }

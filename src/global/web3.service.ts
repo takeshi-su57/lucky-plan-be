@@ -14,6 +14,8 @@ import {
   Erc20ApprovePayload,
   GetBlockPayload,
   GetLogsPayload,
+  EstimateFeesPerGasPayload,
+  GetBlockNumberPayload,
 } from 'src/microservices/web3Service/types';
 import { Block, Log, TransactionReceipt } from 'viem';
 
@@ -115,10 +117,10 @@ export class Web3Service {
     });
   }
 
-  async estimateFeesPerGas(chainId: number) {
+  async estimateFeesPerGas(data: EstimateFeesPerGasPayload) {
     return await new Promise<{ maxFeePerGas: bigint }>((resolve, reject) => {
       this.redisClient
-        .send(PATTERNS.Web3.EstimateFeesPerGas, chainId)
+        .send(PATTERNS.Web3.EstimateFeesPerGas, bigIntSafeJsonStringify(data))
         .subscribe({
           next: (data) =>
             resolve(bigIntSafeJsonParse<{ maxFeePerGas: bigint }>(data)),
@@ -127,12 +129,14 @@ export class Web3Service {
     });
   }
 
-  async getBlockNumber(chainId: number) {
+  async getBlockNumber(data: GetBlockNumberPayload) {
     return await new Promise<bigint>((resolve, reject) => {
-      this.redisClient.send(PATTERNS.Web3.GetBlockNumber, chainId).subscribe({
-        next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
-        error: (err) => reject(err),
-      });
+      this.redisClient
+        .send(PATTERNS.Web3.GetBlockNumber, bigIntSafeJsonStringify(data))
+        .subscribe({
+          next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
+          error: (err) => reject(err),
+        });
     });
   }
 

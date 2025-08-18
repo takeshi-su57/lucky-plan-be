@@ -11,8 +11,7 @@ import { PrismaService } from './prisma.service';
 import { SecurityService } from './security.service';
 import { LogsService } from './logs.service';
 
-import { GnsV9Service } from './gnsV9.service';
-import { GnsV10Service } from './gnsV10.service';
+import { GnsService } from './gns.service';
 import { Web3Service } from './web3.service';
 
 export const PUB_SUB = Symbol('PUB_SUB');
@@ -97,8 +96,7 @@ export class DateScalar
       provide: PUB_SUB,
       useValue: new PubSub(),
     },
-    GnsV9Service,
-    GnsV10Service,
+    GnsService,
     Web3Service,
     DateScalar,
   ],
@@ -108,8 +106,7 @@ export class DateScalar
     SecurityService,
     PUB_SUB,
     LogsService,
-    GnsV9Service,
-    GnsV10Service,
+    GnsService,
     Web3Service,
     DateScalar,
   ],

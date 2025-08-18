@@ -1,6 +1,7 @@
-import { UseGuards } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { PnlSnapshotKind, UserPermission } from '@prisma/client';
+import { ClientProxy } from '@nestjs/microservices';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
@@ -24,10 +25,12 @@ import {
 import { TradeHistoriesService } from './trade-histories.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { BacktestService } from './backtest.service';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
+    @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
     private readonly backtestService: BacktestService,
@@ -36,33 +39,57 @@ export class TradeHistoriesResolver {
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  buildPnlSnapshots(
+  async buildPnlSnapshots(
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return this.pnlSnapshotsService.buildSnapshots(dateStr, isForceBuild);
+    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.BuildPnlSnapshot, {
+          dateStr,
+          isForceBuild,
+        })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  dynamicSnapshotBuild(
+  async dynamicSnapshotBuild(
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return this.pnlSnapshotsService.dynamicSnapshotBuild(dateStr);
+    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.DynamicSnapshotBuild, { dateStr })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  initializePnlSnapshot(
+  async initializePnlSnapshot(
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return this.pnlSnapshotsService.initializePnlSnapshot(
-      beginingDate,
-      isForceBuild,
-    );
+    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.InitializePnlSnapshot, {
+          beginingDate,
+          isForceBuild,
+        })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   @Query(() => PnlSnapshotInitializedFlag, { nullable: true })

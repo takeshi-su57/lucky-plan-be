@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
-import { Contract } from '@prisma/client';
+import { Contract, ContractStatus } from '@prisma/client';
 
 import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
@@ -12,7 +12,7 @@ import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { getReadableError } from '../../utils';
 import { LogsService } from '../../global/logs.service';
-import { ServiceStatus } from 'src/types';
+import { ChainPriority, ServiceStatus } from 'src/types';
 import { Web3Service } from '../../global/web3.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
@@ -22,7 +22,8 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 );
 
 @Injectable()
-export class ContractMonitorService {
+export class TradingService {
+  isReceivedKillProcess = false;
   status: ServiceStatus;
 
   readonly registeredEventNames: string[] = [];
@@ -36,6 +37,7 @@ export class ContractMonitorService {
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
+    this.isReceivedKillProcess = false;
   }
 
   async checkContractsForBots() {
@@ -43,30 +45,32 @@ export class ContractMonitorService {
 
     const contracts = await this.contractsService.findAll();
 
-    for (const contract of contracts) {
-      // temporarily skip testnet contracts
-      // if (contract.isTestnet) {
-      //   continue;
-      // }
+    const promises = contracts
+      .filter((contract) => contract.status === ContractStatus.Live)
+      .map((contract) => this.checkContractForBots(contract));
 
-      await this.checkContractForBots(contract);
-    }
+    await Promise.allSettled(promises);
 
     this.status = ServiceStatus.READY;
   }
 
   async checkContractForBots(contract: Contract) {
     try {
-      const currentBlockNumber = await this.web3Service.getBlockNumber(
-        contract.chainId,
-      );
+      const currentBlockNumber = await this.web3Service.getBlockNumber({
+        chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
+      });
 
       let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
 
       while (fromBlock <= currentBlockNumber) {
+        if (this.isReceivedKillProcess) {
+          break;
+        }
+
         const toBlock =
-          fromBlock + ContractMonitorService.BATCH_SIZE < currentBlockNumber
-            ? fromBlock + ContractMonitorService.BATCH_SIZE
+          fromBlock + TradingService.BATCH_SIZE < currentBlockNumber
+            ? fromBlock + TradingService.BATCH_SIZE
             : currentBlockNumber;
 
         const actionItems = await this.getLogs(fromBlock, toBlock, contract);
@@ -101,6 +105,7 @@ export class ContractMonitorService {
     return (
       await this.web3Service.getLogs({
         chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
         address: contract.address as Address,
         fromBlock,
         toBlock,

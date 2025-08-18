@@ -7,7 +7,8 @@ import { GlobalModule } from '../../global/global.module';
 import { ContractsModule } from '../apiService/modules/contracts/contracts.module';
 import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trade-histories.module';
 
-import { ContractMonitorService } from './contract-monitor.service';
+import { LeaderboardService } from './leaderboard.service';
+import { PlansModule } from '../apiService/modules/plans/plans.module';
 
 @Module({
   imports: [
@@ -15,8 +16,9 @@ import { ContractMonitorService } from './contract-monitor.service';
     GlobalModule,
     ContractsModule,
     TradeHistoriesModule,
+    PlansModule,
   ],
   controllers: [LeaderboardController],
-  providers: [ContractMonitorService],
+  providers: [LeaderboardService],
 })
 export class LeaderboardModule {}

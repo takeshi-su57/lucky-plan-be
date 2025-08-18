@@ -24,7 +24,7 @@ import {
   WithdrawPositivePnlInput,
 } from './dto/follower.input';
 import { getReadableError } from 'src/utils';
-import { EncryptedData } from 'src/types';
+import { ChainPriority, EncryptedData } from 'src/types';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
@@ -32,7 +32,7 @@ import { LogsService } from 'src/global/logs.service';
 import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { Web3Service } from 'src/global/web3.service';
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 
 @Injectable()
 export class FollowerService {
@@ -40,7 +40,7 @@ export class FollowerService {
     private prismaService: PrismaService,
     private contractService: ContractsService,
     private web3Service: Web3Service,
-    private gnsV10Service: GnsV10Service,
+    private gnsService: GnsService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
     private securityService: SecurityService,
@@ -117,7 +117,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -167,6 +167,7 @@ export class FollowerService {
           chainId: contract.chainId,
           hash: tx as `0x${string}`,
           confirmations: 6,
+          priority: ChainPriority.LOW,
         });
 
         return transaction.status === 'success';
@@ -248,7 +249,7 @@ export class FollowerService {
         return true;
       }
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -277,14 +278,16 @@ export class FollowerService {
         case 'eth': {
           const gas = await this.web3Service.estimateGas({
             chainId: contract.chainId,
+            priority: ChainPriority.LOW,
             accountAddress: follower.address as Address,
             toAddress: masterFollower.address as Address,
             amount,
           });
 
-          const { maxFeePerGas } = await this.web3Service.estimateFeesPerGas(
-            contract.chainId,
-          );
+          const { maxFeePerGas } = await this.web3Service.estimateFeesPerGas({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+          });
 
           tx = await this.web3Service.nativeTransfer({
             chainId: contract.chainId,
@@ -307,6 +310,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 6,
         });
@@ -334,7 +338,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -343,6 +347,7 @@ export class FollowerService {
 
       const usdcBalance = await this.web3Service.erc20Balance({
         chainId: contract.chainId,
+        priority: ChainPriority.LOW,
         erc20ContractAddress: collateralInfo.collateral,
         address: address as Address,
       });
@@ -379,6 +384,7 @@ export class FollowerService {
 
       const ethBalance = await this.web3Service.nativeBalance({
         chainId: contract.chainId,
+        priority: ChainPriority.LOW,
         address: address as Address,
       });
 
@@ -448,7 +454,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contract.id,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -496,6 +502,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 6,
         });
@@ -524,7 +531,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsV10Service.getCollateral(
+      const collateralInfo = this.gnsService.getCollateral(
         contractId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
@@ -631,8 +638,9 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const pendingOrders = await this.gnsV10Service.getPendingOrders({
+      const pendingOrders = await this.gnsService.getPendingOrders({
         contractId,
+        priority: ChainPriority.LOW,
         args: {
           address: address as Address,
         },
@@ -671,8 +679,9 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const trades = await this.gnsV10Service.getTrades({
+      const trades = await this.gnsService.getTrades({
         contractId,
+        priority: ChainPriority.LOW,
         args: {
           address: address as Address,
         },
@@ -805,11 +814,9 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const currentPrice = await this.gnsV10Service.getPairPrice(
-        input.pairIndex,
-      );
+      const currentPrice = await this.gnsService.getPairPrice(input.pairIndex);
 
-      tx = await this.gnsV10Service.closeTradeMarket({
+      tx = await this.gnsService.closeTradeMarket({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -822,6 +829,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -915,7 +923,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.updateSl({
+      tx = await this.gnsService.updateSl({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -928,6 +936,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1021,7 +1030,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.updateTp({
+      tx = await this.gnsService.updateTp({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1034,6 +1043,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1127,7 +1137,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.withdrawPositivePnl({
+      tx = await this.gnsService.withdrawPositivePnl({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1140,6 +1150,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1232,7 +1243,7 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      tx = await this.gnsV10Service.cancelOrderAfterTimeout({
+      tx = await this.gnsService.cancelOrderAfterTimeout({
         mnemonic,
         accountIndex: follower.accountIndex,
         contractId: input.contractId,
@@ -1244,6 +1255,7 @@ export class FollowerService {
       if (tx) {
         const transaction = await this.web3Service.waitForTransactionReceipt({
           chainId: contract.chainId,
+          priority: ChainPriority.LOW,
           hash: tx as `0x${string}`,
           confirmations: 1,
         });
@@ -1370,7 +1382,7 @@ export class FollowerService {
   ): Promise<FollowerConnection> {
     const contract = await this.contractService.findOne(contractId);
 
-    const collateralInfo = this.gnsV10Service.getCollateral(
+    const collateralInfo = this.gnsService.getCollateral(
       contractId,
       USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
     );
@@ -1404,6 +1416,7 @@ export class FollowerService {
           entity.accountIndex === 1
             ? await this.web3Service.erc20Balance({
                 chainId: contract.chainId,
+                priority: ChainPriority.LOW,
                 erc20ContractAddress: collateralInfo.collateral,
                 address: entity.address as Address,
               })
@@ -1415,6 +1428,7 @@ export class FollowerService {
           entity.accountIndex === 1
             ? await this.web3Service.nativeBalance({
                 chainId: contract.chainId,
+                priority: ChainPriority.LOW,
                 address: entity.address as Address,
               })
             : 0n;

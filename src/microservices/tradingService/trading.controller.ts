@@ -7,38 +7,37 @@ import { ServiceStatus } from 'src/types';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
-import { GnsV10Service } from 'src/global/gnsV10.service';
+import { GnsService } from 'src/global/gns.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { ContractMonitorService } from './contract-monitor.service';
+import { TradingService } from './trading.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
 import { LogsService } from 'src/global/logs.service';
+import { PlansService } from '../apiService/modules/plans/plans.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
-  private isReceivedKillProcess = false;
   private isAppBootstrapped = false;
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
-    private readonly contractMonitorService: ContractMonitorService,
-    private readonly gnsV10Service: GnsV10Service,
+    private readonly tradingService: TradingService,
+    private readonly gnsService: GnsService,
     private readonly botsService: BotsService,
+    private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
     private readonly logger: LogsService,
-  ) {
-    this.isReceivedKillProcess = false;
-  }
+  ) {}
 
   onApplicationBootstrap() {
     this.isAppBootstrapped = true;
   }
 
   private async reloadTradingVariables() {
-    this.gnsV10Service.status = ServiceStatus.PAUSED;
+    this.gnsService.status = ServiceStatus.PAUSED;
 
     await delay(20_000);
 
-    await this.gnsV10Service.loadTradingVariables();
+    await this.gnsService.loadTradingVariables();
 
     await this.logger.nativeLog({
       severity: 'Info',
@@ -49,7 +48,7 @@ export class TradingController implements OnApplicationBootstrap {
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess() {
-    this.isReceivedKillProcess = true;
+    this.tradingService.isReceivedKillProcess = true;
 
     this.logger.nativeLog({
       severity: 'Info',
@@ -61,7 +60,7 @@ export class TradingController implements OnApplicationBootstrap {
       await delay(1000);
 
       if (
-        this.contractMonitorService.status !== ServiceStatus.READY ||
+        this.tradingService.status !== ServiceStatus.READY ||
         this.botsService.status !== ServiceStatus.READY
       ) {
         continue;
@@ -83,22 +82,40 @@ export class TradingController implements OnApplicationBootstrap {
   @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
     if (
-      this.isReceivedKillProcess ||
-      this.gnsV10Service.status !== ServiceStatus.READY ||
-      this.contractMonitorService.status !== ServiceStatus.READY ||
+      this.tradingService.isReceivedKillProcess ||
+      this.gnsService.status !== ServiceStatus.READY ||
+      this.tradingService.status !== ServiceStatus.READY ||
       this.taskExecutorService.status !== ServiceStatus.READY
     ) {
       return;
     }
 
-    await this.contractMonitorService.checkContractsForBots();
+    await this.tradingService.checkContractsForBots();
     await this.taskExecutorService.performAvailableTasks();
     await this.taskExecutorService.handleFailedTasks();
   }
 
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkAndUpdateAllBots() {
+    if (
+      this.tradingService.isReceivedKillProcess ||
+      this.gnsService.status !== ServiceStatus.READY
+    ) {
+      return;
+    }
+
+    if (this.botsService.status === ServiceStatus.READY) {
+      await this.botsService.checkAndUpdateAllBots();
+    }
+
+    if (this.plansService.status === ServiceStatus.READY) {
+      await this.plansService.checkAndUpdateAllPlans();
+    }
+  }
+
   @Cron(CronExpression.EVERY_3_HOURS)
   async executeCronForReloadTradingVariables() {
-    if (this.isReceivedKillProcess) {
+    if (this.tradingService.isReceivedKillProcess) {
       return;
     }
 

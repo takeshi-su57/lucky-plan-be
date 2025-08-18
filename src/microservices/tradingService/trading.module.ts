@@ -16,7 +16,7 @@ import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trad
 import { TaskExecutorModule } from '../apiService/modules/task-executor/task-executor.module';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
 
-import { ContractMonitorService } from './contract-monitor.service';
+import { TradingService } from './trading.service';
 
 import { TradingController } from './trading.controller';
 
@@ -39,6 +39,6 @@ import { TradingController } from './trading.controller';
     PlansModule,
   ],
   controllers: [TradingController],
-  providers: [ContractMonitorService, ContractMonitorService],
+  providers: [TradingService],
 })
 export class TradingModule {}
