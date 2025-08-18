@@ -32,7 +32,7 @@ import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParse
 import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/market-executed.parser';
 import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/limit-executed.parser';
 
-import { getReadableError } from '../../utils';
+import { delay, getReadableError } from '../../utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
@@ -143,8 +143,19 @@ export class LeaderboardService {
       });
 
       while (fromBlock <= endBlock) {
-        if (this.isReceivedKillProcess) {
+        if (
+          this.isReceivedKillProcess ||
+          this.gnsService.status === ServiceStatus.KILLED
+        ) {
           break;
+        }
+
+        if (
+          this.gnsService.status === ServiceStatus.PAUSED ||
+          this.gnsService.status === ServiceStatus.PROCESS
+        ) {
+          await delay(10_000);
+          continue;
         }
 
         const toBlock =
