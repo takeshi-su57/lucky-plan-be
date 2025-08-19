@@ -10,10 +10,11 @@ import {
 
 import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { getReadableError } from '../../utils';
-import { LogsService } from '../../global/logs.service';
+import { delay, getReadableError } from 'src/utils';
+import { LogsService } from 'src/global/logs.service';
 import { ChainPriority, ServiceStatus } from 'src/types';
-import { Web3Service } from '../../global/web3.service';
+import { Web3Service } from 'src/global/web3.service';
+import { GnsService } from 'src/global/gns.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -34,6 +35,7 @@ export class TradingService {
     private botsService: BotsService,
     private contractsService: ContractsService,
     private readonly logger: LogsService,
+    private readonly gnsService: GnsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
@@ -64,8 +66,19 @@ export class TradingService {
       let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
 
       while (fromBlock <= currentBlockNumber) {
-        if (this.isReceivedKillProcess) {
+        if (
+          this.isReceivedKillProcess ||
+          this.gnsService.status === ServiceStatus.KILLED
+        ) {
           break;
+        }
+
+        if (
+          this.gnsService.status === ServiceStatus.PAUSED ||
+          this.gnsService.status === ServiceStatus.PROCESS
+        ) {
+          await delay(10_000);
+          continue;
         }
 
         const toBlock =
