@@ -112,7 +112,12 @@ export class LeaderboardService {
   }
 
   async startAdaption(contractId: number, shouldRestart: boolean) {
+    if (this.status[contractId] === ServiceStatus.PROCESS) {
+      return;
+    }
+
     this.status[contractId] = ServiceStatus.PROCESS;
+
     try {
       const contract = await this.contractsService.findOne(contractId);
 
@@ -154,6 +159,12 @@ export class LeaderboardService {
           this.gnsService.status === ServiceStatus.PAUSED ||
           this.gnsService.status === ServiceStatus.PROCESS
         ) {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'leaderboard>startAdaption',
+            details: `awaiting for gns service to be ready chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(endBlock)}`,
+          });
+
           await delay(10_000);
           continue;
         }
@@ -255,15 +266,15 @@ export class LeaderboardService {
         summary: 'leaderboard>startAdaption',
         details: `contractId:${contractId} ${getReadableError(err)}`,
       });
-    } finally {
-      await this.logger.log({
-        severity: 'Info',
-        summary: 'leaderboard>startAdaption>finally',
-        details: `contractId:${contractId}`,
-      });
-
-      this.status[contractId] = ServiceStatus.READY;
     }
+
+    await this.logger.log({
+      severity: 'Info',
+      summary: 'leaderboard>startAdaption',
+      details: `finished contractId:${contractId}`,
+    });
+
+    this.status[contractId] = ServiceStatus.READY;
   }
 
   private async cleanLogs(

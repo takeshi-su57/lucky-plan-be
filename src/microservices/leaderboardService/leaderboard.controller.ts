@@ -44,7 +44,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
   private async reloadTradingVariables() {
     this.gnsService.status = ServiceStatus.PAUSED;
 
-    await delay(20_000);
+    await delay(10_000);
 
     await this.gnsService.loadTradingVariables();
 
