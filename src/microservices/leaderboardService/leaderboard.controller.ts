@@ -68,6 +68,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
     while (true) {
       await delay(1000);
 
+      await this.logger.nativeLog({
+        severity: 'Info',
+        summary: 'leaderboard service killProcess',
+        details: JSON.stringify(this.leaderboardService.status, null, 2),
+      });
+
       const isBusy = Object.values(this.leaderboardService.status).some(
         (status) => status === ServiceStatus.PROCESS,
       );

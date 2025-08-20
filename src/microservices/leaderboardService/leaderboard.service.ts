@@ -101,27 +101,6 @@ export class LeaderboardService {
     return this.status;
   }
 
-  private async getValidBlock(
-    chainId: number,
-    blockNumber: bigint,
-  ): Promise<Block> {
-    try {
-      return await this.web3Service.getBlock({
-        chainId,
-        priority: ChainPriority.HIGH,
-        blockNumber,
-      });
-    } catch (err) {
-      const error = err as GetBlockErrorType;
-
-      if (error.name === 'BlockNotFoundError') {
-        return await this.getValidBlock(chainId, blockNumber + 1n);
-      }
-
-      throw err;
-    }
-  }
-
   async checkContractsForLeaderboard() {
     const contracts = await this.contractsService.findAll();
 
@@ -169,10 +148,27 @@ export class LeaderboardService {
       });
 
       while (fromBlock <= endBlock) {
+        const toBlock =
+          fromBlock + LeaderboardService.BATCH_SIZE < endBlock
+            ? fromBlock + LeaderboardService.BATCH_SIZE
+            : endBlock;
+
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'leaderboard>startAdaption',
+          details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        });
+
         if (
           this.isReceivedKillProcess ||
           this.gnsService.status === ServiceStatus.KILLED
         ) {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'leaderboard>startAdaption',
+            details: `killed by gnsService stopped or kill process received`,
+          });
+
           break;
         }
 
@@ -183,17 +179,12 @@ export class LeaderboardService {
           await this.logger.log({
             severity: 'Info',
             summary: 'leaderboard>startAdaption',
-            details: `awaiting for gns service to be ready chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(endBlock)}`,
+            details: `Awaited by gnsService paused`,
           });
 
           await delay(10_000);
           continue;
         }
-
-        const toBlock =
-          fromBlock + LeaderboardService.BATCH_SIZE < endBlock
-            ? fromBlock + LeaderboardService.BATCH_SIZE
-            : endBlock;
 
         const logs = (
           await this.web3Service.getLogs({
@@ -205,7 +196,11 @@ export class LeaderboardService {
           })
         ).filter((log) => log.topics.length > 0);
 
-        const block = await this.getValidBlock(contract.chainId, fromBlock);
+        const block = await this.web3Service.getValidBlock({
+          chainId: contract.chainId,
+          priority: ChainPriority.HIGH,
+          blockNumber: fromBlock,
+        });
 
         const eventLogs = logs
           .filter(
@@ -268,12 +263,6 @@ export class LeaderboardService {
           contract.id,
           Number(toBlock),
         );
-
-        await this.logger.log({
-          severity: 'Info',
-          summary: 'leaderboard>startAdaption',
-          details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        });
 
         fromBlock = toBlock + 1n;
       }

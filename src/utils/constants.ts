@@ -86,6 +86,7 @@ export const PATTERNS = {
     EstimateFeesPerGas: 'ESTIMATE_FEES_PER_GAS',
     GetBlockNumber: 'GET_BLOCK_NUMBER',
     GetBlock: 'GET_BLOCK',
+    GetValidBlock: 'GET_VALID_BLOCK',
     GetLogs: 'GET_LOGS',
   },
   Leaderboard: {

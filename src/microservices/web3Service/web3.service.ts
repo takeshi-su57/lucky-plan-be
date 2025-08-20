@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { erc20Abi } from 'viem';
+import { Block, erc20Abi, GetBlockErrorType } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 
 import { ChainsService } from './chains.service';
@@ -198,6 +198,31 @@ export class Web3Service {
         });
       },
     );
+  }
+
+  async getValidBlock(payload: GetBlockPayload): Promise<Block> {
+    try {
+      return await this.chainsService.readWithSemaphore(
+        payload.chainId,
+        payload.priority,
+        async (publicClient) => {
+          return await publicClient.getBlock({
+            blockNumber: payload.blockNumber,
+          });
+        },
+      );
+    } catch (err) {
+      const error = err as GetBlockErrorType;
+
+      if (error.name === 'BlockNotFoundError') {
+        return await this.getValidBlock({
+          ...payload,
+          blockNumber: payload.blockNumber + 1n,
+        });
+      }
+
+      throw err;
+    }
   }
 
   async getLogs(payload: GetLogsPayload) {
