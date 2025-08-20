@@ -32,6 +32,7 @@ import {
   TradeCollateral,
   TradePair,
 } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
+import { timeout } from 'rxjs';
 
 @Injectable()
 export class GnsService {
@@ -66,6 +67,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.OpenTrade, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -80,6 +82,7 @@ export class GnsService {
           PATTERNS.Gns.UpdateMaxClosingSlippageP,
           bigIntSafeJsonStringify(data),
         )
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -91,6 +94,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.CloseTradeMarket, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -105,6 +109,7 @@ export class GnsService {
           PATTERNS.Gns.CancelOrderAfterTimeout,
           bigIntSafeJsonStringify(data),
         )
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -116,6 +121,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.UpdateTp, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -127,6 +133,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.UpdateSl, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -138,6 +145,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.UpdateLeverage, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -149,6 +157,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.IncreasePositionSize, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -160,6 +169,7 @@ export class GnsService {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.DecreasePositionSize, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -174,6 +184,7 @@ export class GnsService {
           PATTERNS.Gns.V10.WithdrawPositivePnl,
           bigIntSafeJsonStringify(data),
         )
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -197,6 +208,7 @@ export class GnsService {
     return await new Promise<GetTradesReturnType>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.GetTrades, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) =>
             resolve(bigIntSafeJsonParse<GetTradesReturnType>(data)),
@@ -209,6 +221,7 @@ export class GnsService {
     return await new Promise<GetTradeReturnType>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.GetTrade, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) =>
             resolve(bigIntSafeJsonParse<GetTradeReturnType>(data)),
@@ -221,6 +234,7 @@ export class GnsService {
     return await new Promise<TradingVariable>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Gns.GetTradingVariable, contractId)
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<TradingVariable>(data)),
           error: (err) => reject(err),
@@ -236,6 +250,7 @@ export class GnsService {
             PATTERNS.Gns.GetCollateralPrice,
             bigIntSafeJsonStringify(payload),
           )
+          .pipe(timeout(120_000))
           .subscribe({
             next: (data) =>
               resolve(bigIntSafeJsonParse<GetCollateralPriceReturnType>(data)),

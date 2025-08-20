@@ -18,6 +18,7 @@ import {
   GetBlockNumberPayload,
 } from 'src/microservices/web3Service/types';
 import { Block, Log, TransactionReceipt } from 'viem';
+import { timeout } from 'rxjs';
 
 @Injectable()
 export class Web3Service {
@@ -29,6 +30,7 @@ export class Web3Service {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.Erc20Transfer, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -40,6 +42,7 @@ export class Web3Service {
     return await new Promise<bigint>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.Erc20Balance, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
           error: (err) => reject(err),
@@ -51,6 +54,7 @@ export class Web3Service {
     return await new Promise<bigint>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.Erc20Allowance, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
           error: (err) => reject(err),
@@ -62,6 +66,7 @@ export class Web3Service {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.Erc20Approve, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -73,6 +78,7 @@ export class Web3Service {
     return await new Promise<`0x${string}`>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.NativeTransfer, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
@@ -84,6 +90,7 @@ export class Web3Service {
     return await new Promise<bigint>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.NativeBalance, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
           error: (err) => reject(err),
@@ -98,6 +105,7 @@ export class Web3Service {
           PATTERNS.Web3.WaitForTransactionReceipt,
           bigIntSafeJsonStringify(data),
         )
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) =>
             resolve(bigIntSafeJsonParse<TransactionReceipt>(data)),
@@ -110,6 +118,7 @@ export class Web3Service {
     return await new Promise<bigint>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.EstimateGas, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
           error: (err) => reject(err),
@@ -121,6 +130,7 @@ export class Web3Service {
     return await new Promise<{ maxFeePerGas: bigint }>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.EstimateFeesPerGas, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) =>
             resolve(bigIntSafeJsonParse<{ maxFeePerGas: bigint }>(data)),
@@ -133,6 +143,7 @@ export class Web3Service {
     return await new Promise<bigint>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.GetBlockNumber, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<bigint>(data)),
           error: (err) => reject(err),
@@ -144,6 +155,7 @@ export class Web3Service {
     return await new Promise<Block>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.GetBlock, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<Block>(data)),
           error: (err) => reject(err),
@@ -155,6 +167,7 @@ export class Web3Service {
     return await new Promise<Block>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.GetValidBlock, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<Block>(data)),
           error: (err) => reject(err),
@@ -166,6 +179,7 @@ export class Web3Service {
     return await new Promise<Log[]>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Web3.GetLogs, bigIntSafeJsonStringify(data))
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(bigIntSafeJsonParse<Log[]>(data)),
           error: (err) => reject(err),

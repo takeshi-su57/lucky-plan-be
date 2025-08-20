@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { timeout } from 'rxjs';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
@@ -24,10 +25,13 @@ export class SecurityService {
 
   async encrypt(text: string) {
     return await new Promise<EncryptedData>((resolve, reject) => {
-      this.redisClient.send(PATTERNS.Security.Encrypt, text).subscribe({
-        next: (data) => resolve(data),
-        error: (err) => reject(err),
-      });
+      this.redisClient
+        .send(PATTERNS.Security.Encrypt, text)
+        .pipe(timeout(120_000))
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
     });
   }
 

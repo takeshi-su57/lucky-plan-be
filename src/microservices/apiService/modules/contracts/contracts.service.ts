@@ -1,5 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { timeout } from 'rxjs';
+import { ContractStatus } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 
@@ -8,7 +10,6 @@ import {
   ChangeContractStatusInput,
 } from './dto/contract.input';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { ContractStatus } from '@prisma/client';
 import { ChainPriority } from 'src/types';
 import { Web3Service } from 'src/global/web3.service';
 
@@ -79,6 +80,7 @@ export class ContractsService {
     return await new Promise<string>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Leaderboard.GetAdaptionStatus, {})
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(JSON.stringify(data)),
           error: (err) => reject(err),
@@ -90,6 +92,7 @@ export class ContractsService {
     return await new Promise<boolean>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Leaderboard.StartAdaption, { contractId, shouldRestart })
+        .pipe(timeout(120_000))
         .subscribe({
           next: (data) => resolve(data),
           error: (err) => reject(err),
