@@ -151,6 +151,17 @@ export class Web3Service {
     });
   }
 
+  async getValidBlock(data: GetBlockPayload) {
+    return await new Promise<Block>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Web3.GetValidBlock, bigIntSafeJsonStringify(data))
+        .subscribe({
+          next: (data) => resolve(bigIntSafeJsonParse<Block>(data)),
+          error: (err) => reject(err),
+        });
+    });
+  }
+
   async getLogs(data: GetLogsPayload) {
     return await new Promise<Log[]>((resolve, reject) => {
       this.redisClient

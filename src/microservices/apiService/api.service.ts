@@ -101,8 +101,20 @@ export class ApiService {
         },
       });
 
+      child.stdout.on('data', (data) => {
+        this.logger.log({
+          severity: 'Info',
+          summary: service,
+          details: data,
+        });
+      });
+
       child.stderr.on('data', (data) => {
-        console.error(`[${service} error] ${data}`);
+        this.logger.log({
+          severity: 'Error',
+          summary: service,
+          details: data,
+        });
       });
 
       child.on('exit', (code) => {

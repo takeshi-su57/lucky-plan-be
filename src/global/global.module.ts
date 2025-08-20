@@ -81,6 +81,8 @@ export class DateScalar
           options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
+            retryAttempts: Number.MAX_SAFE_INTEGER,
+            retryDelay: 1000,
           },
         },
       ],

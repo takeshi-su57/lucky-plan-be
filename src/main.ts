@@ -21,8 +21,8 @@ async function bootstrap() {
           options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
-            retryDelay: 5000,
-            retryAttempts: 10,
+            retryAttempts: Number.MAX_SAFE_INTEGER,
+            retryDelay: 1000,
           },
         },
       );
@@ -38,8 +38,8 @@ async function bootstrap() {
           options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
-            retryDelay: 5000,
-            retryAttempts: 10,
+            retryAttempts: Number.MAX_SAFE_INTEGER,
+            retryDelay: 1000,
           },
         },
       );
@@ -55,8 +55,8 @@ async function bootstrap() {
           options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
-            retryDelay: 5000,
-            retryAttempts: 10,
+            retryAttempts: Number.MAX_SAFE_INTEGER,
+            retryDelay: 1000,
           },
         },
       );
@@ -72,8 +72,8 @@ async function bootstrap() {
         options: {
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
-          retryDelay: 5000,
-          retryAttempts: 10,
+          retryAttempts: Number.MAX_SAFE_INTEGER,
+          retryDelay: 1000,
         },
       });
 

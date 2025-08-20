@@ -157,6 +157,15 @@ export class Web3Controller implements OnApplicationBootstrap {
     );
   }
 
+  @MessagePattern(PATTERNS.Web3.GetValidBlock)
+  async getValidBlock(@Payload() payload: string) {
+    return bigIntSafeJsonStringify(
+      await this.web3Service.getValidBlock(
+        bigIntSafeJsonParse<GetBlockPayload>(payload),
+      ),
+    );
+  }
+
   @MessagePattern(PATTERNS.Web3.GetLogs)
   async getLogs(@Payload() payload: string) {
     return bigIntSafeJsonStringify(
