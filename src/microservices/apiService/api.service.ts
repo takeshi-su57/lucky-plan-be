@@ -105,7 +105,7 @@ export class ApiService {
         this.logger.log({
           severity: 'Info',
           summary: service,
-          details: data,
+          details: `${data}`,
         });
       });
 
@@ -113,7 +113,7 @@ export class ApiService {
         this.logger.log({
           severity: 'Error',
           summary: service,
-          details: data,
+          details: `${data}`,
         });
       });
 
