@@ -148,10 +148,27 @@ export class LeaderboardService {
       });
 
       while (fromBlock <= endBlock) {
+        const toBlock =
+          fromBlock + LeaderboardService.BATCH_SIZE < endBlock
+            ? fromBlock + LeaderboardService.BATCH_SIZE
+            : endBlock;
+
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'leaderboard>startAdaption',
+          details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+        });
+
         if (
           this.isReceivedKillProcess ||
           this.gnsService.status === ServiceStatus.KILLED
         ) {
+          await this.logger.log({
+            severity: 'Info',
+            summary: 'leaderboard>startAdaption',
+            details: `killed by gnsService stopped or kill process received`,
+          });
+
           break;
         }
 
@@ -162,17 +179,12 @@ export class LeaderboardService {
           await this.logger.log({
             severity: 'Info',
             summary: 'leaderboard>startAdaption',
-            details: `awaiting for gns service to be ready chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(endBlock)}`,
+            details: `Awaited by gnsService paused`,
           });
 
           await delay(10_000);
           continue;
         }
-
-        const toBlock =
-          fromBlock + LeaderboardService.BATCH_SIZE < endBlock
-            ? fromBlock + LeaderboardService.BATCH_SIZE
-            : endBlock;
 
         const logs = (
           await this.web3Service.getLogs({
@@ -251,12 +263,6 @@ export class LeaderboardService {
           contract.id,
           Number(toBlock),
         );
-
-        await this.logger.log({
-          severity: 'Info',
-          summary: 'leaderboard>startAdaption',
-          details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
-        });
 
         fromBlock = toBlock + 1n;
       }
