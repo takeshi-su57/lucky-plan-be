@@ -50,9 +50,11 @@ model Strategy {
 
 enum Platform {
   GNS
+  GMX
 }
 
 enum Version {
+  V2
   V9
   V10
 }

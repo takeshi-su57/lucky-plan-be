@@ -47,6 +47,12 @@ import {
   CancelReason,
   PendingOrderType,
 } from '../web3Service/platform/gns/v10/types';
+import { EventEmitterAbi as gmxV2Abi } from 'src/microservices/web3Service/platform/gmx/v2/abi/EventEmitter';
+import { parseEvent } from '../web3Service/platform/gmx/v2/eventParsers';
+import {
+  PositionDecreaseEventType,
+  PositionIncreaseEventType,
+} from '../web3Service/platform/gmx/v2/types';
 
 const gnsV10EventSignatures: Record<string, string> = Object.fromEntries(
   gnsV10Abi
@@ -76,7 +82,34 @@ const info = {
       abi: gnsV10Abi,
     },
   },
+  [Platform.GMX]: {
+    [Version.V2]: {
+      tradeEventNames: ['PositionIncrease', 'PositionDecrease'],
+      eventSignatures: null,
+      abi: gmxV2Abi,
+    },
+  },
 };
+
+function getInfo(platform: Platform, version: Version) {
+  if (platform === Platform.GNS) {
+    if (version === Version.V9 || version === Version.V10) {
+      return info[Platform.GNS][version];
+    } else {
+      throw new Error('Invalid version');
+    }
+  }
+
+  if (platform === Platform.GMX) {
+    if (version === Version.V2) {
+      return info[Platform.GMX][version];
+    } else {
+      throw new Error('Invalid version');
+    }
+  }
+
+  throw new Error('Invalid platform');
+}
 
 @Injectable()
 export class LeaderboardService {
@@ -203,18 +236,28 @@ export class LeaderboardService {
         });
 
         const eventLogs = logs
-          .filter(
-            (log) =>
-              info[contract.platform][contract.version].eventSignatures[
-                log.topics[0] as string
-              ],
-          )
+          .filter((log) => {
+            const info = getInfo(contract.platform, contract.version);
+
+            return info.eventSignatures
+              ? info.eventSignatures[log.topics[0] as string]
+              : true;
+          })
           .map((log) => {
-            const eventLog = decodeEventLog({
-              abi: info[contract.platform][contract.version].abi,
+            const decoded: any = decodeEventLog({
+              abi: getInfo(contract.platform, contract.version).abi,
               data: log.data,
               topics: log.topics,
             });
+
+            let eventLog = decoded;
+
+            if (contract.platform === Platform.GMX) {
+              eventLog = parseEvent(
+                decoded.args.eventName,
+                decoded.args.eventData,
+              );
+            }
 
             return {
               eventLog,
@@ -236,7 +279,7 @@ export class LeaderboardService {
         );
 
         const perpTradeEventLogs = eventLogs.filter((log) =>
-          info[contract.platform][contract.version].tradeEventNames.includes(
+          getInfo(contract.platform, contract.version).tradeEventNames.includes(
             log.eventLog.eventName,
           ),
         );
@@ -252,6 +295,16 @@ export class LeaderboardService {
 
           if (contract.version === Version.V10) {
             await this.handleEventLogForGnsV10({
+              contract,
+              block,
+              perpTradeEventLogs,
+            });
+          }
+        }
+
+        if (contract.platform === Platform.GMX) {
+          if (contract.version === Version.V2) {
+            await this.handleEventLogForGmxV2({
               contract,
               block,
               perpTradeEventLogs,
@@ -661,6 +714,58 @@ export class LeaderboardService {
         blockNumber: item.blockNumber,
         timestamp: new Date(Number(block.timestamp) * 1000),
       })),
+    );
+  }
+
+  private async handleEventLogForGmxV2({
+    contract,
+    block,
+    perpTradeEventLogs,
+  }: {
+    contract: Contract;
+    block: Block;
+    perpTradeEventLogs: {
+      eventLog: any;
+      blockNumber: number;
+      logIndex: number;
+    }[];
+  }) {
+    const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
+      perpTradeEventLogs.map((log) => {
+        let usdPnl = 0;
+
+        switch (log.eventLog.eventName) {
+          case 'PositionIncrease': {
+            usdPnl = Number(log.eventLog.args.priceImpactUsd.toString()) / 1e30;
+            break;
+          }
+          case 'PositionDecrease': {
+            usdPnl =
+              Number(log.eventLog.args.basePnlUsd.toString() / 1e30) +
+              Number(log.eventLog.args.priceImpactUsd.toString()) / 1e30;
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+
+        return {
+          contractId: contract.id,
+          platform: contract.platform,
+          address: log.eventLog.args.account.toLowerCase(),
+          jsonLog: JSON.stringify(log.eventLog, (_, v) =>
+            typeof v === 'bigint' ? v.toString() : v,
+          ),
+          usdPnl,
+          block: log.blockNumber,
+          logIndex: log.logIndex,
+          date: new Date(Number(block.timestamp) * 1000),
+        };
+      });
+
+    await this.eventLogsService.createManyPerpTradingEventLogs(
+      perpTradingEventInputs,
     );
   }
 }
