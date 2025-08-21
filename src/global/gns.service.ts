@@ -33,6 +33,7 @@ import {
   TradePair,
 } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 import { timeout } from 'rxjs';
+import { Platform } from '@prisma/client';
 
 @Injectable()
 export class GnsService {
@@ -50,7 +51,9 @@ export class GnsService {
   async loadTradingVariables() {
     this.status = ServiceStatus.PROCESS;
 
-    const contracts = await this.prismaService.contract.findMany();
+    const contracts = await this.prismaService.contract.findMany({
+      where: { platform: Platform.GNS },
+    });
 
     this.tradingVariable = {};
 

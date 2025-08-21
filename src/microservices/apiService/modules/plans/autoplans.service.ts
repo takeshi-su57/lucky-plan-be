@@ -5,6 +5,7 @@ import {
   TradeActionType,
   UserPermission,
   User,
+  Platform,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -511,6 +512,7 @@ export class AutoPlansService {
 
     const contracts = await this.prismaService.contract.findMany({
       where: {
+        platform: Platform.GNS,
         isTestnet: false,
       },
     });
