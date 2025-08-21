@@ -9,6 +9,8 @@ import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trad
 
 import { LeaderboardService } from './leaderboard.service';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
+import { GnsModule } from 'src/web3/platform/gns/gns.module';
+import { Web3Module } from 'src/web3/web3/web3.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { PlansModule } from '../apiService/modules/plans/plans.module';
     ContractsModule,
     TradeHistoriesModule,
     PlansModule,
+    GnsModule,
+    Web3Module,
   ],
   controllers: [LeaderboardController],
   providers: [LeaderboardService],

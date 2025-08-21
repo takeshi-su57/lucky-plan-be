@@ -43,8 +43,8 @@ import { getReadableError } from 'src/utils';
 
 import { StrategyService } from 'src/microservices/apiService/modules/strategy/strategy.service';
 import { LogsService } from 'src/global/logs.service';
-import { Web3Service } from 'src/global/web3.service';
-import { GnsService } from 'src/global/gns.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 @Injectable()
 export class BotsService {
@@ -53,7 +53,7 @@ export class BotsService {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
-    private readonly web3Service: Web3Service,
+    private readonly evmAdapterService: EvmAdapterService,
     private readonly gnsService: GnsService,
     private readonly missionsService: MissionsService,
     private readonly followersService: FollowerService,
@@ -208,7 +208,7 @@ export class BotsService {
         plan: { userId },
       } = bot;
 
-      const ethBalance = await this.web3Service.nativeBalance({
+      const ethBalance = await this.evmAdapterService.nativeBalance({
         chainId: followerContract.chainId,
         priority: ChainPriority.LOW,
         address: follower.address as Address,
@@ -497,7 +497,7 @@ export class BotsService {
       ],
     );
 
-    const allowance = await this.web3Service.erc20Allowance({
+    const allowance = await this.evmAdapterService.erc20Allowance({
       chainId: followerContract.chainId,
       erc20ContractAddress: collateralInfo.collateral,
       address: follower.address as Address,
@@ -506,7 +506,7 @@ export class BotsService {
     });
 
     if (allowance < 1000000n) {
-      await this.web3Service.erc20Approve({
+      await this.evmAdapterService.erc20Approve({
         chainId: followerContract.chainId,
         mnemonic,
         accountIndex: follower.accountIndex,
@@ -516,12 +516,12 @@ export class BotsService {
       });
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+    const leaderBlockNumber = await this.evmAdapterService.getBlockNumber({
       chainId: bot.leaderContract.chainId,
       priority: ChainPriority.HIGH,
     });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber({
+    const followerBlockNumber = await this.evmAdapterService.getBlockNumber({
       chainId: bot.followerContract.chainId,
       priority: ChainPriority.HIGH,
     });
@@ -576,12 +576,12 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    const leaderBlockNumber = await this.web3Service.getBlockNumber({
+    const leaderBlockNumber = await this.evmAdapterService.getBlockNumber({
       chainId: bot.leaderContract.chainId,
       priority: ChainPriority.HIGH,
     });
 
-    const followerBlockNumber = await this.web3Service.getBlockNumber({
+    const followerBlockNumber = await this.evmAdapterService.getBlockNumber({
       chainId: bot.followerContract.chainId,
       priority: ChainPriority.HIGH,
     });

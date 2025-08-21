@@ -20,11 +20,11 @@ import {
 } from './entities/trade-history.entity';
 import { ExportFilter } from './dto/trade-history.input';
 import { WholeCompressedHistories } from './entities/trade-history.entity';
-import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
+import { Pair } from 'src/web3/platform/gns/v10/types';
 import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 const dailyPlans = 8;

@@ -9,9 +9,9 @@ import {
   isCloseMissionAction,
   isSameUpdateAction,
   missionEventParsers,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 import { ActionContext, MissionContext } from 'src/types';
-import { CancelReason } from 'src/microservices/web3Service/platform/gns/v10/types';
+import { CancelReason } from 'src/web3/platform/gns/v10/types';
 
 import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
@@ -32,18 +32,18 @@ import {
   MissionDetails,
 } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 
-import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
-import { marketCloseCanceledEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-close-canceled';
-import { marketOrderInitiatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-order-initiated.parser';
-import { marketOpenCanceledEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-open-canceled';
+import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { positionSizeIncreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { marketCloseCanceledEventParser } from 'src/web3/platform/gns/v10/eventParsers/market-close-canceled';
+import { marketOrderInitiatedEventParser } from 'src/web3/platform/gns/v10/eventParsers/market-order-initiated.parser';
+import { marketOpenCanceledEventParser } from 'src/web3/platform/gns/v10/eventParsers/market-open-canceled';
 
 import { FollowerActionsService } from 'src/microservices/apiService/modules/follower-actions/follower-actions.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 @Injectable()
 export class TasksService {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Address, Block, decodeEventLog, GetBlockErrorType } from 'viem';
+import { Address, Block, decodeEventLog } from 'viem';
 import {
   Contract,
   ContractStatus,
@@ -8,29 +8,29 @@ import {
   Version,
 } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi as gnsV10Abi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
-import { gnsMultiCollatDiamondAbi as gnsV9Abi } from 'src/microservices/web3Service/platform/gns/v9/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi as gnsV10Abi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi as gnsV9Abi } from 'src/web3/platform/gns/v9/abi/GNSMultiCollatDiamond';
 
 import {
   eventParsers as eventParsersV10,
   eventToActionParser as eventToActionParserV10,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 import {
   eventParsers as eventParsersV9,
   eventToActionParser as eventToActionParserV9,
-} from 'src/microservices/web3Service/platform/gns/v9/eventParsers';
+} from 'src/web3/platform/gns/v9/eventParsers';
 
-import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV10EventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV10EventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
-import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV10EventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
-import { marketExecutedEventParser as marketExecutedV10EventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-executed.parser';
-import { limitExecutedEventParser as limitExecutedV10EventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/limit-executed.parser';
+import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser as marketExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/market-executed.parser';
+import { limitExecutedEventParser as limitExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/limit-executed.parser';
 
-import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-decrease-executed.parser';
-import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/leverage-update-executed.parser';
-import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/market-executed.parser';
-import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/limit-executed.parser';
+import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/market-executed.parser';
+import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/limit-executed.parser';
 
 import { delay, getReadableError } from '../../utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
@@ -38,21 +38,17 @@ import { ChainPriority, ServiceStatus } from 'src/types';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { TradeHistoriesService } from '../apiService/modules/trade-histories/trade-histories.service';
 import { LogsService } from '../../global/logs.service';
-import { Web3Service } from '../../global/web3.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { EventLogsService } from '../apiService/modules/trade-histories/event-logs.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { CreatePerpTradingEventLogInput } from '../apiService/modules/trade-histories/dto/event-logs.input';
 import {
   CancelReason,
   PendingOrderType,
-} from '../web3Service/platform/gns/v10/types';
-import { EventEmitterAbi as gmxV2Abi } from 'src/microservices/web3Service/platform/gmx/v2/abi/EventEmitter';
-import { parseEvent } from '../web3Service/platform/gmx/v2/eventParsers';
-import {
-  PositionDecreaseEventType,
-  PositionIncreaseEventType,
-} from '../web3Service/platform/gmx/v2/types';
+} from '../../web3/platform/gns/v10/types';
+import { EventEmitterAbi as gmxV2Abi } from 'src/web3/platform/gmx/v2/abi/EventEmitter';
+import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
 
 const gnsV10EventSignatures: Record<string, string> = Object.fromEntries(
   gnsV10Abi
@@ -119,7 +115,7 @@ export class LeaderboardService {
   static BATCH_SIZE = 4000n;
 
   constructor(
-    private readonly web3Service: Web3Service,
+    private readonly evmAdapterService: EvmAdapterService,
     private readonly contractsService: ContractsService,
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly eventLogsService: EventLogsService,
@@ -154,7 +150,7 @@ export class LeaderboardService {
     try {
       const contract = await this.contractsService.findOne(contractId);
 
-      const currentBlockNumber = await this.web3Service.getBlockNumber({
+      const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
         chainId: contract.chainId,
         priority: ChainPriority.HIGH,
       });
@@ -220,7 +216,7 @@ export class LeaderboardService {
         }
 
         const logs = (
-          await this.web3Service.getLogs({
+          await this.evmAdapterService.getLogs({
             chainId: contract.chainId,
             priority: ChainPriority.HIGH,
             address: contract.address as Address,
@@ -229,7 +225,7 @@ export class LeaderboardService {
           })
         ).filter((log) => log.topics.length > 0);
 
-        const block = await this.web3Service.getValidBlock({
+        const block = await this.evmAdapterService.getValidBlock({
           chainId: contract.chainId,
           priority: ChainPriority.HIGH,
           blockNumber: fromBlock,

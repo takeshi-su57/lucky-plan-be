@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, IsIn, IsNumber, IsJSON } from 'class-validator';
 
-import { eventParsers } from '../../../../web3Service/platform/gns/v10/eventParsers';
+import { eventParsers } from '../../../../../web3/platform/gns/v10/eventParsers';
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
 export class CreateActionInput {

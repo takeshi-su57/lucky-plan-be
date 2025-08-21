@@ -15,7 +15,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 import { getReadableError } from 'src/utils';
 import { CreatePlanInput } from './dto/plan.input';
@@ -23,7 +23,7 @@ import { CreateBotAndStrategyInput } from 'src/microservices/apiService/modules/
 
 import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
 
-import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
+import { Pair } from 'src/web3/platform/gns/v10/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
 import { TradeHistory } from '../trade-histories/entities/trade-history.entity';
 import { ServiceStatus } from 'src/types';

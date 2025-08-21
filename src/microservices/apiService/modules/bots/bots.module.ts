@@ -9,6 +9,8 @@ import { StrategyModule } from 'src/microservices/apiService/modules/strategy/st
 import { BotsService } from './bots.service';
 import { BotsResolver } from './bots.resolver';
 import { BotsController } from './bots.controller';
+import { Web3Module } from 'src/web3/web3/web3.module';
+import { GnsModule } from 'src/web3/platform/gns/gns.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { BotsController } from './bots.controller';
     ActionsModule,
     FollowerModule,
     StrategyModule,
+    Web3Module,
+    GnsModule,
   ],
   controllers: [BotsController],
   providers: [BotsService, BotsResolver],

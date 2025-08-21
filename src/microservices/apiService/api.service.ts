@@ -13,7 +13,7 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
 import { BacktestService } from './modules/trade-histories/backtest.service';
 
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 dayjs.extend(utc);
@@ -22,7 +22,6 @@ dayjs.extend(timezone);
 const microservices = [
   SERVICE_NAMES.LEADERBOARD_SERVICE,
   SERVICE_NAMES.TRADING_SERVICE,
-  SERVICE_NAMES.WEB3_SERVICE,
 ];
 
 @Injectable()
@@ -45,22 +44,12 @@ export class ApiService {
   }
 
   async updateProcessStatus(service: string, status: ServiceStatus) {
-    if (
-      service === SERVICE_NAMES.WEB3_SERVICE &&
-      status === ServiceStatus.READY
-    ) {
-      await this.logger.nativeLog({
-        severity: 'Info',
-        summary: 'api.service>updateProcessStatus',
-        details: `web3 service is ready, reloading trading variables`,
-      });
-
-      await this.reloadTradingVariables();
-
-      await this.backtestService.init();
-    }
-
     this.serviceStatus[service] = status;
+  }
+
+  async init() {
+    await this.reloadTradingVariables();
+    await this.backtestService.init();
   }
 
   async pauseSystem() {

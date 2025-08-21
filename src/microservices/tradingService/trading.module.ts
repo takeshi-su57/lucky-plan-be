@@ -15,6 +15,8 @@ import { FollowerActionsModule } from '../apiService/modules/follower-actions/fo
 import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trade-histories.module';
 import { TaskExecutorModule } from '../apiService/modules/task-executor/task-executor.module';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
+import { GnsModule } from 'src/web3/platform/gns/gns.module';
+import { Web3Module } from 'src/web3/web3/web3.module';
 
 import { TradingService } from './trading.service';
 
@@ -37,6 +39,8 @@ import { TradingController } from './trading.controller';
     TradeHistoriesModule,
     TaskExecutorModule,
     PlansModule,
+    GnsModule,
+    Web3Module,
   ],
   controllers: [TradingController],
   providers: [TradingService],

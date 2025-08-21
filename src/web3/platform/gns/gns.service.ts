@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Address, zeroAddress } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
+import { Platform } from '@prisma/client';
 
 import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
-import { ChainsService } from 'src/microservices/web3Service/chains.service';
+import { ChainsService } from 'src/web3/web3/chains.service';
 
 import {
   OpenTradePayload,
@@ -25,15 +26,46 @@ import {
   WithdrawPositivePnlPayload,
 } from './v10/types';
 import { LogsService } from 'src/global/logs.service';
-import { ChainPriority } from 'src/types';
+import { ChainPriority, ServiceStatus } from 'src/types';
+import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
+import {
+  TradeCollateral,
+  TradePair,
+} from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 
 @Injectable()
 export class GnsService {
+  private tradingVariable: Record<number, TradingVariable> = {};
+  public status: ServiceStatus;
+
   constructor(
     private readonly contractsService: ContractsService,
     private readonly chainsService: ChainsService,
     private readonly logger: LogsService,
-  ) {}
+  ) {
+    this.status = ServiceStatus.READY;
+    this.tradingVariable = {};
+  }
+
+  async loadTradingVariables() {
+    this.status = ServiceStatus.PROCESS;
+
+    const allContracts = await this.contractsService.findAll();
+
+    const contracts = allContracts.filter(
+      (contract) => contract.platform === Platform.GNS,
+    );
+
+    this.tradingVariable = {};
+
+    const promises = contracts.map((contract) =>
+      this.getTradingVariable(contract),
+    );
+
+    await Promise.allSettled(promises);
+
+    this.status = ServiceStatus.READY;
+  }
 
   async openTrade(payload: OpenTradePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
@@ -407,18 +439,16 @@ export class GnsService {
     );
   }
 
-  async getTradingVariable(contractId: number): Promise<TradingVariable> {
+  async getTradingVariable(contract: Contract): Promise<TradingVariable> {
     this.logger.nativeLog({
       severity: 'Info',
       summary: 'GnsService>getTradingVariable',
-      details: `Started loading trading variable for contract: ${contractId}`,
+      details: `Started loading trading variable for contract: ${contract.id}`,
     });
-
-    const contract = await this.contractsService.findOne(contractId);
 
     const refData = await this.chainsService.readWithSemaphore(
       contract.chainId,
-      ChainPriority.HIGH,
+      ChainPriority.LOW,
       async (publicClient) => {
         return await publicClient.multicall({
           contracts: [
@@ -445,7 +475,7 @@ export class GnsService {
 
     const pairsData = await this.chainsService.readWithSemaphore(
       contract.chainId,
-      ChainPriority.HIGH,
+      ChainPriority.LOW,
       async (publicClient) => {
         return await publicClient.multicall({
           contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
@@ -468,7 +498,7 @@ export class GnsService {
 
     const depthData = await this.chainsService.readWithSemaphore(
       contract.chainId,
-      ChainPriority.HIGH,
+      ChainPriority.LOW,
       async (publicClient) => {
         return await publicClient.readContract({
           address: contract.address as Address,
@@ -517,6 +547,98 @@ export class GnsService {
           args: [payload.args.collateralIndex],
         });
       },
+    );
+  }
+
+  async getPairPrice(pairIndex: number): Promise<bigint> {
+    const charts = await fetch(
+      'https://backend-pricing.eu.gains.trade/charts',
+    ).then((res) => res.json());
+
+    return BigInt(Math.floor(charts.closes[pairIndex] * 1e10));
+  }
+
+  getPair(contractId: number, pairIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].pairs[pairIndex];
+  }
+
+  getPairs(contractId: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].pairs;
+  }
+
+  getPairName(contractId: number, pairIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    const pair = this.tradingVariable[contractId].pairs[pairIndex];
+
+    return `${pair?.from}/${pair?.to}`;
+  }
+
+  getTradePairs(contractIds: number[]): TradePair[] {
+    const pairs: TradePair[] = [];
+
+    for (const contractId of contractIds) {
+      if (!this.tradingVariable[contractId]) {
+        throw new Error('Failed at getting trading variable');
+      }
+
+      pairs.push(
+        ...this.tradingVariable[contractId].pairs.map((pair, index) => ({
+          contractId,
+          pairIndex: index,
+          from: pair?.from || '',
+          to: pair?.to || '',
+          onePercentDepthAboveUsd:
+            pair?.depth.onePercentDepthAboveUsd.toString() || '0',
+          onePercentDepthBelowUsd:
+            pair?.depth.onePercentDepthBelowUsd.toString() || '0',
+        })),
+      );
+    }
+
+    return pairs;
+  }
+
+  getCollateral(contractId: number, collateralIndex: number) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error(`Failed at getting trading variable ${contractId}`);
+    }
+
+    if (
+      this.tradingVariable[contractId].collaterals.length < collateralIndex ||
+      collateralIndex === 0
+    ) {
+      throw new Error(
+        `Invalid collateral index collateralIndex:${collateralIndex}, collateralsLength: ${this.tradingVariable[contractId].collaterals.length}`,
+      );
+    }
+
+    return this.tradingVariable[contractId].collaterals[collateralIndex - 1];
+  }
+
+  getTradeCollaterals(contractId: number): TradeCollateral[] {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error('Failed at getting trading variable');
+    }
+
+    return this.tradingVariable[contractId].collaterals.map(
+      (collateral, index) => ({
+        collateralIndex: index + 1,
+        collateral: collateral.collateral,
+        isActive: collateral.isActive,
+        precision: collateral.precision.toString(),
+        precisionDelta: collateral.precisionDelta.toString(),
+      }),
     );
   }
 }

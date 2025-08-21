@@ -8,7 +8,7 @@ import {
   isOpenMissionAction,
   missionEventNames,
   missionEventParsers,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 
 import { ActionContext, BotContext, MissionContext } from 'src/types';
 import {
@@ -29,7 +29,7 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
