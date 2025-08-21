@@ -31,15 +31,15 @@ import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-
 import { LogsService } from 'src/global/logs.service';
 import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
-import { Web3Service } from 'src/global/web3.service';
-import { GnsService } from 'src/global/gns.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 @Injectable()
 export class FollowerService {
   constructor(
     private prismaService: PrismaService,
     private contractService: ContractsService,
-    private web3Service: Web3Service,
+    private evmAdapterService: EvmAdapterService,
     private gnsService: GnsService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private logger: LogsService,
@@ -126,7 +126,7 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          tx = await this.web3Service.erc20Transfer({
+          tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: masterFollower.accountIndex,
@@ -144,7 +144,7 @@ export class FollowerService {
           break;
         }
         case 'eth': {
-          tx = await this.web3Service.nativeTransfer({
+          tx = await this.evmAdapterService.nativeTransfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: masterFollower.accountIndex,
@@ -163,12 +163,13 @@ export class FollowerService {
       }
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          hash: tx as `0x${string}`,
-          confirmations: 6,
-          priority: ChainPriority.LOW,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            hash: tx as `0x${string}`,
+            confirmations: 6,
+            priority: ChainPriority.LOW,
+          });
 
         return transaction.status === 'success';
       } else {
@@ -258,7 +259,7 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          tx = await this.web3Service.erc20Transfer({
+          tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: follower.accountIndex,
@@ -276,7 +277,7 @@ export class FollowerService {
           break;
         }
         case 'eth': {
-          const gas = await this.web3Service.estimateGas({
+          const gas = await this.evmAdapterService.estimateGas({
             chainId: contract.chainId,
             priority: ChainPriority.LOW,
             accountAddress: follower.address as Address,
@@ -284,12 +285,13 @@ export class FollowerService {
             amount,
           });
 
-          const { maxFeePerGas } = await this.web3Service.estimateFeesPerGas({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-          });
+          const { maxFeePerGas } =
+            await this.evmAdapterService.estimateFeesPerGas({
+              chainId: contract.chainId,
+              priority: ChainPriority.LOW,
+            });
 
-          tx = await this.web3Service.nativeTransfer({
+          tx = await this.evmAdapterService.nativeTransfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: follower.accountIndex,
@@ -308,12 +310,13 @@ export class FollowerService {
       }
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 6,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 6,
+          });
 
         return transaction.status === 'success';
       } else {
@@ -345,7 +348,7 @@ export class FollowerService {
         ],
       );
 
-      const usdcBalance = await this.web3Service.erc20Balance({
+      const usdcBalance = await this.evmAdapterService.erc20Balance({
         chainId: contract.chainId,
         priority: ChainPriority.LOW,
         erc20ContractAddress: collateralInfo.collateral,
@@ -382,7 +385,7 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const ethBalance = await this.web3Service.nativeBalance({
+      const ethBalance = await this.evmAdapterService.nativeBalance({
         chainId: contract.chainId,
         priority: ChainPriority.LOW,
         address: address as Address,
@@ -463,7 +466,7 @@ export class FollowerService {
 
       switch (kind) {
         case 'usdc': {
-          tx = await this.web3Service.erc20Transfer({
+          tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: masterFollower.accountIndex,
@@ -481,7 +484,7 @@ export class FollowerService {
           break;
         }
         case 'eth': {
-          tx = await this.web3Service.nativeTransfer({
+          tx = await this.evmAdapterService.nativeTransfer({
             chainId: contract.chainId,
             mnemonic,
             accountIndex: masterFollower.accountIndex,
@@ -500,12 +503,13 @@ export class FollowerService {
       }
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 6,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 6,
+          });
 
         return transaction.status === 'success';
       } else {
@@ -827,12 +831,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -934,12 +939,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -1041,12 +1047,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -1148,12 +1155,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -1253,12 +1261,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          hash: tx as `0x${string}`,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            chainId: contract.chainId,
+            priority: ChainPriority.LOW,
+            hash: tx as `0x${string}`,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -1414,7 +1423,7 @@ export class FollowerService {
       const promises = batch.map(async (entity) => {
         const usdcBalance =
           entity.accountIndex === 1
-            ? await this.web3Service.erc20Balance({
+            ? await this.evmAdapterService.erc20Balance({
                 chainId: contract.chainId,
                 priority: ChainPriority.LOW,
                 erc20ContractAddress: collateralInfo.collateral,
@@ -1426,7 +1435,7 @@ export class FollowerService {
 
         const ethBalance =
           entity.accountIndex === 1
-            ? await this.web3Service.nativeBalance({
+            ? await this.evmAdapterService.nativeBalance({
                 chainId: contract.chainId,
                 priority: ChainPriority.LOW,
                 address: entity.address as Address,

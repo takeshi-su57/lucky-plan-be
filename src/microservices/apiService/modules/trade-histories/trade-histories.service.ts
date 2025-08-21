@@ -10,23 +10,23 @@ import {
   GetUserTransactionCountsInput,
 } from './dto/trade-history.input';
 
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
-import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
-import { marketExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-executed.parser';
-import { limitExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/limit-executed.parser';
-import { tradePositivePnlWithdrawnEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/trade-positive-pnl-withdrawn.parser';
+import { positionSizeIncreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/market-executed.parser';
+import { limitExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/limit-executed.parser';
+import { tradePositivePnlWithdrawnEventParser } from 'src/web3/platform/gns/v10/eventParsers/trade-positive-pnl-withdrawn.parser';
 
-import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/position-size-decrease-executed.parser';
-import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/leverage-update-executed.parser';
-import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/market-executed.parser';
-import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/microservices/web3Service/platform/gns/v9/eventParsers/limit-executed.parser';
+import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/position-size-decrease-executed.parser';
+import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/leverage-update-executed.parser';
+import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/market-executed.parser';
+import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/limit-executed.parser';
 
 import {
   CancelReason,
   PendingOrderType,
-} from 'src/microservices/web3Service/platform/gns/v10/types';
+} from 'src/web3/platform/gns/v10/types';
 
 import { getStartOfMonth, getStartOfWeek } from 'src/utils';
 import { getStartOfDay } from 'src/utils';
@@ -35,10 +35,10 @@ import { TradeTransactionCount } from './entities/trade-history.entity';
 import {
   eventParsers,
   eventToActionParser,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 @Injectable()
 export class TradeHistoriesService {

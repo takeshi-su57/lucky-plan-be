@@ -1,9 +1,6 @@
-import { PositionSizeDecreaseExecutedEventArgs } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
-import { PositionSizeIncreaseExecutedEventArgs } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
-import {
-  Collateral,
-  Trade,
-} from 'src/microservices/web3Service/platform/gns/v10/types';
+import { PositionSizeDecreaseExecutedEventArgs } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { PositionSizeIncreaseExecutedEventArgs } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { Collateral, Trade } from 'src/web3/platform/gns/v10/types';
 import { Strategy } from '../entities/strategy.entity';
 
 export function getPositionIncreaseParams(

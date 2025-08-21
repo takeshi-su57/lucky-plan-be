@@ -14,7 +14,7 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 import { LeaderboardService } from './leaderboard.service';
 import { LogsService } from 'src/global/logs.service';
@@ -24,7 +24,6 @@ import { PnlSnapshotsV2Service } from '../apiService/modules/trade-histories/pnl
 
 @Controller()
 export class LeaderboardController implements OnApplicationBootstrap {
-  private isAppBootstrapped = false;
   private count = 0;
 
   constructor(
@@ -37,8 +36,13 @@ export class LeaderboardController implements OnApplicationBootstrap {
     private readonly logger: LogsService,
   ) {}
 
-  onApplicationBootstrap() {
-    this.isAppBootstrapped = true;
+  async onApplicationBootstrap() {
+    await this.reloadTradingVariables();
+
+    await this.client.emit(PATTERNS.ProcessStatus, {
+      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      status: ServiceStatus.READY,
+    });
   }
 
   private async reloadTradingVariables() {
@@ -217,37 +221,6 @@ export class LeaderboardController implements OnApplicationBootstrap {
         summary: 'leaderboard.controller>executeCronForSnapshot',
         details: getReadableError(err),
       });
-    }
-  }
-
-  @EventPattern(PATTERNS.ProcessStatus)
-  async updateProcessStatus(data: { service: string; status: ServiceStatus }) {
-    if (
-      data.service === SERVICE_NAMES.WEB3_SERVICE &&
-      data.status === ServiceStatus.READY
-    ) {
-      await this.logger.nativeLog({
-        severity: 'Info',
-        summary: 'leaderboard.controller>updateProcessStatus',
-        details: `web3 service is ready, reloading trading variables`,
-      });
-
-      while (true) {
-        await delay(1000);
-
-        if (!this.isAppBootstrapped) {
-          continue;
-        }
-
-        await this.reloadTradingVariables();
-
-        await this.client.emit(PATTERNS.ProcessStatus, {
-          service: SERVICE_NAMES.LEADERBOARD_SERVICE,
-          status: ServiceStatus.READY,
-        });
-
-        break;
-      }
     }
   }
 }

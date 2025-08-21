@@ -3,6 +3,7 @@ import {
   PnlSnapshotKind,
   TestingReport,
   TradeActionType,
+  Platform,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -19,11 +20,11 @@ import {
 } from './entities/trade-history.entity';
 import { ExportFilter } from './dto/trade-history.input';
 import { WholeCompressedHistories } from './entities/trade-history.entity';
-import { Pair } from 'src/microservices/web3Service/platform/gns/v10/types';
+import { Pair } from 'src/web3/platform/gns/v10/types';
 import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 const dailyPlans = 8;
@@ -51,11 +52,13 @@ export class BacktestService {
   async init() {
     await this.initPairMap();
     await this.initBlacklist();
+    // await this.autoTesting();
   }
 
   private async initPairMap() {
     const contracts = await this.prismaService.contract.findMany({
       where: {
+        platform: Platform.GNS,
         isTestnet: false,
       },
     });
@@ -1001,7 +1004,12 @@ export class BacktestService {
   private async getRangeHistoriesForRecord(
     dateStr: string,
     days: number,
-    params: ExportFilter,
+    params: ExportFilter & {
+      weekWeight: number;
+      monthWeight: number;
+      threeMonthWeight: number;
+      allTimeWeight: number;
+    },
     isTestnet: boolean,
   ): Promise<{
     accPnls: AccPnl[];
@@ -1030,6 +1038,13 @@ export class BacktestService {
     const allPairs = isTestnet
       ? await this.gnsService.getTradePairs(isTestnet ? [4] : [0])
       : [];
+
+    const contracts = await this.prismaService.contract.findMany({
+      where: {
+        platform: Platform.GNS,
+        isTestnet: false,
+      },
+    });
 
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
@@ -1095,7 +1110,7 @@ export class BacktestService {
                 address: item.address,
                 ...(item.contractId !== 0
                   ? { contractId: item.contractId }
-                  : { contractId: { not: 4 } }),
+                  : { contractId: { in: contracts.map((c) => c.id) } }),
               })),
           ],
         },
@@ -1129,6 +1144,17 @@ export class BacktestService {
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(item.address) || [];
 
+        const count =
+          params.allTimeWeight === 1
+            ? Number.MAX_SAFE_INTEGER
+            : params.threeMonthWeight === 1
+              ? 1000
+              : params.monthWeight === 1
+                ? 500
+                : params.weekWeight === 1
+                  ? 100
+                  : 0;
+
         const nodes: (PnlSnapshotDevDetails & {
           endDate: Date;
           ratio: number;
@@ -1143,7 +1169,7 @@ export class BacktestService {
                   (24 * 3600 * 1000) / divider,
               ),
               record,
-              allHistories,
+              allHistories.slice(Math.max(0, allHistories.length - count)),
               params,
             );
 
@@ -1554,7 +1580,12 @@ export class BacktestService {
   private async handleSingleCase(
     startDate: string,
     dayGaps: number,
-    params: ExportFilter,
+    params: ExportFilter & {
+      weekWeight: number;
+      monthWeight: number;
+      threeMonthWeight: number;
+      allTimeWeight: number;
+    },
   ) {
     console.time(
       `${params.window}-${params.minR2}-${params.n}-${params.m}-${params.minScore}`,
@@ -1655,10 +1686,10 @@ export class BacktestService {
           maxAvgSize: params.maxAvgSize,
           minCount: params.minCount,
           maxCount: params.maxCount,
-          weekWeight: 0,
-          monthWeight: 0,
-          threeMonthWeight: 0,
-          allTimeWeight: 1,
+          weekWeight: params.weekWeight,
+          monthWeight: params.monthWeight,
+          threeMonthWeight: params.threeMonthWeight,
+          allTimeWeight: params.allTimeWeight,
           n: params.n,
           m: params.m,
           minScore: params.minScore,
@@ -1693,6 +1724,12 @@ export class BacktestService {
   async autoTesting(): Promise<boolean> {
     const startDates = ['2025-01-01'];
 
+    const bigCases = [
+      { weekWeight: 0, monthWeight: 0, threeMonthWeight: 0, allTimeWeight: 1 },
+      { weekWeight: 0, monthWeight: 0, threeMonthWeight: 1, allTimeWeight: 0 },
+      { weekWeight: 0, monthWeight: 1, threeMonthWeight: 0, allTimeWeight: 0 },
+      { weekWeight: 1, monthWeight: 0, threeMonthWeight: 0, allTimeWeight: 0 },
+    ];
     const minR2Scales = [0.85, 0.9, 0.93, 0.95, 0.97];
     const windowScales = [6];
     const penaltyScales = [1];
@@ -1701,49 +1738,55 @@ export class BacktestService {
 
     await this.prismaService.testingReport.deleteMany();
 
-    for (const window of windowScales) {
-      for (const penalty of penaltyScales) {
-        for (const minR2 of minR2Scales) {
-          for (const startDate of startDates) {
-            for (
-              let sizeIndex = 1;
-              sizeIndex < sizeScales.length;
-              sizeIndex++
-            ) {
+    for (const bigCase of bigCases) {
+      for (const window of windowScales) {
+        for (const penalty of penaltyScales) {
+          for (const minR2 of minR2Scales) {
+            for (const startDate of startDates) {
               for (
-                let countIndex = 1;
-                countIndex < countScales.length;
-                countIndex++
+                let sizeIndex = 1;
+                sizeIndex < sizeScales.length;
+                sizeIndex++
               ) {
-                const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
+                for (
+                  let countIndex = 1;
+                  countIndex < countScales.length;
+                  countIndex++
+                ) {
+                  const dayGaps = dayjs(new Date()).diff(
+                    dayjs(startDate),
+                    'day',
+                  );
 
-                await this.handleSingleCase(startDate, dayGaps, {
-                  window,
-                  minR2,
-                  n: 2,
-                  m: penalty,
-                  minScore: 10,
-                  minAvgSize: sizeScales[sizeIndex - 1],
-                  maxAvgSize: sizeScales[sizeIndex],
-                  minCount: countScales[countIndex - 1],
-                  maxCount: countScales[countIndex],
-                  ratio: 1,
-                });
+                  await this.handleSingleCase(startDate, dayGaps, {
+                    window,
+                    minR2,
+                    n: 2,
+                    m: penalty,
+                    minScore: 10,
+                    minAvgSize: sizeScales[sizeIndex - 1],
+                    maxAvgSize: sizeScales[sizeIndex],
+                    minCount: countScales[countIndex - 1],
+                    maxCount: countScales[countIndex],
+                    ratio: 1,
+                    ...bigCase,
+                  });
+                }
               }
             }
           }
+
+          this.logger.nativeLog({
+            severity: 'Info',
+            summary: `Done penalty ${penalty}`,
+          });
         }
 
         this.logger.nativeLog({
           severity: 'Info',
-          summary: `Done penalty ${penalty}`,
+          summary: `Done window ${window}`,
         });
       }
-
-      this.logger.nativeLog({
-        severity: 'Info',
-        summary: `Done window ${window}`,
-      });
     }
 
     this.logger.nativeLog({

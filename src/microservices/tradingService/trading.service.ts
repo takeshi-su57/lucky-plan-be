@@ -2,19 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
 import { Contract, ContractStatus } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
   eventParsers,
   eventToActionParser,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 
 import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { delay, getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 import { ChainPriority, ServiceStatus } from 'src/types';
-import { Web3Service } from 'src/global/web3.service';
-import { GnsService } from 'src/global/gns.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -31,7 +31,7 @@ export class TradingService {
   static BATCH_SIZE = 4000n;
 
   constructor(
-    private web3Service: Web3Service,
+    private evmAdapterService: EvmAdapterService,
     private botsService: BotsService,
     private contractsService: ContractsService,
     private readonly logger: LogsService,
@@ -58,7 +58,7 @@ export class TradingService {
 
   async checkContractForBots(contract: Contract) {
     try {
-      const currentBlockNumber = await this.web3Service.getBlockNumber({
+      const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
         chainId: contract.chainId,
         priority: ChainPriority.HIGH,
       });
@@ -116,7 +116,7 @@ export class TradingService {
 
   async getLogs(fromBlock: bigint, toBlock: bigint, contract: Contract) {
     return (
-      await this.web3Service.getLogs({
+      await this.evmAdapterService.getLogs({
         chainId: contract.chainId,
         priority: ChainPriority.HIGH,
         address: contract.address as Address,

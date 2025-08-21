@@ -7,7 +7,7 @@ import { ServiceStatus } from 'src/types';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
 import { TradingService } from './trading.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
@@ -16,8 +16,6 @@ import { PlansService } from '../apiService/modules/plans/plans.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
-  private isAppBootstrapped = false;
-
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly tradingService: TradingService,
@@ -28,8 +26,13 @@ export class TradingController implements OnApplicationBootstrap {
     private readonly logger: LogsService,
   ) {}
 
-  onApplicationBootstrap() {
-    this.isAppBootstrapped = true;
+  async onApplicationBootstrap() {
+    await this.reloadTradingVariables();
+
+    await this.client.emit(PATTERNS.ProcessStatus, {
+      service: SERVICE_NAMES.TRADING_SERVICE,
+      status: ServiceStatus.READY,
+    });
   }
 
   private async reloadTradingVariables() {
@@ -127,37 +130,6 @@ export class TradingController implements OnApplicationBootstrap {
         summary: 'trading.controller>executeCronForReloadTradingVariables',
         details: getReadableError(err),
       });
-    }
-  }
-
-  @EventPattern(PATTERNS.ProcessStatus)
-  async updateProcessStatus(data: { service: string; status: ServiceStatus }) {
-    if (
-      data.service === SERVICE_NAMES.WEB3_SERVICE &&
-      data.status === ServiceStatus.READY
-    ) {
-      await this.logger.nativeLog({
-        severity: 'Info',
-        summary: 'trading.controller>updateProcessStatus',
-        details: `web3 service is ready, reloading trading variables`,
-      });
-
-      while (true) {
-        await delay(1000);
-
-        if (!this.isAppBootstrapped) {
-          continue;
-        }
-
-        await this.reloadTradingVariables();
-
-        await this.client.emit(PATTERNS.ProcessStatus, {
-          service: SERVICE_NAMES.TRADING_SERVICE,
-          status: ServiceStatus.READY,
-        });
-
-        break;
-      }
     }
   }
 }

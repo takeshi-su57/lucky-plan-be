@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { GnsModule } from 'src/web3/platform/gns/gns.module';
+
 import { TradeHistoriesService } from './trade-histories.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { BacktestService } from './backtest.service';
@@ -18,6 +20,7 @@ import { EventLogsResolver } from './event-logs.resolver';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
+    GnsModule,
   ],
   exports: [
     TradeHistoriesService,

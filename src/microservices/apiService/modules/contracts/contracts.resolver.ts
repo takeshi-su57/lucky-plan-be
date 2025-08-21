@@ -1,4 +1,6 @@
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { UserPermission } from '@prisma/client';
 
 import { ContractsService } from './contracts.service';
 import {
@@ -7,10 +9,8 @@ import {
   TradePair,
 } from './entities/contract.entity';
 
-import { GnsService } from 'src/global/gns.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { Roles } from '../auth/roles.decorator';
-import { UserPermission } from '@prisma/client';
-import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
 import { CurrentUser } from '../auth/user.decorator';

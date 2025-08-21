@@ -20,7 +20,7 @@ import {
 import { ChainPriority } from 'src/types';
 
 @Injectable()
-export class Web3Service {
+export class EvmAdapterService {
   constructor(private readonly chainsService: ChainsService) {}
 
   async erc20Transfer(payload: Erc20TransferPayload) {

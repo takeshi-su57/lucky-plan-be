@@ -8,13 +8,13 @@ import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.s
 import { FollowerService } from 'src/microservices/apiService/modules/follower/follower.service';
 import { LogsService } from 'src/global/logs.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
-import { GnsService } from 'src/global/gns.service';
-import { Web3Service } from 'src/global/web3.service';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 
-import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/trade-max-closing-slippage-p-updated.parser';
-import { leverageUpdateExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/leverage-update-executed.parser';
-import { positionSizeIncreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
-import { positionSizeDecreaseExecutedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/web3/platform/gns/v10/eventParsers/trade-max-closing-slippage-p-updated.parser';
+import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
+import { positionSizeIncreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
+import { positionSizeDecreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
 
 import {
   eventParsers,
@@ -23,16 +23,16 @@ import {
   isCloseMissionAction,
   missionEventParsers,
   eventToActionParser,
-} from 'src/microservices/web3Service/platform/gns/v10/eventParsers';
+} from 'src/web3/platform/gns/v10/eventParsers';
 
-import { gnsMultiCollatDiamondAbi } from 'src/microservices/web3Service/platform/gns/v10/abi/GNSMultiCollatDiamond';
+import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
   getOpenMissionParams,
   getPositionDecreaseParams,
   getPositionIncreaseParams,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { ChainPriority, CloseMissionActionArgs } from 'src/types';
-import { TradeType } from 'src/microservices/web3Service/platform/gns/v10/types';
+import { TradeType } from 'src/web3/platform/gns/v10/types';
 
 import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
 
@@ -43,7 +43,7 @@ import { getReadableError } from 'src/utils';
 import { TaskUpdateInput } from 'src/microservices/apiService/modules/tasks/dto/task.input';
 
 import { MIN_FEE } from 'src/utils/constants';
-import { marketOrderInitiatedEventParser } from 'src/microservices/web3Service/platform/gns/v10/eventParsers/market-order-initiated.parser';
+import { marketOrderInitiatedEventParser } from 'src/web3/platform/gns/v10/eventParsers/market-order-initiated.parser';
 import { ServiceStatus } from 'src/types';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
@@ -64,7 +64,7 @@ export class TaskExecutorService {
     private readonly tasksService: TasksService,
     private readonly logger: LogsService,
     private readonly actionsService: ActionsService,
-    private readonly web3Service: Web3Service,
+    private readonly evmAdapterService: EvmAdapterService,
     private readonly gnsService: GnsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
@@ -322,7 +322,7 @@ export class TaskExecutorService {
 
           if (tx) {
             const transaction =
-              await this.web3Service.waitForTransactionReceipt({
+              await this.evmAdapterService.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
                 priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
@@ -377,7 +377,7 @@ export class TaskExecutorService {
 
           if (tx) {
             const transaction =
-              await this.web3Service.waitForTransactionReceipt({
+              await this.evmAdapterService.waitForTransactionReceipt({
                 hash: tx as `0x${string}`,
                 priority: ChainPriority.HIGH,
                 chainId: followerContract.chainId,
@@ -543,7 +543,7 @@ export class TaskExecutorService {
 
               if (tx) {
                 const transaction =
-                  await this.web3Service.waitForTransactionReceipt({
+                  await this.evmAdapterService.waitForTransactionReceipt({
                     hash: tx as `0x${string}`,
                     priority: ChainPriority.HIGH,
                     chainId: followerContract.chainId,
@@ -594,12 +594,13 @@ export class TaskExecutorService {
           details: `tx: ${tx}`,
         });
 
-        const transaction = await this.web3Service.waitForTransactionReceipt({
-          hash: tx as `0x${string}`,
-          priority: ChainPriority.HIGH,
-          chainId: followerContract.chainId,
-          confirmations: 1,
-        });
+        const transaction =
+          await this.evmAdapterService.waitForTransactionReceipt({
+            hash: tx as `0x${string}`,
+            priority: ChainPriority.HIGH,
+            chainId: followerContract.chainId,
+            confirmations: 1,
+          });
 
         if (transaction.status === 'success') {
           return {
@@ -648,7 +649,7 @@ export class TaskExecutorService {
     const { mission } = task;
     const { bot } = mission;
 
-    const transaction = await this.web3Service.waitForTransactionReceipt({
+    const transaction = await this.evmAdapterService.waitForTransactionReceipt({
       hash: tx,
       priority: ChainPriority.HIGH,
       chainId: bot.followerContract.chainId,

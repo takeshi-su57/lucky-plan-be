@@ -11,14 +11,14 @@ import {
 } from './dto/contract.input';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { ChainPriority } from 'src/types';
-import { Web3Service } from 'src/global/web3.service';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
-    private web3Service: Web3Service,
+    private evmAdapterService: EvmAdapterService,
   ) {}
 
   async create(input: CreateContractInput) {
@@ -107,7 +107,7 @@ export class ContractsService {
       throw new Error('Contract is already live');
     }
 
-    const currentBlockNumber = await this.web3Service.getBlockNumber({
+    const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
       chainId: contract.chainId,
       priority: ChainPriority.LOW,
     });

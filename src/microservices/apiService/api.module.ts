@@ -24,6 +24,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LogsModule } from './modules/loggers/logs.module';
 import { SecurityModule } from './modules/security/security.module';
+import { GnsModule } from 'src/web3/platform/gns/gns.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -56,6 +57,7 @@ import { ApiController } from './api.controller';
     PlansModule,
     LogsModule,
     SecurityModule,
+    GnsModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],
