@@ -77,24 +77,24 @@ const privateRPCProviders = [
       'AnSxNF1zE0fIhgfSbIRtl5tKdE8TTGUR8JCErqRhf0fE',
     ],
   },
-  {
-    provider: 'alchemy',
-    getUrl: (network: string, token: string) =>
-      `'https://${network}.g.alchemy.com/v2/${token}`,
-    networks: {
-      137: 'polygon-mainnet',
-      8453: 'base-mainnet',
-      42161: 'arb-mainnet',
-      421614: 'arb-sepolia',
-      33139: 'apechain-mainnet',
-    },
-    tokens: [
-      'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-      'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-      'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
-    ],
-  },
+  // {
+  //   provider: 'alchemy',
+  //   getUrl: (network: string, token: string) =>
+  //     `'https://${network}.g.alchemy.com/v2/${token}`,
+  //   networks: {
+  //     137: 'polygon-mainnet',
+  //     8453: 'base-mainnet',
+  //     42161: 'arb-mainnet',
+  //     421614: 'arb-sepolia',
+  //     33139: 'apechain-mainnet',
+  //   },
+  //   tokens: [
+  //     'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
+  //     'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+  //     'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+  //     'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+  //   ],
+  // },
 ];
 
 const publicRpcProviders = {
