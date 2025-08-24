@@ -15,6 +15,7 @@ import { BacktestService } from './modules/trade-histories/backtest.service';
 
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
+import { TradeHistoriesService } from './modules/trade-histories/trade-histories.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -34,6 +35,7 @@ export class ApiService {
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private backtestService: BacktestService,
+    private tradeHistoriesService: TradeHistoriesService,
     private logger: LogsService,
   ) {
     this.isPaused = true;
@@ -41,6 +43,8 @@ export class ApiService {
     microservices.forEach((service) => {
       this.serviceStatus[service] = ServiceStatus.KILLED;
     });
+
+    this.init();
   }
 
   async updateProcessStatus(service: string, status: ServiceStatus) {
@@ -50,6 +54,7 @@ export class ApiService {
   async init() {
     await this.reloadTradingVariables();
     await this.backtestService.init();
+    // await this.tradeHistoriesService.regenerateTradeHistoriesFromPerpEventLog();
   }
 
   async pauseSystem() {

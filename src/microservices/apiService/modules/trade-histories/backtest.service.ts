@@ -1722,7 +1722,7 @@ export class BacktestService {
   }
 
   async autoTesting(): Promise<boolean> {
-    const startDates = ['2025-01-01'];
+    const startDates = ['2025-01-01', '2025-06-01'];
 
     const bigCases = [
       { weekWeight: 0, monthWeight: 0, threeMonthWeight: 0, allTimeWeight: 1 },
@@ -1741,18 +1741,14 @@ export class BacktestService {
     for (const bigCase of bigCases) {
       for (const window of windowScales) {
         for (const penalty of penaltyScales) {
-          for (const minR2 of minR2Scales) {
-            for (const startDate of startDates) {
-              for (
-                let sizeIndex = 1;
-                sizeIndex < sizeScales.length;
-                sizeIndex++
-              ) {
-                for (
-                  let countIndex = 1;
-                  countIndex < countScales.length;
-                  countIndex++
-                ) {
+          for (let sizeIndex = 1; sizeIndex < sizeScales.length; sizeIndex++) {
+            for (
+              let countIndex = 1;
+              countIndex < countScales.length;
+              countIndex++
+            ) {
+              for (const minR2 of minR2Scales) {
+                for (const startDate of startDates) {
                   const dayGaps = dayjs(new Date()).diff(
                     dayjs(startDate),
                     'day',

@@ -12,6 +12,7 @@ import { TradeHistoriesResolver } from './trade-histories.resolver';
 import { EventLogsResolver } from './event-logs.resolver';
 
 @Module({
+  imports: [GnsModule],
   providers: [
     TradeHistoriesResolver,
     TradeHistoriesService,
@@ -20,7 +21,6 @@ import { EventLogsResolver } from './event-logs.resolver';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
-    GnsModule,
   ],
   exports: [
     TradeHistoriesService,
