@@ -28,7 +28,7 @@ const microservices = [
 @Injectable()
 export class ApiService {
   isPaused = true;
-  private serviceStatus: Record<string, ServiceStatus> = {};
+  private serviceStatus: Record<string, number[]> = {};
 
   constructor(
     private gnsService: GnsService,
@@ -41,14 +41,34 @@ export class ApiService {
     this.isPaused = true;
 
     microservices.forEach((service) => {
-      this.serviceStatus[service] = ServiceStatus.KILLED;
+      this.serviceStatus[service] = [];
     });
 
     this.init();
   }
 
-  async updateProcessStatus(service: string, status: ServiceStatus) {
-    this.serviceStatus[service] = status;
+  getMicroserviceStatus() {
+    return microservices.map((service) => ({
+      service,
+      pids: this.serviceStatus[service],
+    }));
+  }
+
+  async updateProcessStatus(
+    serviceName: string,
+    status: ServiceStatus,
+    pid: number,
+  ) {
+    if (status === ServiceStatus.KILLED) {
+      this.serviceStatus[serviceName] = this.serviceStatus[serviceName].filter(
+        (pid) => pid !== pid,
+      );
+    } else {
+      this.serviceStatus[serviceName] = [
+        ...this.serviceStatus[serviceName].filter((p) => p !== pid),
+        pid,
+      ];
+    }
   }
 
   async init() {
@@ -64,8 +84,8 @@ export class ApiService {
     while (true) {
       await delay(1000);
 
-      const isAllKilled = Object.entries(this.serviceStatus).every(
-        ([_, status]) => status === ServiceStatus.KILLED,
+      const isAllKilled = microservices.every(
+        (service) => this.serviceStatus[service].length === 0,
       );
 
       if (isAllKilled) {
@@ -78,6 +98,42 @@ export class ApiService {
     return true;
   }
 
+  startSubService(serviceName: string) {
+    const child = spawn('yarn', ['start'], {
+      env: {
+        ...process.env,
+        SERVICE: serviceName,
+      },
+    });
+
+    child.stdout.on('data', (data) => {
+      this.logger.log({
+        severity: 'Info',
+        summary: serviceName,
+        details: `${data}`,
+      });
+    });
+
+    child.stderr.on('data', (data) => {
+      this.logger.log({
+        severity: 'Error',
+        summary: serviceName,
+        details: `${data}`,
+      });
+    });
+
+    child.on('exit', (code) => {
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `[${serviceName}] exited with code ${code}`,
+      });
+    });
+  }
+
+  async killSubService(serviceName: string) {
+    this.client.emit(PATTERNS.killProcessEvent, { service: serviceName });
+  }
+
   async resumeSystem(password: string | null) {
     if (this.securityService.isSafeApp) {
       if (!password) {
@@ -88,43 +144,15 @@ export class ApiService {
     }
 
     for (const service of microservices) {
-      const child = spawn('yarn', ['start'], {
-        env: {
-          ...process.env,
-          SERVICE: service,
-        },
-      });
-
-      child.stdout.on('data', (data) => {
-        this.logger.log({
-          severity: 'Info',
-          summary: service,
-          details: `${data}`,
-        });
-      });
-
-      child.stderr.on('data', (data) => {
-        this.logger.log({
-          severity: 'Error',
-          summary: service,
-          details: `${data}`,
-        });
-      });
-
-      child.on('exit', (code) => {
-        this.logger.nativeLog({
-          severity: 'Info',
-          summary: `[${service}] exited with code ${code}`,
-        });
-      });
+      this.startSubService(service);
     }
 
     // wait for all services to be ready
     while (true) {
       await delay(10000);
 
-      const killedServices = Object.entries(this.serviceStatus).filter(
-        ([_, status]) => status === 'killed',
+      const killedServices = microservices.filter(
+        (service) => this.serviceStatus[service].length === 0,
       );
 
       if (killedServices.length === 0) {

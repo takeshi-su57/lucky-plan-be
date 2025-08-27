@@ -35,13 +35,17 @@ export class ApiController {
   }
 
   @EventPattern(PATTERNS.ProcessStatus)
-  updateProcessStatus(data: { service: string; status: ServiceStatus }) {
+  updateProcessStatus(data: {
+    service: string;
+    status: ServiceStatus;
+    pid: number;
+  }) {
     this.logger.nativeLog({
       severity: 'Info',
       summary: 'UPDATE_PROCESS_STATUS',
       details: JSON.stringify(data),
     });
 
-    this.apiService.updateProcessStatus(data.service, data.status);
+    this.apiService.updateProcessStatus(data.service, data.status, data.pid);
   }
 }
