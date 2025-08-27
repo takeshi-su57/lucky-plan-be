@@ -11,6 +11,7 @@ import {
   PnlSnapshotDetailsConnection,
   PnlSnapshotDevDetails,
   PnlSnapshotInitializedFlag,
+  StatisticData,
   TestingReportConnection,
   TradeHistory,
   TradeTransactionCount,
@@ -199,6 +200,15 @@ export class TradeHistoriesResolver {
     }
 
     return this.backtestService.getTestingReport(first, after);
+  }
+
+  @Query(() => [StatisticData])
+  getStatisticData() {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
+    return this.backtestService.getStatisticData();
   }
 
   @Mutation(() => Boolean)

@@ -19,27 +19,57 @@ import {
   TradeHistory,
 } from './entities/trade-history.entity';
 import { ExportFilter } from './dto/trade-history.input';
-import { WholeCompressedHistories } from './entities/trade-history.entity';
-import { Pair } from 'src/web3/platform/gns/v10/types';
+import {
+  StatisticData,
+  WholeCompressedHistories,
+} from './entities/trade-history.entity';
+
 import { getStartOfDay } from 'src/utils';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
+import { pairMap } from './pairMap';
 
 const dailyPlans = 8;
+
+function getMinR2OfSize(avgSize: number) {
+  const scales = [0, 300, 2000, 5000, 10000, 30000, 100000, 1000000000];
+  const r2s = [0.9, 0.93, 0.95, 0.93, 0.9, 0.85, 0.85, 0.85];
+  const index = scales.findIndex((scale) => avgSize < scale);
+
+  return (
+    r2s[index - 1] +
+    ((r2s[index] - r2s[index - 1]) * (avgSize - scales[index - 1])) /
+      (scales[index] - scales[index - 1])
+  );
+}
+
+function getMinR2OfCount(avgCount: number) {
+  const scales = [0, 16, 32, 64, 128, 256, 512, 1000_000_000];
+  const r2s = [0.93, 0.93, 0.915, 0.9, 0.8, 0.9, 0.95, 0.95];
+  const index = scales.findIndex((scale) => avgCount < scale);
+
+  return (
+    r2s[index - 1] +
+    ((r2s[index] - r2s[index - 1]) * (avgCount - scales[index - 1])) /
+      (scales[index] - scales[index - 1])
+  );
+}
+
+function getMinR2(avgSize: number, avgCount: number) {
+  return (getMinR2OfSize(avgSize) + getMinR2OfCount(avgCount)) / 2;
+}
 
 @Injectable()
 export class BacktestService {
   status: 'processing' | 'ready' = 'ready';
   private cache: WholeCompressedHistories | null = null;
   private cachedDateStr: string | null = null;
-  private pairMap: Map<string, Pair> = new Map();
   private blacklist: string[] = [];
 
   constructor(
     private prismaService: PrismaService,
-    private gnsService: GnsService,
+    // private gnsService: GnsService,
     private logger: LogsService,
   ) {
     // setTimeout(() => {
@@ -50,39 +80,7 @@ export class BacktestService {
   }
 
   async init() {
-    await this.initPairMap();
-    await this.initBlacklist();
     // await this.autoTesting();
-  }
-
-  private async initPairMap() {
-    const contracts = await this.prismaService.contract.findMany({
-      where: {
-        platform: Platform.GNS,
-        isTestnet: false,
-      },
-    });
-
-    for (const contract of contracts) {
-      this.gnsService.getPairs(contract.id).forEach((pair) => {
-        if (pair) {
-          this.pairMap.set(
-            `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
-            pair,
-          );
-        }
-      });
-    }
-  }
-
-  private async initBlacklist() {
-    const prevBlacklist = await this.prismaService.metadata.findUnique({
-      where: {
-        key: 'autoplans_v2_blacklist',
-      },
-    });
-
-    this.blacklist = prevBlacklist ? JSON.parse(prevBlacklist.value) : [];
   }
 
   private getPnlSnapshotDevDetails(
@@ -99,10 +97,6 @@ export class BacktestService {
         score: 0,
       };
     }
-
-    // const endDate = new Date(
-    //   getStartOfDay(new Date(snapshot.dateStr)).getTime() + 24 * 3600 * 1000,
-    // );
 
     const oneMonthStartDate = dayjs(endDate).subtract(1, 'month').toDate();
 
@@ -243,17 +237,15 @@ export class BacktestService {
 
     const chunkHistories = rangeHistories
       .filter((item) => {
-        const pair = this.pairMap.get(
-          `${item.contractId}-${item.pair}`.toLowerCase(),
-        );
+        const pair = pairMap[`${item.contractId}-${item.pair}`.toLowerCase()];
 
         if (!pair) {
           return false;
         }
 
         return (
-          pair.depth.onePercentDepthAboveUsd > 0n &&
-          pair.depth.onePercentDepthBelowUsd > 0n
+          pair.depth.onePercentDepthAboveUsd !== '0' &&
+          pair.depth.onePercentDepthBelowUsd !== '0'
         );
       })
       .reverse()
@@ -311,6 +303,8 @@ export class BacktestService {
 
     let traderScore = 0;
 
+    const minR2 = getMinR2(avgSize, totalOpenHistories.length);
+
     for (let step = 0; step < params.window; step++) {
       let round = 0;
       let stepScore = 0;
@@ -352,7 +346,7 @@ export class BacktestService {
         }
 
         if (regression.slope > 0) {
-          if (score.r2 > params.minR2) {
+          if (score.r2 > minR2) {
             stepScore += (regression.slope * score.r2) / round / params.n;
           } else {
             stepScore +=
@@ -589,10 +583,6 @@ export class BacktestService {
       dateStrs.push(dayjs(dateStr).add(i, 'days').format('YYYY-MM-DD'));
     }
 
-    const allPairs = isTestnet
-      ? await this.gnsService.getTradePairs(isTestnet ? [4] : [0])
-      : [];
-
     const pnlRecords: PnlSnapshot[] =
       await this.prismaService.pnlSnapshot.findMany({
         where: {
@@ -745,30 +735,16 @@ export class BacktestService {
             endDate,
           );
 
-          const availablePairNames = allPairs.map((pair) =>
-            `${pair.from}/${pair.to}`.toLowerCase(),
-          );
-
-          const supportedPairsMap: Record<string, boolean> = {};
-
-          availablePairNames.forEach((pair) => {
-            supportedPairsMap[pair.toLowerCase()] = true;
+          const transformedHistories = histories.map((history) => {
+            return {
+              ...history,
+              size: `${Number(history.size) * node.ratio}`,
+              pnl: `${Number(history.pnl) * node.ratio}`,
+              collateralDelta: history.collateralDelta
+                ? `${Number(history.collateralDelta) * node.ratio}`
+                : null,
+            };
           });
-
-          const transformedHistories = histories
-            .filter((history) =>
-              isTestnet ? supportedPairsMap[history.pair.toLowerCase()] : true,
-            )
-            .map((history) => {
-              return {
-                ...history,
-                size: `${Number(history.size) * node.ratio}`,
-                pnl: `${Number(history.pnl) * node.ratio}`,
-                collateralDelta: history.collateralDelta
-                  ? `${Number(history.collateralDelta) * node.ratio}`
-                  : null,
-              };
-            });
 
           totalResultHistories.push(...transformedHistories);
         });
@@ -1004,12 +980,7 @@ export class BacktestService {
   private async getRangeHistoriesForRecord(
     dateStr: string,
     days: number,
-    params: ExportFilter & {
-      weekWeight: number;
-      monthWeight: number;
-      threeMonthWeight: number;
-      allTimeWeight: number;
-    },
+    params: ExportFilter,
     isTestnet: boolean,
   ): Promise<{
     accPnls: AccPnl[];
@@ -1034,10 +1005,6 @@ export class BacktestService {
     for (let i = 0; i < days; i++) {
       dateStrs.push(dayjs(dateStr).add(i, 'days').format('YYYY-MM-DD'));
     }
-
-    const allPairs = isTestnet
-      ? await this.gnsService.getTradePairs(isTestnet ? [4] : [0])
-      : [];
 
     const contracts = await this.prismaService.contract.findMany({
       where: {
@@ -1144,17 +1111,6 @@ export class BacktestService {
         const subPnlRecords = pnlSnapshotsMap.get(key) || [];
         const allHistories = historyRecordsMap.get(item.address) || [];
 
-        const count =
-          params.allTimeWeight === 1
-            ? Number.MAX_SAFE_INTEGER
-            : params.threeMonthWeight === 1
-              ? 1000
-              : params.monthWeight === 1
-                ? 500
-                : params.weekWeight === 1
-                  ? 100
-                  : 0;
-
         const nodes: (PnlSnapshotDevDetails & {
           endDate: Date;
           ratio: number;
@@ -1169,7 +1125,7 @@ export class BacktestService {
                   (24 * 3600 * 1000) / divider,
               ),
               record,
-              allHistories.slice(Math.max(0, allHistories.length - count)),
+              allHistories,
               params,
             );
 
@@ -1210,30 +1166,16 @@ export class BacktestService {
             endDate,
           );
 
-          const availablePairNames = allPairs.map((pair) =>
-            `${pair.from}/${pair.to}`.toLowerCase(),
-          );
-
-          const supportedPairsMap: Record<string, boolean> = {};
-
-          availablePairNames.forEach((pair) => {
-            supportedPairsMap[pair.toLowerCase()] = true;
+          const transformedHistories = histories.map((history) => {
+            return {
+              ...history,
+              size: `${Number(history.size) * node.ratio}`,
+              pnl: `${Number(history.pnl) * node.ratio}`,
+              collateralDelta: history.collateralDelta
+                ? `${Number(history.collateralDelta) * node.ratio}`
+                : null,
+            };
           });
-
-          const transformedHistories = histories
-            .filter((history) =>
-              isTestnet ? supportedPairsMap[history.pair.toLowerCase()] : true,
-            )
-            .map((history) => {
-              return {
-                ...history,
-                size: `${Number(history.size) * node.ratio}`,
-                pnl: `${Number(history.pnl) * node.ratio}`,
-                collateralDelta: history.collateralDelta
-                  ? `${Number(history.collateralDelta) * node.ratio}`
-                  : null,
-              };
-            });
 
           totalResultHistories.push(...transformedHistories);
         });
@@ -1577,15 +1519,39 @@ export class BacktestService {
     };
   }
 
+  async getStatisticData(): Promise<StatisticData[]> {
+    const records = await this.prismaService.testingReport.findMany();
+
+    return records.map((record) => {
+      let sumOfLost = 0;
+      let countOfLost = 0;
+      let sumOfWin = 0;
+      let countOfWin = 0;
+
+      for (const pnl of record.usdPnls) {
+        if (pnl < 0) {
+          sumOfLost += pnl;
+          countOfLost++;
+        } else if (pnl > 0) {
+          sumOfWin += pnl;
+          countOfWin++;
+        }
+      }
+
+      return {
+        sumOfLost,
+        countOfLost,
+        sumOfWin,
+        countOfWin,
+        size: record.maxCount,
+      };
+    });
+  }
+
   private async handleSingleCase(
     startDate: string,
     dayGaps: number,
-    params: ExportFilter & {
-      weekWeight: number;
-      monthWeight: number;
-      threeMonthWeight: number;
-      allTimeWeight: number;
-    },
+    params: ExportFilter,
   ) {
     console.time(
       `${params.window}-${params.minR2}-${params.n}-${params.m}-${params.minScore}`,
@@ -1686,10 +1652,10 @@ export class BacktestService {
           maxAvgSize: params.maxAvgSize,
           minCount: params.minCount,
           maxCount: params.maxCount,
-          weekWeight: params.weekWeight,
-          monthWeight: params.monthWeight,
-          threeMonthWeight: params.threeMonthWeight,
-          allTimeWeight: params.allTimeWeight,
+          weekWeight: 0,
+          monthWeight: 0,
+          threeMonthWeight: 0,
+          allTimeWeight: 1,
           n: params.n,
           m: params.m,
           minScore: params.minScore,
@@ -1722,67 +1688,51 @@ export class BacktestService {
   }
 
   async autoTesting(): Promise<boolean> {
-    const startDates = ['2025-01-01', '2025-06-01'];
+    const startDates = ['2025-01-01'];
 
-    const bigCases = [
-      { weekWeight: 0, monthWeight: 0, threeMonthWeight: 0, allTimeWeight: 1 },
-      { weekWeight: 0, monthWeight: 0, threeMonthWeight: 1, allTimeWeight: 0 },
-      { weekWeight: 0, monthWeight: 1, threeMonthWeight: 0, allTimeWeight: 0 },
-      { weekWeight: 1, monthWeight: 0, threeMonthWeight: 0, allTimeWeight: 0 },
-    ];
-    const minR2Scales = [0.85, 0.9, 0.93, 0.95, 0.97];
+    const minR2Scales = [0.93];
     const windowScales = [6];
     const penaltyScales = [1];
     const sizeScales = [0, 300, 2000, 5000, 10000, 30000, 100000, 1000000000];
-    const countScales = [0, 16, 32, 64, 128, 256, 512, 1000000000];
+    const countScales = [
+      10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160,
+      180, 200, 240, 280, 320, 360, 400, 450, 500, 550, 600, 700, 800, 900,
+      1000, 1000_000_000,
+    ];
 
     await this.prismaService.testingReport.deleteMany();
 
-    for (const bigCase of bigCases) {
-      for (const window of windowScales) {
-        for (const penalty of penaltyScales) {
-          for (let sizeIndex = 1; sizeIndex < sizeScales.length; sizeIndex++) {
-            for (
-              let countIndex = 1;
-              countIndex < countScales.length;
-              countIndex++
-            ) {
-              for (const minR2 of minR2Scales) {
-                for (const startDate of startDates) {
-                  const dayGaps = dayjs(new Date()).diff(
-                    dayjs(startDate),
-                    'day',
-                  );
+    for (const window of windowScales) {
+      for (const penalty of penaltyScales) {
+        for (let count = 10; count < 1000; count += 5) {
+          for (const startDate of startDates) {
+            const dayGaps = dayjs(new Date()).diff(dayjs(startDate), 'day');
 
-                  await this.handleSingleCase(startDate, dayGaps, {
-                    window,
-                    minR2,
-                    n: 2,
-                    m: penalty,
-                    minScore: 10,
-                    minAvgSize: sizeScales[sizeIndex - 1],
-                    maxAvgSize: sizeScales[sizeIndex],
-                    minCount: countScales[countIndex - 1],
-                    maxCount: countScales[countIndex],
-                    ratio: 1,
-                    ...bigCase,
-                  });
-                }
-              }
-            }
+            await this.handleSingleCase(startDate, dayGaps, {
+              window,
+              minR2: 0.93,
+              n: 2,
+              m: penalty,
+              minScore: 10,
+              minAvgSize: 2500,
+              maxAvgSize: 50000,
+              minCount: count,
+              maxCount: count + 5,
+              ratio: 1,
+            });
           }
 
           this.logger.nativeLog({
             severity: 'Info',
-            summary: `Done penalty ${penalty}`,
+            summary: `Done count ${count} - ${count + 5}`,
           });
         }
-
-        this.logger.nativeLog({
-          severity: 'Info',
-          summary: `Done window ${window}`,
-        });
       }
+
+      this.logger.nativeLog({
+        severity: 'Info',
+        summary: `Done window ${window}`,
+      });
     }
 
     this.logger.nativeLog({
