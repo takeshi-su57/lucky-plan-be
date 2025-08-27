@@ -58,8 +58,10 @@ export class GnsService {
 
     this.tradingVariable = {};
 
-    const promises = contracts.map((contract) =>
-      this.getTradingVariable(contract),
+    const promises = contracts.map(
+      async (contract) =>
+        (this.tradingVariable[contract.id] =
+          await this.getTradingVariable(contract)),
     );
 
     await Promise.allSettled(promises);
@@ -519,6 +521,12 @@ export class GnsService {
       throw new Error('Failed at getting trading variable');
     }
 
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'GnsService>getTradingVariable',
+      details: `Finished loading trading variable for contract: ${contract.id}`,
+    });
+
     return {
       pairs: pairsData
         .map((item) => item.result)
@@ -560,7 +568,9 @@ export class GnsService {
 
   getPair(contractId: number, pairIndex: number) {
     if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
     }
 
     return this.tradingVariable[contractId].pairs[pairIndex];
@@ -568,7 +578,9 @@ export class GnsService {
 
   getPairs(contractId: number) {
     if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
     }
 
     return this.tradingVariable[contractId].pairs;
@@ -576,7 +588,9 @@ export class GnsService {
 
   getPairName(contractId: number, pairIndex: number) {
     if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
     }
 
     const pair = this.tradingVariable[contractId].pairs[pairIndex];
@@ -589,7 +603,9 @@ export class GnsService {
 
     for (const contractId of contractIds) {
       if (!this.tradingVariable[contractId]) {
-        throw new Error('Failed at getting trading variable');
+        throw new Error(
+          `Failed at getting trading variable, contractId:${contractId}`,
+        );
       }
 
       pairs.push(
@@ -611,7 +627,9 @@ export class GnsService {
 
   getCollateral(contractId: number, collateralIndex: number) {
     if (!this.tradingVariable[contractId]) {
-      throw new Error(`Failed at getting trading variable ${contractId}`);
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
     }
 
     if (
@@ -628,7 +646,9 @@ export class GnsService {
 
   getTradeCollaterals(contractId: number): TradeCollateral[] {
     if (!this.tradingVariable[contractId]) {
-      throw new Error('Failed at getting trading variable');
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
     }
 
     return this.tradingVariable[contractId].collaterals.map(

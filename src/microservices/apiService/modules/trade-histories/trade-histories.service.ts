@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { TradeActionType } from '@prisma/client';
+import {
+  Platform,
+  TradeActionType,
+  Version,
+  PerpTradingEventLog,
+} from '@prisma/client';
 import * as csv from 'csv-parser';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -587,6 +592,90 @@ export class TradeHistoriesService {
       .filter((item): item is CreateTradeHistoryInput => !!item);
 
     await this.createMany(historyInputs);
+  }
+
+  async regenerateTradeHistoriesFromPerpEventLog() {
+    const constracts = await this.prismaService.contract.findMany({
+      where: {
+        platform: Platform.GNS,
+        version: Version.V10,
+      },
+    });
+
+    for (const contract of constracts) {
+      console.log('regenerateTradeHistoriesFromPerpEventLog', {
+        contractId: contract.id,
+      });
+
+      // remove old history for sync
+      await this.prismaService.tradeHistory.deleteMany({
+        where: {
+          contractId: contract.id,
+        },
+      });
+
+      let cursor: number | null = null;
+
+      // clone last day's pnl snapshot for dynamic snapshot build
+      while (true) {
+        const records: PerpTradingEventLog[] = cursor
+          ? await this.prismaService.perpTradingEventLog.findMany({
+              skip: 1,
+              take: 10000,
+              cursor: {
+                id: cursor,
+              },
+              where: {
+                contractId: contract.id,
+              },
+              orderBy: [
+                {
+                  block: 'asc',
+                },
+                {
+                  logIndex: 'asc',
+                },
+              ],
+            })
+          : await this.prismaService.perpTradingEventLog.findMany({
+              take: 10000,
+              where: {
+                contractId: contract.id,
+              },
+              orderBy: [
+                {
+                  block: 'asc',
+                },
+                {
+                  logIndex: 'asc',
+                },
+              ],
+            });
+
+        if (records.length === 0) {
+          break;
+        }
+
+        const actionItems = records.map((record) => {
+          const parsed = eventToActionParser(
+            contract.id,
+            JSON.parse(record.jsonLog),
+          );
+
+          return {
+            item: parsed,
+            blockNumber: record.block,
+            timestamp: record.date,
+          };
+        });
+
+        await this.handleActionItems(contract.id, actionItems);
+
+        cursor = records[records.length - 1].id;
+      }
+    }
+
+    console.log('regenerateTradeHistoriesFromPerpEventLog done');
   }
 
   async handleActionItems(

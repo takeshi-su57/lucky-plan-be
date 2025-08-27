@@ -373,3 +373,21 @@ export class TestingReportConnection {
   edges: TestingReportEdge[];
   @Field(() => TestingReportPageInfo) pageInfo: TestingReportPageInfo;
 }
+
+@ObjectType()
+export class StatisticData {
+  @Field(() => Float)
+  size: number;
+
+  @Field(() => Float)
+  countOfLost: number;
+
+  @Field(() => Float)
+  sumOfLost: number;
+
+  @Field(() => Int)
+  countOfWin: number;
+
+  @Field(() => Float)
+  sumOfWin: number;
+}
