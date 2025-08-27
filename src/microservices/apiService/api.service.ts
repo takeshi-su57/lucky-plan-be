@@ -128,10 +128,14 @@ export class ApiService {
         summary: `[${serviceName}] exited with code ${code}`,
       });
     });
+
+    return true;
   }
 
   async killSubService(serviceName: string) {
-    this.client.emit(PATTERNS.killProcessEvent, { service: serviceName });
+    await this.client.emit(PATTERNS.killProcessEvent, { service: serviceName });
+
+    return true;
   }
 
   async resumeSystem(password: string | null) {
