@@ -1,5 +1,5 @@
 import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
-import { ClientProxy, EventPattern } from '@nestjs/microservices';
+import { ClientProxy, EventPattern, Payload } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { ServiceStatus } from 'src/types';
@@ -31,6 +31,7 @@ export class TradingController implements OnApplicationBootstrap {
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.TRADING_SERVICE,
+      pid: process.pid,
       status: ServiceStatus.READY,
     });
   }
@@ -49,8 +50,21 @@ export class TradingController implements OnApplicationBootstrap {
     });
   }
 
+  @EventPattern(PATTERNS.AskProcessStatus)
+  async askProcessStatus() {
+    await this.client.emit(PATTERNS.ProcessStatus, {
+      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      pid: process.pid,
+      status: ServiceStatus.READY,
+    });
+  }
+
   @EventPattern(PATTERNS.killProcessEvent)
-  async killProcess() {
+  async killProcess(@Payload() payload?: { service?: string }) {
+    if (payload?.service && payload.service !== SERVICE_NAMES.TRADING_SERVICE) {
+      return;
+    }
+
     this.tradingService.isReceivedKillProcess = true;
 
     this.logger.nativeLog({
@@ -74,6 +88,7 @@ export class TradingController implements OnApplicationBootstrap {
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.TRADING_SERVICE,
+      pid: process.pid,
       status: ServiceStatus.KILLED,
     });
 

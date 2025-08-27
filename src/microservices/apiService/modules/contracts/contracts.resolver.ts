@@ -70,9 +70,11 @@ export class ContractsResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   liveContract(
     @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('fromBlock', { type: () => Int, nullable: true })
+    fromBlock: number | null,
     @CurrentUser() _user: User,
   ) {
-    return this.contractsService.liveContract(contractId);
+    return this.contractsService.liveContract(contractId, fromBlock);
   }
 
   @Mutation(() => Contract)

@@ -10,15 +10,12 @@ import {
   ChangeContractStatusInput,
 } from './dto/contract.input';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { ChainPriority } from 'src/types';
-import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prismaService: PrismaService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
-    private evmAdapterService: EvmAdapterService,
   ) {}
 
   async create(input: CreateContractInput) {
@@ -100,25 +97,29 @@ export class ContractsService {
     });
   }
 
-  async liveContract(contractId: number) {
+  async liveContract(contractId: number, fromBlock: number | null) {
     const contract = await this.findOne(contractId);
 
     if (contract.status === ContractStatus.Live) {
       throw new Error('Contract is already live');
     }
 
-    const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
-      chainId: contract.chainId,
-      priority: ChainPriority.LOW,
-    });
-
-    return await this.prismaService.contract.update({
-      where: { id: contractId },
-      data: {
-        status: ContractStatus.Live,
-        lastBlockNumber: Number(currentBlockNumber),
-      },
-    });
+    if (fromBlock) {
+      return await this.prismaService.contract.update({
+        where: { id: contractId },
+        data: {
+          status: ContractStatus.Live,
+          lastBlockNumber: fromBlock,
+        },
+      });
+    } else {
+      return await this.prismaService.contract.update({
+        where: { id: contractId },
+        data: {
+          status: ContractStatus.Live,
+        },
+      });
+    }
   }
 
   async disableContract(contractId: number) {

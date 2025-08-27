@@ -29,6 +29,7 @@ export const MIN_FEE = 1000_000n; // 1 USDC
 export const PATTERNS = {
   killProcessEvent: 'KILL_PROCESS_EVENT',
   ProcessStatus: 'PROCESS_STATUS',
+  AskProcessStatus: 'ASK_PROCESS_STATUS',
   Security: {
     IsValidPassword: 'IS_VALID_PASSWORD',
     IsSafeApp: 'IS_SAFE_APP',

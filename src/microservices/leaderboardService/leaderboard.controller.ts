@@ -3,6 +3,7 @@ import {
   ClientProxy,
   EventPattern,
   MessagePattern,
+  Payload,
 } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Platform } from '@prisma/client';
@@ -41,6 +42,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      pid: process.pid,
       status: ServiceStatus.READY,
     });
   }
@@ -59,8 +61,24 @@ export class LeaderboardController implements OnApplicationBootstrap {
     });
   }
 
+  @EventPattern(PATTERNS.AskProcessStatus)
+  async askProcessStatus() {
+    await this.client.emit(PATTERNS.ProcessStatus, {
+      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      pid: process.pid,
+      status: ServiceStatus.READY,
+    });
+  }
+
   @EventPattern(PATTERNS.killProcessEvent)
-  async killProcess() {
+  async killProcess(@Payload() payload?: { service?: string }) {
+    if (
+      payload?.service &&
+      payload.service !== SERVICE_NAMES.LEADERBOARD_SERVICE
+    ) {
+      return;
+    }
+
     this.leaderboardService.isReceivedKillProcess = true;
 
     this.logger.nativeLog({
@@ -91,6 +109,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      pid: process.pid,
       status: ServiceStatus.KILLED,
     });
 

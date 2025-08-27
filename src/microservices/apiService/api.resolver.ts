@@ -14,6 +14,7 @@ import { GqlAuthGuard } from './modules/auth/gql-auth.guard';
 import { RolesGuard } from './modules/auth/gql-role.guard';
 import { Roles } from './modules/auth/roles.decorator';
 import { SecurityService } from '../../global/security.service';
+import { MicroserviceStatus } from './entities/api.entities';
 
 @ObjectType()
 class ServerTime {
@@ -51,6 +52,20 @@ export class ApiResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
+  startSubService(@Args('service') service: string) {
+    return this.apiService.startSubService(service);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  killSubService(@Args('service') service: string) {
+    return this.apiService.killSubService(service);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   makeSafeApp(@Args('password') password: string) {
     return this.apiService.makeSafeApp(password);
   }
@@ -78,5 +93,10 @@ export class ApiResolver {
   @Query(() => ServerTime)
   getServerTime() {
     return this.apiService.getServerTime();
+  }
+
+  @Query(() => [MicroserviceStatus])
+  getMicroserviceStatus() {
+    return this.apiService.getMicroserviceStatus();
   }
 }
