@@ -689,7 +689,8 @@ export class AutoPlansV2Service {
           ...expert,
           openedPositions: openedHistoriesArr.length,
           avgDuration,
-          avgPnlRatio: sumOfSize > 0 ? sumOfPnl / sumOfSize : 1000_000_000,
+          avgPnlRatio:
+            sumOfSize > 0 ? (sumOfPnl / sumOfSize) * 100 : 1000_000_000,
         };
       });
   }
@@ -1086,7 +1087,7 @@ export class AutoPlansV2Service {
         }
 
         if (sumOfSize > 0 && !expert.ignoreMinPnlLimit) {
-          const avgPnlP = sumOfPnl / sumOfSize;
+          const avgPnlP = (sumOfPnl / sumOfSize) * 100;
 
           if (avgPnlP < 0.5) {
             continue;
