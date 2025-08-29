@@ -293,7 +293,7 @@ export class BacktestService {
     }
 
     if (sumOfSize > 0) {
-      const avgPnlP = sumOfPnl / sumOfSize;
+      const avgPnlP = (sumOfPnl / sumOfSize) * 100;
 
       if (avgPnlP < 0.5) {
         return {
