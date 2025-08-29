@@ -253,7 +253,10 @@ export class BacktestService {
 
     let totalDuration = 0;
 
-    const pnlRatios = chunkHistories
+    let sumOfPnl = 0;
+    let sumOfSize = 0;
+
+    chunkHistories
       .filter(
         (history) =>
           history.action === TradeActionType.TradeClosedMarket ||
@@ -261,7 +264,7 @@ export class BacktestService {
           history.action === TradeActionType.TradeClosedSL ||
           history.action === TradeActionType.TradeClosedTP,
       )
-      .map((item) => {
+      .forEach((item) => {
         const duration = durationMaps.get(
           `${item.contractId}-${item.tradeIndex}`,
         ) || {
@@ -273,14 +276,15 @@ export class BacktestService {
 
         const pnl = pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
         const size = sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
-        return size > 0 ? (pnl / size) * 100 : null;
-      })
-      .filter((item) => item !== null);
+
+        sumOfPnl += pnl;
+        sumOfSize += size;
+      });
 
     const avgDuration =
       chunkHistories.length > 0 ? totalDuration / chunkHistories.length : 0;
 
-    if (avgDuration < 1000 * 5 * 60) {
+    if (avgDuration < 1000 * 3 * 60) {
       return {
         ...snapshot,
         histories,
@@ -288,9 +292,8 @@ export class BacktestService {
       };
     }
 
-    if (pnlRatios.length > 0) {
-      const avgPnlP =
-        pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
+    if (sumOfSize > 0) {
+      const avgPnlP = sumOfPnl / sumOfSize;
 
       if (avgPnlP < 0.5) {
         return {
