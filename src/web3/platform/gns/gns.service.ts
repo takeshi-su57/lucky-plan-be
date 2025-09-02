@@ -7,6 +7,8 @@ import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { ChainsService } from 'src/web3/web3/chains.service';
+import { LogsService } from 'src/global/logs.service';
+import { PrismaService } from 'src/global/prisma.service';
 
 import {
   OpenTradePayload,
@@ -25,13 +27,16 @@ import {
   TradingVariable,
   WithdrawPositivePnlPayload,
 } from './v10/types';
-import { LogsService } from 'src/global/logs.service';
+
 import { ChainPriority, ServiceStatus } from 'src/types';
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 import {
   TradeCollateral,
   TradePair,
 } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
+import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
+
+const GNS_V10_TRADING_VARIABLES = 'gns_v10_trading_variables';
 
 @Injectable()
 export class GnsService {
@@ -40,6 +45,7 @@ export class GnsService {
 
   constructor(
     private readonly contractsService: ContractsService,
+    private readonly prismaService: PrismaService,
     private readonly chainsService: ChainsService,
     private readonly logger: LogsService,
   ) {
@@ -50,21 +56,55 @@ export class GnsService {
   async loadTradingVariables() {
     this.status = ServiceStatus.PROCESS;
 
+    const metadata = await this.prismaService.metadata.findUnique({
+      where: {
+        key: GNS_V10_TRADING_VARIABLES,
+      },
+    });
+
+    if (metadata) {
+      this.tradingVariable = bigIntSafeJsonParse<
+        Record<number, TradingVariable>
+      >(metadata.value);
+    } else {
+      await this.loadTradingVariablesFromContracts();
+    }
+
+    this.status = ServiceStatus.READY;
+  }
+
+  async loadTradingVariablesFromContracts() {
+    this.status = ServiceStatus.PROCESS;
+
     const allContracts = await this.contractsService.findAll();
 
     const contracts = allContracts.filter(
       (contract) => contract.platform === Platform.GNS,
     );
 
-    this.tradingVariable = {};
+    const variables: Record<number, TradingVariable> = {};
 
     const promises = contracts.map(
       async (contract) =>
-        (this.tradingVariable[contract.id] =
-          await this.getTradingVariable(contract)),
+        (variables[contract.id] = await this.getTradingVariable(contract)),
     );
 
     await Promise.allSettled(promises);
+
+    this.tradingVariable = variables;
+
+    await this.prismaService.metadata.upsert({
+      where: {
+        key: GNS_V10_TRADING_VARIABLES,
+      },
+      update: {
+        value: bigIntSafeJsonStringify(variables),
+      },
+      create: {
+        key: GNS_V10_TRADING_VARIABLES,
+        value: bigIntSafeJsonStringify(variables),
+      },
+    });
 
     this.status = ServiceStatus.READY;
   }
