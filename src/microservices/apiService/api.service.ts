@@ -228,7 +228,7 @@ export class ApiService {
 
     await delay(20_000);
 
-    await this.gnsService.loadTradingVariables();
+    await this.gnsService.loadTradingVariablesFromContracts();
 
     await this.logger.nativeLog({
       severity: 'Info',
