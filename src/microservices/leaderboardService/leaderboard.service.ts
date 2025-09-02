@@ -732,13 +732,16 @@ export class LeaderboardService {
 
         switch (log.eventLog.eventName) {
           case 'PositionIncrease': {
-            usdPnl = Number(log.eventLog.args.priceImpactUsd.toString()) / 1e30;
+            usdPnl =
+              Number(log.eventLog.args.priceImpactUsd?.toString() || '0') /
+              1e30;
             break;
           }
           case 'PositionDecrease': {
             usdPnl =
-              Number(log.eventLog.args.basePnlUsd.toString() / 1e30) +
-              Number(log.eventLog.args.priceImpactUsd.toString()) / 1e30;
+              Number(log.eventLog.args.basePnlUsd?.toString() || '0') / 1e30 +
+              Number(log.eventLog.args.priceImpactUsd?.toString() || '0') /
+                1e30;
             break;
           }
           default: {
