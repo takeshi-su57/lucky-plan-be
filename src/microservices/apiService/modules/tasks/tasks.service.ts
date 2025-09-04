@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MissionStatus, TaskStatus } from '@prisma/client';
+import { MissionStatus, Platform, TaskStatus } from '@prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import {
@@ -29,7 +29,6 @@ import {
 import {
   ManualParams,
   Mission,
-  MissionDetails,
 } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 
 import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
@@ -44,6 +43,7 @@ import { ActionsService } from 'src/microservices/apiService/modules/actions/act
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
+import { getWeb3Info } from 'src/web3/utils';
 
 @Injectable()
 export class TasksService {
@@ -79,8 +79,6 @@ export class TasksService {
                 plan: true,
               },
             },
-            targetPosition: true,
-            achievePosition: true,
           },
         },
       },
@@ -107,8 +105,6 @@ export class TasksService {
                 leaderContract: true,
               },
             },
-            achievePosition: true,
-            targetPosition: true,
           },
         },
       },
@@ -184,7 +180,8 @@ export class TasksService {
     );
 
     const newAction = await this.actionsService.createCloseMissionAction(
-      mission.targetPositionId,
+      openEvent.args.t.user,
+      mission.targetPositionKey,
       currentPrice.toString(),
     );
 
@@ -222,8 +219,6 @@ export class TasksService {
                 leaderContract: true,
               },
             },
-            achievePosition: true,
-            targetPosition: true,
           },
         },
       },
@@ -291,7 +286,8 @@ export class TasksService {
     const clonedAction = await this.prismaService.action.create({
       data: {
         name: task.action.name,
-        positionId: task.action.positionId,
+        positionKey: task.action.positionKey,
+        address: task.action.address.toLowerCase(),
         args: newArgs,
         blockNumber: task.action.blockNumber,
         orderInBlock: task.action.orderInBlock,
@@ -426,6 +422,10 @@ export class TasksService {
     missionCloseCallback: (missionIds: number[]) => Promise<void>,
   ) {
     const filteredActions = actions.filter((item) => {
+      if (item.context.bot.leaderContract.platform !== Platform.GNS) {
+        return true;
+      }
+
       if (
         ![...updateEventNames, ...missionEventNames].includes(item.action.name)
       ) {
@@ -470,10 +470,17 @@ export class TasksService {
     });
 
     const closeActions = filteredActions.filter((item) =>
-      isCloseMissionAction(item.action),
+      getWeb3Info(
+        item.context.bot.leaderContract.platform,
+        item.context.bot.leaderContract.version,
+      ).isCloseMissionAction(item.action),
     );
     const noneCloseActions = filteredActions.filter(
-      (item) => !isCloseMissionAction(item.action),
+      (item) =>
+        !getWeb3Info(
+          item.context.bot.leaderContract.platform,
+          item.context.bot.leaderContract.version,
+        ).isCloseMissionAction(item.action),
     );
 
     const createdOrFailedTasks: TaskDetails[] = [];
@@ -505,7 +512,10 @@ export class TasksService {
       });
 
       const openTask = sortedTasks.find((task) =>
-        isOpenMissionAction(task.action),
+        getWeb3Info(
+          action.context.bot.leaderContract.platform,
+          action.context.bot.leaderContract.version,
+        ).isOpenMissionAction(task.action),
       );
 
       if (
@@ -572,7 +582,7 @@ export class TasksService {
     callbacks: {
       closeCancelded: (missionIds: number[]) => Promise<void>;
       openCanceled: (missionIds: number[]) => Promise<void>;
-      clone: (missions: MissionDetails[]) => Promise<void>;
+      clone: (missions: Mission[]) => Promise<void>;
     },
   ) {
     const followerActionInputs: CreateFollowerActionInput[] = [];
@@ -582,10 +592,11 @@ export class TasksService {
     const manualCloseActions: {
       missionId: number;
       pairIndex: number;
-      targetPositionId: number;
+      address: string;
+      targetPositionKey: string;
     }[] = [];
 
-    const cloneMissions: MissionDetails[] = [];
+    const cloneMissions: Mission[] = [];
     const openCanceledMissionIds: number[] = [];
 
     const tasksByMissionMap = await this.getTasksByMissionMap(
@@ -619,7 +630,8 @@ export class TasksService {
         manualCloseActions.push({
           missionId: context.mission.id,
           pairIndex: Number(event.args.pairIndex),
-          targetPositionId: context.mission.targetPositionId,
+          address: action.address,
+          targetPositionKey: context.mission.targetPositionKey,
         });
       }
 
@@ -672,7 +684,8 @@ export class TasksService {
           closeActions.push({ action, context });
 
           const newAction = await this.actionsService.createCloseMissionAction(
-            context.mission.targetPositionId,
+            action.address,
+            context.mission.targetPositionKey,
             '0',
           );
 
@@ -743,7 +756,8 @@ export class TasksService {
       const currentPrice = await this.gnsService.getPairPrice(item.pairIndex);
 
       const newAction = await this.actionsService.createCloseMissionAction(
-        item.targetPositionId,
+        item.address,
+        item.targetPositionKey,
         currentPrice.toString(),
       );
 
@@ -815,8 +829,6 @@ export class TasksService {
                 plan: true,
               },
             },
-            targetPosition: true,
-            achievePosition: true,
           },
         },
       },

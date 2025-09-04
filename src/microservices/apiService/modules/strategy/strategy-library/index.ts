@@ -1,18 +1,21 @@
-import { PositionSizeDecreaseExecutedEventArgs } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
-import { PositionSizeIncreaseExecutedEventArgs } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
 import { Collateral, Trade } from 'src/web3/platform/gns/v10/types';
 import { Strategy } from '../entities/strategy.entity';
 
 export function getPositionIncreaseParams(
   strategy: Strategy,
-  increaseEventArgs: PositionSizeIncreaseExecutedEventArgs,
+  increaseEventArgs: {
+    collateralDelta: bigint;
+    leverageDelta: bigint;
+    newLeverage: bigint;
+    newOpenPrice: bigint;
+  },
   collateral: Collateral,
   trade: Trade,
 ) {
   const collateralDelta = BigInt(increaseEventArgs.collateralDelta);
   const newLeverage = Math.min(
     strategy.maxLeverage,
-    Number(increaseEventArgs.values.newLeverage),
+    Number(increaseEventArgs.newLeverage),
   );
   const oldLeverage = Number(trade.leverage);
 
@@ -29,7 +32,7 @@ export function getPositionIncreaseParams(
     return {
       collateralDelta: 0n,
       leverageDelta,
-      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+      expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
     };
   }
 
@@ -39,7 +42,7 @@ export function getPositionIncreaseParams(
     return {
       collateralDelta: 0n,
       leverageDelta,
-      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+      expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
     };
   }
 
@@ -55,7 +58,7 @@ export function getPositionIncreaseParams(
     return {
       collateralDelta: collateralDeltaUSDC,
       leverageDelta: Number(increaseEventArgs.leverageDelta),
-      expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+      expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
     };
   }
 
@@ -75,29 +78,33 @@ export function getPositionIncreaseParams(
 
 export function getPositionDecreaseParams(
   strategy: Strategy,
-  decreaseEventArgs: PositionSizeDecreaseExecutedEventArgs,
+  decreaseEventArgs: {
+    leverageDelta: bigint;
+    existingPositionSizeCollateral: bigint;
+    positionSizeCollateralDelta: bigint;
+    newLeverage: bigint;
+    oraclePrice: bigint;
+  },
   trade: Trade,
 ) {
   const deltaLevL = Number(decreaseEventArgs.leverageDelta);
   const oldPositionSizeCollateral = BigInt(
-    decreaseEventArgs.values.existingPositionSizeCollateral,
+    decreaseEventArgs.existingPositionSizeCollateral,
   );
   const positionSizeDeltaCollateral = BigInt(
-    decreaseEventArgs.values.positionSizeCollateralDelta,
+    decreaseEventArgs.positionSizeCollateralDelta,
   );
 
   if (deltaLevL > 0) {
     // no need to decrease position
-    if (
-      Number(decreaseEventArgs.values.newLeverage) >= Number(trade.leverage)
-    ) {
+    if (Number(decreaseEventArgs.newLeverage) >= Number(trade.leverage)) {
       return null;
     }
 
     return {
       collateralDelta: 0n,
       leverageDelta:
-        Number(trade.leverage) - Number(decreaseEventArgs.values.newLeverage),
+        Number(trade.leverage) - Number(decreaseEventArgs.newLeverage),
       expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
     };
   }
