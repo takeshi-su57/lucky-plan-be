@@ -1,26 +1,20 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { PositionsService } from 'src/microservices/apiService/modules/positions/positions.service';
-import {
-  Position,
-  PositionInfo,
-} from 'src/microservices/apiService/modules/positions/entities/position.entity';
+
 import { CreateActionInput } from './dto/action.input';
 import { CloseMissionAction } from 'src/utils/constants';
 
 @Injectable()
 export class ActionsService {
-  constructor(
-    private prismaService: PrismaService,
-    private positionsService: PositionsService,
-  ) {}
+  constructor(private prismaService: PrismaService) {}
 
-  async createCloseMissionAction(positionId: number, expectedPrice: string) {
+  async createCloseMissionAction(address: string, positionKey: string, expectedPrice: string) {
     const action = await this.prismaService.action.create({
       data: {
         name: CloseMissionAction,
-        positionId,
+        positionKey,
+        address,
         args: JSON.stringify({
           expectedPrice,
         }),
@@ -32,46 +26,13 @@ export class ActionsService {
     return action;
   }
 
-  async createMany(contractId: number, inputs: CreateActionInput[]) {
+  async createMany(inputs: CreateActionInput[]) {
     if (inputs.length === 0) {
       return [];
     }
 
-    const positionInputs = Array.from(
-      new Set(
-        inputs.map((input) =>
-          JSON.stringify({
-            contractId,
-            address: input.positionAddress.toLowerCase(),
-            index: input.positionIndex,
-          }),
-        ),
-      ),
-    ).map((item) => JSON.parse(item) as PositionInfo);
-
-    const positionsMap = new Map<string, Position>();
-
-    (await this.positionsService.upsertMany(positionInputs)).forEach(
-      (position) =>
-        positionsMap.set(
-          `${contractId}-${position.address.toLowerCase()}-${position.index}`,
-          position as Position,
-        ),
-    );
-
     const actions = await this.prismaService.action.createManyAndReturn({
-      data: inputs.map((input) => ({
-        name: input.name,
-        positionId: positionsMap.get(
-          `${contractId}-${input.positionAddress.toLowerCase()}-${input.positionIndex}`,
-        )!.id,
-        args: input.args,
-        blockNumber: input.blockNumber,
-        orderInBlock: input.orderInBlock,
-      })),
-      include: {
-        position: true,
-      },
+      data: inputs,
     });
 
     return actions;

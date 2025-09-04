@@ -7,8 +7,16 @@ export class MissionCreateInput {
   botId: number;
 
   @IsNotEmpty()
+  @IsString()
+  targetPositionKey: string;
+
+  @IsNotEmpty()
   @IsNumber()
-  targetPositionId: number;
+  targetPositionBlockNumber: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  targetPositionLogIndex: number;
 }
 
 export class MissionUpdateInput {
@@ -17,7 +25,13 @@ export class MissionUpdateInput {
   id: number;
 
   @IsNumber()
-  achievePositionId?: number | null;
+  achievePositionKey?: string | null;
+
+  @IsNumber()
+  achievePositionBlockNumber?: number | null;
+
+  @IsNumber()
+  achievePositionLogIndex?: number | null;
 
   @IsNotEmpty()
   @IsString()

@@ -13,7 +13,6 @@ import { FollowerModule } from './modules/follower/follower.module';
 import { StrategyModule } from './modules/strategy/strategy.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { BotsModule } from './modules/bots/bots.module';
-import { PositionsModule } from './modules/positions/positions.module';
 import { MissionsModule } from './modules/missions/missions.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { ActionsModule } from './modules/actions/actions.module';
@@ -47,7 +46,6 @@ import { ApiController } from './api.controller';
     StrategyModule,
     ContractsModule,
     BotsModule,
-    PositionsModule,
     MissionsModule,
     TasksModule,
     ActionsModule,

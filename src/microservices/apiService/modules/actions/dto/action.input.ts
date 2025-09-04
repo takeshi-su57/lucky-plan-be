@@ -1,7 +1,6 @@
 import { IsNotEmpty, IsString, IsIn, IsNumber, IsJSON } from 'class-validator';
 
 import { eventParsers } from '../../../../../web3/platform/gns/v10/eventParsers';
-import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
 export class CreateActionInput {
   @IsNotEmpty()
@@ -10,12 +9,12 @@ export class CreateActionInput {
   name: string;
 
   @IsNotEmpty()
-  @IsWalletAddress()
-  positionAddress: string;
+  @IsString()
+  positionKey: string;
 
   @IsNotEmpty()
-  @IsNumber()
-  positionIndex: number;
+  @IsString()
+  address: string;
 
   @IsNotEmpty()
   @IsString()

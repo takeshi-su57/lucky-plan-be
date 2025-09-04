@@ -1,7 +1,7 @@
-import { ActionDetails } from 'src/microservices/apiService/modules/actions/entities/action.entity';
+import { Action } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 import { BotDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
+import { Mission } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 import { TaskDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
-import { MissionDetails } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 
 export type TradeEvent<T> = {
   eventName: string;
@@ -13,7 +13,7 @@ export type BotContext = {
 };
 
 export type MissionContext = BotContext & {
-  mission: MissionDetails;
+  mission: Mission;
 };
 
 export type TaskContext = MissionContext & {
@@ -21,12 +21,12 @@ export type TaskContext = MissionContext & {
 };
 
 export type ActionContext<T> = {
-  action: ActionDetails;
+  action: Action;
   context: T;
 };
 
 export type TradeEventContext<TEventArgs, TContext> = {
-  action: ActionDetails;
+  action: Action;
   event: TradeEvent<TEventArgs>;
   context: TContext;
 };

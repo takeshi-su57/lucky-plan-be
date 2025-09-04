@@ -2,27 +2,27 @@ import {
   ActionItem,
   Action,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
-import { PositionInfo } from 'src/microservices/apiService/modules/positions/entities/position.entity';
+
 import { TradeEvent } from 'src/types';
 
 export function eventToAction(
   eventName: string,
-  position: PositionInfo,
+  positionKey: string,
+  address: string,
   args: unknown,
 ): ActionItem {
   return {
     name: eventName,
-    position,
-    args: JSON.stringify(args, (_, v) =>
-      typeof v === 'bigint' ? v.toString() : v,
-    ),
+    positionKey,
+    args: bigIntSafeJsonStringify(args),
+    address: address.toLowerCase(),
   };
 }
 
 export function actionToEvent<T>(action: Action | ActionItem): TradeEvent<T> {
   return {
     eventName: action.name,
-    args: JSON.parse(action.args) as T,
+    args: bigIntSafeJsonParse<T>(action.args),
   };
 }
 
