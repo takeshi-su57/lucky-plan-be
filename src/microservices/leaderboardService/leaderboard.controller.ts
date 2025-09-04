@@ -139,11 +139,13 @@ export class LeaderboardController implements OnApplicationBootstrap {
     dateStr: string;
     isForceBuild: boolean;
   }) {
-    return this.pnlSnapshotV2Service.buildSnapshots(
+    this.pnlSnapshotV2Service.buildSnapshots(
       payload.platform,
       payload.dateStr,
       payload.isForceBuild,
     );
+
+    return true;
   }
 
   @MessagePattern(PATTERNS.Leaderboard.DynamicSnapshotV2Build)
@@ -152,11 +154,13 @@ export class LeaderboardController implements OnApplicationBootstrap {
     dateStr: string;
     isForceBuild: boolean;
   }) {
-    return this.pnlSnapshotV2Service.buildSnapshots(
+    this.pnlSnapshotV2Service.buildSnapshots(
       payload.platform,
       payload.dateStr,
       payload.isForceBuild,
     );
+
+    return true;
   }
 
   @MessagePattern(PATTERNS.Leaderboard.InitializePnlSnapshotV2)
@@ -165,24 +169,30 @@ export class LeaderboardController implements OnApplicationBootstrap {
     beginingDate: Date;
     isForceBuild: boolean;
   }) {
-    return this.pnlSnapshotV2Service.initializePnlSnapshot(
+    this.pnlSnapshotV2Service.initializePnlSnapshot(
       payload.platform,
       payload.beginingDate,
       payload.isForceBuild,
     );
+
+    return true;
   }
 
   @MessagePattern(PATTERNS.Leaderboard.BuildPnlSnapshot)
   async buildPnlSnapshot(payload: { dateStr: string; isForceBuild: boolean }) {
-    return this.pnlSnapshotService.buildSnapshots(
+    this.pnlSnapshotService.buildSnapshots(
       payload.dateStr,
       payload.isForceBuild,
     );
+
+    return true;
   }
 
   @MessagePattern(PATTERNS.Leaderboard.DynamicSnapshotBuild)
   async dynamicSnapshotBuild(payload: { dateStr: string }) {
-    return this.pnlSnapshotService.dynamicSnapshotBuild(payload.dateStr);
+    this.pnlSnapshotService.dynamicSnapshotBuild(payload.dateStr);
+
+    return true;
   }
 
   @MessagePattern(PATTERNS.Leaderboard.InitializePnlSnapshot)
@@ -190,10 +200,12 @@ export class LeaderboardController implements OnApplicationBootstrap {
     beginingDate: Date;
     isForceBuild: boolean;
   }) {
-    return this.pnlSnapshotService.initializePnlSnapshot(
+    this.pnlSnapshotService.initializePnlSnapshot(
       payload.beginingDate,
       payload.isForceBuild,
     );
+
+    return true;
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
