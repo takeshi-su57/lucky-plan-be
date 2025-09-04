@@ -37,14 +37,14 @@ export class TradeHistoriesResolver {
     private readonly backtestService: BacktestService,
   ) {}
 
-  @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async buildPnlSnapshots(
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+    return await new Promise<Boolean>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Leaderboard.BuildPnlSnapshot, {
           dateStr,
@@ -57,13 +57,13 @@ export class TradeHistoriesResolver {
     });
   }
 
-  @Mutation(() => PnlSnapshotInitializedFlag, { nullable: true })
+  @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async dynamicSnapshotBuild(
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+    return await new Promise<Boolean>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Leaderboard.DynamicSnapshotBuild, { dateStr })
         .subscribe({
@@ -80,7 +80,7 @@ export class TradeHistoriesResolver {
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<PnlSnapshotInitializedFlag>((resolve, reject) => {
+    return await new Promise<Boolean>((resolve, reject) => {
       this.redisClient
         .send(PATTERNS.Leaderboard.InitializePnlSnapshot, {
           beginingDate,

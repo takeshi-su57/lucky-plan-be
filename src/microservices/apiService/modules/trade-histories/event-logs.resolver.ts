@@ -25,7 +25,7 @@ export class EventLogsResolver {
     private readonly pnlSnapshotsV2Service: PnlSnapshotsV2Service,
   ) {}
 
-  @Mutation(() => PnlSnapshotV2InitializedFlag, { nullable: true })
+  @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async buildPnlSnapshotsV2(
@@ -33,42 +33,38 @@ export class EventLogsResolver {
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<PnlSnapshotV2InitializedFlag>(
-      (resolve, reject) => {
-        this.redisClient
-          .send(PATTERNS.Leaderboard.BuildPnlSnapshotV2, {
-            platform,
-            dateStr,
-            isForceBuild,
-          })
-          .subscribe({
-            next: (data) => resolve(data),
-            error: (err) => reject(err),
-          });
-      },
-    );
+    return await new Promise<Boolean>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.BuildPnlSnapshotV2, {
+          platform,
+          dateStr,
+          isForceBuild,
+        })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
-  @Mutation(() => PnlSnapshotV2InitializedFlag, { nullable: true })
+  @Mutation(() => Boolean)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async dynamicSnapshotBuildV2(
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return await new Promise<PnlSnapshotV2InitializedFlag>(
-      (resolve, reject) => {
-        this.redisClient
-          .send(PATTERNS.Leaderboard.DynamicSnapshotV2Build, {
-            platform,
-            dateStr,
-          })
-          .subscribe({
-            next: (data) => resolve(data),
-            error: (err) => reject(err),
-          });
-      },
-    );
+    return await new Promise<Boolean>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.DynamicSnapshotV2Build, {
+          platform,
+          dateStr,
+        })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   @Mutation(() => Boolean)
@@ -79,20 +75,18 @@ export class EventLogsResolver {
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<PnlSnapshotV2InitializedFlag>(
-      (resolve, reject) => {
-        this.redisClient
-          .send(PATTERNS.Leaderboard.InitializePnlSnapshotV2, {
-            platform,
-            beginingDate,
-            isForceBuild,
-          })
-          .subscribe({
-            next: (data) => resolve(data),
-            error: (err) => reject(err),
-          });
-      },
-    );
+    return await new Promise<Boolean>((resolve, reject) => {
+      this.redisClient
+        .send(PATTERNS.Leaderboard.InitializePnlSnapshotV2, {
+          platform,
+          beginingDate,
+          isForceBuild,
+        })
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   @Query(() => PnlSnapshotV2InitializedFlag, { nullable: true })
