@@ -7,7 +7,6 @@ import { FollowerModule } from '../apiService/modules/follower/follower.module';
 import { StrategyModule } from '../apiService/modules/strategy/strategy.module';
 import { ContractsModule } from '../apiService/modules/contracts/contracts.module';
 import { BotsModule } from '../apiService/modules/bots/bots.module';
-import { PositionsModule } from '../apiService/modules/positions/positions.module';
 import { MissionsModule } from '../apiService/modules/missions/missions.module';
 import { TasksModule } from '../apiService/modules/tasks/tasks.module';
 import { ActionsModule } from '../apiService/modules/actions/actions.module';
@@ -31,7 +30,6 @@ import { TradingController } from './trading.controller';
     StrategyModule,
     ContractsModule,
     BotsModule,
-    PositionsModule,
     MissionsModule,
     TasksModule,
     ActionsModule,

@@ -292,7 +292,7 @@ export class TradeHistoriesService {
         }
 
         cache[Number(row.contractId)].push({
-          item: eventToActionParser(Number(row.contractId), event),
+          item: eventToActionParser(event),
           blockNumber: Number(row.block),
           timestamp: rowDate,
         });
@@ -365,7 +365,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeIncrease,
               contractId,
               price: `${Number(args.values.newOpenPrice) / 1e10}`,
@@ -412,7 +412,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
               contractId,
               price: `${Number(args.values.priceAfterImpact) / 1e10}`,
@@ -459,7 +459,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradeLeverageUpdate,
               contractId,
               price: `${Number(args.oraclePrice) / 1e10}`,
@@ -507,7 +507,7 @@ export class TradeHistoriesService {
                 Number(args.t.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: args.open
                 ? TradeActionType.TradeOpenedMarket
                 : TradeActionType.TradeClosedMarket,
@@ -565,7 +565,7 @@ export class TradeHistoriesService {
                 Number(args.t.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: actionNameMap[args.orderType],
               contractId,
               price: `${Number(args.oraclePrice) / 1e10}`,
@@ -657,10 +657,7 @@ export class TradeHistoriesService {
         }
 
         const actionItems = records.map((record) => {
-          const parsed = eventToActionParser(
-            contract.id,
-            JSON.parse(record.jsonLog),
-          );
+          const parsed = eventToActionParser(JSON.parse(record.jsonLog));
 
           return {
             item: parsed,
@@ -709,7 +706,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeIncrease,
               contractId,
               price: `${Number(args.values.newOpenPrice) / 1e10}`,
@@ -758,7 +755,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
               contractId,
               price: `${Number(args.values.priceImpact.priceAfterImpact) / 1e10}`,
@@ -807,7 +804,7 @@ export class TradeHistoriesService {
                 Number(args.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradeLeverageUpdate,
               contractId,
               price: `${Number(args.oraclePrice) / 1e10}`,
@@ -857,7 +854,7 @@ export class TradeHistoriesService {
                 Number(args.t.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: args.open
                 ? TradeActionType.TradeOpenedMarket
                 : TradeActionType.TradeClosedMarket,
@@ -917,7 +914,7 @@ export class TradeHistoriesService {
                 Number(args.t.pairIndex),
               ),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: actionNameMap[args.orderType],
               contractId,
               price: `${Number(args.oraclePrice) / 1e10}`,
@@ -952,7 +949,7 @@ export class TradeHistoriesService {
               date: actionItem.timestamp,
               pair: this.gnsService.getPairName(contractId, Number(args.index)),
               block: actionItem.blockNumber,
-              address: actionItem.item.position.address.toLowerCase(),
+              address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosPnlRealized,
               contractId,
               price: `${Number(args.priceImpact.priceAfterImpact) / 1e10}`,

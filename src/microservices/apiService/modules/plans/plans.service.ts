@@ -128,8 +128,6 @@ export class PlansService {
             followerContract: true,
             missions: {
               include: {
-                targetPosition: true,
-                achievePosition: true,
                 tasks: {
                   include: {
                     action: true,
@@ -176,8 +174,6 @@ export class PlansService {
             followerContract: true,
             missions: {
               include: {
-                targetPosition: true,
-                achievePosition: true,
                 tasks: {
                   include: {
                     action: true,

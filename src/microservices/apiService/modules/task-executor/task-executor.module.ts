@@ -5,7 +5,7 @@ import { MissionsModule } from 'src/microservices/apiService/modules/missions/mi
 import { FollowerModule } from 'src/microservices/apiService/modules/follower/follower.module';
 import { ActionsModule } from 'src/microservices/apiService/modules/actions/actions.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
-import { GmxModule } from 'src/web3/platform/gmx/gmx.module';
+import { GmxModule } from 'src/web3/platform/gmx/v2/gmx.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 
 import { TaskExecutorService } from './task-executor.service';
