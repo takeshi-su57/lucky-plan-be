@@ -60,11 +60,8 @@ export const eventParsersMap = Object.fromEntries(
   eventParsers.map((parser) => [parser.eventName, parser]),
 );
 
-export function eventToActionParser(
-  contractId: number,
-  event: RegisteredEventType,
-): ActionItem {
-  return eventParsersMap[event.eventName].logParser(contractId, event as any);
+export function eventToActionParser(event: RegisteredEventType): ActionItem {
+  return eventParsersMap[event.eventName].logParser(event as any);
 }
 
 export function isOpenMissionAction(action: Action | ActionItem) {

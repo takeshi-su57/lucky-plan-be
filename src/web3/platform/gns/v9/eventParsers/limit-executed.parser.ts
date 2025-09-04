@@ -1,6 +1,7 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
+import { getGnsPositionKey } from '../../utils';
 
 export const eventName = 'LimitExecuted';
 
@@ -15,13 +16,11 @@ export type LimitExecutedEvent = DecodeEventLogReturnType<
 >;
 export type LimitExecutedEventArgs = LimitExecutedEvent['args'];
 
-export function parseLimitExecutedEvent(
-  contractId: number,
-  event: LimitExecutedEvent,
-) {
+export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
   return eventToAction(
     event.eventName,
-    { contractId, address: event.args.t.user, index: event.args.t.index },
+    getGnsPositionKey(event.args.t.user, event.args.t.index),
+    event.args.t.user,
     event.args,
   );
 }

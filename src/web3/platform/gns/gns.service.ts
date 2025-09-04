@@ -616,6 +616,22 @@ export class GnsService {
     return this.tradingVariable[contractId].pairs[pairIndex];
   }
 
+  getPairIndex(contractId: number, pairName: string) {
+    if (!this.tradingVariable[contractId]) {
+      throw new Error(
+        `Failed at getting trading variable, contractId:${contractId}`,
+      );
+    }
+
+    const pairIndex = this.tradingVariable[contractId].pairs.findIndex(
+      (pair) =>
+        pair !== undefined &&
+        `${pair.from}/${pair.to}`.toLowerCase() === pairName.toLowerCase(),
+    );
+
+    return pairIndex;
+  }
+
   getPairs(contractId: number) {
     if (!this.tradingVariable[contractId]) {
       throw new Error(

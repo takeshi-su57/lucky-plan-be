@@ -1,6 +1,7 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
+import { getGnsPositionKey } from '../../utils';
 
 export const eventName = 'MarketExecuted';
 
@@ -15,17 +16,11 @@ export type MarketExecutedEvent = DecodeEventLogReturnType<
 >;
 export type MarketExecutedEventArgs = MarketExecutedEvent['args'];
 
-export function parseMarketExecutedEvent(
-  contractId: number,
-  event: MarketExecutedEvent,
-) {
+export function parseMarketExecutedEvent(event: MarketExecutedEvent) {
   return eventToAction(
     event.eventName,
-    {
-      contractId,
-      address: event.args.t.user,
-      index: event.args.t.index,
-    },
+    getGnsPositionKey(event.args.t.user, event.args.t.index),
+    event.args.t.user,
     event.args,
   );
 }

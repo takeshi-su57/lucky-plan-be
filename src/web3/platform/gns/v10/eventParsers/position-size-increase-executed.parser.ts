@@ -1,6 +1,7 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
+import { getGnsPositionKey } from '../../utils';
 
 export const eventName = 'PositionSizeIncreaseExecuted';
 
@@ -17,16 +18,12 @@ export type PositionSizeIncreaseExecutedEventArgs =
   PositionSizeIncreaseExecutedEvent['args'];
 
 export function parsePositionSizeIncreaseExecutedEvent(
-  contractId: number,
   event: PositionSizeIncreaseExecutedEvent,
 ) {
   return eventToAction(
     event.eventName,
-    {
-      contractId,
-      address: event.args.trader,
-      index: Number(event.args.index),
-    },
+    getGnsPositionKey(event.args.trader, Number(event.args.index)),
+    event.args.trader,
     event.args,
   );
 }
