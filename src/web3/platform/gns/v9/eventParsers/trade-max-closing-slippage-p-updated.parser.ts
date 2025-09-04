@@ -1,6 +1,7 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
+import { getGnsPositionKey } from '../../utils';
 
 export const eventName = 'TradeMaxClosingSlippagePUpdated';
 
@@ -17,16 +18,12 @@ export type TradeMaxClosingSlippagePUpdatedEventArgs =
   TradeMaxClosingSlippagePUpdatedEvent['args'];
 
 export function parseTradeMaxClosingSlippagePUpdatedEvent(
-  contractId: number,
   event: TradeMaxClosingSlippagePUpdatedEvent,
 ) {
   return eventToAction(
     event.eventName,
-    {
-      contractId,
-      address: event.args.user,
-      index: event.args.index,
-    },
+    getGnsPositionKey(event.args.user, event.args.index),
+    event.args.user,
     event.args,
   );
 }

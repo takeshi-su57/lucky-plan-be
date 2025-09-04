@@ -7,4 +7,4 @@ import { GmxService } from './gmx.service';
   providers: [GmxService],
   exports: [GmxService],
 })
-export class GnsModule {}
+export class GmxModule {}

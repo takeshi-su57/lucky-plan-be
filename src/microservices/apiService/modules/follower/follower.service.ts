@@ -33,6 +33,10 @@ import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
+import {
+  getGnsPositionKey,
+  parseGnsPositionKey,
+} from 'src/web3/platform/gns/utils';
 
 @Injectable()
 export class FollowerService {
@@ -691,40 +695,14 @@ export class FollowerService {
         },
       });
 
-      const tradeIds = trades.map((trade) => ({
-        contractId,
-        address: trade.user.toLowerCase(),
-        index: trade.index,
-      }));
-
-      const achievePositions = await this.prismaService.position.findMany({
-        where: {
-          contractId,
-          address: {
-            in: tradeIds.map((trade) => trade.address),
-          },
-          index: {
-            in: tradeIds.map((trade) => trade.index),
-          },
-        },
-      });
-
-      const achievePositionIdsMap = new Map<
-        number,
-        { address: string; index: number }
-      >();
-
-      achievePositions.forEach((position) => {
-        achievePositionIdsMap.set(position.id, {
-          address: position.address,
-          index: position.index,
-        });
-      });
+      const achievePositionKeys = trades.map((trade) =>
+        getGnsPositionKey(trade.user.toLowerCase(), trade.index),
+      );
 
       const missions = await this.prismaService.mission.findMany({
         where: {
-          achievePositionId: {
-            in: achievePositions.map((position) => position.id),
+          achievePositionKey: {
+            in: achievePositionKeys,
           },
           status: {
             notIn: [MissionStatus.Closed, MissionStatus.Ignored],
@@ -732,8 +710,6 @@ export class FollowerService {
         },
         orderBy: { id: 'desc' },
         include: {
-          targetPosition: true,
-          achievePosition: true,
           tasks: {
             include: {
               action: true,
@@ -750,11 +726,11 @@ export class FollowerService {
       const missionMaps = new Map<string, MissionForwardDetails>();
 
       missions.forEach((mission) => {
-        if (!mission.achievePositionId) {
+        if (!mission.achievePositionKey) {
           return;
         }
 
-        const tradeId = achievePositionIdsMap.get(mission.achievePositionId);
+        const tradeId = parseGnsPositionKey(mission.achievePositionKey);
 
         if (!tradeId) {
           return;

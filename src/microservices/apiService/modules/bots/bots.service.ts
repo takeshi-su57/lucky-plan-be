@@ -26,7 +26,7 @@ import {
 } from './entities/bot.entity';
 
 import {
-  ActionDetails,
+  Action,
   ActionItem,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
@@ -362,8 +362,6 @@ export class BotsService {
         followerContract: true,
         missions: {
           include: {
-            targetPosition: true,
-            achievePosition: true,
             tasks: {
               include: {
                 action: true,
@@ -409,8 +407,6 @@ export class BotsService {
         followerContract: true,
         missions: {
           include: {
-            targetPosition: true,
-            achievePosition: true,
             tasks: {
               include: {
                 action: true,
@@ -702,9 +698,13 @@ export class BotsService {
   private filterBotActions(
     bots: BotBackwardDetails[],
     contractId: number,
-    actionItems: { item: ActionItem; blockNumber: number }[],
+    actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
   ) {
-    const filteredActionItems: { item: ActionItem; blockNumber: number }[] = [];
+    const filteredActionItems: {
+      item: ActionItem;
+      blockNumber: number;
+      logIndex: number;
+    }[] = [];
 
     for (let i = 0; i < actionItems.length; ) {
       const { botAddressSet } = this.filterBots(
@@ -717,11 +717,7 @@ export class BotsService {
 
       for (; j < actionItems.length; j++) {
         if (actionItems[i].blockNumber === actionItems[j].blockNumber) {
-          if (
-            botAddressSet.has(
-              actionItems[j].item.position.address.toLowerCase(),
-            )
-          ) {
+          if (botAddressSet.has(actionItems[j].item.address.toLowerCase())) {
             filteredActionItems.push(actionItems[j]);
           }
         } else {
@@ -738,7 +734,7 @@ export class BotsService {
   private getBotContextActions(
     bots: BotBackwardDetails[],
     contractId: number,
-    actions: ActionDetails[],
+    actions: Action[],
   ) {
     const leaderActions: ActionContext<BotContext>[] = [];
     const followerActions: ActionContext<BotContext>[] = [];
@@ -758,7 +754,7 @@ export class BotsService {
             ...leaderBots
               .filter((bot) =>
                 isAddressEqual(
-                  actions[j].position.address as Address,
+                  actions[j].address as Address,
                   bot.leaderAddress as Address,
                 ),
               )
@@ -774,7 +770,7 @@ export class BotsService {
             ...followerBots
               .filter((bot) =>
                 isAddressEqual(
-                  actions[j].position.address as Address,
+                  actions[j].address as Address,
                   bot.followerAddress as Address,
                 ),
               )
@@ -801,13 +797,17 @@ export class BotsService {
 
   async handleActionItems(
     contract: Contract,
-    actionItems: { item: ActionItem; blockNumber: number }[],
+    actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
   ) {
     const bots = await this.prismaService.bot.findMany({
       where: {
         status: {
           notIn: [BotStatus.Created, BotStatus.Dead],
         },
+        OR: [
+          { followerContractId: contract.id },
+          { leaderContractId: contract.id },
+        ],
       },
       include: {
         follower: true,
@@ -831,14 +831,13 @@ export class BotsService {
     }
 
     const actions = await this.actionsService.createMany(
-      contract.id,
-      filteredActionItems.map(({ item, blockNumber }, index) => ({
+      filteredActionItems.map(({ item, blockNumber, logIndex }) => ({
         name: item.name,
-        positionAddress: item.position.address.toLowerCase(),
-        positionIndex: item.position.index,
+        positionKey: item.positionKey,
+        address: item.address.toLowerCase(),
         args: item.args,
         blockNumber,
-        orderInBlock: index,
+        orderInBlock: logIndex,
       })),
     );
 

@@ -8,17 +8,8 @@ import {
   Version,
 } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi as gnsV10Abi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
-import { gnsMultiCollatDiamondAbi as gnsV9Abi } from 'src/web3/platform/gns/v9/abi/GNSMultiCollatDiamond';
-
-import {
-  eventParsers as eventParsersV10,
-  eventToActionParser as eventToActionParserV10,
-} from 'src/web3/platform/gns/v10/eventParsers';
-import {
-  eventParsers as eventParsersV9,
-  eventToActionParser as eventToActionParserV9,
-} from 'src/web3/platform/gns/v9/eventParsers';
+import { eventToActionParser as eventToActionParserV10 } from 'src/web3/platform/gns/v10/eventParsers';
+import { eventToActionParser as eventToActionParserV9 } from 'src/web3/platform/gns/v9/eventParsers';
 
 import { positionSizeIncreaseExecutedEventParser as positionSizeIncreaseExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser as positionSizeDecreaseExecutedV10EventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
@@ -47,65 +38,11 @@ import {
   CancelReason,
   PendingOrderType,
 } from '../../web3/platform/gns/v10/types';
-import { EventEmitterAbi as gmxV2Abi } from 'src/web3/platform/gmx/v2/abi/EventEmitter';
+
 import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
 
-const gnsV10EventSignatures: Record<string, string> = Object.fromEntries(
-  gnsV10Abi
-    .filter((item) => item.type === 'event')
-    .map((item) => [item.signature, item.name]),
-);
-
-const gnsV9EventSignatures: Record<string, string> = Object.fromEntries(
-  gnsV9Abi
-    .filter((item) => item.type === 'event')
-    .map((item) => [item.signature, item.name]),
-);
-
-const gnsV9PerpTradeEventNames = eventParsersV9.map((item) => item.eventName);
-const gnsV10PerpTradeEventNames = eventParsersV10.map((item) => item.eventName);
-
-const info = {
-  [Platform.GNS]: {
-    [Version.V9]: {
-      tradeEventNames: gnsV9PerpTradeEventNames,
-      eventSignatures: gnsV9EventSignatures,
-      abi: gnsV9Abi,
-    },
-    [Version.V10]: {
-      tradeEventNames: gnsV10PerpTradeEventNames,
-      eventSignatures: gnsV10EventSignatures,
-      abi: gnsV10Abi,
-    },
-  },
-  [Platform.GMX]: {
-    [Version.V2]: {
-      tradeEventNames: ['PositionIncrease', 'PositionDecrease'],
-      eventSignatures: null,
-      abi: gmxV2Abi,
-    },
-  },
-};
-
-function getInfo(platform: Platform, version: Version) {
-  if (platform === Platform.GNS) {
-    if (version === Version.V9 || version === Version.V10) {
-      return info[Platform.GNS][version];
-    } else {
-      throw new Error('Invalid version');
-    }
-  }
-
-  if (platform === Platform.GMX) {
-    if (version === Version.V2) {
-      return info[Platform.GMX][version];
-    } else {
-      throw new Error('Invalid version');
-    }
-  }
-
-  throw new Error('Invalid platform');
-}
+import { getWeb3Info } from 'src/web3/utils';
+import { parseGnsPositionKey } from 'src/web3/platform/gns/utils';
 
 @Injectable()
 export class LeaderboardService {
@@ -233,7 +170,7 @@ export class LeaderboardService {
 
         const eventLogs = logs
           .filter((log) => {
-            const info = getInfo(contract.platform, contract.version);
+            const info = getWeb3Info(contract.platform, contract.version);
 
             return info.eventSignatures
               ? info.eventSignatures[log.topics[0] as string]
@@ -241,7 +178,7 @@ export class LeaderboardService {
           })
           .map((log) => {
             const decoded: any = decodeEventLog({
-              abi: getInfo(contract.platform, contract.version).abi,
+              abi: getWeb3Info(contract.platform, contract.version).abi,
               data: log.data,
               topics: log.topics,
             });
@@ -275,9 +212,10 @@ export class LeaderboardService {
         );
 
         const perpTradeEventLogs = eventLogs.filter((log) =>
-          getInfo(contract.platform, contract.version).tradeEventNames.includes(
-            log.eventLog.eventName,
-          ),
+          getWeb3Info(
+            contract.platform,
+            contract.version,
+          ).tradeEventNames.includes(log.eventLog.eventName),
         );
 
         if (contract.platform === Platform.GNS) {
@@ -385,7 +323,7 @@ export class LeaderboardService {
     }[];
   }) {
     const actionItems = perpTradeEventLogs.map((log) => {
-      const parsed = eventToActionParserV9(contract.id, log.eventLog as any);
+      const parsed = eventToActionParserV9(log.eventLog as any);
 
       return {
         item: parsed,
@@ -398,7 +336,7 @@ export class LeaderboardService {
       perpTradeEventLogs.map((log) => {
         let usdPnl = 0;
 
-        const parsed = eventToActionParserV9(contract.id, log.eventLog as any);
+        const parsed = eventToActionParserV9(log.eventLog as any);
 
         switch (parsed.name) {
           case positionSizeIncreaseExecutedV9EventParser.eventName: {
@@ -514,10 +452,12 @@ export class LeaderboardService {
           }
         }
 
+        const { address } = parseGnsPositionKey(parsed.positionKey);
+
         return {
           contractId: contract.id,
           platform: contract.platform,
-          address: parsed.position.address.toLowerCase(),
+          address: address.toLowerCase(),
           jsonLog: JSON.stringify(log.eventLog, (_, v) =>
             typeof v === 'bigint' ? v.toString() : v,
           ),
@@ -556,7 +496,7 @@ export class LeaderboardService {
     }[];
   }) {
     const actionItems = perpTradeEventLogs.map((log) => {
-      const parsed = eventToActionParserV10(contract.id, log.eventLog as any);
+      const parsed = eventToActionParserV10(log.eventLog as any);
 
       return {
         item: parsed,
@@ -569,7 +509,7 @@ export class LeaderboardService {
       perpTradeEventLogs.map((log) => {
         let usdPnl = 0;
 
-        const parsed = eventToActionParserV10(contract.id, log.eventLog as any);
+        const parsed = eventToActionParserV10(log.eventLog as any);
 
         switch (parsed.name) {
           case positionSizeIncreaseExecutedV10EventParser.eventName: {
@@ -685,10 +625,12 @@ export class LeaderboardService {
           }
         }
 
+        const { address } = parseGnsPositionKey(parsed.positionKey);
+
         return {
           contractId: contract.id,
           platform: contract.platform,
-          address: parsed.position.address.toLowerCase(),
+          address: address.toLowerCase(),
           jsonLog: JSON.stringify(log.eventLog, (_, v) =>
             typeof v === 'bigint' ? v.toString() : v,
           ),
@@ -733,14 +675,21 @@ export class LeaderboardService {
         switch (log.eventLog.eventName) {
           case 'PositionIncrease': {
             usdPnl =
-              Number(log.eventLog.args.priceImpactUsd?.toString() || '0') /
-              1e30;
+              Number(
+                log.eventLog.args.priceImpactUsd?.toString() ||
+                  log.eventLog.args.pendingPriceImpactUsd?.toString() ||
+                  '0',
+              ) / 1e30;
             break;
           }
           case 'PositionDecrease': {
             usdPnl =
               Number(log.eventLog.args.basePnlUsd?.toString() || '0') / 1e30 +
-              Number(log.eventLog.args.priceImpactUsd?.toString() || '0') /
+              Number(
+                log.eventLog.args.totalImpactUsd?.toString() ||
+                  log.eventLog.args.priceImpactUsd?.toString() ||
+                  '0',
+              ) /
                 1e30;
             break;
           }

@@ -18,13 +18,14 @@ type AccessToken {
 }
 
 type Action {
+  address: String!
   args: String!
   blockNumber: Int!
   createdAt: Date!
   id: Int!
   name: String!
   orderInBlock: Int!
-  positionId: Int!
+  positionKey: String!
 }
 
 input AddUserInput {
@@ -357,51 +358,61 @@ type MicroserviceStatus {
 }
 
 type Mission {
-  achievePositionId: Int
+  achievePositionBlockNumber: Int
+  achievePositionKey: String
+  achievePositionLogIndex: Int
   botId: Int!
   createdAt: Date!
   id: Int!
   status: MissionStatus!
-  targetPositionId: Int!
+  targetPositionBlockNumber: Int!
+  targetPositionKey: String!
+  targetPositionLogIndex: Int!
   updatedAt: Date!
 }
 
 type MissionBackwardDetails {
-  achievePosition: Position
-  achievePositionId: Int
+  achievePositionBlockNumber: Int
+  achievePositionKey: String
+  achievePositionLogIndex: Int
   bot: BotBackwardDetails!
   botId: Int!
   createdAt: Date!
   id: Int!
   status: MissionStatus!
-  targetPosition: Position!
-  targetPositionId: Int!
+  targetPositionBlockNumber: Int!
+  targetPositionKey: String!
+  targetPositionLogIndex: Int!
   updatedAt: Date!
 }
 
 type MissionForwardDetails {
-  achievePosition: Position
-  achievePositionId: Int
+  achievePositionBlockNumber: Int
+  achievePositionKey: String
+  achievePositionLogIndex: Int
   botId: Int!
   createdAt: Date!
   id: Int!
   status: MissionStatus!
-  targetPosition: Position!
-  targetPositionId: Int!
+  targetPositionBlockNumber: Int!
+  targetPositionKey: String!
+  targetPositionLogIndex: Int!
   tasks: [TaskForwardDetails!]!
   updatedAt: Date!
 }
 
 type MissionShallowBackwardDetails {
-  achievePosition: Position
-  achievePositionId: Int
+  achievePositionBlockNumber: Int
+  achievePositionKey: String
+  achievePositionLogIndex: Int
   bot: BotDetails!
   botId: Int!
   createdAt: Date!
   id: Int!
   status: MissionStatus!
-  targetPosition: Position!
-  targetPositionId: Int!
+  targetPositionBlockNumber: Int!
+  targetPositionKey: String!
+  targetPositionLogIndex: Int!
   updatedAt: Date!
 }
 
@@ -627,19 +638,6 @@ type PnlSnapshotV2InitializedFlag {
   id: Int!
   isInit: Boolean!
   platform: Platform!
-}
-
-type Position {
-  address: String!
-  contractId: Int!
-  id: Int!
-  index: Int!
-}
-
-type PositionInfo {
-  address: String!
-  contractId: Int!
-  index: Int!
 }
 
 type Query {

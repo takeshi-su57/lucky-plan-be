@@ -12,7 +12,6 @@ import {
   BotDetails,
 } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 
-import { Position } from 'src/microservices/apiService/modules/positions/entities/position.entity';
 import { TaskForwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
 
 registerEnumType(MissionStatus, {
@@ -27,11 +26,23 @@ export class Mission {
   @Field(() => Int)
   botId: number;
 
+  @Field(() => String)
+  targetPositionKey: string;
+
   @Field(() => Int)
-  targetPositionId: number;
+  targetPositionBlockNumber: number;
+
+  @Field(() => Int)
+  targetPositionLogIndex: number;
+
+  @Field(() => String, { nullable: true })
+  achievePositionKey: string | null;
 
   @Field(() => Int, { nullable: true })
-  achievePositionId: number | null;
+  achievePositionBlockNumber: number | null;
+
+  @Field(() => Int, { nullable: true })
+  achievePositionLogIndex: number | null;
 
   @Field(() => Date)
   createdAt: Date;
@@ -44,28 +55,19 @@ export class Mission {
 }
 
 @ObjectType()
-export class MissionDetails extends Mission {
-  @Field(() => Position)
-  targetPosition: Position;
-
-  @Field(() => Position, { nullable: true })
-  achievePosition: Position | null;
-}
-
-@ObjectType()
-export class MissionShallowBackwardDetails extends MissionDetails {
+export class MissionShallowBackwardDetails extends Mission {
   @Field(() => BotDetails)
   bot: BotDetails;
 }
 
 @ObjectType()
-export class MissionBackwardDetails extends MissionDetails {
+export class MissionBackwardDetails extends Mission {
   @Field(() => BotBackwardDetails)
   bot: BotBackwardDetails;
 }
 
 @ObjectType()
-export class MissionForwardDetails extends MissionDetails {
+export class MissionForwardDetails extends Mission {
   @Field(() => [TaskForwardDetails])
   tasks: TaskForwardDetails[];
 }

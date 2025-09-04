@@ -1,18 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { Address, isAddressEqual } from 'viem';
-import { BotStatus, MissionStatus } from '@prisma/client';
+import { BotStatus, MissionStatus, Platform } from '@prisma/client';
 
 import {
   getOrderIdFromMissionAction,
-  isOpenMissionAction,
-  missionEventNames,
   missionEventParsers,
 } from 'src/web3/platform/gns/v10/eventParsers';
 
 import { ActionContext, BotContext, MissionContext } from 'src/types';
 import {
-  MissionDetails,
+  Mission,
   MissionBackwardDetails,
   ManualParams,
 } from './entities/mission.entity';
@@ -34,6 +31,11 @@ import { LogsService } from 'src/global/logs.service';
 
 import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { getReadableError } from 'src/utils';
+import { getWeb3Info } from 'src/web3/utils';
+
+import { positionIncreaseEventParser as positionIncreaseEventParserForGMX } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
+import { GmxService } from 'src/web3/platform/gmx/v2/gmx.service';
+import { getGnsPositionKey } from 'src/web3/platform/gns/utils';
 
 @Injectable()
 export class MissionsService {
@@ -42,6 +44,7 @@ export class MissionsService {
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private gnsService: GnsService,
+    private gmxService: GmxService,
     private readonly logger: LogsService,
   ) {}
 
@@ -51,8 +54,6 @@ export class MissionsService {
         id: { in: ids },
       },
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: {
           include: {
             follower: true,
@@ -68,7 +69,7 @@ export class MissionsService {
 
   private async createMany(
     inputs: MissionCreateInput[],
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
   ) {
     if (inputs.length === 0) {
       return [];
@@ -80,8 +81,6 @@ export class MissionsService {
         status: MissionStatus.Created,
       })),
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: true,
       },
     });
@@ -118,8 +117,6 @@ export class MissionsService {
           },
           data: input,
           include: {
-            targetPosition: true,
-            achievePosition: true,
             bot: true,
           },
         });
@@ -137,7 +134,7 @@ export class MissionsService {
 
   async attachAchievePositionMany(
     inputs: MissionUpdateInput[],
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
   ) {
     const updatedMissions = await this.updateMany(inputs);
 
@@ -155,7 +152,7 @@ export class MissionsService {
 
   async closeMany(
     inputs: MissionCloseInput[],
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
   ) {
     const closedMissions = await this.updateMany(
       inputs.map((item) => ({ ...item, status: MissionStatus.Closed })),
@@ -174,7 +171,7 @@ export class MissionsService {
   }
 
   private async loadMissions() {
-    const missionsByBotMap = new Map<number, MissionDetails[]>();
+    const missionsByBotMap = new Map<number, Mission[]>();
 
     const missions = await this.prismaService.mission.findMany({
       where: {
@@ -183,8 +180,6 @@ export class MissionsService {
         },
       },
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: true,
       },
     });
@@ -217,8 +212,6 @@ export class MissionsService {
         },
       },
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: {
           include: {
             follower: true,
@@ -274,8 +267,8 @@ export class MissionsService {
   }
 
   private async _cloneMission(
-    mission: MissionDetails,
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    mission: Mission,
+    missionsByBotMap: Map<number, Mission[]>,
     manualParams?: ManualParams,
   ): Promise<boolean> {
     try {
@@ -289,7 +282,9 @@ export class MissionsService {
         [
           {
             botId: mission.botId,
-            targetPositionId: mission.targetPositionId,
+            targetPositionKey: mission.targetPositionKey,
+            targetPositionBlockNumber: mission.targetPositionBlockNumber,
+            targetPositionLogIndex: mission.targetPositionLogIndex,
           },
         ],
         missionsByBotMap,
@@ -328,8 +323,6 @@ export class MissionsService {
         },
       },
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: {
           include: {
             follower: true,
@@ -344,6 +337,16 @@ export class MissionsService {
 
     if (!mission) {
       throw new Error('Invalid mission id!');
+    }
+
+    if (mission.bot.leaderContract.platform !== Platform.GNS) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'Clone Failed',
+        details: 'Cloning missions are allowed for gns trading signals only',
+      });
+
+      throw new Error('Clone Mission is Failed');
     }
 
     return await this._cloneMission(mission, new Map(), manualParams);
@@ -378,8 +381,6 @@ export class MissionsService {
         id,
       },
       include: {
-        targetPosition: true,
-        achievePosition: true,
         bot: {
           include: {
             follower: true,
@@ -401,86 +402,221 @@ export class MissionsService {
 
   private async handleMissionLeaderActions(
     actions: ActionContext<BotContext>[],
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
   ) {
     const openEvents = actions
-      .filter(
-        (item) =>
-          isOpenMissionAction(item.action) &&
-          item.context.bot.status === BotStatus.Live,
-      )
+      .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
       .filter((item) => {
-        const event = missionEventParsers
-          .find((parser) => parser.eventName === item.action.name)!
-          .actionParser(item.action);
-        const { t, collateralPriceUsd } = event.args;
+        if (item.context.bot.leaderContract.platform === Platform.GNS) {
+          const event = missionEventParsers
+            .find((parser) => parser.eventName === item.action.name)!
+            .actionParser(item.action);
+          const { t, collateralPriceUsd } = event.args;
 
-        const pair = this.gnsService.getPair(
-          item.context.bot.followerContractId,
-          t.pairIndex,
-        );
+          const pair = this.gnsService.getPair(
+            item.context.bot.followerContractId,
+            t.pairIndex,
+          );
 
-        if (!pair) {
-          return false;
+          if (!pair) {
+            return false;
+          }
+
+          const collateral = this.gnsService.getCollateral(
+            item.context.bot.leaderContractId,
+            t.collateralIndex,
+          );
+
+          if (!collateral) {
+            return false;
+          }
+
+          const openMissionParams = getOpenMissionParams(
+            item.context.bot.strategy,
+            {
+              leverage: t.leverage,
+              collateralAmount: BigInt(t.collateralAmount),
+              collateralPriceUsd: BigInt(collateralPriceUsd),
+              collateral,
+            },
+            item.context.bot.leaderCollateralBaseline,
+            100_000_000n,
+            t.pairIndex,
+          );
+
+          // block leader action register if collateral is less than 25 USDC
+          if (openMissionParams.collateralAmount < MIN_POSITION_SIZE) {
+            return false;
+          }
+
+          return true;
         }
 
-        const collateral = this.gnsService.getCollateral(
-          item.context.bot.leaderContractId,
-          t.collateralIndex,
-        );
+        if (item.context.bot.leaderContract.platform === Platform.GMX) {
+          const event = positionIncreaseEventParserForGMX.actionParser(
+            item.action,
+          );
 
-        if (!collateral) {
-          return false;
+          if (event.args.sizeInUsd !== event.args.sizeDeltaUsd) {
+            return false;
+          }
+
+          const marketInfo = this.gmxService.getMarketInfo(
+            item.context.bot.leaderContract.chainId,
+            event.args.market,
+          );
+
+          if (!marketInfo) {
+            return false;
+          }
+
+          const pairName = `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`;
+
+          const pairIndex = this.gnsService.getPairIndex(
+            item.context.bot.followerContractId,
+            pairName,
+          );
+
+          if (pairIndex === -1) {
+            return false;
+          }
+
+          const collateral = this.gmxService.getTokenInfo(
+            item.context.bot.leaderContract.chainId,
+            event.args.collateralToken,
+          );
+
+          if (!collateral) {
+            return false;
+          }
+
+          const sizeInUsd = Number(event.args.sizeInUsd) / 1e30;
+          const collateralInUsd =
+            (Number(event.args.collateralAmount) *
+              Number(event.args['collateralTokenPrice.max'])) /
+            1e30;
+
+          const leverage = Math.floor((sizeInUsd / collateralInUsd) * 1e3);
+
+          const openMissionParams = getOpenMissionParams(
+            item.context.bot.strategy,
+            {
+              leverage,
+              collateralAmount: BigInt(event.args.collateralAmount),
+              collateralPriceUsd: BigInt(
+                Math.floor(
+                  Number(event.args['collateralTokenPrice.max']) /
+                    Math.pow(10, 30 - collateral.decimals - 8),
+                ),
+              ),
+              collateral: {
+                isActive: true,
+                collateral: collateral.address as `0x${string}`,
+                precision: BigInt(Math.pow(10, collateral.decimals)),
+                precisionDelta: 0n,
+                __placeholder: 0n,
+              },
+            },
+            item.context.bot.leaderCollateralBaseline,
+            100_000_000n,
+            0,
+          );
+
+          // block leader action register if collateral is less than 25 USDC
+          if (openMissionParams.collateralAmount < MIN_POSITION_SIZE) {
+            return false;
+          }
+
+          return true;
         }
 
-        const openMissionParams = getOpenMissionParams(
-          item.context.bot.strategy,
-          {
-            leverage: t.leverage,
-            collateralAmount: BigInt(t.collateralAmount),
-            collateralPriceUsd: BigInt(collateralPriceUsd),
-            collateral,
-          },
-          item.context.bot.leaderCollateralBaseline,
-          100_000_000n,
-          t.pairIndex,
-        );
-
-        // block leader action register if collateral is less than 25 USDC
-        if (openMissionParams.collateralAmount < MIN_POSITION_SIZE) {
-          return false;
-        }
-
-        return true;
+        return false;
       });
 
     await this.createMany(
       openEvents.map((item) => ({
         botId: item.context.bot.id,
-        targetPositionId: item.action.positionId,
+        targetPositionKey: item.action.positionKey,
+        targetPositionBlockNumber: item.action.blockNumber,
+        targetPositionLogIndex: item.action.orderInBlock,
       })),
       missionsByBotMap,
     );
   }
 
-  private getMissionActions(
-    missionsByBotMap: Map<number, MissionDetails[]>,
+  private getLeaderMissionActions(
+    missionsByBotMap: Map<number, Mission[]>,
     actions: ActionContext<BotContext>[],
-    field: 'targetPosition' | 'achievePosition',
   ): ActionContext<MissionContext>[] {
     return actions
       .map((actionItem) => {
         const missions = missionsByBotMap.get(actionItem.context.bot.id) || [];
 
-        let actionPosition = {
-          address: actionItem.action.position.address.toLowerCase(),
-          index: actionItem.action.position.index,
-        };
+        const actionPositionKey = actionItem.action.positionKey;
+
+        const sameLeaderPositionMissions = missions.filter(
+          (missionItem) => missionItem.targetPositionKey === actionPositionKey,
+        );
+
+        const sortedKeys = sameLeaderPositionMissions
+          .map((mission) => ({
+            blockNumber: mission.targetPositionBlockNumber,
+            logIndex: mission.targetPositionLogIndex,
+          }))
+          .sort((a, b) => {
+            if (a.blockNumber !== b.blockNumber) {
+              return b.blockNumber - a.blockNumber;
+            }
+
+            return b.logIndex - a.logIndex;
+          });
+
+        const key = sortedKeys.find((item) => {
+          if (item.blockNumber === actionItem.action.blockNumber) {
+            return item.logIndex <= actionItem.action.orderInBlock;
+          } else {
+            return item.blockNumber < actionItem.action.blockNumber;
+          }
+        });
+
+        if (!key) {
+          return [];
+        }
+
+        return sameLeaderPositionMissions
+          .filter(
+            (mission) =>
+              mission.targetPositionBlockNumber === key.blockNumber &&
+              mission.targetPositionLogIndex === key.logIndex,
+          )
+          .map((mission) => ({
+            ...actionItem,
+            context: {
+              ...actionItem.context,
+              mission,
+            },
+          }));
+      })
+      .flat();
+  }
+
+  // let's imagine that follower platform is only gns right now.
+  private getFollowerMissionActions(
+    missionsByBotMap: Map<number, Mission[]>,
+    actions: ActionContext<BotContext>[],
+  ): ActionContext<MissionContext>[] {
+    return actions
+      .map((actionItem) => {
+        const missions = missionsByBotMap.get(actionItem.context.bot.id) || [];
+
+        let actionPositionKey = actionItem.action.positionKey;
 
         if (
-          field === 'achievePosition' &&
-          isOpenMissionAction(actionItem.action)
+          getWeb3Info(
+            actionItem.context.bot.followerContract.platform,
+            actionItem.context.bot.followerContract.version,
+          ).isOpenMissionAction(actionItem.action)
         ) {
           const orderId = getOrderIdFromMissionAction(actionItem.action);
 
@@ -488,20 +624,14 @@ export class MissionsService {
             return [];
           }
 
-          actionPosition = {
-            address: orderId.user.toLowerCase(),
-            index: orderId.index,
-          };
+          actionPositionKey = getGnsPositionKey(
+            orderId.user.toLowerCase(),
+            orderId.index,
+          );
         }
 
         const filteredMissions = missions.filter(
-          (missionItem) =>
-            !!missionItem[field] &&
-            isAddressEqual(
-              missionItem[field].address as Address,
-              actionPosition.address as Address,
-            ) &&
-            missionItem[field].index === actionPosition.index,
+          (missionItem) => missionItem.achievePositionKey === actionPositionKey,
         );
 
         return filteredMissions.map((mission) => ({
@@ -516,22 +646,28 @@ export class MissionsService {
   }
 
   private async handleFollowerActions(
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
     followerActions: ActionContext<BotContext>[],
   ) {
-    const missionActions = this.getMissionActions(
+    const missionActions = this.getFollowerMissionActions(
       missionsByBotMap,
       followerActions,
-      'achievePosition',
     );
 
     // handle open mission follower actions
     await this.attachAchievePositionMany(
       missionActions
-        .filter((item) => isOpenMissionAction(item.action))
+        .filter((item) =>
+          getWeb3Info(
+            item.context.bot.followerContract.platform,
+            item.context.bot.followerContract.version,
+          ).isOpenMissionAction(item.action),
+        )
         .map((item) => ({
           id: item.context.mission.id,
-          achievePositionId: item.action.positionId,
+          achievePositionKey: item.action.positionKey,
+          achievePositionBlockNumber: item.action.blockNumber,
+          achievePositionLogIndex: item.action.orderInBlock,
           status: MissionStatus.Opened,
         })),
       missionsByBotMap,
@@ -566,20 +702,22 @@ export class MissionsService {
   }
 
   private async handleLeaderActions(
-    missionsByBotMap: Map<number, MissionDetails[]>,
+    missionsByBotMap: Map<number, Mission[]>,
     leaderActions: ActionContext<BotContext>[],
   ) {
     await this.handleMissionLeaderActions(
       leaderActions.filter((item) =>
-        missionEventNames.includes(item.action.name),
+        getWeb3Info(
+          item.context.bot.leaderContract.platform,
+          item.context.bot.leaderContract.version,
+        ).isOpenMissionAction(item.action),
       ),
       missionsByBotMap,
     );
 
-    const missionActions = this.getMissionActions(
+    const missionActions = this.getLeaderMissionActions(
       missionsByBotMap,
       leaderActions,
-      'targetPosition',
     );
 
     if (missionActions.length > 0) {

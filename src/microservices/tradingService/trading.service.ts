@@ -1,12 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
-import { Contract, ContractStatus } from '@prisma/client';
+import { Contract, ContractStatus, Platform } from '@prisma/client';
 
-import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
-import {
-  eventParsers,
-  eventToActionParser,
-} from 'src/web3/platform/gns/v10/eventParsers';
+import { eventToActionParser } from 'src/web3/platform/gns/v10/eventParsers';
 
 import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
@@ -16,18 +12,15 @@ import { ChainPriority, ServiceStatus } from 'src/types';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 
-const expectedEventSignatures: Record<string, string> = Object.fromEntries(
-  gnsMultiCollatDiamondAbi
-    .filter((item) => item.type === 'event')
-    .map((item) => [item.signature, item.name]),
-);
+import { getWeb3Info } from 'src/web3/utils';
+import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
+import { ActionItem } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 
 @Injectable()
 export class TradingService {
   isReceivedKillProcess = false;
   status: ServiceStatus;
 
-  readonly registeredEventNames: string[] = [];
   static BATCH_SIZE = 4000n;
 
   constructor(
@@ -37,7 +30,6 @@ export class TradingService {
     private readonly logger: LogsService,
     private readonly gnsService: GnsService,
   ) {
-    this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
     this.isReceivedKillProcess = false;
   }
@@ -86,7 +78,59 @@ export class TradingService {
             ? fromBlock + TradingService.BATCH_SIZE
             : currentBlockNumber;
 
-        const actionItems = await this.getLogs(fromBlock, toBlock, contract);
+        const actionItems = (
+          await this.evmAdapterService.getLogs({
+            chainId: contract.chainId,
+            priority: ChainPriority.HIGH,
+            address: contract.address as Address,
+            fromBlock,
+            toBlock,
+          })
+        )
+          .filter((log) => log.topics.length > 0)
+          .filter((log) => {
+            const info = getWeb3Info(contract.platform, contract.version);
+
+            return info.eventSignatures
+              ? info.eventSignatures[log.topics[0] as string]
+              : true;
+          })
+          .map((log) => {
+            const decoded: any = decodeEventLog({
+              abi: getWeb3Info(contract.platform, contract.version).abi,
+              data: log.data,
+              topics: log.topics,
+            });
+
+            let eventLog = decoded;
+
+            if (contract.platform === Platform.GMX) {
+              eventLog = parseEvent(
+                decoded.args.eventName,
+                decoded.args.eventData,
+              );
+            }
+
+            return {
+              eventLog,
+              blockNumber: Number(log.blockNumber),
+              logIndex: Number(log.logIndex),
+            };
+          })
+          .filter((log) =>
+            getWeb3Info(
+              contract.platform,
+              contract.version,
+            ).tradeEventNames.includes(log.eventLog.eventName),
+          )
+          .map((log) => ({
+            item: getWeb3Info(
+              contract.platform,
+              contract.version,
+            ).eventToActionParser(log.eventLog as any),
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          }));
 
         if (actionItems.length > 0) {
           await this.botsService.handleActionItems(contract, actionItems);
@@ -112,50 +156,5 @@ export class TradingService {
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
     }
-  }
-
-  async getLogs(fromBlock: bigint, toBlock: bigint, contract: Contract) {
-    return (
-      await this.evmAdapterService.getLogs({
-        chainId: contract.chainId,
-        priority: ChainPriority.HIGH,
-        address: contract.address as Address,
-        fromBlock,
-        toBlock,
-      })
-    )
-      .filter(
-        (log) =>
-          log.topics.length > 0 &&
-          this.registeredEventNames.includes(
-            expectedEventSignatures[log.topics[0] as string],
-          ),
-      )
-      .map((log) => {
-        try {
-          const parsed = eventToActionParser(
-            contract.id,
-            decodeEventLog({
-              abi: gnsMultiCollatDiamondAbi,
-              data: log.data,
-              topics: log.topics,
-            }),
-          );
-
-          return {
-            item: parsed,
-            blockNumber: Number(log.blockNumber),
-          };
-        } catch (err) {
-          this.logger.nativeLog({
-            severity: 'Error',
-            summary: 'trading>contract-monitor.service>parseEventLog',
-            details: getReadableError(err),
-          });
-        }
-
-        return null;
-      })
-      .filter((item) => !!item);
   }
 }

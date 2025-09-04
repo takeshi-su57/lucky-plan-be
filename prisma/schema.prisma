@@ -79,9 +79,8 @@ model Contract {
   backendUrl                 String?
   status                     ContractStatus @default(Live)
 
-  leaderBots   Bot[]      @relation("leaderBots")
-  followerBots Bot[]      @relation("followerBots")
-  positions    Position[]
+  leaderBots   Bot[] @relation("leaderBots")
+  followerBots Bot[] @relation("followerBots")
 
   @@unique([chainId, address, version, platform])
 }
@@ -371,20 +370,6 @@ model Bot {
   missions Mission[]
 }
 
-model Position {
-  id         Int    @id @default(autoincrement())
-  contractId Int
-  address    String @db.VarChar(255)
-  index      Int
-
-  contract        Contract  @relation(fields: [contractId], references: [id])
-  targetMissions  Mission[] @relation("targetMissions")
-  achieveMissions Mission[] @relation("achieveMissions")
-  actions         Action[]
-
-  @@unique([contractId, address, index])
-}
-
 enum MissionStatus {
   Created
   Opening
@@ -395,18 +380,20 @@ enum MissionStatus {
 }
 
 model Mission {
-  id                Int           @id @default(autoincrement())
-  botId             Int
-  targetPositionId  Int
-  achievePositionId Int?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  status            MissionStatus
+  id                         Int           @id @default(autoincrement())
+  botId                      Int
+  targetPositionKey          String
+  targetPositionBlockNumber  Int
+  targetPositionLogIndex     Int
+  achievePositionKey         String?
+  achievePositionBlockNumber Int?
+  achievePositionLogIndex    Int?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  status                     MissionStatus
 
-  targetPosition  Position  @relation("targetMissions", fields: [targetPositionId], references: [id])
-  achievePosition Position? @relation("achieveMissions", fields: [achievePositionId], references: [id])
-  bot             Bot       @relation(fields: [botId], references: [id])
-  tasks           Task[]
+  bot   Bot    @relation(fields: [botId], references: [id])
+  tasks Task[]
 }
 
 enum TaskStatus {
@@ -435,14 +422,14 @@ model Task {
 
 model Action {
   id           Int      @id @default(autoincrement())
+  address      String
   name         String
-  positionId   Int
+  positionKey  String
   args         String
   blockNumber  Int
   orderInBlock Int
   createdAt    DateTime @default(now())
 
-  position        Position         @relation(fields: [positionId], references: [id])
   tasks           Task[]
   followerActions FollowerAction[]
 }
