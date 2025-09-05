@@ -184,6 +184,11 @@ export class PnlSnapshotsV2Service {
     const BATCH_SIZE = 1000;
     const lastDayStr = dayjs(dateStr).subtract(1, 'day').format('YYYY-MM-DD');
 
+    this.logger.nativeLog({
+      severity: 'Debug',
+      summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+    });
+
     try {
       const isInitialized = await this.isPnlSnapshotInitialized(
         platform,
@@ -202,6 +207,12 @@ export class PnlSnapshotsV2Service {
           platform,
           dateStr,
         },
+      });
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+        details: 'deleted many',
       });
 
       const testContractIdsMap = new Map<number, boolean>();
@@ -263,6 +274,12 @@ export class PnlSnapshotsV2Service {
         pnlSnapshotCursorId = records[records.length - 1].id;
       }
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+        details: `clone last days pnl snapshot`,
+      });
+
       for (const kind of availableKinds) {
         let cursorId: number | null = null;
 
@@ -270,6 +287,12 @@ export class PnlSnapshotsV2Service {
         const pastUpperBound = upperBound - timestampGapByPnlSnapshotKind[kind];
 
         while (true) {
+          this.logger.nativeLog({
+            severity: 'Debug',
+            summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+            details: `substract pnl by outdated pnl snapshot ${cursorId}`,
+          });
+
           const records: PerpTradingEventLog[] = cursorId
             ? await this.prismaService.perpTradingEventLog.findMany({
                 skip: 1,
@@ -400,6 +423,12 @@ export class PnlSnapshotsV2Service {
       let currentCursorId: number | null = null;
 
       while (true) {
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+          details: `add pnl by perp trading event logs ${currentCursorId}`,
+        });
+
         const records: PerpTradingEventLog[] = currentCursorId
           ? await this.prismaService.perpTradingEventLog.findMany({
               skip: 1,
@@ -536,6 +565,12 @@ export class PnlSnapshotsV2Service {
         currentCursorId = records[records.length - 1].id;
       }
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+        details: `finished`,
+      });
+
       const pnlSnapshotInitializedFlag =
         await this.prismaService.pnlSnapshotV2InitializedFlag.upsert({
           where: {
@@ -595,7 +630,18 @@ export class PnlSnapshotsV2Service {
       const BATCH_SIZE = 1000;
       let cursorId: number | null = null;
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr} ${isForceBuild}`,
+      });
+
       await this.prismaService.pnlSnapshotV2.deleteMany({ where: { dateStr } });
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        details: 'deleted old pnl snapshot',
+      });
 
       const testContractIdsMap = new Map<number, boolean>();
 
@@ -612,6 +658,12 @@ export class PnlSnapshotsV2Service {
       );
 
       while (true) {
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsV2Service>buildSnapshots`,
+          details: `find many perp trading event logs ${cursorId}`,
+        });
+
         const records: PerpTradingEventLog[] = cursorId
           ? await this.prismaService.perpTradingEventLog.findMany({
               skip: 1,
@@ -699,6 +751,12 @@ export class PnlSnapshotsV2Service {
           },
         });
 
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsV2Service>buildSnapshots`,
+          details: `pnlRecords ${pnlRecords.length}`,
+        });
+
         const pnlRecordsMap = new Map<string, number>();
 
         pnlRecords.forEach((record) => {
@@ -720,6 +778,12 @@ export class PnlSnapshotsV2Service {
             accUSDPnl: prevValue + accValue,
             dateStr,
           };
+        });
+
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsV2Service>buildSnapshots`,
+          details: `upsertInputs ${upsertInputs.length}`,
         });
 
         await this.prismaService.$transaction(
