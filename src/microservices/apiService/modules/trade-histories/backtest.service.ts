@@ -453,9 +453,15 @@ export class BacktestService {
           kind: PnlSnapshotKind.MONTH,
           contractId: 0,
         },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
+        orderBy: [
+          {
+            accUSDPnl: 'desc',
+          },
+
+          {
+            id: 'asc',
+          },
+        ],
       });
 
     const testContracts = await this.prismaService.contract.findMany({
@@ -499,6 +505,9 @@ export class BacktestService {
           },
           {
             block: 'asc',
+          },
+          {
+            id: 'asc',
           },
         ],
       });
@@ -598,9 +607,14 @@ export class BacktestService {
           kind: PnlSnapshotKind.MONTH,
           contractId: 0,
         },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
+        orderBy: [
+          {
+            accUSDPnl: 'desc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
       });
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
@@ -660,6 +674,9 @@ export class BacktestService {
           },
           {
             block: 'asc',
+          },
+          {
+            id: 'asc',
           },
         ],
       });
@@ -1028,9 +1045,14 @@ export class BacktestService {
           kind: PnlSnapshotKind.MONTH,
           contractId: 0,
         },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
+        orderBy: [
+          {
+            accUSDPnl: 'desc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
       });
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
@@ -1090,6 +1112,9 @@ export class BacktestService {
           },
           {
             block: 'asc',
+          },
+          {
+            id: 'asc',
           },
         ],
       });

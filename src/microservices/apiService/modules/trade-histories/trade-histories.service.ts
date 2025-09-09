@@ -635,6 +635,9 @@ export class TradeHistoriesService {
                 {
                   logIndex: 'asc',
                 },
+                {
+                  id: 'asc',
+                },
               ],
             })
           : await this.prismaService.perpTradingEventLog.findMany({
@@ -648,6 +651,9 @@ export class TradeHistoriesService {
                 },
                 {
                   logIndex: 'asc',
+                },
+                {
+                  id: 'asc',
                 },
               ],
             });

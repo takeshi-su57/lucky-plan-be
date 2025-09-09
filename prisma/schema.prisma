@@ -107,7 +107,8 @@ model PerpTradingEventLog {
   logIndex   Int
   date       DateTime
 
-  @@unique([contractId, block, logIndex])
+  @@unique([address, contractId, block, logIndex])
+  @@index([platform, contractId, date(sort: Asc), block(sort: Asc), id(sort: Asc)])
 }
 
 enum PnlSnapshotKind {
@@ -128,6 +129,7 @@ model PnlSnapshotV2 {
 
   @@unique([address, platform, dateStr, kind])
   @@index([accUSDPnl(sort: Desc)])
+  @@index([dateStr, platform, id])
   @@index([platform])
 }
 

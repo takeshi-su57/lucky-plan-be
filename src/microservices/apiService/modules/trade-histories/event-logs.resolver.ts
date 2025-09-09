@@ -1,6 +1,5 @@
-import { UseGuards, Inject } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
-import { ClientProxy } from '@nestjs/microservices';
 import { PnlSnapshotKind, Platform, UserPermission } from '@prisma/client';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -11,16 +10,16 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
+  PnlSnapshotV2DetailsForPaginationAPIPageInfo,
+  PnlSnapshotV2DetailsForPagination,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
-import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 @Resolver(() => PerpTradingEventLog)
 export class EventLogsResolver {
   constructor(
-    @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly eventLogsService: EventLogsService,
     private readonly pnlSnapshotsV2Service: PnlSnapshotsV2Service,
   ) {}
@@ -33,18 +32,9 @@ export class EventLogsResolver {
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<Boolean>((resolve, reject) => {
-      this.redisClient
-        .send(PATTERNS.Leaderboard.BuildPnlSnapshotV2, {
-          platform,
-          dateStr,
-          isForceBuild,
-        })
-        .subscribe({
-          next: (data) => resolve(data),
-          error: (err) => reject(err),
-        });
-    });
+    this.pnlSnapshotsV2Service.buildSnapshots(platform, dateStr, isForceBuild);
+
+    return true;
   }
 
   @Mutation(() => Boolean)
@@ -54,17 +44,13 @@ export class EventLogsResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return await new Promise<Boolean>((resolve, reject) => {
-      this.redisClient
-        .send(PATTERNS.Leaderboard.DynamicSnapshotV2Build, {
-          platform,
-          dateStr,
-        })
-        .subscribe({
-          next: (data) => resolve(data),
-          error: (err) => reject(err),
-        });
-    });
+    this.pnlSnapshotsV2Service.dynamicSnapshotBuild(
+      platform,
+      dateStr,
+      // payload.isForceBuild,
+    );
+
+    return true;
   }
 
   @Mutation(() => Boolean)
@@ -75,18 +61,13 @@ export class EventLogsResolver {
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    return await new Promise<Boolean>((resolve, reject) => {
-      this.redisClient
-        .send(PATTERNS.Leaderboard.InitializePnlSnapshotV2, {
-          platform,
-          beginingDate,
-          isForceBuild,
-        })
-        .subscribe({
-          next: (data) => resolve(data),
-          error: (err) => reject(err),
-        });
-    });
+    this.pnlSnapshotsV2Service.initializePnlSnapshot(
+      platform,
+      beginingDate,
+      isForceBuild,
+    );
+
+    return true;
   }
 
   @Query(() => PnlSnapshotV2InitializedFlag, { nullable: true })
@@ -131,6 +112,23 @@ export class EventLogsResolver {
       kind,
       first,
       after,
+    );
+  }
+
+  @Query(() => PnlSnapshotV2DetailsForPagination)
+  getPnlsnpashotsV2ByPagination(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+  ) {
+    return this.pnlSnapshotsV2Service.getPnlSnapshotsByPagination(
+      dateStr,
+      platform,
+      kind,
+      page,
+      limit,
     );
   }
 }

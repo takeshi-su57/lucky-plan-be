@@ -415,9 +415,14 @@ export class AutoPlansService {
           kind: PnlSnapshotKind.MONTH,
           contractId: 0,
         },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
+        orderBy: [
+          {
+            accUSDPnl: 'desc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
       });
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
@@ -473,6 +478,9 @@ export class AutoPlansService {
         },
         {
           block: 'asc',
+        },
+        {
+          id: 'asc',
         },
       ],
     });
@@ -720,9 +728,14 @@ export class AutoPlansService {
           kind: PnlSnapshotKind.MONTH,
           contractId: 0,
         },
-        orderBy: {
-          accUSDPnl: 'desc',
-        },
+        orderBy: [
+          {
+            accUSDPnl: 'desc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
       });
 
     const pnlSnapshotsMap = new Map<string, PnlSnapshot[]>();
@@ -770,6 +783,9 @@ export class AutoPlansService {
         },
         {
           block: 'asc',
+        },
+        {
+          id: 'asc',
         },
       ],
     });

@@ -106,3 +106,18 @@ export class PnlSnapshotV2DetailsConnection {
   @Field(() => PnlSnapshotV2DetailsPageInfo)
   pageInfo: PnlSnapshotV2DetailsPageInfo;
 }
+
+@ObjectType()
+export class PnlSnapshotV2DetailsForPaginationAPIPageInfo {
+  @Field(() => Int) total: number;
+  @Field(() => Int) page: number;
+  @Field(() => Int) totalPages: number;
+}
+
+@ObjectType()
+export class PnlSnapshotV2DetailsForPagination {
+  @Field(() => [PnlSnapshotV2Details])
+  data: PnlSnapshotV2Details[];
+  @Field(() => PnlSnapshotV2DetailsForPaginationAPIPageInfo)
+  pageInfo: PnlSnapshotV2DetailsForPaginationAPIPageInfo;
+}

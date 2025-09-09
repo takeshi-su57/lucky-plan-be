@@ -154,10 +154,16 @@ export class LeaderboardController implements OnApplicationBootstrap {
     dateStr: string;
     isForceBuild: boolean;
   }) {
-    this.pnlSnapshotV2Service.buildSnapshots(
+    this.logger.nativeLog({
+      severity: 'Info',
+      summary: 'leaderboard.controller>dynamicSnapshotV2Build',
+      details: JSON.stringify(payload, null, 2),
+    });
+
+    this.pnlSnapshotV2Service.dynamicSnapshotBuild(
       payload.platform,
       payload.dateStr,
-      payload.isForceBuild,
+      // payload.isForceBuild,
     );
 
     return true;
