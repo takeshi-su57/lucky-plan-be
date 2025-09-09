@@ -10,6 +10,8 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
+  PnlSnapshotV2DetailsForPaginationAPIPageInfo,
+  PnlSnapshotV2DetailsForPagination,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
@@ -110,6 +112,23 @@ export class EventLogsResolver {
       kind,
       first,
       after,
+    );
+  }
+
+  @Query(() => PnlSnapshotV2DetailsForPagination)
+  getPnlsnpashotsV2ByPagination(
+    @Args('dateStr', { type: () => String }) dateStr: string,
+    @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+  ) {
+    return this.pnlSnapshotsV2Service.getPnlSnapshotsByPagination(
+      dateStr,
+      platform,
+      kind,
+      page,
+      limit,
     );
   }
 }

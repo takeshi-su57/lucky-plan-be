@@ -27,12 +27,12 @@ import { positionDecreaseEventParser as gmxPositionDecreaseEventParser } from 's
 import { eventParsers as gmxEventParsers } from 'src/web3/platform/gmx/v2/eventParsers';
 
 import {
-  eventParsers,
   missionEventNames,
-  isOpenMissionAction,
-  isCloseMissionAction,
   missionEventParsers,
+  eventParsers,
   eventToActionParser,
+  // isOpenMissionAction,
+  // isCloseMissionAction,
 } from 'src/web3/platform/gns/v10/eventParsers';
 
 import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
@@ -68,10 +68,11 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
     .map((item) => [item.signature, item.name]),
 );
 
+const registeredEventNames = eventParsers.map((item) => item.eventName);
+
 @Injectable()
 export class TaskExecutorService {
   status: ServiceStatus = ServiceStatus.READY;
-  readonly registeredEventNames: string[] = [];
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -84,13 +85,12 @@ export class TaskExecutorService {
     private readonly gnsService: GnsService,
     private readonly gmxService: GmxService,
   ) {
-    this.registeredEventNames = eventParsers.map((item) => item.eventName);
     this.status = ServiceStatus.READY;
   }
 
   private async performTask(
     task: TaskBackwardDetails,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: 'success' | 'failed' | 'skipped'; message: string }> {
     let tx: `0x${string}` | null = null;
 
     try {
@@ -105,7 +105,13 @@ export class TaskExecutorService {
         throw new Error('Invalid task status');
       }
 
-      if (!isOpenMissionAction(action) && !achievePositionKey) {
+      if (
+        !getWeb3Info(
+          leaderContract.platform,
+          leaderContract.version,
+        ).isOpenMissionAction(action) &&
+        !achievePositionKey
+      ) {
         throw new Error(
           'Wrong Execuation of task, Task does not have its achievePosition',
         );
@@ -157,7 +163,7 @@ export class TaskExecutorService {
             );
 
             return {
-              success: true,
+              success: 'success',
               message: `Task achieved tx: ${tx}`,
             };
           } else {
@@ -171,7 +177,7 @@ export class TaskExecutorService {
             });
 
             return {
-              success: false,
+              success: 'failed',
               message:
                 JSON.stringify(transaction.logs, (_, v) =>
                   typeof v === 'bigint' ? v.toString() : v,
@@ -243,7 +249,7 @@ export class TaskExecutorService {
                   });
 
                   return {
-                    success: false,
+                    success: 'failed',
                     message: `Failed at borrowing usdc from vault`,
                   };
                 }
@@ -296,7 +302,7 @@ export class TaskExecutorService {
 
             if (increaseParams === null) {
               return {
-                success: true,
+                success: 'skipped',
                 message: `Skipped this position size update because no need to increase position`,
               };
             }
@@ -325,7 +331,7 @@ export class TaskExecutorService {
               // if new position size is less than fee, skip the update
               if (positionDelta < fee) {
                 return {
-                  success: true,
+                  success: 'skipped',
                   message: `Skipped this position size update because collateral delta is too small`,
                 };
               }
@@ -348,7 +354,7 @@ export class TaskExecutorService {
                 });
 
                 return {
-                  success: false,
+                  success: 'failed',
                   message: `Failed at borrowing usdc from vault`,
                 };
               }
@@ -400,7 +406,7 @@ export class TaskExecutorService {
 
             if (decreaseParams === null) {
               return {
-                success: true,
+                success: 'skipped',
                 message: `Skipped this position size update because no need to decrease position`,
               };
             }
@@ -432,7 +438,7 @@ export class TaskExecutorService {
                 );
 
                 return {
-                  success: true,
+                  success: 'success',
                   message: `Task achieved tx: ${tx}`,
                 };
               } else {
@@ -446,7 +452,7 @@ export class TaskExecutorService {
                 });
 
                 return {
-                  success: false,
+                  success: 'failed',
                   message:
                     JSON.stringify(transaction.logs, (_, v) =>
                       typeof v === 'bigint' ? v.toString() : v,
@@ -495,7 +501,12 @@ export class TaskExecutorService {
                 },
               });
 
-              if (isOpenMissionAction(action)) {
+              if (
+                getWeb3Info(
+                  leaderContract.platform,
+                  leaderContract.version,
+                ).isOpenMissionAction(action)
+              ) {
                 const openMissionParams = isManualOpen
                   ? {
                       collateralAmount: BigInt(t.collateralAmount),
@@ -533,7 +544,7 @@ export class TaskExecutorService {
                     });
 
                     return {
-                      success: false,
+                      success: 'failed',
                       message: `Failed at borrowing usdc from vault`,
                     };
                   }
@@ -570,7 +581,12 @@ export class TaskExecutorService {
                 await this.handleOpenTradeTransaction(task, tx);
               }
 
-              if (isCloseMissionAction(action)) {
+              if (
+                getWeb3Info(
+                  leaderContract.platform,
+                  leaderContract.version,
+                ).isCloseMissionAction(action)
+              ) {
                 const achievePosition = parseGnsPositionKey(
                   achievePositionKey!,
                 );
@@ -602,7 +618,7 @@ export class TaskExecutorService {
                     );
 
                     return {
-                      success: true,
+                      success: 'success',
                       message: `Task achieved tx: ${tx}`,
                     };
                   } else {
@@ -616,7 +632,7 @@ export class TaskExecutorService {
                     });
 
                     return {
-                      success: false,
+                      success: 'failed',
                       message:
                         JSON.stringify(transaction.logs, (_, v) =>
                           typeof v === 'bigint' ? v.toString() : v,
@@ -634,8 +650,6 @@ export class TaskExecutorService {
         const gmxEvent = gmxEventParsers
           .find((parser) => parser.eventName === action.name)!
           .actionParser(action);
-
-        const achievePosition = parseGnsPositionKey(achievePositionKey!);
 
         const marketInfo = this.gmxService.getMarketInfo(
           bot.leaderContract.chainId,
@@ -694,7 +708,7 @@ export class TaskExecutorService {
         const executionPrice = BigInt(
           Math.floor(
             Number(gmxEvent.args.executionPrice) /
-              Math.pow(10, 30 - marketInfo.indexToken.decimals - 8),
+              Math.pow(10, 30 - marketInfo.indexToken.decimals - 10),
           ),
         );
 
@@ -765,7 +779,7 @@ export class TaskExecutorService {
                   });
 
                   return {
-                    success: false,
+                    success: 'failed',
                     message: `Failed at borrowing usdc from vault`,
                   };
                 }
@@ -802,6 +816,7 @@ export class TaskExecutorService {
               await this.handleOpenTradeTransaction(task, tx);
             } else {
               // it's a increase position size event
+              const achievePosition = parseGnsPositionKey(achievePositionKey!);
 
               const followerTradeData = await this.gnsService.getTrade({
                 contractId: followerContract.id,
@@ -832,7 +847,7 @@ export class TaskExecutorService {
 
               if (increaseParams === null) {
                 return {
-                  success: true,
+                  success: 'skipped',
                   message: `Skipped this position size update because no need to increase position`,
                 };
               }
@@ -861,7 +876,7 @@ export class TaskExecutorService {
                 // if new position size is less than fee, skip the update
                 if (positionDelta < fee) {
                   return {
-                    success: true,
+                    success: 'skipped',
                     message: `Skipped this position size update because collateral delta is too small`,
                   };
                 }
@@ -884,7 +899,7 @@ export class TaskExecutorService {
                   });
 
                   return {
-                    success: false,
+                    success: 'failed',
                     message: `Failed at borrowing usdc from vault`,
                   };
                 }
@@ -905,6 +920,8 @@ export class TaskExecutorService {
             break;
           }
           case gmxPositionDecreaseEventParser.eventName: {
+            const achievePosition = parseGnsPositionKey(achievePositionKey!);
+
             const { args } =
               gmxPositionDecreaseEventParser.actionParser(action);
 
@@ -937,7 +954,7 @@ export class TaskExecutorService {
                   );
 
                   return {
-                    success: true,
+                    success: 'success',
                     message: `Task achieved tx: ${tx}`,
                   };
                 } else {
@@ -951,7 +968,7 @@ export class TaskExecutorService {
                   });
 
                   return {
-                    success: false,
+                    success: 'failed',
                     message:
                       JSON.stringify(transaction.logs, (_, v) =>
                         typeof v === 'bigint' ? v.toString() : v,
@@ -985,7 +1002,7 @@ export class TaskExecutorService {
 
               if (decreaseParams === null) {
                 return {
-                  success: true,
+                  success: 'failed',
                   message: `Skipped this position size update because no need to decrease position`,
                 };
               }
@@ -1017,7 +1034,7 @@ export class TaskExecutorService {
                   );
 
                   return {
-                    success: true,
+                    success: 'success',
                     message: `Task achieved tx: ${tx}`,
                   };
                 } else {
@@ -1031,7 +1048,7 @@ export class TaskExecutorService {
                   });
 
                   return {
-                    success: false,
+                    success: 'failed',
                     message:
                       JSON.stringify(transaction.logs, (_, v) =>
                         typeof v === 'bigint' ? v.toString() : v,
@@ -1066,7 +1083,7 @@ export class TaskExecutorService {
 
         if (transaction.status === 'success') {
           return {
-            success: true,
+            success: 'success',
             message: `Task achieved tx: ${tx}`,
           };
         } else {
@@ -1080,7 +1097,7 @@ export class TaskExecutorService {
           });
 
           return {
-            success: false,
+            success: 'failed',
             message:
               JSON.stringify(transaction.logs, (_, v) =>
                 typeof v === 'bigint' ? v.toString() : v,
@@ -1098,7 +1115,7 @@ export class TaskExecutorService {
       });
 
       return {
-        success: false,
+        success: 'failed',
         message: getReadableError(err) + ` tx: ${tx}`,
       };
     }
@@ -1125,7 +1142,7 @@ export class TaskExecutorService {
     for (const log of transaction.logs) {
       if (
         log.topics.length > 0 &&
-        this.registeredEventNames.includes(
+        registeredEventNames.includes(
           expectedEventSignatures[log.topics[0] as string],
         )
       ) {
@@ -1369,7 +1386,12 @@ export class TaskExecutorService {
 
           taskUpdateInputs.push({
             id: botTask.id,
-            status: success ? TaskStatus.Await : TaskStatus.Failed,
+            status:
+              success === 'success'
+                ? TaskStatus.Await
+                : success === 'skipped'
+                  ? TaskStatus.Stopped
+                  : TaskStatus.Failed,
             logs: [
               ...botTask.logs,
               JSON.stringify({

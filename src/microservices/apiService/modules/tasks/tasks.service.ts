@@ -608,7 +608,10 @@ export class TasksService {
       let filter: (action: Action) => boolean = () => false;
 
       if (action.name === marketOpenCanceledEventParser.eventName) {
-        filter = isOpenMissionAction;
+        filter = getWeb3Info(
+          context.bot.leaderContract.platform,
+          context.bot.leaderContract.version,
+        ).isOpenMissionAction;
         status = TaskStatus.Failed;
 
         const event = marketOpenCanceledEventParser.actionParser(action);
@@ -622,7 +625,11 @@ export class TasksService {
 
       if (action.name === marketCloseCanceledEventParser.eventName) {
         filter = (action: Action) =>
-          action.name === CloseMissionAction || isCloseMissionAction(action);
+          action.name === CloseMissionAction ||
+          getWeb3Info(
+            context.bot.leaderContract.platform,
+            context.bot.leaderContract.version,
+          ).isCloseMissionAction(action);
         status = TaskStatus.Failed;
 
         const event = marketCloseCanceledEventParser.actionParser(action);
@@ -639,20 +646,32 @@ export class TasksService {
         const event = marketOrderInitiatedEventParser.actionParser(action);
 
         filter = event.args.open
-          ? isOpenMissionAction
+          ? getWeb3Info(
+              context.bot.leaderContract.platform,
+              context.bot.leaderContract.version,
+            ).isOpenMissionAction
           : (action: Action) =>
               action.name === CloseMissionAction ||
-              isCloseMissionAction(action);
+              getWeb3Info(
+                context.bot.leaderContract.platform,
+                context.bot.leaderContract.version,
+              ).isCloseMissionAction(action);
 
         status = TaskStatus.Initiated;
       }
 
       if (missionEventNames.includes(action.name)) {
         filter = isOpenMissionAction(action)
-          ? isOpenMissionAction
+          ? getWeb3Info(
+              context.bot.leaderContract.platform,
+              context.bot.leaderContract.version,
+            ).isOpenMissionAction
           : (action: Action) =>
               action.name === CloseMissionAction ||
-              isCloseMissionAction(action);
+              getWeb3Info(
+                context.bot.leaderContract.platform,
+                context.bot.leaderContract.version,
+              ).isCloseMissionAction(action);
 
         status = TaskStatus.Completed;
       }

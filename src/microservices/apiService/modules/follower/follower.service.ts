@@ -1380,9 +1380,11 @@ export class FollowerService {
         },
       },
       take: first,
-      orderBy: {
-        accountIndex: 'asc',
-      },
+      orderBy: [
+        {
+          accountIndex: 'asc',
+        },
+      ],
     });
 
     const ethMap: Record<string, bigint> = {};
