@@ -108,7 +108,7 @@ export class LogsService {
           }
         : undefined,
       where: { ...(severity ? { severity } : {}), checked },
-      orderBy: { timestamp: 'desc' },
+      orderBy: [{ timestamp: 'desc' }, { id: 'asc' }],
     });
 
     const edges = records.map((record) => ({

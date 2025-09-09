@@ -64,9 +64,12 @@ export class PnlSnapshotsService {
               not: 0,
             },
           },
-          orderBy: {
-            accUSDPnl: 'desc',
-          },
+          orderBy: [
+            {
+              accUSDPnl: 'desc',
+            },
+            { id: 'asc' },
+          ],
         })
       : await this.prismaService.pnlSnapshot.findMany({
           take: first,
@@ -78,9 +81,12 @@ export class PnlSnapshotsService {
               not: 0,
             },
           },
-          orderBy: {
-            accUSDPnl: 'desc',
-          },
+          orderBy: [
+            {
+              accUSDPnl: 'desc',
+            },
+            { id: 'asc' },
+          ],
         });
 
     const timestampGap = timestampGapByPnlSnapshotKind[kind];
@@ -199,12 +205,14 @@ export class PnlSnapshotsService {
               where: {
                 dateStr: lastDayStr,
               },
+              orderBy: [{ id: 'asc' }],
             })
           : await this.prismaService.pnlSnapshot.findMany({
               take: BATCH_SIZE,
               where: {
                 dateStr: lastDayStr,
               },
+              orderBy: [{ id: 'asc' }],
             });
 
         if (records.length === 0) {
@@ -255,6 +263,7 @@ export class PnlSnapshotsService {
                   {
                     block: 'asc',
                   },
+                  { id: 'asc' },
                 ],
               })
             : await this.prismaService.tradeHistory.findMany({
@@ -272,6 +281,7 @@ export class PnlSnapshotsService {
                   {
                     block: 'asc',
                   },
+                  { id: 'asc' },
                 ],
               });
 
@@ -389,6 +399,7 @@ export class PnlSnapshotsService {
                 {
                   block: 'asc',
                 },
+                { id: 'asc' },
               ],
             })
           : await this.prismaService.tradeHistory.findMany({
@@ -406,6 +417,7 @@ export class PnlSnapshotsService {
                 {
                   block: 'asc',
                 },
+                { id: 'asc' },
               ],
             });
 
@@ -583,6 +595,7 @@ export class PnlSnapshotsService {
                 {
                   block: 'asc',
                 },
+                { id: 'asc' },
               ],
             })
           : await this.prismaService.tradeHistory.findMany({
@@ -599,6 +612,7 @@ export class PnlSnapshotsService {
                 {
                   block: 'asc',
                 },
+                { id: 'asc' },
               ],
             });
 

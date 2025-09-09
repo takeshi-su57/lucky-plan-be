@@ -122,7 +122,7 @@ export class PlansService {
           }
         : undefined,
       where: { status, userId },
-      orderBy: { startedAt: 'desc' },
+      orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
       include: {
         bots: {
           include: {
