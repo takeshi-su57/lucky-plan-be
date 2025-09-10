@@ -44,6 +44,8 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { getWeb3Info } from 'src/web3/utils';
+import { positionIncreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
+import { positionDecreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-decrease.parser';
 
 @Injectable()
 export class TasksService {
@@ -678,7 +680,27 @@ export class TasksService {
 
       if (updateEventNames.includes(action.name)) {
         filter = (leaderAction: Action) => {
-          return isSameUpdateAction(leaderAction, action);
+          if (context.bot.leaderContract.platform === 'GMX') {
+            if (
+              action.name === positionSizeIncreaseExecutedEventParser.eventName
+            ) {
+              return (
+                leaderAction.name === positionIncreaseEventParser.eventName
+              );
+            }
+
+            if (
+              action.name === positionSizeDecreaseExecutedEventParser.eventName
+            ) {
+              return (
+                leaderAction.name === positionDecreaseEventParser.eventName
+              );
+            }
+
+            return false;
+          } else {
+            return isSameUpdateAction(leaderAction, action);
+          }
         };
 
         status = TaskStatus.Completed;

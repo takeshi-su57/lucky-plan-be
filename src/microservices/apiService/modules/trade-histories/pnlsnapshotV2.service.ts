@@ -314,7 +314,7 @@ export class PnlSnapshotsV2Service {
 
     await this.logger.nativeLog({
       severity: 'Debug',
-      summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+      summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr} lastDayStr: ${lastDayStr}`,
     });
 
     try {
@@ -329,6 +329,11 @@ export class PnlSnapshotsV2Service {
 
       const lowerBound = dayjs(dateStr).startOf('day').toDate().getTime();
       const upperBound = dayjs(dateStr).endOf('day').toDate().getTime();
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr} lowerBound: ${lowerBound} upperBound: ${upperBound} gap: ${upperBound - lowerBound}`,
+      });
 
       await this.prismaService.pnlSnapshotV2.deleteMany({
         where: {
@@ -358,6 +363,8 @@ export class PnlSnapshotsV2Service {
       const testContractIds = testContracts.map((contract) => contract.id);
 
       let pnlSnapshotCursorId: number | null = null;
+
+      const cloneTime = Date.now();
 
       // clone last day's pnl snapshot for dynamic snapshot build
       while (true) {
@@ -407,8 +414,10 @@ export class PnlSnapshotsV2Service {
       await this.logger.nativeLog({
         severity: 'Debug',
         summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
-        details: `clone last days pnl snapshot`,
+        details: `clone last days pnl snapshot ${cloneTime - Date.now()}ms`,
       });
+
+      const substractTime = Date.now();
 
       // substract pnl by outdated pnl snapshot
       for (const kind of availableKinds) {
@@ -501,9 +510,24 @@ export class PnlSnapshotsV2Service {
 
           cursorId = records[records.length - 1].id;
         }
+
+        const cachedKeys = Array.from(tempCache.keys());
+
+        if (cachedKeys.length > 0) {
+          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+          tempCache.clear();
+        }
       }
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+        details: `substract pnl by outdated pnl snapshot ${substractTime - Date.now()}ms`,
+      });
+
       let currentCursorId: number | null = null;
+
+      const tempCache = new Map<string, number>();
 
       // add pnl by perp trading event logs
       while (true) {
@@ -571,26 +595,31 @@ export class PnlSnapshotsV2Service {
           break;
         }
 
-        const historiesPnlMap = new Map<string, number>();
-
         for (const record of records) {
           for (const kind of availableKinds) {
             const overallKey = getKey(record.address, record.platform, kind);
 
-            const prevOverallValue = historiesPnlMap.get(overallKey) || 0;
+            const prevOverallValue = tempCache.get(overallKey) || 0;
 
-            historiesPnlMap.set(overallKey, prevOverallValue + +record.usdPnl);
+            tempCache.set(overallKey, prevOverallValue + +record.usdPnl);
           }
         }
 
-        const historiesPnlMapKeys = Array.from(historiesPnlMap.keys());
+        const cachedKeys = Array.from(tempCache.keys());
 
-        if (historiesPnlMapKeys.length > 10_0000) {
-          await this.storeCacheToPnlsnapshotV2(dateStr, historiesPnlMap);
-          historiesPnlMap.clear();
+        if (cachedKeys.length > 10_0000) {
+          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+          tempCache.clear();
         }
 
         currentCursorId = records[records.length - 1].id;
+      }
+
+      const cachedKeys = Array.from(tempCache.keys());
+
+      if (cachedKeys.length > 0) {
+        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+        tempCache.clear();
       }
 
       await this.logger.nativeLog({
@@ -643,7 +672,7 @@ export class PnlSnapshotsV2Service {
     for (let i = 0; i < storedKeys.length; i += BATCH_SIZE / 10) {
       const chunkTime = Date.now();
 
-      const chunk = storedKeys.slice(i, BATCH_SIZE / 10);
+      const chunk = storedKeys.slice(i, i + BATCH_SIZE / 10);
 
       const pnlRecords = await this.prismaService.pnlSnapshotV2.findMany({
         where: {
@@ -878,6 +907,13 @@ export class PnlSnapshotsV2Service {
         });
 
         cursorId = records[records.length - 1].id;
+      }
+
+      const storedKeys = Array.from(tempCache.keys());
+
+      if (storedKeys.length > 0) {
+        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+        tempCache.clear();
       }
 
       this.logger.nativeLog({
