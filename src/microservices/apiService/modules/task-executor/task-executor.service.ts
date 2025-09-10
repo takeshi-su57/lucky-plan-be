@@ -1002,7 +1002,7 @@ export class TaskExecutorService {
 
               if (decreaseParams === null) {
                 return {
-                  success: 'failed',
+                  success: 'skipped',
                   message: `Skipped this position size update because no need to decrease position`,
                 };
               }
