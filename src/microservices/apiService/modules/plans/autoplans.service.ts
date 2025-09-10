@@ -518,7 +518,7 @@ export class AutoPlansService {
       maxAvgSize: 1000_000_000,
       minCount: 0,
       maxCount: 1000_000_000,
-      minR2: 0.7,
+      minR2: 0.8,
       ratio: 1,
       maxSize: 700,
     };

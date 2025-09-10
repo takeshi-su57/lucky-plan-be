@@ -24,29 +24,29 @@ export class EvmAdapterService {
   constructor(private readonly chainsService: ChainsService) {}
 
   async erc20Transfer(payload: Erc20TransferPayload) {
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      payload.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: payload.erc20ContractAddress,
-          abi: erc20Abi,
-          functionName: 'transfer',
-          args: [payload.toAddress, payload.amount],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       payload.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          payload.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: payload.erc20ContractAddress,
+              abi: erc20Abi,
+              functionName: 'transfer',
+              args: [payload.toAddress, payload.amount],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -68,29 +68,29 @@ export class EvmAdapterService {
   }
 
   async erc20Approve(payload: Erc20ApprovePayload) {
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      payload.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: payload.erc20ContractAddress,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [payload.spender, payload.amount],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       payload.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          payload.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: payload.erc20ContractAddress,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [payload.spender, payload.amount],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
