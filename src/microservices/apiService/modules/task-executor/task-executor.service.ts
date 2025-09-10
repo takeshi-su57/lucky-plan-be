@@ -1000,7 +1000,11 @@ export class TaskExecutorService {
                 followerTradeData,
               );
 
-              if (decreaseParams === null) {
+              if (
+                decreaseParams === null ||
+                (decreaseParams.collateralDelta === 0n &&
+                  decreaseParams.leverageDelta === 0)
+              ) {
                 return {
                   success: 'skipped',
                   message: `Skipped this position size update because no need to decrease position`,
