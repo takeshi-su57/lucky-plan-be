@@ -192,7 +192,7 @@ export class PnlSnapshotsService {
         },
       });
 
-      await this.logger.nativeLog({
+      this.logger.nativeLog({
         severity: 'Debug',
         summary: `PnlSnapshotsService>buildSnapshots`,
         details: `pnlRecords chunk ${i} ~ ${i + chunk.length} ${pnlRecords.length}`,
@@ -221,7 +221,7 @@ export class PnlSnapshotsService {
         };
       });
 
-      await this.logger.nativeLog({
+      this.logger.nativeLog({
         severity: 'Debug',
         summary: `PnlSnapshotsService>buildSnapshots`,
         details: `upsertInputs chunk ${i} ~ ${i + chunk.length} ${upsertInputs.length}`,
@@ -264,6 +264,8 @@ export class PnlSnapshotsService {
     this.status = 'processing';
 
     const lastDayStr = dayjs(dateStr).subtract(1, 'day').format('YYYY-MM-DD');
+
+    console.log('it is a new version');
 
     this.logger.nativeLog({
       severity: 'Debug',
