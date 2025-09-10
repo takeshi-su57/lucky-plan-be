@@ -121,23 +121,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'openTrade',
-        //       args: [
-        //         payload.args.trade,
-        //         payload.args.maxSlippageP,
-        //         zeroAddress,
-        //       ],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -146,6 +139,7 @@ export class GnsService {
           functionName: 'openTrade',
           args: [payload.args.trade, payload.args.maxSlippageP, zeroAddress],
           account,
+          nonce,
         });
       },
     );
@@ -163,19 +157,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'updateMaxClosingSlippageP',
-        //       args: [payload.args.index, payload.args.maxSlippageP],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -184,6 +175,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateMaxClosingSlippageP',
           args: [payload.args.index, payload.args.maxSlippageP],
+          nonce,
         });
       },
     );
@@ -201,19 +193,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'closeTradeMarket',
-        //       args: [payload.args.index, payload.args.expectedPrice],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -222,6 +211,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'closeTradeMarket',
           args: [payload.args.index, payload.args.expectedPrice],
+          nonce,
         });
       },
     );
@@ -239,19 +229,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'cancelOrderAfterTimeout',
-        //       args: [payload.args.index],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -260,6 +247,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'cancelOrderAfterTimeout',
           args: [payload.args.index],
+          nonce,
         });
       },
     );
@@ -277,19 +265,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'updateTp',
-        //       args: [payload.args.index, payload.args.newTp],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -298,6 +283,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateTp',
           args: [payload.args.index, payload.args.newTp],
+          nonce,
         });
       },
     );
@@ -315,19 +301,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'updateSl',
-        //       args: [payload.args.index, payload.args.newSl],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -336,6 +319,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateSl',
           args: [payload.args.index, payload.args.newSl],
+          nonce,
         });
       },
     );
@@ -353,19 +337,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'updateLeverage',
-        //       args: [payload.args.index, payload.args.newLeverage],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -374,6 +355,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateLeverage',
           args: [payload.args.index, payload.args.newLeverage],
+          nonce,
         });
       },
     );
@@ -391,25 +373,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'increasePositionSize',
-        //       args: [
-        //         payload.args.index,
-        //         payload.args.collateralDelta,
-        //         payload.args.leverageDelta,
-        //         payload.args.expectedPrice,
-        //         payload.args.maxSlippageP,
-        //       ],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -424,6 +397,7 @@ export class GnsService {
             payload.args.expectedPrice,
             payload.args.maxSlippageP,
           ],
+          nonce,
         });
       },
     );
@@ -441,24 +415,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'decreasePositionSize',
-        //       args: [
-        //         payload.args.index,
-        //         payload.args.collateralDelta,
-        //         payload.args.leverageDelta,
-        //         payload.args.expectedPrice,
-        //       ],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -472,6 +438,7 @@ export class GnsService {
             payload.args.leverageDelta,
             payload.args.expectedPrice,
           ],
+          nonce,
         });
       },
     );
@@ -489,19 +456,16 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        // const { request } = await this.chainsService.readWithSemaphore(
-        //   contract.chainId,
-        //   ChainPriority.HIGH,
-        //   async (publicClient) => {
-        //     return await publicClient.simulateContract({
-        //       account,
-        //       address: contract.address as Address,
-        //       abi: gnsMultiCollatDiamondAbi,
-        //       functionName: 'withdrawPositivePnl',
-        //       args: [payload.args.index, payload.args.amountCollateral],
-        //     });
-        //   },
-        // );
+        const nonce = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.getTransactionCount({
+              address: account.address,
+              blockTag: 'pending',
+            });
+          },
+        );
 
         return await wallet.writeContract({
           chain: wallet.chain,
@@ -510,6 +474,7 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'withdrawPositivePnl',
           args: [payload.args.index, payload.args.amountCollateral],
+          nonce,
         });
       },
     );
