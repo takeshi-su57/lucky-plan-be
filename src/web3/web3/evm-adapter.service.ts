@@ -33,21 +33,28 @@ export class EvmAdapterService {
           accountIndex: payload.accountIndex,
         });
 
-        const { request } = await this.chainsService.readWithSemaphore(
-          payload.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.simulateContract({
-              account,
-              address: payload.erc20ContractAddress,
-              abi: erc20Abi,
-              functionName: 'transfer',
-              args: [payload.toAddress, payload.amount],
-            });
-          },
-        );
+        // const { request } = await this.chainsService.readWithSemaphore(
+        //   payload.chainId,
+        //   ChainPriority.HIGH,
+        //   async (publicClient) => {
+        //     return await publicClient.simulateContract({
+        //       account,
+        //       address: payload.erc20ContractAddress,
+        //       abi: erc20Abi,
+        //       functionName: 'transfer',
+        //       args: [payload.toAddress, payload.amount],
+        //     });
+        //   },
+        // );
 
-        return await wallet.writeContract(request);
+        return await wallet.writeContract({
+          chain: wallet.chain,
+          account,
+          address: payload.erc20ContractAddress,
+          abi: erc20Abi,
+          functionName: 'transfer',
+          args: [payload.toAddress, payload.amount],
+        });
       },
     );
   }
@@ -77,21 +84,28 @@ export class EvmAdapterService {
           accountIndex: payload.accountIndex,
         });
 
-        const { request } = await this.chainsService.readWithSemaphore(
-          payload.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.simulateContract({
-              account,
-              address: payload.erc20ContractAddress,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [payload.spender, payload.amount],
-            });
-          },
-        );
+        // const { request } = await this.chainsService.readWithSemaphore(
+        //   payload.chainId,
+        //   ChainPriority.HIGH,
+        //   async (publicClient) => {
+        //     return await publicClient.simulateContract({
+        //       account,
+        //       address: payload.erc20ContractAddress,
+        //       abi: erc20Abi,
+        //       functionName: 'approve',
+        //       args: [payload.spender, payload.amount],
+        //     });
+        //   },
+        // );
 
-        return await wallet.writeContract(request);
+        return await wallet.writeContract({
+          chain: wallet.chain,
+          account,
+          address: payload.erc20ContractAddress,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [payload.spender, payload.amount],
+        });
       },
     );
   }
