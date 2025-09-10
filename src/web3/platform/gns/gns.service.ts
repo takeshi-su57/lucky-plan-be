@@ -112,29 +112,33 @@ export class GnsService {
   async openTrade(payload: OpenTradePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'openTrade',
-          args: [payload.args.trade, payload.args.maxSlippageP, zeroAddress],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'openTrade',
+              args: [
+                payload.args.trade,
+                payload.args.maxSlippageP,
+                zeroAddress,
+              ],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -143,29 +147,29 @@ export class GnsService {
   async updateMaxClosingSlippageP(payload: UpdateMaxClosingSlippagePPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'updateMaxClosingSlippageP',
-          args: [payload.args.index, payload.args.maxSlippageP],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'updateMaxClosingSlippageP',
+              args: [payload.args.index, payload.args.maxSlippageP],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -174,29 +178,29 @@ export class GnsService {
   async closeTradeMarket(payload: CloseTradeMarketPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'closeTradeMarket',
-          args: [payload.args.index, payload.args.expectedPrice],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'closeTradeMarket',
+              args: [payload.args.index, payload.args.expectedPrice],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -205,29 +209,29 @@ export class GnsService {
   async cancelOrderAfterTimeout(payload: CancelOrderAfterTimeoutPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'cancelOrderAfterTimeout',
-          args: [payload.args.index],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'cancelOrderAfterTimeout',
+              args: [payload.args.index],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -236,29 +240,29 @@ export class GnsService {
   async updateTp(payload: UpdateTpPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'updateTp',
-          args: [payload.args.index, payload.args.newTp],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'updateTp',
+              args: [payload.args.index, payload.args.newTp],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -267,29 +271,29 @@ export class GnsService {
   async updateSl(payload: UpdateSlPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'updateSl',
-          args: [payload.args.index, payload.args.newSl],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'updateSl',
+              args: [payload.args.index, payload.args.newSl],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -298,29 +302,29 @@ export class GnsService {
   async updateLeverage(payload: UpdateLeveragePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'updateLeverage',
-          args: [payload.args.index, payload.args.newLeverage],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'updateLeverage',
+              args: [payload.args.index, payload.args.newLeverage],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -329,35 +333,35 @@ export class GnsService {
   async increasePositionSize(payload: IncreasePositionSizePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'increasePositionSize',
-          args: [
-            payload.args.index,
-            payload.args.collateralDelta,
-            payload.args.leverageDelta,
-            payload.args.expectedPrice,
-            payload.args.maxSlippageP,
-          ],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'increasePositionSize',
+              args: [
+                payload.args.index,
+                payload.args.collateralDelta,
+                payload.args.leverageDelta,
+                payload.args.expectedPrice,
+                payload.args.maxSlippageP,
+              ],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -366,34 +370,34 @@ export class GnsService {
   async decreasePositionSize(payload: DecreasePositionSizePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'decreasePositionSize',
-          args: [
-            payload.args.index,
-            payload.args.collateralDelta,
-            payload.args.leverageDelta,
-            payload.args.expectedPrice,
-          ],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'decreasePositionSize',
+              args: [
+                payload.args.index,
+                payload.args.collateralDelta,
+                payload.args.leverageDelta,
+                payload.args.expectedPrice,
+              ],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );
@@ -402,29 +406,29 @@ export class GnsService {
   async withdrawPositivePnl(payload: WithdrawPositivePnlPayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
 
-    const account = mnemonicToAccount(payload.mnemonic, {
-      accountIndex: payload.accountIndex,
-    });
-
-    const { request } = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.HIGH,
-      async (publicClient) => {
-        return await publicClient.simulateContract({
-          account,
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'withdrawPositivePnl',
-          args: [payload.args.index, payload.args.amountCollateral],
-        });
-      },
-    );
-
     return await this.chainsService.writeWithMutex(
       contract.chainId,
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
+        const account = mnemonicToAccount(payload.mnemonic, {
+          accountIndex: payload.accountIndex,
+        });
+
+        const { request } = await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.simulateContract({
+              account,
+              address: contract.address as Address,
+              abi: gnsMultiCollatDiamondAbi,
+              functionName: 'withdrawPositivePnl',
+              args: [payload.args.index, payload.args.amountCollateral],
+            });
+          },
+        );
+
         return await wallet.writeContract(request);
       },
     );

@@ -27,12 +27,12 @@ function getKey(address: string, kind: PnlSnapshotKind, contractId: number) {
 }
 
 const timestampGapByPnlSnapshotKind = {
-  [PnlSnapshotKind.DAY]: 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.WEEK]: 7 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.THREE_MONTH]: 3 * 30 * 24 * 60 * 60 * 1000,
   [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
 };
+
+const availableKinds = [PnlSnapshotKind.MONTH, PnlSnapshotKind.ALL_TIME];
+const BATCH_SIZE = 10000;
 
 @Injectable()
 export class PnlSnapshotsService {
@@ -101,7 +101,10 @@ export class PnlSnapshotsService {
 
     const testContractIds = testContracts.map((item) => item.id);
 
-    const timestampGap = timestampGapByPnlSnapshotKind[kind];
+    const timestampGap =
+      timestampGapByPnlSnapshotKind[
+        kind as keyof typeof timestampGapByPnlSnapshotKind
+      ];
     const startDate = new Date(
       getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
@@ -174,11 +177,113 @@ export class PnlSnapshotsService {
     });
   }
 
+  private async storeCacheToPnlsnapshot(
+    dateStr: string,
+    tempCache: Map<string, number>,
+  ) {
+    const storedKeys = Array.from(tempCache.keys());
+
+    const startedTime = Date.now();
+
+    for (let i = 0; i < storedKeys.length; i += BATCH_SIZE / 10) {
+      const chunkTime = Date.now();
+
+      const chunk = storedKeys.slice(i, i + BATCH_SIZE / 10);
+
+      const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
+        where: {
+          OR: [
+            ...chunk.map((key) => {
+              const { address, contractId, kind } = parseKey(key);
+
+              return {
+                dateStr,
+                address: address.toLowerCase(),
+                contractId,
+                kind,
+              };
+            }),
+          ],
+        },
+      });
+
+      await this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>buildSnapshots`,
+        details: `pnlRecords chunk ${i} ~ ${i + chunk.length} ${pnlRecords.length}`,
+      });
+
+      const pnlRecordsMap = new Map<string, number>();
+
+      pnlRecords.forEach((record) => {
+        const key = getKey(record.address, record.kind, record.contractId);
+
+        pnlRecordsMap.set(key, record.accUSDPnl);
+      });
+
+      const upsertInputs = chunk.map((key) => {
+        const { address, contractId, kind } = parseKey(key);
+
+        const accValue = tempCache.get(key) || 0;
+        const prevValue = pnlRecordsMap.get(key) || 0;
+
+        return {
+          address: address.toLowerCase(),
+          contractId,
+          kind,
+          accUSDPnl: prevValue + accValue,
+          dateStr,
+        };
+      });
+
+      await this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>buildSnapshots`,
+        details: `upsertInputs chunk ${i} ~ ${i + chunk.length} ${upsertInputs.length}`,
+      });
+
+      await this.prismaService.$transaction(
+        upsertInputs.map((input) => {
+          return this.prismaService.pnlSnapshot.upsert({
+            where: {
+              address_contractId_dateStr_kind: {
+                address: input.address.toLowerCase(),
+                dateStr: input.dateStr,
+                contractId: input.contractId,
+                kind: input.kind,
+              },
+            },
+            update: {
+              accUSDPnl: input.accUSDPnl,
+            },
+            create: input,
+          });
+        }),
+      );
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: 'Time for store cache',
+        details: `${Date.now() - chunkTime}ms`,
+      });
+    }
+
+    this.logger.nativeLog({
+      severity: 'Debug',
+      summary: 'Time for store cache',
+      details: `${Date.now() - startedTime}ms`,
+    });
+  }
+
   async dynamicSnapshotBuild(dateStr: string) {
     this.status = 'processing';
 
-    const BATCH_SIZE = 1000;
     const lastDayStr = dayjs(dateStr).subtract(1, 'day').format('YYYY-MM-DD');
+
+    this.logger.nativeLog({
+      severity: 'Debug',
+      summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr} lastDayStr: ${lastDayStr}`,
+    });
 
     try {
       const isInitialized = await this.isPnlSnapshotInitialized(lastDayStr);
@@ -192,7 +297,18 @@ export class PnlSnapshotsService {
       const lowerBound = dayjs(dateStr).startOf('day').toDate().getTime();
       const upperBound = dayjs(dateStr).endOf('day').toDate().getTime();
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr} lowerBound: ${lowerBound} upperBound: ${upperBound} gap: ${upperBound - lowerBound}`,
+      });
+
       await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr}`,
+        details: 'deleted many',
+      });
 
       const testContractIdsMap = new Map<number, boolean>();
 
@@ -210,6 +326,8 @@ export class PnlSnapshotsService {
 
       let pnlSnapshotCursorId: number | null = null;
 
+      const cloneTime = Date.now();
+
       // clone last day's pnl snapshot for dynamic snapshot build
       while (true) {
         const records: PnlSnapshot[] = pnlSnapshotCursorId
@@ -222,12 +340,14 @@ export class PnlSnapshotsService {
               where: {
                 dateStr: lastDayStr,
               },
+              orderBy: [{ id: 'asc' }],
             })
           : await this.prismaService.pnlSnapshot.findMany({
               take: BATCH_SIZE,
               where: {
                 dateStr: lastDayStr,
               },
+              orderBy: [{ id: 'asc' }],
             });
 
         if (records.length === 0) {
@@ -251,11 +371,22 @@ export class PnlSnapshotsService {
         pnlSnapshotCursorId = records[records.length - 1].id;
       }
 
-      for (const kind of Object.values(PnlSnapshotKind)) {
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr}`,
+        details: `clone last days pnl snapshot ${cloneTime - Date.now()}ms`,
+      });
+
+      const substractTime = Date.now();
+
+      // substract pnl by outdated pnl snapshot
+      for (const kind of availableKinds) {
         let cursorId: number | null = null;
 
         const pastLowerBound = lowerBound - timestampGapByPnlSnapshotKind[kind];
         const pastUpperBound = upperBound - timestampGapByPnlSnapshotKind[kind];
+
+        const tempCache = new Map<string, number>();
 
         while (true) {
           const records: TradeHistory[] = cursorId
@@ -314,96 +445,61 @@ export class PnlSnapshotsService {
             break;
           }
 
-          const historiesUsdPnlMap = new Map<string, number>();
-
           for (const record of records) {
             const contractKey = getKey(record.address, kind, record.contractId);
             const overallKey = getKey(record.address, kind, 0);
 
-            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
+            const prevContractValue = tempCache.get(contractKey) || 0;
+            const prevOverallValue = tempCache.get(overallKey) || 0;
 
-            historiesUsdPnlMap.set(
+            tempCache.set(
               contractKey,
-              prevContractValue + +record.pnl * +record.collateralPriceUsd,
+              prevContractValue - +record.pnl * +record.collateralPriceUsd,
             );
 
             if (!testContractIdsMap.get(record.contractId)) {
-              historiesUsdPnlMap.set(
+              tempCache.set(
                 overallKey,
-                prevOverallValue + +record.pnl * +record.collateralPriceUsd,
+                prevOverallValue - +record.pnl * +record.collateralPriceUsd,
               );
             }
           }
 
-          const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
+          const historiesPnlMapKeys = Array.from(tempCache.keys());
 
-          const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
-            where: {
-              OR: [
-                ...historiesUsdPnlMapKeys.map((key) => {
-                  const { address, kind, contractId } = parseKey(key);
-
-                  return {
-                    dateStr,
-                    address: address.toLowerCase(),
-                    contractId,
-                    kind,
-                  };
-                }),
-              ],
-            },
-          });
-
-          const pnlRecordsMap = new Map<string, number>();
-
-          pnlRecords.forEach((record) => {
-            const key = getKey(record.address, record.kind, record.contractId);
-
-            pnlRecordsMap.set(key, record.accUSDPnl);
-          });
-
-          const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
-            const { address, kind, contractId } = parseKey(key);
-
-            const accValue = historiesUsdPnlMap.get(key) || 0;
-            const prevValue = pnlRecordsMap.get(key) || 0;
-
-            return {
-              address: address.toLowerCase(),
-              contractId,
-              kind,
-              accUSDPnl: prevValue - accValue,
-              dateStr,
-            };
-          });
-
-          await this.prismaService.$transaction(
-            upsertInputs.map((input) => {
-              return this.prismaService.pnlSnapshot.upsert({
-                where: {
-                  address_contractId_dateStr_kind: {
-                    address: input.address.toLowerCase(),
-                    dateStr: input.dateStr,
-                    contractId: input.contractId,
-                    kind: input.kind,
-                  },
-                },
-                update: {
-                  accUSDPnl: input.accUSDPnl,
-                },
-                create: input,
-              });
-            }),
-          );
+          if (historiesPnlMapKeys.length > 10_0000) {
+            await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+            tempCache.clear();
+          }
 
           cursorId = records[records.length - 1].id;
         }
+
+        const cachedKeys = Array.from(tempCache.keys());
+
+        if (cachedKeys.length > 0) {
+          await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+          tempCache.clear();
+        }
       }
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr}`,
+        details: `substract pnl by outdated pnl snapshot ${substractTime - Date.now()}ms`,
+      });
 
       let currentCursorId: number | null = null;
 
+      const tempCache = new Map<string, number>();
+
       while (true) {
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr}`,
+          details: `add pnl by perp trading event logs ${currentCursorId}`,
+        });
+
         const records: TradeHistory[] = currentCursorId
           ? await this.prismaService.tradeHistory.findMany({
               skip: 1,
@@ -454,23 +550,21 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const historiesUsdPnlMap = new Map<string, number>();
-
         for (const record of records) {
-          for (const kind of Object.values(PnlSnapshotKind)) {
+          for (const kind of availableKinds) {
             const contractKey = getKey(record.address, kind, record.contractId);
             const overallKey = getKey(record.address, kind, 0);
 
-            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
+            const prevContractValue = tempCache.get(contractKey) || 0;
+            const prevOverallValue = tempCache.get(overallKey) || 0;
 
-            historiesUsdPnlMap.set(
+            tempCache.set(
               contractKey,
               prevContractValue + +record.pnl * +record.collateralPriceUsd,
             );
 
             if (!testContractIdsMap.get(record.contractId)) {
-              historiesUsdPnlMap.set(
+              tempCache.set(
                 overallKey,
                 prevOverallValue + +record.pnl * +record.collateralPriceUsd,
               );
@@ -478,69 +572,28 @@ export class PnlSnapshotsService {
           }
         }
 
-        const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
+        const historiesUsdPnlMapKeys = Array.from(tempCache.keys());
 
-        const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
-          where: {
-            OR: [
-              ...historiesUsdPnlMapKeys.map((key) => {
-                const { address, kind, contractId } = parseKey(key);
-
-                return {
-                  dateStr,
-                  address: address.toLowerCase(),
-                  contractId,
-                  kind,
-                };
-              }),
-            ],
-          },
-        });
-
-        const pnlRecordsMap = new Map<string, number>();
-
-        pnlRecords.forEach((record) => {
-          const key = getKey(record.address, record.kind, record.contractId);
-
-          pnlRecordsMap.set(key, record.accUSDPnl);
-        });
-
-        const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
-          const { address, kind, contractId } = parseKey(key);
-
-          const accValue = historiesUsdPnlMap.get(key) || 0;
-          const prevValue = pnlRecordsMap.get(key) || 0;
-
-          return {
-            address: address.toLowerCase(),
-            contractId,
-            kind,
-            accUSDPnl: prevValue + accValue,
-            dateStr,
-          };
-        });
-
-        await this.prismaService.$transaction(
-          upsertInputs.map((input) => {
-            return this.prismaService.pnlSnapshot.upsert({
-              where: {
-                address_contractId_dateStr_kind: {
-                  address: input.address.toLowerCase(),
-                  dateStr: input.dateStr,
-                  contractId: input.contractId,
-                  kind: input.kind,
-                },
-              },
-              update: {
-                accUSDPnl: input.accUSDPnl,
-              },
-              create: input,
-            });
-          }),
-        );
+        if (historiesUsdPnlMapKeys.length > 10_0000) {
+          await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+          tempCache.clear();
+        }
 
         currentCursorId = records[records.length - 1].id;
       }
+
+      const cachedKeys = Array.from(tempCache.keys());
+
+      if (cachedKeys.length > 0) {
+        await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+        tempCache.clear();
+      }
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>dynamicSnapshotBuild: ${dateStr}`,
+        details: `finished`,
+      });
 
       const pnlSnapshotInitializedFlag =
         await this.prismaService.pnlSnapshotInitializedFlag.upsert({
@@ -587,10 +640,20 @@ export class PnlSnapshotsService {
 
       const upperBound = dayjs(dateStr).endOf('day').toDate();
 
-      const BATCH_SIZE = 1000;
       let cursorId: number | null = null;
 
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>buildSnapshots: ${dateStr} ${isForceBuild}`,
+      });
+
       await this.prismaService.pnlSnapshot.deleteMany({ where: { dateStr } });
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        details: 'deleted old pnl snapshot',
+      });
 
       const testContractIdsMap = new Map<number, boolean>();
 
@@ -604,7 +667,19 @@ export class PnlSnapshotsService {
         testContractIdsMap.set(contract.id, true),
       );
 
+      const tempCache = new Map<string, number>();
+
+      const startedTime = Date.now();
+
       while (true) {
+        const chunkTime = Date.now();
+
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsService>buildSnapshots`,
+          details: `find many perp trading event logs ${cursorId}`,
+        });
+
         const records: TradeHistory[] = cursorId
           ? await this.prismaService.tradeHistory.findMany({
               skip: 1,
@@ -653,25 +728,23 @@ export class PnlSnapshotsService {
           break;
         }
 
-        const historiesUsdPnlMap = new Map<string, number>();
-
         for (const record of records) {
-          for (const kind of Object.values(PnlSnapshotKind)) {
+          for (const kind of availableKinds) {
             const contractKey = getKey(record.address, kind, record.contractId);
             const overallKey = getKey(record.address, kind, 0);
 
             const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prevContractValue = historiesUsdPnlMap.get(contractKey) || 0;
-            const prevOverallValue = historiesUsdPnlMap.get(overallKey) || 0;
+            const prevContractValue = tempCache.get(contractKey) || 0;
+            const prevOverallValue = tempCache.get(overallKey) || 0;
 
             if (upperBound.getTime() - timestampGap < record.date.getTime()) {
-              historiesUsdPnlMap.set(
+              tempCache.set(
                 contractKey,
                 prevContractValue + +record.pnl * +record.collateralPriceUsd,
               );
 
               if (!testContractIdsMap.get(record.contractId)) {
-                historiesUsdPnlMap.set(
+                tempCache.set(
                   overallKey,
                   prevOverallValue + +record.pnl * +record.collateralPriceUsd,
                 );
@@ -680,69 +753,35 @@ export class PnlSnapshotsService {
           }
         }
 
-        const historiesUsdPnlMapKeys = Array.from(historiesUsdPnlMap.keys());
+        const storedKeys = Array.from(tempCache.keys());
 
-        const pnlRecords = await this.prismaService.pnlSnapshot.findMany({
-          where: {
-            OR: [
-              ...historiesUsdPnlMapKeys.map((key) => {
-                const { address, kind, contractId } = parseKey(key);
+        // we need to clean cache for prevent memory execeed.
+        if (storedKeys.length > 10_0000) {
+          await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+          tempCache.clear();
+        }
 
-                return {
-                  dateStr,
-                  address: address.toLowerCase(),
-                  contractId,
-                  kind,
-                };
-              }),
-            ],
-          },
+        this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsService>buildSnapshots`,
+          details: `chunk time ${Date.now() - chunkTime}ms`,
         });
-
-        const pnlRecordsMap = new Map<string, number>();
-
-        pnlRecords.forEach((record) => {
-          const key = getKey(record.address, record.kind, record.contractId);
-
-          pnlRecordsMap.set(key, record.accUSDPnl);
-        });
-
-        const upsertInputs = historiesUsdPnlMapKeys.map((key) => {
-          const { address, kind, contractId } = parseKey(key);
-
-          const accValue = historiesUsdPnlMap.get(key) || 0;
-          const prevValue = pnlRecordsMap.get(key) || 0;
-
-          return {
-            address: address.toLowerCase(),
-            contractId,
-            kind,
-            accUSDPnl: prevValue + accValue,
-            dateStr,
-          };
-        });
-
-        await this.prismaService.$transaction(
-          upsertInputs.map((input) => {
-            return this.prismaService.pnlSnapshot.upsert({
-              where: {
-                address_contractId_dateStr_kind: {
-                  address: input.address.toLowerCase(),
-                  dateStr: input.dateStr,
-                  contractId: input.contractId,
-                  kind: input.kind,
-                },
-              },
-              update: {
-                accUSDPnl: input.accUSDPnl,
-              },
-              create: input,
-            });
-          }),
-        );
 
         cursorId = records[records.length - 1].id;
       }
+
+      const storedKeys = Array.from(tempCache.keys());
+
+      if (storedKeys.length > 0) {
+        await this.storeCacheToPnlsnapshot(dateStr, tempCache);
+        tempCache.clear();
+      }
+
+      this.logger.nativeLog({
+        severity: 'Debug',
+        summary: `PnlSnapshotsService>buildSnapshots`,
+        details: `total time ${Date.now() - startedTime}ms`,
+      });
 
       const pnlSnapshotInitializedFlag =
         await this.prismaService.pnlSnapshotInitializedFlag.upsert({
