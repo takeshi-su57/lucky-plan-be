@@ -166,19 +166,7 @@ export class FollowerService {
         }
       }
 
-      if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            hash: tx as `0x${string}`,
-            confirmations: 6,
-            priority: ChainPriority.LOW,
-          });
-
-        return transaction.status === 'success';
-      } else {
-        return false;
-      }
+      return !!tx;
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
@@ -313,19 +301,7 @@ export class FollowerService {
         }
       }
 
-      if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 6,
-          });
-
-        return transaction.status === 'success';
-      } else {
-        return false;
-      }
+      return !!tx;
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
@@ -506,19 +482,7 @@ export class FollowerService {
         }
       }
 
-      if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 6,
-          });
-
-        return transaction.status === 'success';
-      } else {
-        return false;
-      }
+      return !!tx;
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
@@ -807,41 +771,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            message: `Trade closed`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: `FollowerService>closeTradeMarket tx: ${tx}`,
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-          });
-
-          return {
-            success: false,
-            message: `${JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )} tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        }
+        return {
+          success: true,
+          message: `Trade closed`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
       }
 
       return {
@@ -877,7 +813,6 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
           address: input.address.toLowerCase(),
@@ -915,41 +850,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            message: `Trade sl updated`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: `FollowerService>updateSl tx: ${tx}`,
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-          });
-
-          return {
-            success: false,
-            message: `${JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )} tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        }
+        return {
+          success: true,
+          message: `Trade sl updated`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
       }
 
       return {
@@ -985,7 +892,6 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
           address: input.address.toLowerCase(),
@@ -1023,41 +929,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            message: `Trade tp updated`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: `FollowerService>updateTp tx: ${tx}`,
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-          });
-
-          return {
-            success: false,
-            message: `${JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )} tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        }
+        return {
+          success: true,
+          message: `Trade tp updated`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
       }
 
       return {
@@ -1131,41 +1009,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            message: `Trade positive pnl withdrawn`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: `FollowerService>withdrawPositivePnl tx: ${tx}`,
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-          });
-
-          return {
-            success: false,
-            message: `${JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )} tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        }
+        return {
+          success: true,
+          message: `Trade positive pnl withdrawn`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
       }
 
       return {
@@ -1201,7 +1051,6 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
           address: input.address.toLowerCase(),
@@ -1237,41 +1086,13 @@ export class FollowerService {
       });
 
       if (tx) {
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            chainId: contract.chainId,
-            priority: ChainPriority.LOW,
-            hash: tx as `0x${string}`,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: true,
-            message: `Order canceled tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: `FollowerService>cancelOrderAfterTimeout tx: ${tx}`,
-            details: JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-          });
-
-          return {
-            success: false,
-            message: `${JSON.stringify(transaction.logs, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            )} tx: ${tx}`,
-            address: input.address,
-            index: input.index,
-            contractId: input.contractId,
-          };
-        }
+        return {
+          success: true,
+          message: `Order canceled tx: ${tx}`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
       }
 
       return {

@@ -147,43 +147,16 @@ export class TaskExecutorService {
         });
 
         if (tx) {
-          const transaction =
-            await this.evmAdapterService.waitForTransactionReceipt({
-              hash: tx as `0x${string}`,
-              priority: ChainPriority.HIGH,
-              chainId: followerContract.chainId,
-              confirmations: 1,
-            });
+          await this.followerService.withdrawAllUSDC(
+            task.mission.bot.plan.userId,
+            follower.address,
+            followerContract.id,
+          );
 
-          if (transaction.status === 'success') {
-            await this.followerService.withdrawAllUSDC(
-              task.mission.bot.plan.userId,
-              follower.address,
-              followerContract.id,
-            );
-
-            return {
-              success: 'success',
-              message: `Task achieved tx: ${tx}`,
-            };
-          } else {
-            await this.logger.log({
-              severity: 'Error',
-              summary: 'TaskExecutorService>performTask',
-              details:
-                JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ) + ` tx: ${tx}`,
-            });
-
-            return {
-              success: 'failed',
-              message:
-                JSON.stringify(transaction.logs, (_, v) =>
-                  typeof v === 'bigint' ? v.toString() : v,
-                ) + ` tx: ${tx}`,
-            };
-          }
+          return {
+            success: 'success',
+            message: `Task achieved tx: ${tx}`,
+          };
         }
       } else if (leaderContract.platform === Platform.GNS) {
         switch (action.name) {
@@ -422,43 +395,16 @@ export class TaskExecutorService {
             });
 
             if (tx) {
-              const transaction =
-                await this.evmAdapterService.waitForTransactionReceipt({
-                  hash: tx as `0x${string}`,
-                  priority: ChainPriority.HIGH,
-                  chainId: followerContract.chainId,
-                  confirmations: 1,
-                });
+              await this.followerService.withdrawAllUSDC(
+                task.mission.bot.plan.userId,
+                follower.address,
+                followerContract.id,
+              );
 
-              if (transaction.status === 'success') {
-                await this.followerService.withdrawAllUSDC(
-                  task.mission.bot.plan.userId,
-                  follower.address,
-                  followerContract.id,
-                );
-
-                return {
-                  success: 'success',
-                  message: `Task achieved tx: ${tx}`,
-                };
-              } else {
-                await this.logger.log({
-                  severity: 'Error',
-                  summary: 'TaskExecutorService>performTask',
-                  details:
-                    JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ) + ` tx: ${tx}`,
-                });
-
-                return {
-                  success: 'failed',
-                  message:
-                    JSON.stringify(transaction.logs, (_, v) =>
-                      typeof v === 'bigint' ? v.toString() : v,
-                    ) + ` tx: ${tx}`,
-                };
-              }
+              return {
+                success: 'success',
+                message: `Task achieved tx: ${tx}`,
+              };
             }
 
             break;
@@ -602,43 +548,16 @@ export class TaskExecutorService {
                 });
 
                 if (tx) {
-                  const transaction =
-                    await this.evmAdapterService.waitForTransactionReceipt({
-                      hash: tx as `0x${string}`,
-                      priority: ChainPriority.HIGH,
-                      chainId: followerContract.chainId,
-                      confirmations: 1,
-                    });
+                  await this.followerService.withdrawAllUSDC(
+                    task.mission.bot.plan.userId,
+                    follower.address,
+                    followerContract.id,
+                  );
 
-                  if (transaction.status === 'success') {
-                    await this.followerService.withdrawAllUSDC(
-                      task.mission.bot.plan.userId,
-                      follower.address,
-                      followerContract.id,
-                    );
-
-                    return {
-                      success: 'success',
-                      message: `Task achieved tx: ${tx}`,
-                    };
-                  } else {
-                    await this.logger.log({
-                      severity: 'Error',
-                      summary: 'TaskExecutorService>performTask',
-                      details:
-                        JSON.stringify(transaction.logs, (_, v) =>
-                          typeof v === 'bigint' ? v.toString() : v,
-                        ) + ` tx: ${tx}`,
-                    });
-
-                    return {
-                      success: 'failed',
-                      message:
-                        JSON.stringify(transaction.logs, (_, v) =>
-                          typeof v === 'bigint' ? v.toString() : v,
-                        ) + ` tx: ${tx}`,
-                    };
-                  }
+                  return {
+                    success: 'success',
+                    message: `Task achieved tx: ${tx}`,
+                  };
                 }
               }
             }
@@ -938,43 +857,16 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                const transaction =
-                  await this.evmAdapterService.waitForTransactionReceipt({
-                    hash: tx as `0x${string}`,
-                    priority: ChainPriority.HIGH,
-                    chainId: followerContract.chainId,
-                    confirmations: 1,
-                  });
+                await this.followerService.withdrawAllUSDC(
+                  task.mission.bot.plan.userId,
+                  follower.address,
+                  followerContract.id,
+                );
 
-                if (transaction.status === 'success') {
-                  await this.followerService.withdrawAllUSDC(
-                    task.mission.bot.plan.userId,
-                    follower.address,
-                    followerContract.id,
-                  );
-
-                  return {
-                    success: 'success',
-                    message: `Task achieved tx: ${tx}`,
-                  };
-                } else {
-                  await this.logger.log({
-                    severity: 'Error',
-                    summary: 'TaskExecutorService>performTask',
-                    details:
-                      JSON.stringify(transaction.logs, (_, v) =>
-                        typeof v === 'bigint' ? v.toString() : v,
-                      ) + ` tx: ${tx}`,
-                  });
-
-                  return {
-                    success: 'failed',
-                    message:
-                      JSON.stringify(transaction.logs, (_, v) =>
-                        typeof v === 'bigint' ? v.toString() : v,
-                      ) + ` tx: ${tx}`,
-                  };
-                }
+                return {
+                  success: 'success',
+                  message: `Task achieved tx: ${tx}`,
+                };
               }
             } else {
               // it's a decrease position size event
@@ -1022,43 +914,16 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                const transaction =
-                  await this.evmAdapterService.waitForTransactionReceipt({
-                    hash: tx as `0x${string}`,
-                    priority: ChainPriority.HIGH,
-                    chainId: followerContract.chainId,
-                    confirmations: 1,
-                  });
+                await this.followerService.withdrawAllUSDC(
+                  task.mission.bot.plan.userId,
+                  follower.address,
+                  followerContract.id,
+                );
 
-                if (transaction.status === 'success') {
-                  await this.followerService.withdrawAllUSDC(
-                    task.mission.bot.plan.userId,
-                    follower.address,
-                    followerContract.id,
-                  );
-
-                  return {
-                    success: 'success',
-                    message: `Task achieved tx: ${tx}`,
-                  };
-                } else {
-                  await this.logger.log({
-                    severity: 'Error',
-                    summary: 'TaskExecutorService>performTask',
-                    details:
-                      JSON.stringify(transaction.logs, (_, v) =>
-                        typeof v === 'bigint' ? v.toString() : v,
-                      ) + ` tx: ${tx}`,
-                  });
-
-                  return {
-                    success: 'failed',
-                    message:
-                      JSON.stringify(transaction.logs, (_, v) =>
-                        typeof v === 'bigint' ? v.toString() : v,
-                      ) + ` tx: ${tx}`,
-                  };
-                }
+                return {
+                  success: 'success',
+                  message: `Task achieved tx: ${tx}`,
+                };
               }
             }
 
@@ -1077,37 +942,10 @@ export class TaskExecutorService {
           details: `tx: ${tx}`,
         });
 
-        const transaction =
-          await this.evmAdapterService.waitForTransactionReceipt({
-            hash: tx as `0x${string}`,
-            priority: ChainPriority.HIGH,
-            chainId: followerContract.chainId,
-            confirmations: 1,
-          });
-
-        if (transaction.status === 'success') {
-          return {
-            success: 'success',
-            message: `Task achieved tx: ${tx}`,
-          };
-        } else {
-          await this.logger.log({
-            severity: 'Error',
-            summary: 'TaskExecutorService>performTask',
-            details:
-              JSON.stringify(transaction.logs, (_, v) =>
-                typeof v === 'bigint' ? v.toString() : v,
-              ) + ` tx: ${tx}`,
-          });
-
-          return {
-            success: 'failed',
-            message:
-              JSON.stringify(transaction.logs, (_, v) =>
-                typeof v === 'bigint' ? v.toString() : v,
-              ) + ` tx: ${tx}`,
-          };
-        }
+        return {
+          success: 'success',
+          message: `Task achieved tx: ${tx}`,
+        };
       } else {
         throw new Error('Error at waiting for transaction receipt');
       }
