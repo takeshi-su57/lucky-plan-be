@@ -121,26 +121,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'openTrade',
           args: [payload.args.trade, payload.args.maxSlippageP, zeroAddress],
           account,
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -157,26 +158,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateMaxClosingSlippageP',
           args: [payload.args.index, payload.args.maxSlippageP],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -193,26 +195,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'closeTradeMarket',
           args: [payload.args.index, payload.args.expectedPrice],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -229,26 +232,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'cancelOrderAfterTimeout',
           args: [payload.args.index],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -265,26 +269,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateTp',
           args: [payload.args.index, payload.args.newTp],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -301,26 +306,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateSl',
           args: [payload.args.index, payload.args.newSl],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -337,26 +343,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateLeverage',
           args: [payload.args.index, payload.args.newLeverage],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -373,18 +380,7 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
@@ -397,8 +393,20 @@ export class GnsService {
             payload.args.expectedPrice,
             payload.args.maxSlippageP,
           ],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -415,18 +423,7 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
@@ -438,8 +435,20 @@ export class GnsService {
             payload.args.leverageDelta,
             payload.args.expectedPrice,
           ],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -456,26 +465,27 @@ export class GnsService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          contract.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: contract.address as Address,
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'withdrawPositivePnl',
           args: [payload.args.index, payload.args.amountCollateral],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          contract.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }

@@ -33,26 +33,27 @@ export class EvmAdapterService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          payload.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: payload.erc20ContractAddress,
           abi: erc20Abi,
           functionName: 'transfer',
           args: [payload.toAddress, payload.amount],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          payload.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -82,26 +83,27 @@ export class EvmAdapterService {
           accountIndex: payload.accountIndex,
         });
 
-        const nonce = await this.chainsService.readWithSemaphore(
-          payload.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.writeContract({
+        const txHash = await wallet.writeContract({
           chain: wallet.chain,
           account,
           address: payload.erc20ContractAddress,
           abi: erc20Abi,
           functionName: 'approve',
           args: [payload.spender, payload.amount],
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          payload.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
@@ -116,24 +118,25 @@ export class EvmAdapterService {
       payload.mnemonic,
       payload.accountIndex,
       async (wallet) => {
-        const nonce = await this.chainsService.readWithSemaphore(
-          payload.chainId,
-          ChainPriority.HIGH,
-          async (publicClient) => {
-            return await publicClient.getTransactionCount({
-              address: account.address,
-              blockTag: 'pending',
-            });
-          },
-        );
-
-        return await wallet.sendTransaction({
+        const txHash = await wallet.sendTransaction({
           account,
           to: payload.toAddress,
           value: payload.amount,
           chain: wallet.chain,
-          nonce,
         });
+
+        await this.chainsService.readWithSemaphore(
+          payload.chainId,
+          ChainPriority.HIGH,
+          async (publicClient) => {
+            return await publicClient.waitForTransactionReceipt({
+              hash: txHash,
+              confirmations: 6,
+            });
+          },
+        );
+
+        return txHash;
       },
     );
   }
