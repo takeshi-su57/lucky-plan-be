@@ -18,9 +18,9 @@ import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-
 
 import { LeaderboardService } from './leaderboard.service';
 import { LogsService } from 'src/global/logs.service';
-import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
 import { StartAdaptionPayload } from './types';
 import { PnlSnapshotsV2Service } from '../apiService/modules/trade-histories/pnlsnapshotV2.service';
+import { AutoPlansV2Service } from '../apiService/modules/plans/autoplansV2.service';
 
 @Controller()
 export class LeaderboardController implements OnApplicationBootstrap {
@@ -30,7 +30,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
     private leaderboardService: LeaderboardService,
     private pnlSnapshotService: PnlSnapshotsService,
     private pnlSnapshotV2Service: PnlSnapshotsV2Service,
-    private autoPlansService: AutoPlansService,
+    private autoPlansV2Service: AutoPlansV2Service,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {}
@@ -234,7 +234,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
       );
 
       if (this.count % 3 === 0) {
-        await this.autoPlansService.createAutoPlans();
+        await this.autoPlansV2Service.createAutoPlans();
       }
 
       this.count++;
