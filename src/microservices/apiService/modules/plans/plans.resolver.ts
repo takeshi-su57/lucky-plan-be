@@ -7,7 +7,7 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { PlanStatus, User, UserPermission } from '@prisma/client';
+import { PlanStatus, User, UserPermission, Platform } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import { PUB_SUB } from 'src/global/global.module';
@@ -19,6 +19,7 @@ import {
   Plan,
   PlanConnection,
   PlanForwardDetails,
+  ExpertPnlSnapshotV2,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -26,6 +27,7 @@ import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.deco
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
 import { AutoPlansService } from './autoplans.service';
+import { AutoPlansV2Service } from './autoplansV2.service';
 import * as dayjs from 'dayjs';
 
 @Resolver()
@@ -33,6 +35,7 @@ export class PlansResolver {
   constructor(
     private readonly plansService: PlansService,
     private readonly autoplanService: AutoPlansService,
+    private readonly autoplanServiceV2: AutoPlansV2Service,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
@@ -150,6 +153,19 @@ export class PlansResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   getExpertPnlSnapshots(@CurrentUser() _user: User) {
     return this.autoplanService.filterExperts(dayjs().format('YYYY-MM-DD'));
+  }
+
+  @Query(() => [ExpertPnlSnapshotV2])
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getExpertPnlSnapshotsV2(
+    @CurrentUser() _user: User,
+    @Args('platform', { type: () => Platform }) platform: Platform,
+  ) {
+    return this.autoplanServiceV2.filterExperts(
+      platform,
+      dayjs().format('YYYY-MM-DD'),
+    );
   }
 
   @Query(() => [String], { nullable: true })
