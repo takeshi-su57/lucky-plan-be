@@ -69,7 +69,7 @@ export function getPairIndex(chainId: number, pairName: string): number {
 
   const pair = pairIndexConfigsMap[chainId][pairName.toLowerCase()];
 
-  return pair?.pairIndex || -1;
+  return pair ? pair.pairIndex : -1;
 }
 
 export function getPairName(chainId: number, pairIndex: number): string | null {
