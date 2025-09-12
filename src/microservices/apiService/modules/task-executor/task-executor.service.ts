@@ -610,7 +610,8 @@ export class TaskExecutorService {
           );
         }
 
-        const pairName = `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`;
+        const pairName =
+          `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
 
         const pairIndex = getPairIndex(followerContract.chainId, pairName);
 

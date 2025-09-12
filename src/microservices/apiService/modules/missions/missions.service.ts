@@ -475,7 +475,8 @@ export class MissionsService {
             return false;
           }
 
-          const pairName = `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`;
+          const pairName =
+            `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
 
           const pairIndex = getPairIndex(
             item.context.bot.leaderContract.chainId,
