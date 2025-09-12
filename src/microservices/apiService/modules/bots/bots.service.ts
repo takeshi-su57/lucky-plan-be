@@ -45,6 +45,7 @@ import { StrategyService } from 'src/microservices/apiService/modules/strategy/s
 import { LogsService } from 'src/global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
+import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 
 @Injectable()
 export class BotsService {
@@ -486,12 +487,16 @@ export class BotsService {
 
     const mnemonic = await this.followersService.getMnemonic(user.mnemonic);
 
-    const collateralInfo = this.gnsService.getCollateral(
-      bot.followerContractId,
+    const collateralInfo = getCollateral(
+      bot.followerContract.chainId,
       USDCCollateralIndex[
         followerContract.chainId as keyof typeof USDCCollateralIndex
       ],
     );
+
+    if (!collateralInfo) {
+      throw new Error('Invalid collateral index');
+    }
 
     const allowance = await this.evmAdapterService.erc20Allowance({
       chainId: followerContract.chainId,

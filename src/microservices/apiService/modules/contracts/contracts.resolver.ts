@@ -3,13 +3,8 @@ import { UseGuards } from '@nestjs/common';
 import { UserPermission } from '@prisma/client';
 
 import { ContractsService } from './contracts.service';
-import {
-  Contract,
-  TradeCollateral,
-  TradePair,
-} from './entities/contract.entity';
+import { Contract } from './entities/contract.entity';
 
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { Roles } from '../auth/roles.decorator';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
@@ -18,10 +13,7 @@ import { User } from '../auth/entities/auth.entity';
 
 @Resolver(() => Contract)
 export class ContractsResolver {
-  constructor(
-    private readonly contractsService: ContractsService,
-    private readonly gnsService: GnsService,
-  ) {}
+  constructor(private readonly contractsService: ContractsService) {}
 
   @Query(() => [Contract])
   getAllContracts() {
@@ -31,20 +23,6 @@ export class ContractsResolver {
   @Query(() => Contract)
   findContract(@Args('id', { type: () => Int }) id: number) {
     return this.contractsService.findOne(id);
-  }
-
-  @Query(() => [TradePair])
-  getTradePairs(
-    @Args('contractId', { type: () => [Int] }) contractIds: number[],
-  ) {
-    return this.gnsService.getTradePairs(contractIds);
-  }
-
-  @Query(() => [TradeCollateral])
-  getTradeCollaterals(
-    @Args('contractId', { type: () => Int }) contractId: number,
-  ) {
-    return this.gnsService.getTradeCollaterals(contractId);
   }
 
   @Query(() => String)

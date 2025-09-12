@@ -6,6 +6,7 @@ import {
   UserPermission,
   User,
   Platform,
+  Contract,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -15,7 +16,6 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from './plans.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 import { getReadableError } from 'src/utils';
 import { CreatePlanInput } from './dto/plan.input';
@@ -23,10 +23,10 @@ import { CreateBotAndStrategyInput } from 'src/microservices/apiService/modules/
 
 import { bestFilters, ExpertFilterParams } from './expert-filters/v2.2';
 
-import { Pair } from 'src/web3/platform/gns/v10/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
 import { TradeHistory } from '../trade-histories/entities/trade-history.entity';
 import { ServiceStatus } from 'src/types';
+import { getPairByName } from 'src/web3/platform/gns/v10/configs';
 
 const BLACKLIST_KEY = 'autoplans_v2_blacklist';
 const WHITELIST_KEY = 'autoplans_v2_whitelist';
@@ -83,7 +83,6 @@ export class AutoPlansService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsService: GnsService,
     private planService: PlansService,
     private botService: BotsService,
     private logger: LogsService,
@@ -559,18 +558,9 @@ export class AutoPlansService {
       },
     });
 
-    const pairMap = new Map<string, Pair>();
+    const contractsMap: Record<number, Contract> = {};
 
-    for (const contract of contracts) {
-      this.gnsService.getPairs(contract.id).forEach((pair) => {
-        if (pair) {
-          pairMap.set(
-            `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
-            pair,
-          );
-        }
-      });
-    }
+    contracts.forEach((contract) => (contractsMap[contract.id] = contract));
 
     return Array.from(expertMap.values())
       .sort((a, b) => b.score - a.score)
@@ -643,8 +633,9 @@ export class AutoPlansService {
 
         const chunkForPnlHistories = expert.histories
           .filter((item) => {
-            const pair = pairMap.get(
-              `${item.contractId}-${item.pair}`.toLowerCase(),
+            const pair = getPairByName(
+              contractsMap[item.contractId].chainId,
+              item.pair,
             );
 
             if (!pair) {
@@ -920,22 +911,14 @@ export class AutoPlansService {
 
       const contracts = await this.prismaService.contract.findMany({
         where: {
+          platform: Platform.GNS,
           isTestnet: false,
         },
       });
 
-      const pairMap = new Map<string, Pair>();
+      const contractsMap: Record<number, Contract> = {};
 
-      for (const contract of contracts) {
-        this.gnsService.getPairs(contract.id).forEach((pair) => {
-          if (pair) {
-            pairMap.set(
-              `${contract.id}-${pair.from}/${pair.to}`.toLowerCase(),
-              pair,
-            );
-          }
-        });
-      }
+      contracts.forEach((contract) => (contractsMap[contract.id] = contract));
 
       const botInputs: CreateBotAndStrategyInput[] = [];
 
@@ -1018,8 +1001,9 @@ export class AutoPlansService {
 
         const chunkForPnlHistories = expert.histories
           .filter((item) => {
-            const pair = pairMap.get(
-              `${item.contractId}-${item.pair}`.toLowerCase(),
+            const pair = getPairByName(
+              contractsMap[item.contractId].chainId,
+              item.pair,
             );
 
             if (!pair) {

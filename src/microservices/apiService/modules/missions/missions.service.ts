@@ -34,8 +34,13 @@ import { getReadableError } from 'src/utils';
 import { getWeb3Info } from 'src/web3/utils';
 
 import { positionIncreaseEventParser as positionIncreaseEventParserForGMX } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
-import { GmxService } from 'src/web3/platform/gmx/v2/gmx.service';
 import { getGnsPositionKey } from 'src/web3/platform/gns/utils';
+import { getMarketInfo, getTokenInfo } from 'src/web3/platform/gmx/v2/configs';
+import {
+  getCollateral,
+  getPair,
+  getPairIndex,
+} from 'src/web3/platform/gns/v10/configs';
 
 @Injectable()
 export class MissionsService {
@@ -44,7 +49,6 @@ export class MissionsService {
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private gnsService: GnsService,
-    private gmxService: GmxService,
     private readonly logger: LogsService,
   ) {}
 
@@ -414,8 +418,8 @@ export class MissionsService {
             .actionParser(item.action);
           const { t, collateralPriceUsd } = event.args;
 
-          const pair = this.gnsService.getPair(
-            item.context.bot.followerContractId,
+          const pair = getPair(
+            item.context.bot.leaderContract.chainId,
             t.pairIndex,
           );
 
@@ -423,8 +427,8 @@ export class MissionsService {
             return false;
           }
 
-          const collateral = this.gnsService.getCollateral(
-            item.context.bot.leaderContractId,
+          const collateral = getCollateral(
+            item.context.bot.leaderContract.chainId,
             t.collateralIndex,
           );
 
@@ -462,7 +466,7 @@ export class MissionsService {
             return false;
           }
 
-          const marketInfo = this.gmxService.getMarketInfo(
+          const marketInfo = getMarketInfo(
             item.context.bot.leaderContract.chainId,
             event.args.market,
           );
@@ -473,8 +477,8 @@ export class MissionsService {
 
           const pairName = `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`;
 
-          const pairIndex = this.gnsService.getPairIndex(
-            item.context.bot.followerContractId,
+          const pairIndex = getPairIndex(
+            item.context.bot.leaderContract.chainId,
             pairName,
           );
 
@@ -482,7 +486,7 @@ export class MissionsService {
             return false;
           }
 
-          const collateral = this.gmxService.getTokenInfo(
+          const collateral = getTokenInfo(
             item.context.bot.leaderContract.chainId,
             event.args.collateralToken,
           );
@@ -511,6 +515,7 @@ export class MissionsService {
                 ),
               ),
               collateral: {
+                collateralIndex: 0,
                 isActive: true,
                 collateral: collateral.address as `0x${string}`,
                 precision: BigInt(Math.pow(10, collateral.decimals)),

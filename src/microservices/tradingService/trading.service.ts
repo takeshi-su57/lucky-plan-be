@@ -2,19 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
 import { Contract, ContractStatus, Platform } from '@prisma/client';
 
-import { eventToActionParser } from 'src/web3/platform/gns/v10/eventParsers';
-
 import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { delay, getReadableError } from 'src/utils';
+import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 import { ChainPriority, ServiceStatus } from 'src/types';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 import { getWeb3Info } from 'src/web3/utils';
 import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
-import { ActionItem } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 
 @Injectable()
 export class TradingService {
@@ -28,7 +24,6 @@ export class TradingService {
     private botsService: BotsService,
     private contractsService: ContractsService,
     private readonly logger: LogsService,
-    private readonly gnsService: GnsService,
   ) {
     this.status = ServiceStatus.READY;
     this.isReceivedKillProcess = false;
@@ -58,19 +53,8 @@ export class TradingService {
       let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
 
       while (fromBlock <= currentBlockNumber) {
-        if (
-          this.isReceivedKillProcess ||
-          this.gnsService.status === ServiceStatus.KILLED
-        ) {
+        if (this.isReceivedKillProcess) {
           break;
-        }
-
-        if (
-          this.gnsService.status === ServiceStatus.PAUSED ||
-          this.gnsService.status === ServiceStatus.PROCESS
-        ) {
-          await delay(10_000);
-          continue;
         }
 
         const toBlock =

@@ -5,9 +5,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay, getReadableError } from 'src/utils';
+import { delay } from 'src/utils';
 
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
 import { TradingService } from './trading.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
@@ -19,7 +18,6 @@ export class TradingController implements OnApplicationBootstrap {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly tradingService: TradingService,
-    private readonly gnsService: GnsService,
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
@@ -27,26 +25,10 @@ export class TradingController implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.reloadTradingVariables();
-
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.TRADING_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
-    });
-  }
-
-  private async reloadTradingVariables() {
-    this.gnsService.status = ServiceStatus.PAUSED;
-
-    await delay(20_000);
-
-    await this.gnsService.loadTradingVariables();
-
-    await this.logger.nativeLog({
-      severity: 'Info',
-      summary: 'trading.controller>reloadTradingVariables',
-      details: 'trading variables reloaded',
     });
   }
 
@@ -101,7 +83,6 @@ export class TradingController implements OnApplicationBootstrap {
   async executeCronForBotMonitor() {
     if (
       this.tradingService.isReceivedKillProcess ||
-      this.gnsService.status !== ServiceStatus.READY ||
       this.tradingService.status !== ServiceStatus.READY ||
       this.taskExecutorService.status !== ServiceStatus.READY
     ) {
@@ -115,10 +96,7 @@ export class TradingController implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async checkAndUpdateAllBots() {
-    if (
-      this.tradingService.isReceivedKillProcess ||
-      this.gnsService.status !== ServiceStatus.READY
-    ) {
+    if (this.tradingService.isReceivedKillProcess) {
       return;
     }
 
@@ -128,23 +106,6 @@ export class TradingController implements OnApplicationBootstrap {
 
     if (this.plansService.status === ServiceStatus.READY) {
       await this.plansService.checkAndUpdateAllPlans();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_3_HOURS)
-  async executeCronForReloadTradingVariables() {
-    if (this.tradingService.isReceivedKillProcess) {
-      return;
-    }
-
-    try {
-      await this.reloadTradingVariables();
-    } catch (err) {
-      this.logger.nativeLog({
-        severity: 'Error',
-        summary: 'trading.controller>executeCronForReloadTradingVariables',
-        details: getReadableError(err),
-      });
     }
   }
 }

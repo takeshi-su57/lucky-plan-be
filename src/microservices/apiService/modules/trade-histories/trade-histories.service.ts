@@ -4,6 +4,7 @@ import {
   TradeActionType,
   Version,
   PerpTradingEventLog,
+  Contract,
 } from '@prisma/client';
 import * as csv from 'csv-parser';
 import * as fs from 'fs';
@@ -43,7 +44,15 @@ import {
 } from 'src/web3/platform/gns/v10/eventParsers';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
+import {
+  getCollateral as getCollateralV9,
+  getPairName as getPairNameV9,
+} from 'src/web3/platform/gns/v9/configs';
+import {
+  getCollateral as getCollateralV10,
+  getPairName as getPairNameV10,
+} from 'src/web3/platform/gns/v10/configs';
+import { LogsService } from 'src/global/logs.service';
 
 @Injectable()
 export class TradeHistoriesService {
@@ -51,13 +60,15 @@ export class TradeHistoriesService {
 
   constructor(
     private prismaService: PrismaService,
-    private gnsService: GnsService,
+    private logger: LogsService,
   ) {
     this.registeredEventNames = eventParsers.map((item) => item.eventName);
 
     // setTimeout(() => {
     //   this.migrateTradeHistoriesFromCsv('2024-10-01', '2025-06-22');
     // }, 60_000);
+
+    // this.regenerateTradeHistoriesFromPerpEventLog();
   }
 
   async createMany(inputs: CreateTradeHistoryInput[]) {
@@ -236,106 +247,106 @@ export class TradeHistoriesService {
     });
   }
 
-  async migrateTradeHistoriesFromCsv(fromDateStr: string, toDateStr: string) {
-    const BATCH_SIZE = 10000;
+  // async migrateTradeHistoriesFromCsv(fromDateStr: string, toDateStr: string) {
+  //   const BATCH_SIZE = 10000;
 
-    const fromDate = new Date(fromDateStr);
-    const toDate = new Date(toDateStr);
+  //   const fromDate = new Date(fromDateStr);
+  //   const toDate = new Date(toDateStr);
 
-    console.time('Delete trade histories');
+  //   console.time('Delete trade histories');
 
-    await this.prismaService.tradeHistory.deleteMany({
-      where: {
-        date: {
-          gte: fromDate,
-          lte: toDate,
-        },
-      },
-    });
+  //   await this.prismaService.tradeHistory.deleteMany({
+  //     where: {
+  //       date: {
+  //         gte: fromDate,
+  //         lte: toDate,
+  //       },
+  //     },
+  //   });
 
-    console.timeEnd('Delete trade histories');
+  //   console.timeEnd('Delete trade histories');
 
-    const dirName = path.join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '_EventLog__202506221924.csv',
-    );
+  //   const dirName = path.join(
+  //     __dirname,
+  //     '..',
+  //     '..',
+  //     '..',
+  //     '_EventLog__202506221924.csv',
+  //   );
 
-    const cache: Record<
-      number,
-      { item: ActionItem; blockNumber: number; timestamp: Date }[]
-    > = {};
+  //   const cache: Record<
+  //     number,
+  //     { item: ActionItem; blockNumber: number; timestamp: Date }[]
+  //   > = {};
 
-    console.time('migrateTradeHistoriesFromCsv');
+  //   console.time('migrateTradeHistoriesFromCsv');
 
-    fs.createReadStream(dirName)
-      .pipe(csv())
-      .on('data', (row) => {
-        const rowDate = new Date(row.date);
+  //   fs.createReadStream(dirName)
+  //     .pipe(csv())
+  //     .on('data', (row) => {
+  //       const rowDate = new Date(row.date);
 
-        if (rowDate < fromDate || rowDate > toDate) {
-          return;
-        }
+  //       if (rowDate < fromDate || rowDate > toDate) {
+  //         return;
+  //       }
 
-        const event = JSON.parse(row.jsonLog);
+  //       const event = JSON.parse(row.jsonLog);
 
-        if (!this.registeredEventNames.includes(event.eventName)) {
-          return;
-        }
+  //       if (!this.registeredEventNames.includes(event.eventName)) {
+  //         return;
+  //       }
 
-        const cacheByContractId = cache[Number(row.contractId)];
+  //       const cacheByContractId = cache[Number(row.contractId)];
 
-        if (!cacheByContractId) {
-          cache[Number(row.contractId)] = [];
-        }
+  //       if (!cacheByContractId) {
+  //         cache[Number(row.contractId)] = [];
+  //       }
 
-        cache[Number(row.contractId)].push({
-          item: eventToActionParser(event),
-          blockNumber: Number(row.block),
-          timestamp: rowDate,
-        });
+  //       cache[Number(row.contractId)].push({
+  //         item: eventToActionParser(event),
+  //         blockNumber: Number(row.block),
+  //         timestamp: rowDate,
+  //       });
 
-        if (cache[Number(row.contractId)].length === BATCH_SIZE) {
-          console.log('handleActionItems', {
-            contractId: Number(row.contractId),
-            length: cache[Number(row.contractId)].length,
-            from: cache[Number(row.contractId)][0].blockNumber,
-            to: cache[Number(row.contractId)][
-              cache[Number(row.contractId)].length - 1
-            ].blockNumber,
-          });
+  //       if (cache[Number(row.contractId)].length === BATCH_SIZE) {
+  //         console.log('handleActionItems', {
+  //           contractId: Number(row.contractId),
+  //           length: cache[Number(row.contractId)].length,
+  //           from: cache[Number(row.contractId)][0].blockNumber,
+  //           to: cache[Number(row.contractId)][
+  //             cache[Number(row.contractId)].length - 1
+  //           ].blockNumber,
+  //         });
 
-          this.handleActionItems(Number(row.contractId), [
-            ...cache[Number(row.contractId)],
-          ]).then(() =>
-            console.log('handleActionItemsEnded', {
-              contractId: Number(row.contractId),
-              length: cache[Number(row.contractId)].length,
-              from: cache[Number(row.contractId)][0].blockNumber,
-              to: cache[Number(row.contractId)][
-                cache[Number(row.contractId)].length - 1
-              ].blockNumber,
-            }),
-          );
+  //         this.handleActionItems(Number(row.contractId), [
+  //           ...cache[Number(row.contractId)],
+  //         ]).then(() =>
+  //           console.log('handleActionItemsEnded', {
+  //             contractId: Number(row.contractId),
+  //             length: cache[Number(row.contractId)].length,
+  //             from: cache[Number(row.contractId)][0].blockNumber,
+  //             to: cache[Number(row.contractId)][
+  //               cache[Number(row.contractId)].length - 1
+  //             ].blockNumber,
+  //           }),
+  //         );
 
-          cache[Number(row.contractId)] = [];
-        }
-      })
-      .on('end', async () => {
-        for (const contractId in cache) {
-          await this.handleActionItems(Number(contractId), [
-            ...cache[Number(contractId)],
-          ]);
-        }
+  //         cache[Number(row.contractId)] = [];
+  //       }
+  //     })
+  //     .on('end', async () => {
+  //       for (const contractId in cache) {
+  //         await this.handleActionItems(Number(contractId), [
+  //           ...cache[Number(contractId)],
+  //         ]);
+  //       }
 
-        console.timeEnd('migrateTradeHistoriesFromCsv');
-      });
-  }
+  //       console.timeEnd('migrateTradeHistoriesFromCsv');
+  //     });
+  // }
 
   async handleActionItemsV9(
-    contractId: number,
+    contract: Contract,
     actionItems: { item: ActionItem; blockNumber: number; timestamp: Date }[],
   ) {
     const historyInputs = actionItems
@@ -351,23 +362,29 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.collateralIndex,
             );
+
+            const pair = getPairNameV9(
+              contract.chainId,
+              Number(args.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              return null;
+            }
 
             const leverage = Number(args.values.newLeverage) / 1000;
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeIncrease,
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.values.newOpenPrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
@@ -400,21 +417,27 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.collateralIndex,
             );
 
+            const pair = getPairNameV9(
+              contract.chainId,
+              Number(args.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              return null;
+            }
+
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.values.priceAfterImpact) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
@@ -447,21 +470,27 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.collateralIndex,
             );
 
+            const pair = getPairNameV9(
+              contract.chainId,
+              Number(args.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              return null;
+            }
+
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradeLeverageUpdate,
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: '0',
               long: 0,
@@ -487,10 +516,19 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.t.collateralIndex,
             );
+
+            const pair = getPairNameV9(
+              contract.chainId,
+              Number(args.t.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              return null;
+            }
 
             const pnl = args.open
               ? '0'
@@ -502,16 +540,13 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.t.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: args.open
                 ? TradeActionType.TradeOpenedMarket
                 : TradeActionType.TradeClosedMarket,
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
@@ -533,10 +568,19 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.t.collateralIndex,
             );
+
+            const pair = getPairNameV9(
+              contract.chainId,
+              Number(args.t.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              return null;
+            }
 
             const actionNameMap: Record<string, string> = {
               [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
@@ -560,14 +604,11 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.t.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: actionNameMap[args.orderType],
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.oraclePrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.t.long),
@@ -672,7 +713,34 @@ export class TradeHistoriesService {
           };
         });
 
-        await this.handleActionItems(contract.id, actionItems);
+        await this.handleActionItems(contract, actionItems);
+
+        const upsertInputs = records
+          .filter((record) => {
+            const parsed = JSON.parse(record.jsonLog);
+            return (
+              parsed.eventName ===
+              positionSizeIncreaseExecutedEventParser.eventName
+            );
+          })
+          .map((record) => ({
+            ...record,
+            usdPnl: 0,
+          }));
+
+        await this.prismaService.$transaction(
+          upsertInputs.map((input) => {
+            return this.prismaService.perpTradingEventLog.upsert({
+              where: {
+                id: input.id,
+              },
+              update: {
+                usdPnl: input.usdPnl,
+              },
+              create: input,
+            });
+          }),
+        );
 
         cursor = records[records.length - 1].id;
       }
@@ -682,9 +750,12 @@ export class TradeHistoriesService {
   }
 
   async handleActionItems(
-    contractId: number,
+    contract: Contract,
     actionItems: { item: ActionItem; blockNumber: number; timestamp: Date }[],
   ) {
+    const contractId = contract.id;
+    const chainId = contract.chainId;
+
     const historyInputs = actionItems
       .map((actionItem) => {
         switch (actionItem.item.name) {
@@ -698,23 +769,35 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV10(
+              contract.chainId,
               args.collateralIndex,
             );
+
+            const pair = getPairNameV10(
+              contract.chainId,
+              Number(args.pairIndex),
+            );
+
+            if (!pair || !collateral) {
+              this.logger.log({
+                severity: 'Notice',
+                summary: 'New Pair or Collateral is detected',
+                details: `${contract.chainId} chain on ${actionItem.blockNumber} block ${Number(args.pairIndex)} pairIndex ${args.collateralIndex} collateralIndex`,
+              });
+
+              return null;
+            }
 
             const leverage = Number(args.values.newLeverage) / 1000;
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeIncrease,
-              contractId,
+              contractId: contract.id,
               price: `${Number(args.values.newOpenPrice) / 1e10}`,
               collateralPriceUsd: `${Number(args.collateralPriceUsd) / 1e8}`,
               long: Number(args.long),
@@ -723,10 +806,7 @@ export class TradeHistoriesService {
                   Number(collateral.precision),
               )}`,
               leverage,
-              pnl: `${Number(
-                Number(args.values.existingPnlCollateral) /
-                  Number(collateral.precision),
-              )}`,
+              pnl: `0`,
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),
@@ -749,17 +829,23 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
-              args.collateralIndex,
-            );
+            const collateral = getCollateralV10(chainId, args.collateralIndex);
+
+            const pair = getPairNameV10(chainId, Number(args.pairIndex));
+
+            if (!pair || !collateral) {
+              this.logger.log({
+                severity: 'Notice',
+                summary: 'New Pair or Collateral is detected',
+                details: `${contract.chainId} chain on ${actionItem.blockNumber} block ${Number(args.pairIndex)} pairIndex ${args.collateralIndex} collateralIndex`,
+              });
+
+              return null;
+            }
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradePosSizeDecrease,
@@ -798,17 +884,22 @@ export class TradeHistoriesService {
               return null;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
-              args.collateralIndex,
-            );
+            const collateral = getCollateralV10(chainId, args.collateralIndex);
+
+            const pair = getPairNameV10(chainId, Number(args.pairIndex));
+
+            if (!pair || !collateral) {
+              this.logger.log({
+                severity: 'Notice',
+                summary: 'New Pair or Collateral is detected',
+                details: `${contract.chainId} chain on ${actionItem.blockNumber} block ${Number(args.pairIndex)} pairIndex ${args.collateralIndex} collateralIndex`,
+              });
+              return null;
+            }
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: TradeActionType.TradeLeverageUpdate,
@@ -840,10 +931,22 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV10(
+              chainId,
               args.t.collateralIndex,
             );
+
+            const pair = getPairNameV10(chainId, Number(args.t.pairIndex));
+
+            if (!pair || !collateral) {
+              this.logger.log({
+                severity: 'Notice',
+                summary: 'New Pair or Collateral is detected',
+                details: `${contract.chainId} chain on ${actionItem.blockNumber} block ${Number(args.t.pairIndex)} pairIndex ${args.t.collateralIndex} collateralIndex`,
+              });
+
+              return null;
+            }
 
             const pnl = args.open
               ? '0'
@@ -855,10 +958,7 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.t.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: args.open
@@ -888,10 +988,22 @@ export class TradeHistoriesService {
               actionItem.item,
             );
 
-            const collateral = this.gnsService.getCollateral(
-              contractId,
+            const collateral = getCollateralV10(
+              chainId,
               args.t.collateralIndex,
             );
+
+            const pair = getPairNameV10(chainId, Number(args.t.pairIndex));
+
+            if (!pair || !collateral) {
+              this.logger.log({
+                severity: 'Notice',
+                summary: 'New Pair or Collateral is detected',
+                details: `${contract.chainId} chain on ${actionItem.blockNumber} block ${Number(args.t.pairIndex)} pairIndex ${args.t.collateralIndex} collateralIndex`,
+              });
+
+              return null;
+            }
 
             const actionNameMap: Record<string, string> = {
               [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
@@ -915,10 +1027,7 @@ export class TradeHistoriesService {
 
             return {
               date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(
-                contractId,
-                Number(args.t.pairIndex),
-              ),
+              pair,
               block: actionItem.blockNumber,
               address: actionItem.item.address.toLowerCase(),
               action: actionNameMap[args.orderType],
@@ -942,37 +1051,7 @@ export class TradeHistoriesService {
             } as CreateTradeHistoryInput;
           }
           case tradePositivePnlWithdrawnEventParser.eventName: {
-            const { args } = tradePositivePnlWithdrawnEventParser.actionParser(
-              actionItem.item,
-            );
-
-            const collateral = this.gnsService.getCollateral(
-              contractId,
-              args.collateralIndex,
-            );
-
-            return {
-              date: actionItem.timestamp,
-              pair: this.gnsService.getPairName(contractId, Number(args.index)),
-              block: actionItem.blockNumber,
-              address: actionItem.item.address.toLowerCase(),
-              action: TradeActionType.TradePosPnlRealized,
-              contractId,
-              price: `${Number(args.priceImpact.priceAfterImpact) / 1e10}`,
-              collateralPriceUsd: '0',
-              long: 0,
-              size: `0`,
-              leverage: 0,
-              pnl: `${Number(Number(args.pnlWithdrawnCollateral) / Number(collateral.precision))}`,
-              tradeId: null,
-              collateralIndex: Number(args.collateralIndex),
-              tradeIndex: Number(args.index),
-              collateralDelta: null,
-              leverageDelta: null,
-              marketPrice: null,
-              isCounterTrade: false,
-              meta: JSON.stringify({}),
-            } as CreateTradeHistoryInput;
+            return null;
           }
           default: {
             return null;
