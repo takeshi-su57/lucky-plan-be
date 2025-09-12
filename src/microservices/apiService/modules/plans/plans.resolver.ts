@@ -53,7 +53,7 @@ export class PlansResolver {
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   createAutoPlan(@CurrentUser() user: User) {
-    return this.autoplanService.createAutoPlansForUser(user.address);
+    return this.autoplanServiceV2.createAutoPlansForUser(user.address);
   }
 
   @Mutation(() => Int)
