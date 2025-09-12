@@ -8,18 +8,21 @@ import {
   isOpenMissionAction as isOpenMissionActionV10,
   isCloseMissionAction as isCloseMissionActionV10,
   eventToActionParser as eventToActionParserV10,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryV10,
 } from 'src/web3/platform/gns/v10/eventParsers';
 import {
   eventParsers as eventParsersV9,
   isOpenMissionAction as isOpenMissionActionV9,
   isCloseMissionAction as isCloseMissionActionV9,
   eventToActionParser as eventToActionParserV9,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryV9,
 } from 'src/web3/platform/gns/v9/eventParsers';
 import {
   eventParsers as eventParsersForGMX,
   isOpenMissionAction as isOpenMissionActionForGMX,
   isCloseMissionAction as isCloseMissionActionForGMX,
   eventToActionParser as eventToActionParserForGMX,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryForGMX,
 } from 'src/web3/platform/gmx/v2/eventParsers';
 
 const gnsV10EventSignatures: Record<string, string> = Object.fromEntries(
@@ -49,6 +52,7 @@ const info = {
       isOpenMissionAction: isOpenMissionActionV9,
       isCloseMissionAction: isCloseMissionActionV9,
       abi: gnsV9Abi,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryV9,
     },
     [Version.V10]: {
       tradeEventNames: gnsV10PerpTradeEventNames,
@@ -57,6 +61,7 @@ const info = {
       isOpenMissionAction: isOpenMissionActionV10,
       isCloseMissionAction: isCloseMissionActionV10,
       abi: gnsV10Abi,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryV10,
     },
   },
   [Platform.GMX]: {
@@ -67,6 +72,7 @@ const info = {
       isOpenMissionAction: isOpenMissionActionForGMX,
       isCloseMissionAction: isCloseMissionActionForGMX,
       abi: gmxV2Abi,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryForGMX,
     },
   },
 };

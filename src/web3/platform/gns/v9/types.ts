@@ -51,6 +51,7 @@ export enum ContractsVersion {
 }
 
 export type Pair = {
+  pairIndex: number;
   from: string;
   to: string;
   feed: {
@@ -69,6 +70,7 @@ export type Pair = {
 };
 
 export type Collateral = {
+  collateralIndex: number;
   collateral: Address;
   isActive: boolean;
   precision: bigint;

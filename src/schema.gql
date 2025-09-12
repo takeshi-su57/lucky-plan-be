@@ -231,6 +231,22 @@ type ExpertPnlSnapshot {
   score: Float!
 }
 
+type ExpertPnlSnapshotV2 {
+  accUSDPnl: Float!
+  address: String!
+  avgDuration: Float!
+  avgPnlRatio: Float!
+  dateStr: String!
+  histories: [PerpTradingEventLog!]!
+  id: Int!
+  kind: PnlSnapshotKind!
+  maxSize: Float!
+  openedPositions: Int!
+  platform: Platform!
+  ratio: Float!
+  score: Float!
+}
+
 input ExportFilter {
   m: Float!
   maxAvgSize: Int!
@@ -672,6 +688,7 @@ type Query {
   getBotsByStatus(after: Int, first: Int!, status: BotStatus!): BotConnection!
   getDevPnlSnapshots(dateStr: String!, filterParams: [ExportFilter!]!): [PnlSnapshotDevDetails!]!
   getExpertPnlSnapshots: [ExpertPnlSnapshot!]!
+  getExpertPnlSnapshotsV2(platform: Platform!): [ExpertPnlSnapshotV2!]!
   getLogsSeverityCounts: [SeverityCount!]!
   getMicroserviceStatus: [MicroserviceStatus!]!
   getPerpEventLogs(address: String!, platform: Platform!): [PerpTradingEventLog!]!
@@ -686,9 +703,7 @@ type Query {
   getServerTime: ServerTime!
   getStatisticData: [StatisticData!]!
   getTestingReport(after: Int, first: Int!): TestingReportConnection!
-  getTradeCollaterals(contractId: Int!): [TradeCollateral!]!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
-  getTradePairs(contractId: [Int!]!): [TradePair!]!
   getTradeTransactionCounts(addresses: [String!]!, contractIds: [Int!]!): TradeTransactionCount!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
@@ -877,14 +892,6 @@ enum TradeActionType {
   TradePosSizeIncrease
 }
 
-type TradeCollateral {
-  collateral: String!
-  collateralIndex: Int!
-  isActive: Boolean!
-  precision: String!
-  precisionDelta: String!
-}
-
 type TradeHistory {
   action: TradeActionType!
   address: String!
@@ -907,15 +914,6 @@ type TradeHistory {
   size: String!
   tradeId: String
   tradeIndex: Int!
-}
-
-type TradePair {
-  contractId: Int!
-  from: String!
-  onePercentDepthAboveUsd: String!
-  onePercentDepthBelowUsd: String!
-  pairIndex: Int!
-  to: String!
 }
 
 type TradeTransactionCount {

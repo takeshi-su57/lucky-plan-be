@@ -31,7 +31,6 @@ import { TradeHistoriesService } from '../apiService/modules/trade-histories/tra
 import { LogsService } from '../../global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { EventLogsService } from '../apiService/modules/trade-histories/event-logs.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { CreatePerpTradingEventLogInput } from '../apiService/modules/trade-histories/dto/event-logs.input';
 import {
@@ -43,6 +42,8 @@ import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
 
 import { getWeb3Info } from 'src/web3/utils';
 import { parseGnsPositionKey } from 'src/web3/platform/gns/utils';
+import { getCollateral as getCollateralV9 } from 'src/web3/platform/gns/v9/configs';
+import { getCollateral as getCollateralV10 } from 'src/web3/platform/gns/v10/configs';
 
 @Injectable()
 export class LeaderboardService {
@@ -57,7 +58,6 @@ export class LeaderboardService {
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly eventLogsService: EventLogsService,
     private readonly logger: LogsService,
-    private readonly gnsService: GnsService,
     private readonly prismaService: PrismaService,
   ) {
     this.isReceivedKillProcess = false;
@@ -125,10 +125,7 @@ export class LeaderboardService {
           details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         });
 
-        if (
-          this.isReceivedKillProcess ||
-          this.gnsService.status === ServiceStatus.KILLED
-        ) {
+        if (this.isReceivedKillProcess) {
           await this.logger.log({
             severity: 'Info',
             summary: 'leaderboard>startAdaption',
@@ -136,20 +133,6 @@ export class LeaderboardService {
           });
 
           break;
-        }
-
-        if (
-          this.gnsService.status === ServiceStatus.PAUSED ||
-          this.gnsService.status === ServiceStatus.PROCESS
-        ) {
-          await this.logger.log({
-            severity: 'Info',
-            summary: 'leaderboard>startAdaption',
-            details: `Awaited by gnsService paused`,
-          });
-
-          await delay(10_000);
-          continue;
         }
 
         const logs = (
@@ -347,10 +330,10 @@ export class LeaderboardService {
               break;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.collateralIndex,
-            );
+            )!;
 
             usdPnl =
               -Number(
@@ -369,10 +352,10 @@ export class LeaderboardService {
               break;
             }
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.collateralIndex,
-            );
+            )!;
 
             usdPnl =
               Number(
@@ -399,10 +382,10 @@ export class LeaderboardService {
           case marketExecutedV9EventParser.eventName: {
             const { args } = marketExecutedV9EventParser.actionParser(parsed);
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.t.collateralIndex,
-            );
+            )!;
 
             usdPnl =
               (args.open
@@ -419,10 +402,10 @@ export class LeaderboardService {
           case limitExecutedV9EventParser.eventName: {
             const { args } = limitExecutedV9EventParser.actionParser(parsed);
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
+            const collateral = getCollateralV9(
+              contract.chainId,
               args.t.collateralIndex,
-            );
+            )!;
 
             const actionNameMap: Record<string, string> = {
               [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
@@ -473,7 +456,7 @@ export class LeaderboardService {
     );
 
     await this.tradeHistoriesService.handleActionItemsV9(
-      contract.id,
+      contract,
       actionItems.map((item) => ({
         item: item.item,
         blockNumber: item.blockNumber,
@@ -506,147 +489,185 @@ export class LeaderboardService {
     });
 
     const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
-      perpTradeEventLogs.map((log) => {
-        let usdPnl = 0;
+      perpTradeEventLogs
+        .map((log) => {
+          let usdPnl = 0;
 
-        const parsed = eventToActionParserV10(log.eventLog as any);
+          const parsed = eventToActionParserV10(log.eventLog as any);
 
-        switch (parsed.name) {
-          case positionSizeIncreaseExecutedV10EventParser.eventName: {
-            const { args } =
-              positionSizeIncreaseExecutedV9EventParser.actionParser(parsed);
+          switch (parsed.name) {
+            case positionSizeIncreaseExecutedV10EventParser.eventName: {
+              const { args } =
+                positionSizeIncreaseExecutedV9EventParser.actionParser(parsed);
 
-            if (args.cancelReason !== CancelReason.NONE) {
+              if (args.cancelReason !== CancelReason.NONE) {
+                break;
+              }
+
+              const collateral = getCollateralV10(
+                contract.chainId,
+                args.collateralIndex,
+              );
+
+              if (!collateral) {
+                this.logger.log({
+                  severity: 'Notice',
+                  summary: 'New Collateral is detected',
+                  details: `${contract.chainId} chain on ${log.blockNumber} block`,
+                });
+
+                return null;
+              }
+
+              usdPnl = 0;
+
               break;
             }
+            case positionSizeDecreaseExecutedV10EventParser.eventName: {
+              const { args } =
+                positionSizeDecreaseExecutedV10EventParser.actionParser(parsed);
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
-              args.collateralIndex,
-            );
+              if (args.cancelReason !== CancelReason.NONE) {
+                break;
+              }
 
-            usdPnl =
-              Number(
-                Number(args.values.openingFeesCollateral) /
-                  Number(collateral.precision),
-              ) *
-              (Number(args.collateralPriceUsd) / 1e8);
+              const collateral = getCollateralV10(
+                contract.chainId,
+                args.collateralIndex,
+              );
 
-            break;
-          }
-          case positionSizeDecreaseExecutedV10EventParser.eventName: {
-            const { args } =
-              positionSizeDecreaseExecutedV10EventParser.actionParser(parsed);
+              if (!collateral) {
+                this.logger.log({
+                  severity: 'Notice',
+                  summary: 'New Collateral is detected',
+                  details: `${contract.chainId} chain on ${log.blockNumber} block`,
+                });
 
-            if (args.cancelReason !== CancelReason.NONE) {
+                return null;
+              }
+
+              usdPnl =
+                Number(
+                  (Number(args.values.partialNetPnlCollateral) -
+                    Number(args.values.closingFeeCollateral)) /
+                    Number(collateral.precision),
+                ) *
+                (Number(args.collateralPriceUsd) / 1e8);
+
               break;
             }
+            case leverageUpdateExecutedV10EventParser.eventName: {
+              const { args } =
+                leverageUpdateExecutedV10EventParser.actionParser(parsed);
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
-              args.collateralIndex,
-            );
+              if (args.cancelReason !== CancelReason.NONE) {
+                break;
+              }
 
-            usdPnl =
-              Number(
-                (Number(args.values.partialNetPnlCollateral) -
-                  Number(args.values.closingFeeCollateral)) /
-                  Number(collateral.precision),
-              ) *
-              (Number(args.collateralPriceUsd) / 1e8);
+              usdPnl = 0;
 
-            break;
-          }
-          case leverageUpdateExecutedV10EventParser.eventName: {
-            const { args } =
-              leverageUpdateExecutedV10EventParser.actionParser(parsed);
-
-            if (args.cancelReason !== CancelReason.NONE) {
               break;
             }
+            case marketExecutedV10EventParser.eventName: {
+              const { args } =
+                marketExecutedV10EventParser.actionParser(parsed);
 
-            usdPnl = 0;
+              const collateral = getCollateralV10(
+                contract.chainId,
+                args.t.collateralIndex,
+              );
 
-            break;
-          }
-          case marketExecutedV10EventParser.eventName: {
-            const { args } = marketExecutedV10EventParser.actionParser(parsed);
+              if (!collateral) {
+                this.logger.log({
+                  severity: 'Notice',
+                  summary: 'New Collateral is detected',
+                  details: `${contract.chainId} chain on ${log.blockNumber} block`,
+                });
 
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
-              args.t.collateralIndex,
-            );
+                return null;
+              }
 
-            usdPnl =
-              (args.open
-                ? 0
-                : Number(
-                    (Number(args.amountSentToTrader) -
-                      Number(args.t.collateralAmount)) /
-                      Number(collateral.precision),
-                  )) *
-              (Number(args.collateralPriceUsd) / 1e8);
+              usdPnl =
+                (args.open
+                  ? 0
+                  : Number(
+                      (Number(args.amountSentToTrader) -
+                        Number(args.t.collateralAmount)) /
+                        Number(collateral.precision),
+                    )) *
+                (Number(args.collateralPriceUsd) / 1e8);
 
-            break;
-          }
-          case limitExecutedV10EventParser.eventName: {
-            const { args } = limitExecutedV10EventParser.actionParser(parsed);
-
-            const collateral = this.gnsService.getCollateral(
-              contract.id,
-              args.t.collateralIndex,
-            );
-
-            const actionNameMap: Record<string, string> = {
-              [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
-              [PendingOrderType.LIQ_CLOSE]: TradeActionType.TradeClosedLIQ,
-              [PendingOrderType.SL_CLOSE]: TradeActionType.TradeClosedSL,
-              [PendingOrderType.TP_CLOSE]: TradeActionType.TradeClosedTP,
-            };
-
-            if (!actionNameMap[args.orderType]) {
               break;
             }
+            case limitExecutedV10EventParser.eventName: {
+              const { args } = limitExecutedV10EventParser.actionParser(parsed);
 
-            usdPnl =
-              (args.orderType === PendingOrderType.LIMIT_OPEN
-                ? 0
-                : Number(
-                    (Number(args.amountSentToTrader) -
-                      Number(args.t.collateralAmount)) /
-                      Number(collateral.precision),
-                  )) *
-              (Number(args.collateralPriceUsd) / 1e8);
+              const collateral = getCollateralV10(
+                contract.chainId,
+                args.t.collateralIndex,
+              );
 
-            break;
+              if (!collateral) {
+                this.logger.log({
+                  severity: 'Notice',
+                  summary: 'New Collateral is detected',
+                  details: `${contract.chainId} chain on ${log.blockNumber} block`,
+                });
+
+                return null;
+              }
+
+              const actionNameMap: Record<string, string> = {
+                [PendingOrderType.LIMIT_OPEN]: TradeActionType.TradeOpenedLimit,
+                [PendingOrderType.LIQ_CLOSE]: TradeActionType.TradeClosedLIQ,
+                [PendingOrderType.SL_CLOSE]: TradeActionType.TradeClosedSL,
+                [PendingOrderType.TP_CLOSE]: TradeActionType.TradeClosedTP,
+              };
+
+              if (!actionNameMap[args.orderType]) {
+                break;
+              }
+
+              usdPnl =
+                (args.orderType === PendingOrderType.LIMIT_OPEN
+                  ? 0
+                  : Number(
+                      (Number(args.amountSentToTrader) -
+                        Number(args.t.collateralAmount)) /
+                        Number(collateral.precision),
+                    )) *
+                (Number(args.collateralPriceUsd) / 1e8);
+
+              break;
+            }
+            default: {
+              break;
+            }
           }
-          default: {
-            break;
-          }
-        }
 
-        const { address } = parseGnsPositionKey(parsed.positionKey);
+          const { address } = parseGnsPositionKey(parsed.positionKey);
 
-        return {
-          contractId: contract.id,
-          platform: contract.platform,
-          address: address.toLowerCase(),
-          jsonLog: JSON.stringify(log.eventLog, (_, v) =>
-            typeof v === 'bigint' ? v.toString() : v,
-          ),
-          usdPnl,
-          block: log.blockNumber,
-          logIndex: log.logIndex,
-          date: new Date(Number(block.timestamp) * 1000),
-        };
-      });
+          return {
+            contractId: contract.id,
+            platform: contract.platform,
+            address: address.toLowerCase(),
+            jsonLog: JSON.stringify(log.eventLog, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+            usdPnl,
+            block: log.blockNumber,
+            logIndex: log.logIndex,
+            date: new Date(Number(block.timestamp) * 1000),
+          };
+        })
+        .filter((item) => item !== null);
 
     await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
     );
 
     await this.tradeHistoriesService.handleActionItems(
-      contract.id,
+      contract,
       actionItems.map((item) => ({
         item: item.item,
         blockNumber: item.blockNumber,

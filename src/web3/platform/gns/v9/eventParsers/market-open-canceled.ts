@@ -2,6 +2,7 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
+import { PerpTradeHistory } from 'src/web3/web3/types';
 
 export const eventName = 'MarketOpenCanceled';
 
@@ -25,8 +26,16 @@ export function parseMarketOpenCanceledEvent(event: MarketOpenCanceledEvent) {
   );
 }
 
+export function eventToPerpTradeHistory(
+  chainId: number,
+  event: MarketOpenCanceledEvent,
+): PerpTradeHistory | null {
+  return null;
+}
+
 export const marketOpenCanceledEventParser = {
   eventName,
   logParser: parseMarketOpenCanceledEvent,
   actionParser: actionToEvent<MarketOpenCanceledEventArgs>,
+  eventToPerpTradeHistory,
 };

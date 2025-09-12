@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Address, zeroAddress } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
-import { Platform } from '@prisma/client';
+import { Platform, Version } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
 import { ChainsService } from 'src/web3/web3/chains.service';
 import { LogsService } from 'src/global/logs.service';
-import { PrismaService } from 'src/global/prisma.service';
 
 import {
   OpenTradePayload,
@@ -26,60 +27,29 @@ import {
   GetCollateralPricePayload,
   TradingVariable,
   WithdrawPositivePnlPayload,
+  Collateral,
+  Pair,
 } from './v10/types';
 
-import { ChainPriority, ServiceStatus } from 'src/types';
+import { ChainPriority } from 'src/types';
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
-import {
-  TradeCollateral,
-  TradePair,
-} from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
-import { bigIntSafeJsonParse, bigIntSafeJsonStringify } from 'src/utils';
-
-const GNS_V10_TRADING_VARIABLES = 'gns_v10_trading_variables';
 
 @Injectable()
 export class GnsService {
-  private tradingVariable: Record<number, TradingVariable> = {};
-  public status: ServiceStatus;
-
   constructor(
     private readonly contractsService: ContractsService,
-    private readonly prismaService: PrismaService,
     private readonly chainsService: ChainsService,
     private readonly logger: LogsService,
   ) {
-    this.status = ServiceStatus.READY;
-    this.tradingVariable = {};
-  }
-
-  async loadTradingVariables() {
-    this.status = ServiceStatus.PROCESS;
-
-    const metadata = await this.prismaService.metadata.findUnique({
-      where: {
-        key: GNS_V10_TRADING_VARIABLES,
-      },
-    });
-
-    if (metadata) {
-      this.tradingVariable = bigIntSafeJsonParse<
-        Record<number, TradingVariable>
-      >(metadata.value);
-    } else {
-      await this.loadTradingVariablesFromContracts();
-    }
-
-    this.status = ServiceStatus.READY;
+    // this.loadTradingVariablesFromContracts();
   }
 
   async loadTradingVariablesFromContracts() {
-    this.status = ServiceStatus.PROCESS;
-
     const allContracts = await this.contractsService.findAll();
 
     const contracts = allContracts.filter(
-      (contract) => contract.platform === Platform.GNS,
+      (contract) =>
+        contract.platform === Platform.GNS && contract.version === Version.V10,
     );
 
     const variables: Record<number, TradingVariable> = {};
@@ -91,22 +61,55 @@ export class GnsService {
 
     await Promise.allSettled(promises);
 
-    this.tradingVariable = variables;
+    const collaterals: Record<number, Collateral[]> = {};
+    const pairs: Record<number, (Pair | undefined)[]> = {};
 
-    await this.prismaService.metadata.upsert({
-      where: {
-        key: GNS_V10_TRADING_VARIABLES,
-      },
-      update: {
-        value: bigIntSafeJsonStringify(variables),
-      },
-      create: {
-        key: GNS_V10_TRADING_VARIABLES,
-        value: bigIntSafeJsonStringify(variables),
-      },
-    });
+    for (const contract of contracts) {
+      collaterals[contract.chainId] = variables[contract.id].collaterals;
+      pairs[contract.chainId] = variables[contract.id].pairs;
+    }
 
-    this.status = ServiceStatus.READY;
+    const collateralsConfigPath = path.join(
+      __dirname,
+      'collaterals-config.json',
+    );
+    const pairsConfigPath = path.join(__dirname, 'pairs-config.json');
+    // Ensure the directory exists before writing the file
+    const ensureDirectoryExistence = (filePath: string) => {
+      const dirname = path.dirname(filePath);
+      if (fs.existsSync(dirname)) {
+        return true;
+      }
+      fs.mkdirSync(dirname, { recursive: true });
+    };
+
+    // Ensure the directory exists for collateralsConfigPath
+    ensureDirectoryExistence(collateralsConfigPath);
+
+    // Ensure the directory exists for pairsConfigPath
+    ensureDirectoryExistence(pairsConfigPath);
+
+    console.log('collateralsConfigPath', collateralsConfigPath);
+    console.log('pairsConfigPath', pairsConfigPath);
+
+    fs.writeFileSync(
+      collateralsConfigPath,
+      JSON.stringify(
+        collaterals,
+        (_, v) => (typeof v === 'bigint' ? v.toString() : v),
+        2,
+      ),
+    );
+    fs.writeFileSync(
+      pairsConfigPath,
+      JSON.stringify(
+        pairs,
+        (_, v) => (typeof v === 'bigint' ? v.toString() : v),
+        2,
+      ),
+    );
+
+    console.log('stored on the config.json');
   }
 
   async openTrade(payload: OpenTradePayload) {
@@ -633,10 +636,12 @@ export class GnsService {
         .filter((item) => item !== undefined)
         .map((item, index) => ({
           ...item,
+          pairIndex: index,
           depth: depthData[index],
         })),
-      collaterals: refData[1].result.map((item) => ({
+      collaterals: refData[1].result.map((item, index) => ({
         ...item,
+        collateralIndex: index + 1,
       })),
     };
   }
@@ -664,117 +669,5 @@ export class GnsService {
     ).then((res) => res.json());
 
     return BigInt(Math.floor(charts.closes[pairIndex] * 1e10));
-  }
-
-  getPair(contractId: number, pairIndex: number) {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    return this.tradingVariable[contractId].pairs[pairIndex];
-  }
-
-  getPairIndex(contractId: number, pairName: string) {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    const pairIndex = this.tradingVariable[contractId].pairs.findIndex(
-      (pair) =>
-        pair !== undefined &&
-        `${pair.from}/${pair.to}`.toLowerCase() === pairName.toLowerCase(),
-    );
-
-    return pairIndex;
-  }
-
-  getPairs(contractId: number) {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    return this.tradingVariable[contractId].pairs;
-  }
-
-  getPairName(contractId: number, pairIndex: number) {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    const pair = this.tradingVariable[contractId].pairs[pairIndex];
-
-    return `${pair?.from}/${pair?.to}`;
-  }
-
-  getTradePairs(contractIds: number[]): TradePair[] {
-    const pairs: TradePair[] = [];
-
-    for (const contractId of contractIds) {
-      if (!this.tradingVariable[contractId]) {
-        throw new Error(
-          `Failed at getting trading variable, contractId:${contractId}`,
-        );
-      }
-
-      pairs.push(
-        ...this.tradingVariable[contractId].pairs.map((pair, index) => ({
-          contractId,
-          pairIndex: index,
-          from: pair?.from || '',
-          to: pair?.to || '',
-          onePercentDepthAboveUsd:
-            pair?.depth.onePercentDepthAboveUsd.toString() || '0',
-          onePercentDepthBelowUsd:
-            pair?.depth.onePercentDepthBelowUsd.toString() || '0',
-        })),
-      );
-    }
-
-    return pairs;
-  }
-
-  getCollateral(contractId: number, collateralIndex: number) {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    if (
-      this.tradingVariable[contractId].collaterals.length < collateralIndex ||
-      collateralIndex === 0
-    ) {
-      throw new Error(
-        `Invalid collateral index collateralIndex:${collateralIndex}, collateralsLength: ${this.tradingVariable[contractId].collaterals.length}`,
-      );
-    }
-
-    return this.tradingVariable[contractId].collaterals[collateralIndex - 1];
-  }
-
-  getTradeCollaterals(contractId: number): TradeCollateral[] {
-    if (!this.tradingVariable[contractId]) {
-      throw new Error(
-        `Failed at getting trading variable, contractId:${contractId}`,
-      );
-    }
-
-    return this.tradingVariable[contractId].collaterals.map(
-      (collateral, index) => ({
-        collateralIndex: index + 1,
-        collateral: collateral.collateral,
-        isActive: collateral.isActive,
-        precision: collateral.precision.toString(),
-        precisionDelta: collateral.precisionDelta.toString(),
-      }),
-    );
   }
 }

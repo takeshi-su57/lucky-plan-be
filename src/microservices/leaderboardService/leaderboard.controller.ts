@@ -15,7 +15,6 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { delay, getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 import { LeaderboardService } from './leaderboard.service';
 import { LogsService } from 'src/global/logs.service';
@@ -31,33 +30,16 @@ export class LeaderboardController implements OnApplicationBootstrap {
     private leaderboardService: LeaderboardService,
     private pnlSnapshotService: PnlSnapshotsService,
     private pnlSnapshotV2Service: PnlSnapshotsV2Service,
-    private gnsService: GnsService,
     private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {}
 
   async onApplicationBootstrap() {
-    await this.reloadTradingVariables();
-
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.LEADERBOARD_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
-    });
-  }
-
-  private async reloadTradingVariables() {
-    this.gnsService.status = ServiceStatus.PAUSED;
-
-    await delay(10_000);
-
-    await this.gnsService.loadTradingVariables();
-
-    await this.logger.nativeLog({
-      severity: 'Info',
-      summary: 'leaderboard.controller>reloadTradingVariables',
-      details: 'trading variables reloaded',
     });
   }
 
@@ -220,11 +202,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
       this.leaderboardService.status,
     ).some((status) => status === ServiceStatus.PROCESS);
 
-    if (
-      this.gnsService.status !== ServiceStatus.READY ||
-      this.leaderboardService.isReceivedKillProcess ||
-      isLeaderboardBusy
-    ) {
+    if (this.leaderboardService.isReceivedKillProcess || isLeaderboardBusy) {
       return;
     }
 
@@ -241,8 +219,6 @@ export class LeaderboardController implements OnApplicationBootstrap {
     }
 
     try {
-      await this.reloadTradingVariables();
-
       await this.pnlSnapshotService.dynamicSnapshotBuild(
         dayjs(new Date()).format('YYYY-MM-DD'),
       );

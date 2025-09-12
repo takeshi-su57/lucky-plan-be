@@ -12,6 +12,10 @@ import {
   PnlSnapshot,
   TradeHistory,
 } from 'src/microservices/apiService/modules/trade-histories/entities/trade-history.entity';
+import {
+  PerpTradingEventLog,
+  PnlSnapshotV2,
+} from '../../trade-histories/entities/event-logs.entity';
 
 registerEnumType(PlanStatus, {
   name: 'PlanStatus',
@@ -85,6 +89,30 @@ export class ExpertPnlSnapshot extends PnlSnapshot {
 
   @Field(() => [TradeHistory])
   histories: TradeHistory[];
+
+  @Field(() => Float)
+  avgDuration: number;
+
+  @Field(() => Float)
+  avgPnlRatio: number;
+
+  @Field(() => Int)
+  openedPositions: number;
+}
+
+@ObjectType()
+export class ExpertPnlSnapshotV2 extends PnlSnapshotV2 {
+  @Field(() => Float)
+  score: number;
+
+  @Field(() => Float)
+  maxSize: number;
+
+  @Field(() => Float)
+  ratio: number;
+
+  @Field(() => [PerpTradingEventLog])
+  histories: PerpTradingEventLog[];
 
   @Field(() => Float)
   avgDuration: number;

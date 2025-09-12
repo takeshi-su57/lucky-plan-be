@@ -37,6 +37,7 @@ import {
   getGnsPositionKey,
   parseGnsPositionKey,
 } from 'src/web3/platform/gns/utils';
+import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 
 @Injectable()
 export class FollowerService {
@@ -121,12 +122,16 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsService.getCollateral(
-        contract.id,
+      const collateralInfo = getCollateral(
+        contract.chainId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
       );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
 
       switch (kind) {
         case 'usdc': {
@@ -242,12 +247,16 @@ export class FollowerService {
         return true;
       }
 
-      const collateralInfo = this.gnsService.getCollateral(
-        contract.id,
+      const collateralInfo = getCollateral(
+        contract.chainId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
       );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
 
       switch (kind) {
         case 'usdc': {
@@ -321,12 +330,16 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsService.getCollateral(
-        contractId,
+      const collateralInfo = getCollateral(
+        contract.chainId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
       );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
 
       const usdcBalance = await this.evmAdapterService.erc20Balance({
         chainId: contract.chainId,
@@ -437,12 +450,16 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = this.gnsService.getCollateral(
-        contract.id,
+      const collateralInfo = getCollateral(
+        contract.chainId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
       );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
 
       switch (kind) {
         case 'usdc': {
@@ -503,12 +520,16 @@ export class FollowerService {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = this.gnsService.getCollateral(
-        contractId,
+      const collateralInfo = getCollateral(
+        contract.chainId,
         USDCCollateralIndex[
           contract.chainId as keyof typeof USDCCollateralIndex
         ],
       );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
 
       await this.withdrawAssetToAny(userId, password, {
         address: userId as Address,
@@ -1188,10 +1209,14 @@ export class FollowerService {
   ): Promise<FollowerConnection> {
     const contract = await this.contractService.findOne(contractId);
 
-    const collateralInfo = this.gnsService.getCollateral(
-      contractId,
+    const collateralInfo = getCollateral(
+      contract.chainId,
       USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
     );
+
+    if (!collateralInfo) {
+      throw new Error('Invalid collateral index');
+    }
 
     const followerEntities = await this.prismaService.follower.findMany({
       where: {

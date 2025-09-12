@@ -14,7 +14,6 @@ import { FollowerService } from 'src/microservices/apiService/modules/follower/f
 import { LogsService } from 'src/global/logs.service';
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
-import { GmxService } from 'src/web3/platform/gmx/v2/gmx.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 
 import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/web3/platform/gns/v10/eventParsers/trade-max-closing-slippage-p-updated.parser';
@@ -31,8 +30,6 @@ import {
   missionEventParsers,
   eventParsers,
   eventToActionParser,
-  // isOpenMissionAction,
-  // isCloseMissionAction,
 } from 'src/web3/platform/gns/v10/eventParsers';
 
 import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
@@ -61,6 +58,12 @@ import {
   getGnsPositionKey,
   parseGnsPositionKey,
 } from 'src/web3/platform/gns/utils';
+import { getMarketInfo, getTokenInfo } from 'src/web3/platform/gmx/v2/configs';
+import {
+  getCollateral,
+  getPair,
+  getPairIndex,
+} from 'src/web3/platform/gns/v10/configs';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -83,7 +86,6 @@ export class TaskExecutorService {
     private readonly actionsService: ActionsService,
     private readonly evmAdapterService: EvmAdapterService,
     private readonly gnsService: GnsService,
-    private readonly gmxService: GmxService,
   ) {
     this.status = ServiceStatus.READY;
   }
@@ -256,10 +258,21 @@ export class TaskExecutorService {
               },
             });
 
-            const collateral = this.gnsService.getCollateral(
-              leaderContract.id,
+            const collateral = getCollateral(
+              leaderContract.chainId,
               args.collateralIndex,
             );
+
+            if (!collateral) {
+              await this.missionsService.closeMany(
+                [{ id: mission.id }],
+                new Map(),
+              );
+
+              throw new Error(
+                `follower contract doesn't support this collateral index: ${args.collateralIndex}`,
+              );
+            }
 
             const increaseParams = getPositionIncreaseParams(
               strategy,
@@ -416,10 +429,7 @@ export class TaskExecutorService {
                 .actionParser(action);
               const { t, collateralPriceUsd, isManualOpen } = event.args;
 
-              const pair = this.gnsService.getPair(
-                followerContract.id,
-                t.pairIndex,
-              );
+              const pair = getPair(followerContract.chainId, t.pairIndex);
 
               if (!pair) {
                 await this.missionsService.closeMany(
@@ -432,10 +442,22 @@ export class TaskExecutorService {
                 );
               }
 
-              const collateral = this.gnsService.getCollateral(
-                leaderContract.id,
+              const collateral = getCollateral(
+                leaderContract.chainId,
                 t.collateralIndex,
               );
+
+              if (!collateral) {
+                await this.missionsService.closeMany(
+                  [{ id: mission.id }],
+                  new Map(),
+                );
+
+                throw new Error(
+                  `follower contract doesn't support this collateral index: ${t.collateralIndex}`,
+                );
+              }
+
               const usdcPrice = await this.gnsService.getCollateralPrice({
                 contractId: followerContract.id,
                 priority: ChainPriority.HIGH,
@@ -570,12 +592,12 @@ export class TaskExecutorService {
           .find((parser) => parser.eventName === action.name)!
           .actionParser(action);
 
-        const marketInfo = this.gmxService.getMarketInfo(
+        const marketInfo = getMarketInfo(
           bot.leaderContract.chainId,
           gmxEvent.args.market,
         );
 
-        const collateral = this.gmxService.getTokenInfo(
+        const collateral = getTokenInfo(
           bot.leaderContract.chainId,
           gmxEvent.args.collateralToken,
         );
@@ -590,10 +612,7 @@ export class TaskExecutorService {
 
         const pairName = `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`;
 
-        const pairIndex = this.gnsService.getPairIndex(
-          followerContract.id,
-          pairName,
-        );
+        const pairIndex = getPairIndex(followerContract.chainId, pairName);
 
         if (pairIndex === -1) {
           await this.missionsService.closeMany([{ id: mission.id }], new Map());
@@ -603,7 +622,7 @@ export class TaskExecutorService {
           );
         }
 
-        const pair = this.gnsService.getPair(followerContract.id, pairIndex);
+        const pair = getPair(followerContract.chainId, pairIndex);
 
         if (!pair) {
           await this.missionsService.closeMany([{ id: mission.id }], new Map());
@@ -667,6 +686,7 @@ export class TaskExecutorService {
                     ),
                   ),
                   collateral: {
+                    collateralIndex: 0,
                     isActive: true,
                     collateral: collateral.address as `0x${string}`,
                     precision: BigInt(Math.pow(10, collateral.decimals)),
@@ -733,6 +753,19 @@ export class TaskExecutorService {
               });
 
               await this.handleOpenTradeTransaction(task, tx);
+            } else if (Number(args.sizeDeltaUsd) === 0) {
+              // it's a leverage update event
+              const achievePosition = parseGnsPositionKey(achievePositionKey!);
+
+              tx = await this.gnsService.updateLeverage({
+                mnemonic,
+                accountIndex: follower.accountIndex,
+                contractId: followerContract.id,
+                args: {
+                  index: achievePosition!.index,
+                  newLeverage: leverage,
+                },
+              });
             } else {
               // it's a increase position size event
               const achievePosition = parseGnsPositionKey(achievePositionKey!);
@@ -755,6 +788,7 @@ export class TaskExecutorService {
                   newOpenPrice: BigInt(executionPrice),
                 },
                 {
+                  collateralIndex: 0,
                   isActive: true,
                   collateral: collateral.address as `0x${string}`,
                   precision: BigInt(Math.pow(10, collateral.decimals)),
@@ -868,6 +902,17 @@ export class TaskExecutorService {
                   message: `Task achieved tx: ${tx}`,
                 };
               }
+            } else if (Number(args.sizeDeltaUsd) === 0) {
+              // it's a leverage update event
+              tx = await this.gnsService.updateLeverage({
+                mnemonic,
+                accountIndex: follower.accountIndex,
+                contractId: followerContract.id,
+                args: {
+                  index: achievePosition!.index,
+                  newLeverage: leverage,
+                },
+              });
             } else {
               // it's a decrease position size event
 

@@ -13,7 +13,6 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
 import { BacktestService } from './modules/trade-histories/backtest.service';
 
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 import { TradeHistoriesService } from './modules/trade-histories/trade-histories.service';
 
@@ -31,7 +30,6 @@ export class ApiService {
   private serviceStatus: Record<string, number[]> = {};
 
   constructor(
-    private gnsService: GnsService,
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private backtestService: BacktestService,
@@ -72,7 +70,6 @@ export class ApiService {
   }
 
   async init() {
-    await this.reloadTradingVariables();
     await this.backtestService.init();
     // await this.tradeHistoriesService.regenerateTradeHistoriesFromPerpEventLog();
   }
@@ -221,20 +218,6 @@ export class ApiService {
 
   isSystemPaused() {
     return this.isPaused;
-  }
-
-  async reloadTradingVariables() {
-    this.gnsService.status = ServiceStatus.PAUSED;
-
-    await delay(20_000);
-
-    await this.gnsService.loadTradingVariablesFromContracts();
-
-    await this.logger.nativeLog({
-      severity: 'Info',
-      summary: 'api.service>reloadTradingVariables',
-      details: 'trading variables reloaded',
-    });
   }
 
   getServerTime() {
