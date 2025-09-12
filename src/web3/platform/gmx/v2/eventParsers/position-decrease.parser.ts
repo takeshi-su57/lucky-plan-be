@@ -1,4 +1,6 @@
 import { actionToEvent, eventToAction } from 'src/utils';
+import { PerpTradeHistory } from 'src/web3/web3/types';
+import { getMarketInfo } from '../configs';
 
 export const eventName = 'PositionDecrease';
 
@@ -48,8 +50,68 @@ export function parsePositionDecreaseEvent(event: PositionDecreaseEvent) {
   );
 }
 
+export function eventToPerpTradeHistory(
+  chainId: number,
+  event: PositionDecreaseEvent,
+): PerpTradeHistory | null {
+  const usdPnl =
+    Number(event.args.basePnlUsd?.toString() || '0') / 1e30 +
+    Number(
+      event.args.totalImpactUsd?.toString() ||
+        event.args.priceImpactUsd?.toString() ||
+        '0',
+    ) /
+      1e30;
+
+  const sizeInUsd = Number(event.args.sizeInUsd) / 1e30;
+  const collateralInUsd =
+    (Number(event.args.collateralAmount) *
+      Number(event.args['collateralTokenPrice.max'])) /
+    1e30;
+  const sizeDeltaUsd = Number(event.args.sizeDeltaUsd) / 1e30;
+  const collateralDeltaUsd =
+    (Number(event.args.collateralDeltaAmount) *
+      Number(event.args['collateralTokenPrice.max'])) /
+    1e30;
+
+  const leverageDelta =
+    Math.floor((sizeDeltaUsd / collateralDeltaUsd) * 1e3) / 1e3;
+  const leverage = Math.floor((sizeInUsd / collateralInUsd) * 1e3) / 1e3;
+
+  let operation: 'updateLeverage' | 'close' | 'open' | 'decrease' = 'decrease';
+
+  if (Number(event.args.sizeInUsd) === 0) {
+    operation = 'close';
+  }
+
+  if (Number(event.args.sizeDeltaUsd) === 0) {
+    operation = 'updateLeverage';
+  }
+
+  const marketInfo = getMarketInfo(chainId, event.args.market);
+
+  const pair = marketInfo
+    ? `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase()
+    : '';
+
+  return {
+    positionKey: event.args.positionKey,
+    address: event.args.account,
+    pair,
+    operation,
+    usdPnl,
+    sizeInUsd,
+    leverage,
+    collateralInUsd,
+    collateralDeltaUsd,
+    sizeDeltaUsd,
+    leverageDelta,
+  };
+}
+
 export const positionDecreaseEventParser = {
   eventName,
   logParser: parsePositionDecreaseEvent,
   actionParser: actionToEvent<PositionDecreaseEventArgs>,
+  eventToPerpTradeHistory,
 };

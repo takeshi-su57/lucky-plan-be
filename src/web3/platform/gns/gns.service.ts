@@ -131,7 +131,6 @@ export class GnsService {
           functionName: 'openTrade',
           args: [payload.args.trade, payload.args.maxSlippageP, zeroAddress],
           account,
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -169,7 +168,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateMaxClosingSlippageP',
           args: [payload.args.index, payload.args.maxSlippageP],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -207,7 +205,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'closeTradeMarket',
           args: [payload.args.index, payload.args.expectedPrice],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -245,7 +242,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'cancelOrderAfterTimeout',
           args: [payload.args.index],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -283,7 +279,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateTp',
           args: [payload.args.index, payload.args.newTp],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -321,7 +316,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateSl',
           args: [payload.args.index, payload.args.newSl],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -359,7 +353,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'updateLeverage',
           args: [payload.args.index, payload.args.newLeverage],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -403,7 +396,6 @@ export class GnsService {
             payload.args.expectedPrice,
             payload.args.maxSlippageP,
           ],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -446,7 +438,6 @@ export class GnsService {
             payload.args.leverageDelta,
             payload.args.expectedPrice,
           ],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(
@@ -484,7 +475,6 @@ export class GnsService {
           abi: gnsMultiCollatDiamondAbi,
           functionName: 'withdrawPositivePnl',
           args: [payload.args.index, payload.args.amountCollateral],
-          gas: 2000_000n,
         });
 
         await this.chainsService.readWithSemaphore(

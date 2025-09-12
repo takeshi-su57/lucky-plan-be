@@ -8,6 +8,7 @@ import type {
   ActionItem,
   Action,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
+import { PerpTradeHistory } from 'src/web3/web3/types';
 
 export type EventLog = DecodeEventLogReturnType<
   typeof EventEmitterAbi,
@@ -72,6 +73,16 @@ export function eventToActionParser(
   }
 
   return parser.logParser(event as any);
+}
+
+export function eventToPerpTradeHistory(
+  chainId: number,
+  event: PositionIncreaseEvent | PositionDecreaseEvent,
+): PerpTradeHistory | null {
+  return eventParsersMap[event.eventName].eventToPerpTradeHistory(
+    chainId,
+    event as any,
+  );
 }
 
 export function isOpenMissionAction(action: Action | ActionItem) {
