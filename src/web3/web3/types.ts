@@ -91,7 +91,13 @@ export type PerpTradeHistory = {
   positionKey: string;
   address: Address;
   pair: string;
-  operation: 'open' | 'close' | 'increase' | 'decrease' | 'updateLeverage';
+  operation:
+    | 'open'
+    | 'close'
+    | 'increaseSize'
+    | 'decreaseSize'
+    | 'increaseLeverage'
+    | 'decreaseLeverage';
   usdPnl: number;
   sizeInUsd: number;
   leverage: number;
@@ -99,4 +105,6 @@ export type PerpTradeHistory = {
   collateralDeltaUsd: number;
   sizeDeltaUsd: number;
   leverageDelta: number;
+  isLong: boolean;
+  price: number;
 };
