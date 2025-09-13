@@ -5,6 +5,7 @@ import {
   Contract,
   User,
   UserPermission,
+  ContractStatus,
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
@@ -294,7 +295,7 @@ export class AutoPlansV2Service {
     >();
 
     let cursor = null;
-    const limit = 20;
+    const limit = 100;
 
     while (true) {
       const pnlRecords: PnlSnapshotV2[] = cursor
@@ -622,6 +623,13 @@ export class AutoPlansV2Service {
           ],
         });
 
+    if (pnlRecords.length === 0) {
+      return {
+        lastCursor: null,
+        realExpertPnlSnapshots: [],
+      };
+    }
+
     const pnlSnapshotsMap = new Map<string, PnlSnapshotV2[]>();
 
     const testContracts = await this.prismaService.contract.findMany({
@@ -810,7 +818,7 @@ export class AutoPlansV2Service {
       const planInput: CreatePlanInput = {
         title: `Auto Plan For ${platform}`,
         description: `This is an auto plan for ${platform}`,
-        scheduledStart: new Date(),
+        scheduledStart: dayjs(new Date()).add(5, 'minutes').toDate(),
         scheduledEnd: dayjs(new Date())
           .add(3, 'hours')
           .add(5, 'minutes')
@@ -830,6 +838,7 @@ export class AutoPlansV2Service {
         where: {
           platform,
           isTestnet: false,
+          status: ContractStatus.Live,
         },
       });
 
@@ -843,13 +852,20 @@ export class AutoPlansV2Service {
       );
 
       let cursor = null;
-      let limit = 20;
+      let pages = 1;
+      let limit = 100;
 
       const dateStr = dayjs().format('YYYY-MM-DD');
 
       while (true) {
         const { lastCursor, realExpertPnlSnapshots } =
           await this.filterExpertsForPlans(platform, dateStr, cursor, limit);
+
+        this.logger.log({
+          severity: 'Info',
+          summary: 'AutoPlansServiceV2>createPlan',
+          details: `[AutoPlansServiceV2] ${dateStr} ${pages * limit} ~ ${(pages + 1) * limit} ${realExpertPnlSnapshots.length} experts`,
+        });
 
         if (!lastCursor) {
           break;
@@ -929,9 +945,6 @@ export class AutoPlansV2Service {
           const avgDuration =
             totalPositions > 0 ? totalDuration / totalPositions : 0;
 
-          const avgPnlRatio =
-            sumOfSize > 0 ? (sumOfPnl / sumOfSize) * 100 : 1000_000_000;
-
           // if trader holds too many positions, skip
           if (openedPositions > 15) {
             continue;
@@ -978,6 +991,7 @@ export class AutoPlansV2Service {
         }
 
         cursor = lastCursor;
+        pages++;
       }
 
       await this.botService.batchCreateBots(
