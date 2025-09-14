@@ -1,5 +1,8 @@
 import { actionToEvent, eventToAction } from 'src/utils';
-import { PerpTradeHistory } from 'src/web3/web3/types';
+import {
+  PerpTradeHistory,
+  PerpTradeHistoryOperation,
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getMarketInfo } from '../configs';
 
 export const eventName = 'PositionIncrease';
@@ -74,15 +77,15 @@ export function eventToPerpTradeHistory(
     Math.floor((sizeDeltaUsd / collateralDeltaUsd) * 1e3) / 1e3;
   const leverage = Math.floor((sizeInUsd / collateralInUsd) * 1e3) / 1e3;
 
-  let operation: 'decreaseLeverage' | 'close' | 'open' | 'increaseSize' =
-    'increaseSize';
+  let operation: PerpTradeHistoryOperation =
+    PerpTradeHistoryOperation.INCREASE_SIZE;
 
   if (Number(event.args.sizeInUsd) === Number(event.args.sizeDeltaUsd)) {
-    operation = 'open';
+    operation = PerpTradeHistoryOperation.OPEN;
   }
 
   if (Number(event.args.sizeDeltaUsd) === 0) {
-    operation = 'decreaseLeverage';
+    operation = PerpTradeHistoryOperation.DECREASE_LEVERAGE;
   }
 
   const marketInfo = getMarketInfo(chainId, event.args.market);
