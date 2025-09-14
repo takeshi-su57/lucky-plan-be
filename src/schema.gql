@@ -13,6 +13,16 @@ type AccPnl {
   traderCount: Int!
 }
 
+type AccPnlV2 {
+  date: Date!
+  in: Float!
+  inOut: Float!
+  out: Float!
+  pnl: Float!
+  positionCount: Int!
+  taskCount: Int!
+}
+
 type AccessToken {
   accessToken: String!
 }
@@ -501,6 +511,32 @@ type Mutation {
   withdrawUSDCToUser(amount: Float!, contractId: Int!, password: String!): Boolean!
 }
 
+enum PerpTradeHistoryOperation {
+  CLOSE
+  DECREASE_LEVERAGE
+  DECREASE_SIZE
+  INCREASE_LEVERAGE
+  INCREASE_SIZE
+  OPEN
+}
+
+type PerpTradeHistoryWithDate {
+  address: String!
+  collateralDeltaUsd: Float!
+  collateralInUsd: Float!
+  date: Date!
+  isLong: Boolean!
+  leverage: Float!
+  leverageDelta: Float!
+  operation: PerpTradeHistoryOperation!
+  pair: String!
+  positionKey: String!
+  price: Float!
+  sizeDeltaUsd: Float!
+  sizeInUsd: Float!
+  usdPnl: Float!
+}
+
 type PerpTradingEventLog {
   address: String!
   block: Int!
@@ -709,6 +745,7 @@ type Query {
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
   getWhitelist: [String!]
   getWholeCompressedHistories(filterParams: [ExportFilter!]!, isTestnet: Boolean!, startDate: String!): WholeCompressedHistories!
+  getWholeCompressedHistoriesV2(filterParams: [ExportFilter!]!, platform: Platform!, startDate: String!): WholeCompressedHistoriesV2!
   isPnlSnapshotInitialized(dateStr: String!): PnlSnapshotInitializedFlag
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
@@ -879,6 +916,12 @@ type TotalBot {
   dateStr: String!
 }
 
+type TotalBotV2 {
+  address: String!
+  dateStr: String!
+  platform: Platform!
+}
+
 enum TradeActionType {
   TradeClosedLIQ
   TradeClosedMarket
@@ -981,6 +1024,14 @@ type WholeCompressedHistories {
   botCounts: [BotCount!]!
   maxInvested: Float!
   totalBots: [TotalBot!]!
+  uniqueTraders: [String!]
+}
+
+type WholeCompressedHistoriesV2 {
+  accPnls: [AccPnlV2!]!
+  botCounts: [BotCount!]!
+  maxInvested: Float!
+  totalBots: [TotalBotV2!]!
   uniqueTraders: [String!]
 }
 

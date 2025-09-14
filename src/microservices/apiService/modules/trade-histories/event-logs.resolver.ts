@@ -10,18 +10,21 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
-  PnlSnapshotV2DetailsForPaginationAPIPageInfo,
   PnlSnapshotV2DetailsForPagination,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
+import { ExportFilter } from './dto/trade-history.input';
+import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
+import { BacktestV2Service } from './backtest-v2.service';
 
 @Resolver(() => PerpTradingEventLog)
 export class EventLogsResolver {
   constructor(
     private readonly eventLogsService: EventLogsService,
     private readonly pnlSnapshotsV2Service: PnlSnapshotsV2Service,
+    private readonly backtestService: BacktestV2Service,
   ) {}
 
   @Mutation(() => Boolean)
@@ -129,6 +132,24 @@ export class EventLogsResolver {
       kind,
       page,
       limit,
+    );
+  }
+
+  @Query(() => WholeCompressedHistoriesV2)
+  getWholeCompressedHistoriesV2(
+    @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('startDate', { type: () => String }) startDate: string,
+    @Args('filterParams', { type: () => [ExportFilter] })
+    filterParams: ExportFilter[],
+  ) {
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+
+    return this.backtestService.getWholeCompressedHistories(
+      platform,
+      startDate,
+      filterParams,
     );
   }
 }

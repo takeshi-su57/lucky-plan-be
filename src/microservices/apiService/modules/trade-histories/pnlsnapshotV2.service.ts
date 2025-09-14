@@ -118,6 +118,7 @@ export class PnlSnapshotsV2Service {
     const startDate = new Date(
       getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
+    const endDate = new Date(dateStr);
 
     const historyRecords =
       await this.prismaService.perpTradingEventLog.findMany({
@@ -131,6 +132,7 @@ export class PnlSnapshotsV2Service {
               },
               date: {
                 gt: startDate,
+                lte: endDate,
               },
             })),
           ],
@@ -208,6 +210,8 @@ export class PnlSnapshotsV2Service {
         ],
       });
 
+    console.log('pnlRecords', pnlRecords.length);
+
     const total = await this.prismaService.pnlSnapshotV2.count({
       where: {
         dateStr,
@@ -234,6 +238,7 @@ export class PnlSnapshotsV2Service {
     const startDate = new Date(
       getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
+    const endDate = new Date(dateStr);
 
     const historyRecords =
       await this.prismaService.perpTradingEventLog.findMany({
@@ -247,6 +252,7 @@ export class PnlSnapshotsV2Service {
               },
               date: {
                 gt: startDate,
+                lte: endDate,
               },
             })),
           ],

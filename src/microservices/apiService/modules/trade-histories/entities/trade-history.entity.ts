@@ -5,7 +5,8 @@ import {
   registerEnumType,
   Float,
 } from '@nestjs/graphql';
-import { PnlSnapshotKind, TradeActionType } from '@prisma/client';
+import { Platform, PnlSnapshotKind, TradeActionType } from '@prisma/client';
+import { PnlSnapshotV2, PerpTradeHistory } from './event-logs.entity';
 
 registerEnumType(TradeActionType, {
   name: 'TradeActionType',
@@ -136,6 +137,30 @@ export class AccPnl {
 }
 
 @ObjectType()
+export class AccPnlV2 {
+  @Field(() => Date)
+  date: Date;
+
+  @Field(() => Float)
+  pnl: number;
+
+  @Field(() => Float)
+  in: number;
+
+  @Field(() => Float)
+  out: number;
+
+  @Field(() => Float)
+  inOut: number;
+
+  @Field(() => Int)
+  taskCount: number;
+
+  @Field(() => Int)
+  positionCount: number;
+}
+
+@ObjectType()
 export class BotCount {
   @Field(() => Date)
   date: Date;
@@ -151,6 +176,18 @@ export class TotalBot {
 
   @Field(() => Int)
   contractId: number;
+
+  @Field(() => String)
+  address: string;
+}
+
+@ObjectType()
+export class TotalBotV2 {
+  @Field(() => String)
+  dateStr: string;
+
+  @Field(() => Platform)
+  platform: Platform;
 
   @Field(() => String)
   address: string;
@@ -175,6 +212,24 @@ export class WholeCompressedHistories {
 
   @Field(() => [TotalBot])
   totalBots: TotalBot[];
+}
+
+@ObjectType()
+export class WholeCompressedHistoriesV2 {
+  @Field(() => [AccPnlV2])
+  accPnls: AccPnlV2[];
+
+  @Field(() => [BotCount])
+  botCounts: BotCount[];
+
+  @Field(() => Float)
+  maxInvested: number;
+
+  @Field(() => [String], { nullable: true })
+  uniqueTraders: string[] | null;
+
+  @Field(() => [TotalBotV2])
+  totalBots: TotalBotV2[];
 }
 
 @ObjectType()
@@ -211,6 +266,21 @@ export class Statistic {
 export class PnlSnapshotDevDetails extends PnlSnapshot {
   @Field(() => [TradeHistory])
   histories: TradeHistory[];
+
+  @Field(() => Float)
+  score: number;
+}
+
+@ObjectType()
+export class PerpTradeHistoryWithDate extends PerpTradeHistory {
+  @Field(() => Date)
+  date: Date;
+}
+
+@ObjectType()
+export class PnlSnapshotDevDetailsV2 extends PnlSnapshotV2 {
+  @Field(() => [PerpTradeHistoryWithDate])
+  histories: PerpTradeHistoryWithDate[];
 
   @Field(() => Float)
   score: number;

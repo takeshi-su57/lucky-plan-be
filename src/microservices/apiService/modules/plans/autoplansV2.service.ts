@@ -9,7 +9,7 @@ import {
 } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
-import { isAddress } from 'viem';
+import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
@@ -25,7 +25,6 @@ import { PerpTradingEventLog } from '../trade-histories/entities/event-logs.enti
 import { ServiceStatus } from 'src/types';
 import { getWeb3Info } from 'src/web3/utils';
 
-import { PerpTradeHistory } from 'src/web3/web3/types';
 import { getReadableError } from 'src/utils';
 
 import { CreatePlanInput } from './dto/plan.input';
