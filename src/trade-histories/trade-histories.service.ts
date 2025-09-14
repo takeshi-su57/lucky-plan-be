@@ -618,10 +618,7 @@ export class TradeHistoriesService {
                   Number(collateral.precision),
               )}`,
               leverage,
-              pnl: `${Number(
-                Number(args.values.existingPnlCollateral) /
-                  Number(collateral.precision),
-              )}`,
+              pnl: `0`,
               tradeId: null,
               collateralIndex: Number(args.collateralIndex),
               tradeIndex: Number(args.index),

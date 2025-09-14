@@ -20,7 +20,7 @@ import { PlansService } from './plans.service';
 import { BotsService } from 'src/bots/bots.service';
 import { TradingVariableService } from 'src/global/trading-variable.service';
 
-import { bestFilters, ExpertFilterParams } from './expert-filters/v2.1';
+import { bestFilters, ExpertFilterParams } from './expert-filters/v2.2';
 
 import { Pair } from 'src/types';
 import { ExpertPnlSnapshot } from './entities/plan.entity';
@@ -44,7 +44,38 @@ export type WhitelistedTrader = {
   ratio: number;
   maxSize: number;
   address: string;
+  lastCount?: number;
+  ignoreMinPnlLimit?: boolean;
+  ignoreMinDurationLimit?: boolean;
 };
+
+function getMinR2OfSize(avgSize: number) {
+  const scales = [0, 300, 2000, 5000, 10000, 30000, 100000, 1000000000];
+  const r2s = [0.9, 0.93, 0.95, 0.93, 0.9, 0.85, 0.85, 0.85];
+  const index = scales.findIndex((scale) => avgSize < scale);
+
+  return (
+    r2s[index - 1] +
+    ((r2s[index] - r2s[index - 1]) * (avgSize - scales[index - 1])) /
+      (scales[index] - scales[index - 1])
+  );
+}
+
+function getMinR2OfCount(avgCount: number) {
+  const scales = [0, 16, 32, 64, 128, 256, 512, 1000_000_000];
+  const r2s = [0.93, 0.93, 0.915, 0.9, 0.8, 0.9, 0.95, 0.95];
+  const index = scales.findIndex((scale) => avgCount < scale);
+
+  return (
+    r2s[index - 1] +
+    ((r2s[index] - r2s[index - 1]) * (avgCount - scales[index - 1])) /
+      (scales[index] - scales[index - 1])
+  );
+}
+
+function getMinR2(avgSize: number, avgCount: number) {
+  return (getMinR2OfSize(avgSize) + getMinR2OfCount(avgCount)) / 2;
+}
 
 @Injectable()
 export class AutoPlansV2Service {
@@ -63,7 +94,7 @@ export class AutoPlansV2Service {
   private parseJSON(value: string) {
     try {
       return JSON.parse(value);
-    } catch (err) {
+    } catch {
       return null;
     }
   }
@@ -297,6 +328,9 @@ export class AutoPlansV2Service {
     }
 
     let traderScore = 0;
+    const dynamicMinR2 = getMinR2(avgSize, totalOpenHistories.length || 0);
+
+    const minR2 = filter.minR2 || dynamicMinR2;
 
     for (let step = 0; step < filter.window; step++) {
       let round = 0;
@@ -340,7 +374,7 @@ export class AutoPlansV2Service {
         }
 
         if (regression.slope > 0) {
-          if (score.r2 > filter.minR2) {
+          if (score.r2 > minR2) {
             stepScore += (regression.slope * score.r2) / round / filter.n;
           } else {
             stepScore +=
@@ -463,7 +497,7 @@ export class AutoPlansV2Service {
       maxAvgSize: 1000_000_000,
       minCount: 0,
       maxCount: 1000_000_000,
-      minR2: 0.8,
+      minR2: 0.7,
       ratio: 1,
       maxSize: 700,
     };
@@ -627,7 +661,10 @@ export class AutoPlansV2Service {
             }
           });
 
-        const pnlRatios = chunkForPnlHistories
+        let sumOfPnl = 0;
+        let sumOfSize = 0;
+
+        chunkForPnlHistories
           .filter(
             (history) =>
               history.action === TradeActionType.TradeClosedMarket ||
@@ -640,9 +677,10 @@ export class AutoPlansV2Service {
               pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
             const size =
               sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
-            return size > 0 ? (pnl / size) * 100 : null;
-          })
-          .filter((item) => item !== null);
+
+            sumOfPnl += pnl;
+            sumOfSize += size;
+          });
 
         const avgDuration =
           durationCount > 0 ? totalDuration / durationCount : 0;
@@ -652,10 +690,7 @@ export class AutoPlansV2Service {
           openedPositions: openedHistoriesArr.length,
           avgDuration,
           avgPnlRatio:
-            pnlRatios.length > 0
-              ? pnlRatios.reduce((acc, item) => acc + item, 0) /
-                pnlRatios.length
-              : 1000_000_000,
+            sumOfSize > 0 ? (sumOfPnl / sumOfSize) * 100 : 1000_000_000,
         };
       });
   }
@@ -738,6 +773,9 @@ export class AutoPlansV2Service {
         histories: TradeHistory[];
         maxSize: number;
         ratio: number;
+        lastCount?: number;
+        ignoreMinPnlLimit?: boolean;
+        ignoreMinDurationLimit?: boolean;
       }
     >();
 
@@ -771,6 +809,9 @@ export class AutoPlansV2Service {
         ratio: params.ratio,
         maxSize: params.maxSize,
         whitelistAddress: params.address,
+        lastCount: params.lastCount,
+        ignoreMinPnlLimit: params.ignoreMinPnlLimit,
+        ignoreMinDurationLimit: params.ignoreMinDurationLimit,
       };
     });
 
@@ -798,6 +839,9 @@ export class AutoPlansV2Service {
                 ...detail,
                 maxSize: filter.maxSize,
                 ratio: filter.ratio,
+                lastCount: filter.lastCount,
+                ignoreMinPnlLimit: filter.ignoreMinPnlLimit,
+                ignoreMinDurationLimit: filter.ignoreMinDurationLimit,
               });
             }
           }
@@ -815,6 +859,9 @@ export class AutoPlansV2Service {
       histories: TradeHistory[];
       maxSize: number;
       ratio: number;
+      lastCount?: number;
+      ignoreMinPnlLimit?: boolean;
+      ignoreMinDurationLimit?: boolean;
     })[],
   ): Promise<boolean> {
     try {
@@ -942,7 +989,7 @@ export class AutoPlansV2Service {
           .map((item) => item[0]);
 
         // if trader holds too many positions, skip
-        if (openedHistoriesArr.length > 17) {
+        if (openedHistoriesArr.length > 15) {
           continue;
         }
 
@@ -962,14 +1009,14 @@ export class AutoPlansV2Service {
             );
           })
           .reverse()
-          .slice(0, 512);
+          .slice(0, expert.lastCount || 512);
 
         let totalDuration = 0;
         let durationCount = 0;
 
         expert.histories
           .reverse()
-          .slice(0, 512)
+          .slice(0, expert.lastCount || 512)
           .filter(
             (history) =>
               history.action === TradeActionType.TradeClosedMarket ||
@@ -993,13 +1040,12 @@ export class AutoPlansV2Service {
 
         expert.histories
           .reverse()
-
           .filter(
             (history) =>
               history.action === TradeActionType.TradeOpenedMarket ||
               history.action === TradeActionType.TradeOpenedLimit,
           )
-          .slice(0, 512)
+          .slice(0, expert.lastCount || 512)
           .forEach((item) => {
             if (DEGEN_PAIRS.includes(item.pair.toUpperCase())) {
               return;
@@ -1011,7 +1057,10 @@ export class AutoPlansV2Service {
 
         const avgLeverage = openCount > 0 ? totalLeverage / openCount : 0;
 
-        const pnlRatios = chunkForPnlHistories
+        let sumOfPnl = 0;
+        let sumOfSize = 0;
+
+        chunkForPnlHistories
           .filter(
             (history) =>
               history.action === TradeActionType.TradeClosedMarket ||
@@ -1019,26 +1068,26 @@ export class AutoPlansV2Service {
               history.action === TradeActionType.TradeClosedSL ||
               history.action === TradeActionType.TradeClosedTP,
           )
-          .map((item) => {
+          .forEach((item) => {
             const pnl =
               pnlMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
             const size =
               sizeMaps.get(`${item.contractId}-${item.tradeIndex}`) || 0;
-            return size > 0 ? (pnl / size) * 100 : null;
-          })
-          .filter((item) => item !== null);
+
+            sumOfPnl += pnl;
+            sumOfSize += size;
+          });
 
         const avgDuration =
           durationCount > 0 ? totalDuration / durationCount : 0;
 
         // if trader is a shorterm trader, skip
-        if (avgDuration < 1000 * 5 * 60) {
+        if (avgDuration < 1000 * 3 * 60 && !expert.ignoreMinDurationLimit) {
           continue;
         }
 
-        if (pnlRatios.length > 0) {
-          const avgPnlP =
-            pnlRatios.reduce((acc, item) => acc + item, 0) / pnlRatios.length;
+        if (sumOfSize > 0 && !expert.ignoreMinPnlLimit) {
+          const avgPnlP = (sumOfPnl / sumOfSize) * 100;
 
           if (avgPnlP < 0.5) {
             continue;
@@ -1059,7 +1108,7 @@ export class AutoPlansV2Service {
               maxCollateral: expert.maxSize,
               minCollateral: 5,
               collateralBaseline: 0,
-              maxLeverage: Math.max(1100, Math.ceil(2 * avgLeverage * 1000)),
+              maxLeverage: Math.max(1100, Math.ceil(1.3 * avgLeverage * 1000)),
               minLeverage: 1100,
               params: '{}',
             },
