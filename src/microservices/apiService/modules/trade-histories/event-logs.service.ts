@@ -42,14 +42,42 @@ export class EventLogsService {
   async getPerpEventLogs(
     addresses: string[],
     platform: Platform,
-  ): Promise<PerpTradingEventLog[]> {
-    return await this.prismaService.perpTradingEventLog.findMany({
+  ): Promise<PerpTradingEventLog[][]> {
+    const result: PerpTradingEventLog[][] = [];
+
+    const testContracts = await this.prismaService.contract.findMany({
       where: {
-        address: {
-          in: addresses.map((address) => address.toLowerCase()),
-        },
-        platform,
+        isTestnet: true,
       },
     });
+
+    const testContractIds = testContracts.map((item) => item.id);
+
+    for (const address of addresses) {
+      const records = await this.prismaService.perpTradingEventLog.findMany({
+        where: {
+          address: address.toLowerCase(),
+          platform,
+          contractId: {
+            notIn: testContractIds,
+          },
+        },
+        orderBy: [
+          {
+            date: 'asc',
+          },
+          {
+            block: 'asc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
+      });
+
+      result.push(records);
+    }
+
+    return result;
   }
 }
