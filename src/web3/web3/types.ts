@@ -86,17 +86,3 @@ export type GetBlockNumberPayload = {
   chainId: number;
   priority: ChainPriority;
 };
-
-export type PerpTradeHistory = {
-  positionKey: string;
-  address: Address;
-  pair: string;
-  operation: 'open' | 'close' | 'increase' | 'decrease' | 'updateLeverage';
-  usdPnl: number;
-  sizeInUsd: number;
-  leverage: number;
-  collateralInUsd: number;
-  collateralDeltaUsd: number;
-  sizeDeltaUsd: number;
-  leverageDelta: number;
-};

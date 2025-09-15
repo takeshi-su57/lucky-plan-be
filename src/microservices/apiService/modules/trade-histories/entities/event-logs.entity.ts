@@ -7,6 +7,19 @@ import {
 } from '@nestjs/graphql';
 import { Platform, PnlSnapshotKind, Version } from '@prisma/client';
 
+export enum PerpTradeHistoryOperation {
+  OPEN = 'open',
+  CLOSE = 'close',
+  INCREASE_SIZE = 'increaseSize',
+  DECREASE_SIZE = 'decreaseSize',
+  INCREASE_LEVERAGE = 'increaseLeverage',
+  DECREASE_LEVERAGE = 'decreaseLeverage',
+}
+
+registerEnumType(PerpTradeHistoryOperation, {
+  name: 'PerpTradeHistoryOperation',
+});
+
 registerEnumType(Platform, {
   name: 'Platform',
 });
@@ -64,6 +77,48 @@ export class PnlSnapshotV2 {
 
   @Field(() => Float)
   accUSDPnl: number;
+}
+
+@ObjectType()
+export class PerpTradeHistory {
+  @Field(() => String)
+  positionKey: string;
+
+  @Field(() => String)
+  address: string;
+
+  @Field(() => String)
+  pair: string;
+
+  @Field(() => PerpTradeHistoryOperation)
+  operation: PerpTradeHistoryOperation;
+
+  @Field(() => Float)
+  usdPnl: number;
+
+  @Field(() => Float)
+  sizeInUsd: number;
+
+  @Field(() => Float)
+  leverage: number;
+
+  @Field(() => Float)
+  collateralInUsd: number;
+
+  @Field(() => Float)
+  collateralDeltaUsd: number;
+
+  @Field(() => Float)
+  sizeDeltaUsd: number;
+
+  @Field(() => Float)
+  leverageDelta: number;
+
+  @Field(() => Boolean)
+  isLong: boolean;
+
+  @Field(() => Float)
+  price: number;
 }
 
 @ObjectType()

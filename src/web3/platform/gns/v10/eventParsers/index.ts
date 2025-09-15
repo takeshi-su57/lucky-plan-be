@@ -16,7 +16,7 @@ import {
   ActionItem,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 import { tradePositivePnlWithdrawnEventParser } from './trade-positive-pnl-withdrawn.parser';
-import { PerpTradeHistory } from 'src/web3/web3/types';
+import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export const missionEventParsers = [
   limitExecutedEventParser,

@@ -26,7 +26,6 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { LogsService } from 'src/global/logs.service';
 
 import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
@@ -48,7 +47,6 @@ export class MissionsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
-    private gnsService: GnsService,
     private readonly logger: LogsService,
   ) {}
 
@@ -479,7 +477,7 @@ export class MissionsService {
             `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
 
           const pairIndex = getPairIndex(
-            item.context.bot.leaderContract.chainId,
+            item.context.bot.followerContract.chainId,
             pairName,
           );
 

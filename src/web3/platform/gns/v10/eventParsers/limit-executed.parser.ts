@@ -2,7 +2,10 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/web3/web3/types';
+import {
+  PerpTradeHistory,
+  PerpTradeHistoryOperation,
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getCollateral, getPairName } from '../configs';
 import { PendingOrderType } from '../types';
 
@@ -36,11 +39,11 @@ export function eventToPerpTradeHistory(
 
   const pairName = getPairName(chainId, Number(event.args.t.pairIndex));
 
-  const operationMap: Record<string, 'open' | 'close'> = {
-    [PendingOrderType.LIMIT_OPEN]: 'open',
-    [PendingOrderType.LIQ_CLOSE]: 'close',
-    [PendingOrderType.SL_CLOSE]: 'close',
-    [PendingOrderType.TP_CLOSE]: 'close',
+  const operationMap: Record<string, PerpTradeHistoryOperation> = {
+    [PendingOrderType.LIMIT_OPEN]: PerpTradeHistoryOperation.OPEN,
+    [PendingOrderType.LIQ_CLOSE]: PerpTradeHistoryOperation.CLOSE,
+    [PendingOrderType.SL_CLOSE]: PerpTradeHistoryOperation.CLOSE,
+    [PendingOrderType.TP_CLOSE]: PerpTradeHistoryOperation.CLOSE,
   };
 
   if (!operationMap[event.args.orderType] || !collateral || !pairName) {
@@ -52,7 +55,7 @@ export function eventToPerpTradeHistory(
   const collateralUsdPrice = Number(event.args.collateralPriceUsd) / 1e8;
 
   const usdPnl =
-    operation === 'open'
+    operation === PerpTradeHistoryOperation.OPEN
       ? 0
       : Number(
           (Number(event.args.amountSentToTrader) -
@@ -86,6 +89,8 @@ export function eventToPerpTradeHistory(
     collateralDeltaUsd,
     sizeDeltaUsd,
     leverageDelta,
+    isLong: event.args.t.long,
+    price: Number(event.args.oraclePrice) / 1e10,
   };
 }
 

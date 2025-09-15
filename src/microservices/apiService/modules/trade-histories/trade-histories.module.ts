@@ -10,6 +10,7 @@ import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
 
 import { TradeHistoriesResolver } from './trade-histories.resolver';
 import { EventLogsResolver } from './event-logs.resolver';
+import { BacktestV2Service } from './backtest-v2.service';
 
 @Module({
   imports: [GnsModule],
@@ -21,6 +22,7 @@ import { EventLogsResolver } from './event-logs.resolver';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
+    BacktestV2Service,
   ],
   exports: [
     TradeHistoriesService,
@@ -28,6 +30,7 @@ import { EventLogsResolver } from './event-logs.resolver';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
+    BacktestV2Service,
   ],
 })
 export class TradeHistoriesModule {}

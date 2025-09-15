@@ -2,7 +2,10 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/web3/web3/types';
+import {
+  PerpTradeHistory,
+  PerpTradeHistoryOperation,
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getCollateral, getPairName } from '../configs';
 import { CancelReason } from '../types';
 
@@ -74,7 +77,7 @@ export function eventToPerpTradeHistory(
     positionKey: getGnsPositionKey(event.args.trader, Number(event.args.index)),
     address: event.args.trader.toLowerCase() as `0x${string}`,
     pair: pairName,
-    operation: 'increase',
+    operation: PerpTradeHistoryOperation.INCREASE_SIZE,
     usdPnl,
     sizeInUsd,
     leverage,
@@ -82,6 +85,8 @@ export function eventToPerpTradeHistory(
     collateralDeltaUsd,
     sizeDeltaUsd,
     leverageDelta,
+    isLong: event.args.long,
+    price: Number(event.args.oraclePrice) / 1e10,
   };
 }
 
@@ -89,5 +94,5 @@ export const positionSizeIncreaseExecutedEventParser = {
   eventName,
   logParser: parsePositionSizeIncreaseExecutedEvent,
   actionParser: actionToEvent<PositionSizeIncreaseExecutedEventArgs>,
-  eventToPerpTradeHistory
+  eventToPerpTradeHistory,
 };

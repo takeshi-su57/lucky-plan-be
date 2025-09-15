@@ -2,7 +2,10 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/web3/web3/types';
+import {
+  PerpTradeHistory,
+  PerpTradeHistoryOperation,
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getCollateral, getPairName } from '../configs';
 
 export const eventName = 'MarketExecuted';
@@ -39,7 +42,9 @@ export function eventToPerpTradeHistory(
     return null;
   }
 
-  const operation = event.args.open ? 'open' : 'close';
+  const operation = event.args.open
+    ? PerpTradeHistoryOperation.OPEN
+    : PerpTradeHistoryOperation.CLOSE;
 
   const collateralUsdPrice = Number(event.args.collateralPriceUsd) / 1e8;
 
@@ -78,6 +83,8 @@ export function eventToPerpTradeHistory(
     collateralDeltaUsd,
     sizeDeltaUsd,
     leverageDelta,
+    isLong: event.args.t.long,
+    price: Number(event.args.oraclePrice) / 1e10,
   };
 }
 

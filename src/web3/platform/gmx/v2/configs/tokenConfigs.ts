@@ -1323,6 +1323,42 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
         'https://assets.coingecko.com/coins/images/4463/standard/WeChat_Image_20220118095654.png?1696505053',
       coingeckoUrl: 'https://www.coingecko.com/nl/coins/okb',
     },
+    '0xf67b2a901d674b443fa9f6db2a689b37c07fd4fe': {
+      name: 'Morpho',
+      symbol: 'MORPHO',
+      address: '0xF67b2a901D674B443Fa9f6DB2A689B37c07fD4fE',
+      decimals: 18,
+      priceDecimals: 4,
+      isSynthetic: true,
+      categories: ['defi'],
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/29837/standard/Morpho-token-icon.png?1726771230',
+      coingeckoUrl: 'https://www.coingecko.com/nl/coins/morpho',
+    },
+    '0xb79eb5ba64a167676694bb41bc1640f95d309a2f': {
+      name: 'Venice Token',
+      symbol: 'VVV',
+      address: '0xB79Eb5BA64A167676694bB41bc1640F95d309a2F',
+      decimals: 18,
+      priceDecimals: 4,
+      isSynthetic: true,
+      categories: ['defi'],
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/54023/standard/VVV_Token_Transparent.png?1741856877',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/venice-token',
+    },
+    '0x465a31e5ba29b8eacc860d499d714a6f07e56e85': {
+      name: 'Moonwell',
+      symbol: 'WELL',
+      address: '0x465A31E5bA29b8EAcC860d499D714a6f07e56E85',
+      decimals: 18,
+      priceDecimals: 4,
+      isSynthetic: true,
+      categories: ['defi'],
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/26133/standard/WELL.png?1696525221',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/moonwell',
+    },
   },
   '43113': {
     '0x0000000000000000000000000000000000000000': {
@@ -1856,6 +1892,107 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       explorerUrl:
         'https://snowtrace.io/address/0x9e295B5B976a184B14aD8cd72413aD846C299660',
       reservesUrl: 'https://portfolio.nansen.ai/dashboard/gmx?chain=AVAX',
+    },
+    '<market-token-address>': {
+      name: 'GLV Market tokens',
+      symbol: 'GLV',
+      address: '<market-token-address>',
+      decimals: 18,
+      imageUrl:
+        'https://raw.githubusercontent.com/gmx-io/gmx-assets/main/GMX-Assets/PNG/GLV_LOGO.png',
+      isPlatformToken: true,
+    },
+  },
+  '421614': {
+    '0x0000000000000000000000000000000000000000': {
+      name: 'Ethereum',
+      symbol: 'ETH',
+      decimals: 18,
+      address: '0x0000000000000000000000000000000000000000',
+      wrappedAddress: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      isNative: true,
+      isShortable: true,
+      categories: ['layer1'],
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/ethereum',
+    },
+    '0x980b62da83eff3d4576c647993b0c1d7faf17c73': {
+      name: 'Wrapped ETH',
+      symbol: 'WETH',
+      address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      decimals: 18,
+      isWrapped: true,
+      baseSymbol: 'ETH',
+      categories: ['layer1'],
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/ethereum',
+    },
+    '0xf79ce1cf38a09d572b021b4c5548b75a14082f12': {
+      name: 'Bitcoin',
+      symbol: 'BTC',
+      address: '0xF79cE1Cf38A09D572b021B4C5548b75A14082F12',
+      decimals: 8,
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1746042828',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/bitcoin',
+    },
+    '0x3321fd36aeab0d5cdfd26f4a3a93e2d2aaccb99f': {
+      name: 'USD Coin GMX',
+      symbol: 'USDC',
+      address: '0x3321Fd36aEaB0d5CdfD26f4A3A93E2D2aAcCB99f',
+      decimals: 6,
+      isStable: true,
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/usd-coin',
+    },
+    '0x3253a335e7bffb4790aa4c25c4250d206e9b9773': {
+      name: 'USD Coin Stargate',
+      symbol: 'USDC.SG',
+      address: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+      decimals: 6,
+      isStable: true,
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/usd-coin',
+    },
+    '0xd5ddaed48b09fa1d7944bd662cb05265fcd7077c': {
+      name: 'CRV',
+      symbol: 'CRV',
+      address: '0xD5DdAED48B09fa1D7944bd662CB05265FCD7077C',
+      decimals: 18,
+      priceDecimals: 5,
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/12134/small/curve.png?1596358786',
+      isSynthetic: true,
+      coingeckoUrl: 'https://www.coingecko.com/en/coins/curve-dao-token',
+    },
+    '<gmx-address>': {
+      name: 'GMX',
+      symbol: 'GMX',
+      address: '<gmx-address>',
+      decimals: 18,
+      imageUrl:
+        'https://assets.coingecko.com/coins/images/18323/small/arbit.png?1631532468',
+      isPlatformToken: true,
+    },
+    '<esgmx-address>': {
+      name: 'Escrowed GMX',
+      symbol: 'ESGMX',
+      address: '<esgmx-address>',
+      decimals: 18,
+      isPlatformToken: true,
+    },
+    '<glp-address>': {
+      name: 'GMX LP',
+      symbol: 'GLP',
+      address: '<glp-address>',
+      decimals: 18,
+      imageUrl:
+        'https://github.com/gmx-io/gmx-assets/blob/main/GMX-Assets/PNG/GLP_LOGO%20ONLY.png?raw=true',
+      isPlatformToken: true,
     },
     '<market-token-address>': {
       name: 'GLV Market tokens',
