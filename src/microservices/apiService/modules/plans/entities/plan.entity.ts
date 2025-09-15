@@ -123,3 +123,22 @@ export class ExpertPnlSnapshotV2 extends PnlSnapshotV2 {
   @Field(() => Int)
   openedPositions: number;
 }
+
+@ObjectType()
+export class ExpertPnlSnapshotV2Edge {
+  @Field(() => Int) cursor: number;
+  @Field(() => ExpertPnlSnapshotV2) node: ExpertPnlSnapshotV2;
+}
+
+@ObjectType()
+export class ExpertPnlSnapshotV2PageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class ExpertPnlSnapshotV2Connection {
+  @Field(() => [ExpertPnlSnapshotV2Edge])
+  edges: ExpertPnlSnapshotV2Edge[];
+  @Field(() => ExpertPnlSnapshotV2PageInfo) pageInfo: ExpertPnlSnapshotV2PageInfo;
+}

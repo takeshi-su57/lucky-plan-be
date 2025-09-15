@@ -18,9 +18,12 @@ import { BotsService } from 'src/microservices/apiService/modules/bots/bots.serv
 
 import { PnlSnapshotV2 } from '../trade-histories/entities/event-logs.entity';
 
-import { bestFilters, ExpertFilterParams } from './expert-filters/v2.2';
+import { ExpertFilterParams } from './expert-filters/v2.2';
 
-import { ExpertPnlSnapshotV2 } from './entities/plan.entity';
+import {
+  ExpertPnlSnapshotV2,
+  ExpertPnlSnapshotV2Connection,
+} from './entities/plan.entity';
 import { PerpTradingEventLog } from '../trade-histories/entities/event-logs.entity';
 import { ServiceStatus } from 'src/types';
 import { getWeb3Info } from 'src/web3/utils';
@@ -185,7 +188,10 @@ export class AutoPlansV2Service {
       return null;
     }
 
-    const openHistories = totalOpenHistories.reverse().slice(0, 512);
+    const openHistories = totalOpenHistories.slice(
+      totalOpenHistories.length - 512,
+      totalOpenHistories.length,
+    );
 
     const totalSize = openHistories.reduce((acc, history) => {
       return acc + Number(history.collateralInUsd);
@@ -280,7 +286,8 @@ export class AutoPlansV2Service {
   async filterExperts(
     platform: Platform,
     dateStr: string,
-  ): Promise<ExpertPnlSnapshotV2[]> {
+    after: number | null,
+  ): Promise<ExpertPnlSnapshotV2Connection> {
     const expertMap = new Map<
       string,
       PnlSnapshotV2 & {
@@ -293,16 +300,16 @@ export class AutoPlansV2Service {
       }
     >();
 
-    let cursor = null;
+    let currentCursor = after;
     const limit = 100;
 
     while (true) {
-      const pnlRecords: PnlSnapshotV2[] = cursor
+      const pnlRecords: PnlSnapshotV2[] = currentCursor
         ? await this.prismaService.pnlSnapshotV2.findMany({
             skip: 1,
             take: limit,
             cursor: {
-              id: cursor,
+              id: currentCursor,
             },
             where: {
               dateStr: dateStr,
@@ -342,6 +349,7 @@ export class AutoPlansV2Service {
           });
 
       if (pnlRecords.length === 0) {
+        currentCursor = null;
         break;
       }
 
@@ -448,7 +456,7 @@ export class AutoPlansV2Service {
         maxAvgSize: 1000_000_000,
         minCount: 0,
         maxCount: 1000_000_000,
-        minR2: 0.7,
+        minR2: 0.8,
         ratio: 1,
         maxSize: 700,
       };
@@ -486,10 +494,17 @@ export class AutoPlansV2Service {
         });
       });
 
-      cursor = pnlRecords[pnlRecords.length - 1].id;
+      currentCursor = pnlRecords[pnlRecords.length - 1].id;
+
+      const keys = Array.from(expertMap.keys());
+
+      // chunk by 30 for ux
+      if (keys.length >= 30) {
+        break;
+      }
     }
 
-    return Array.from(expertMap.values())
+    const edges = Array.from(expertMap.values())
       .sort((a, b) => b.score - a.score)
       .map((expert) => {
         let openedPositions = 0;
@@ -550,13 +565,24 @@ export class AutoPlansV2Service {
           totalPositions > 0 ? totalDuration / totalPositions : 0;
 
         return {
-          ...expert,
-          openedPositions,
-          avgDuration,
-          avgPnlRatio:
-            sumOfSize > 0 ? (sumOfPnl / sumOfSize) * 100 : 1000_000_000,
+          cursor: expert.id,
+          node: {
+            ...expert,
+            openedPositions,
+            avgDuration,
+            avgPnlRatio:
+              sumOfSize > 0 ? (sumOfPnl / sumOfSize) * 100 : 1000_000_000,
+          },
         };
       });
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: currentCursor !== null,
+        endCursor: currentCursor,
+      },
+    };
   }
 
   private async filterExpertsForPlans(
@@ -770,7 +796,7 @@ export class AutoPlansV2Service {
       const allHistories = historyRecordsMap.get(item.address) || [];
 
       subPnlRecords.forEach((record) => {
-        for (const filter of [...bestFilters, ...whitelistFilters]) {
+        for (const filter of whitelistFilters) {
           const detail = this.getExpertPnlSnapshot(
             filter,
             record,
@@ -945,7 +971,7 @@ export class AutoPlansV2Service {
             totalPositions > 0 ? totalDuration / totalPositions : 0;
 
           // if trader holds too many positions, skip
-          if (openedPositions > 15) {
+          if (openedPositions > 10) {
             continue;
           }
 
