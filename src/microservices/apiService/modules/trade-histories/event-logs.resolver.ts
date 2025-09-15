@@ -93,12 +93,12 @@ export class EventLogsResolver {
     );
   }
 
-  @Query(() => [PerpTradingEventLog])
+  @Query(() => [[PerpTradingEventLog]])
   getPerpEventLogs(
-    @Args('address') address: string,
+    @Args('addresses', { type: () => [String] }) addresses: string[],
     @Args('platform', { type: () => Platform }) platform: Platform,
   ) {
-    return this.eventLogsService.getPerpEventLogs([address], platform);
+    return this.eventLogsService.getPerpEventLogs(addresses, platform);
   }
 
   @Query(() => PnlSnapshotV2DetailsConnection)
