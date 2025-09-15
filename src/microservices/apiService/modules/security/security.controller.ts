@@ -24,4 +24,9 @@ export class SecurityController {
   decrypt(@Payload() encrypted: EncryptedData) {
     return this.securityService.decrypt(encrypted);
   }
+
+  @MessagePattern(PATTERNS.Security.IsValidPassword)
+  isValidPassword(@Payload() password: string) {
+    return this.securityService.isValidPassword(password);
+  }
 }

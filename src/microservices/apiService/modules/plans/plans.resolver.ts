@@ -19,7 +19,7 @@ import {
   Plan,
   PlanConnection,
   PlanForwardDetails,
-  ExpertPnlSnapshotV2,
+  ExpertPnlSnapshotV2Connection,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -155,16 +155,18 @@ export class PlansResolver {
     return this.autoplanService.filterExperts(dayjs().format('YYYY-MM-DD'));
   }
 
-  @Query(() => [ExpertPnlSnapshotV2])
+  @Query(() => ExpertPnlSnapshotV2Connection)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   getExpertPnlSnapshotsV2(
     @CurrentUser() _user: User,
     @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
     return this.autoplanServiceV2.filterExperts(
       platform,
       dayjs().format('YYYY-MM-DD'),
+      after,
     );
   }
 
