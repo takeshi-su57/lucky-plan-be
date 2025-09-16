@@ -65,6 +65,13 @@ const privateRPCProviders = [
       'Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
       'AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
       'AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
+      'AhGDkiI8E0fhgJ9gbdPfXPUfVgxxkw8R8I42zltYSRe_',
+      'AgNu2FsZsELPo7SkO6ko15R9h5lWkw8R8I43zltYSRe_',
+      'AqKJv9sjPEX_iXfLEttlJOS9Ax1Qkw8R8I44zltYSRe_',
+      'AkRrJFiVgECelg92H7TKWtP_-l5Xkw8R8I45zltYSRe_',
+      'Aq2mSEztfEtnmOLyxoatvr85j3lEkxAR8I46zltYSRe_',
+      'AuKd0G6EF01oioIfRzuafMhxJ6dmkxAR8I47zltYSRe_',
+      'AqtKk9PeCEZBqKUvQww9n2trk0TvkxER8I48zltYSRe_',
     ],
   },
   // {
