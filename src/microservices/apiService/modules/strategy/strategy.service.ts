@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { CreateStrategyInput } from './dto/strategy.input';
+import { CreateStrategyInput, UpdateStrategyInput } from './dto/strategy.input';
 
 @Injectable()
 export class StrategyService {
@@ -9,6 +9,13 @@ export class StrategyService {
 
   create(input: CreateStrategyInput) {
     return this.prismaService.strategy.create({
+      data: input,
+    });
+  }
+
+  update(id: number, input: UpdateStrategyInput) {
+    return this.prismaService.strategy.update({
+      where: { id },
       data: input,
     });
   }
