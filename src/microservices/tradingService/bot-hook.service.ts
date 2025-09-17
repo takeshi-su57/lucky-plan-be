@@ -27,7 +27,7 @@ import {
 } from 'viem/chains';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { getReadableError } from 'src/utils';
+import { delay, getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 
 import { getWeb3Info } from 'src/web3/utils';
@@ -62,6 +62,7 @@ export class BotHookService {
   private mnemonic: string;
   private followerContract: Contract;
   public isRunning: boolean = false;
+  private round: Record<number, number> = {};
 
   constructor(
     private contractsService: ContractsService,
@@ -81,7 +82,7 @@ export class BotHookService {
 
     this.unwatchs = {};
 
-    // this.init();
+    this.init();
   }
 
   async hasRisky() {
@@ -142,86 +143,103 @@ export class BotHookService {
   }
 
   async init() {
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
-      },
-    });
+    try {
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
+        },
+      });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    this.mnemonic = await this.followerService.getMnemonic(user.mnemonic || '');
+      this.mnemonic = await this.followerService.getMnemonic(
+        user.mnemonic || '',
+      );
 
-    const arbFollower = await this.prismaService.follower.findFirst({
-      where: {
-        accountIndex: 2,
-      },
-    });
-    const polygonFollower = await this.prismaService.follower.findFirst({
-      where: {
-        accountIndex: 3,
-      },
-    });
-    const baseFollower = await this.prismaService.follower.findFirst({
-      where: {
-        accountIndex: 4,
-      },
-    });
-    const apeChainFollower = await this.prismaService.follower.findFirst({
-      where: {
-        accountIndex: 5,
-      },
-    });
+      const arbFollower = await this.prismaService.follower.findFirst({
+        where: {
+          accountIndex: 2,
+        },
+      });
+      const polygonFollower = await this.prismaService.follower.findFirst({
+        where: {
+          accountIndex: 3,
+        },
+      });
+      const baseFollower = await this.prismaService.follower.findFirst({
+        where: {
+          accountIndex: 4,
+        },
+      });
+      const apeChainFollower = await this.prismaService.follower.findFirst({
+        where: {
+          accountIndex: 5,
+        },
+      });
 
-    if (
-      !arbFollower ||
-      !polygonFollower ||
-      !baseFollower ||
-      !apeChainFollower
-    ) {
-      throw new Error('Follower not found');
-    }
+      if (
+        !arbFollower ||
+        !polygonFollower ||
+        !baseFollower ||
+        !apeChainFollower
+      ) {
+        throw new Error('Follower not found');
+      }
 
-    this.vaultConfigs = {
-      [arbitrum.id]: {
-        follower: arbFollower,
-      },
-      [polygon.id]: {
-        follower: polygonFollower,
-      },
-      [base.id]: {
-        follower: baseFollower,
-      },
-      [apeChain.id]: {
-        follower: apeChainFollower,
-      },
-    };
+      this.vaultConfigs = {
+        [arbitrum.id]: {
+          follower: arbFollower,
+        },
+        [polygon.id]: {
+          follower: polygonFollower,
+        },
+        [base.id]: {
+          follower: baseFollower,
+        },
+        [apeChain.id]: {
+          follower: apeChainFollower,
+        },
+      };
 
-    const contracts = await this.contractsService.findAll();
+      const contracts = await this.contractsService.findAll();
 
-    this.followerContract = contracts.find(
-      (contract) =>
-        contract.platform === Platform.GNS && contract.version === Version.V10,
-    )!;
+      this.followerContract = contracts.find(
+        (contract) =>
+          contract.platform === Platform.GNS &&
+          contract.version === Version.V10,
+      )!;
 
-    if (!this.followerContract) {
-      throw new Error('Follower contract not found');
-    }
+      if (!this.followerContract) {
+        throw new Error('Follower contract not found');
+      }
 
-    const promises = contracts
-      .filter(
+      const validContracts = contracts.filter(
         (contract) =>
           contract.status === ContractStatus.Live &&
           contract.platform === Platform.GNS &&
           !contract.isTestnet,
-      )
-      .map((contract) => this.registerBotEventListeners(contract));
+      );
 
-    await Promise.allSettled(promises);
+      validContracts.forEach((contract) => {
+        this.round[contract.chainId] = 0;
+      });
 
-    this.isRunning = true;
+      const promises = validContracts.map((contract) =>
+        this.registerBotEventListeners(contract),
+      );
+
+      await Promise.allSettled(promises);
+
+      this.isRunning = true;
+    } catch (err) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'trading>bot-hook>init',
+        details: getReadableError(err),
+      });
+    }
   }
 
   async stop() {
@@ -239,22 +257,23 @@ export class BotHookService {
 
     const alchemyProvider = privateRPCProviders.alchemy;
 
+    const token =
+      alchemyProvider.tokens[
+        this.round[chainId] % alchemyProvider.tokens.length
+      ];
+
+    this.round[chainId] = this.round[chainId] + 1;
+
     return createPublicClient({
       chain: chain,
-      transport: fallback(
-        [
-          ...alchemyProvider.tokens
-            .map((token) =>
-              alchemyProvider.getWebsocket(
-                alchemyProvider.networks[
-                  chain.id as keyof typeof alchemyProvider.networks
-                ],
-                token,
-              ),
-            )
-            .map((url) => webSocket(url, { reconnect: true })),
-        ],
-        { retryCount: 5, rank: false },
+      transport: webSocket(
+        alchemyProvider.getWebsocket(
+          alchemyProvider.networks[
+            chain.id as keyof typeof alchemyProvider.networks
+          ],
+          token,
+        ),
+        { reconnect: true },
       ),
     }) as unknown as PublicClient;
   }
@@ -295,26 +314,34 @@ export class BotHookService {
                 item.eventName === limitExecutedEventParser.eventName,
             ) as (MarketExecutedEvent | LimitExecutedEvent)[];
 
-          this.handleMissionEvent(contract, missionEvents);
+          if (missionEvents.length > 0) {
+            this.handleMissionEvent(contract, missionEvents);
+          }
         },
-        onError: (err) => {
+        onError: async (err) => {
           this.logger.log({
             severity: 'Debug',
             summary: 'trading>bot-hook>registerBotEventListeners',
             details: `chainId:${contract.chainId} ${getReadableError(err)}`,
           });
 
+          await delay(5_000);
+
           this.unwatchs[contract.id]();
           client = this.createWsClient(contract.chainId);
           this.registerBotEventListeners(contract);
         },
       });
+
+      console.log('setuped bot-hook service', contract.chainId);
     } catch (err) {
       this.logger.log({
         severity: 'Debug',
         summary: 'trading>bot-hook>registerBotEventListeners',
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
+
+      await delay(5_000);
 
       this.unwatchs[contract.id]();
       client = this.createWsClient(contract.chainId);
@@ -332,6 +359,12 @@ export class BotHookService {
         if (event.args.user.toLowerCase() !== botAddress.toLowerCase()) {
           continue;
         }
+
+        this.logger.log({
+          severity: 'Debug',
+          summary: 'trading>bot-hook>handleMissionEvent',
+          details: `chainId:${contract.chainId} ${event.eventName}`,
+        });
 
         const follower = this.vaultConfigs[contract.chainId].follower;
 
@@ -434,6 +467,12 @@ export class BotHookService {
               maxSlippageP: 1000,
             },
           });
+
+          this.logger.log({
+            severity: 'Debug',
+            summary: 'trading>bot-hook>handleMissionEvent',
+            details: `chainId:${contract.chainId} open trade`,
+          });
         }
 
         if (kind === 'close') {
@@ -456,6 +495,12 @@ export class BotHookService {
               },
             });
           }
+
+          this.logger.log({
+            severity: 'Debug',
+            summary: 'trading>bot-hook>handleMissionEvent',
+            details: `chainId:${contract.chainId} close ${trades.length} trades successfully`,
+          });
         }
       } catch (err) {
         this.logger.log({
