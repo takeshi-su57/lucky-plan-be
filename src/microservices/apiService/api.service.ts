@@ -14,7 +14,7 @@ import { SecurityService } from './modules/security/security.service';
 import { BacktestService } from './modules/trade-histories/backtest.service';
 
 import { LogsService } from 'src/global/logs.service';
-import { TradeHistoriesService } from './modules/trade-histories/trade-histories.service';
+import { timeout } from 'rxjs';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,7 +33,6 @@ export class ApiService {
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private backtestService: BacktestService,
-    private tradeHistoriesService: TradeHistoriesService,
     private logger: LogsService,
   ) {
     this.isPaused = true;
@@ -93,6 +92,18 @@ export class ApiService {
     this.isPaused = true;
 
     return true;
+  }
+
+  async isBotHookRunning() {
+    return await new Promise<boolean>((resolve, reject) => {
+      this.client
+        .send(PATTERNS.BotHook.IsRunning, {})
+        .pipe(timeout(60_000))
+        .subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err),
+        });
+    });
   }
 
   startSubService(serviceName: string) {

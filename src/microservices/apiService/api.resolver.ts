@@ -99,4 +99,9 @@ export class ApiResolver {
   getMicroserviceStatus() {
     return this.apiService.getMicroserviceStatus();
   }
+
+  @Query(() => Boolean)
+  isBotHookRunning() {
+    return this.apiService.isBotHookRunning();
+  }
 }
