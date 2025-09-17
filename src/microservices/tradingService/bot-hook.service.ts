@@ -144,7 +144,7 @@ export class BotHookService {
   async init() {
     const user = await this.prismaService.user.findUnique({
       where: {
-        address: `0x123`,
+        address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
       },
     });
 

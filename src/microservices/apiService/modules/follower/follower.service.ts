@@ -1242,26 +1242,20 @@ export class FollowerService {
       const batch = followerEntities.slice(i, i + BATCH_SIZE);
 
       const promises = batch.map(async (entity) => {
-        const usdcBalance =
-          entity.accountIndex === 1
-            ? await this.evmAdapterService.erc20Balance({
-                chainId: contract.chainId,
-                priority: ChainPriority.LOW,
-                erc20ContractAddress: collateralInfo.collateral,
-                address: entity.address as Address,
-              })
-            : 0n;
+        const usdcBalance = await this.evmAdapterService.erc20Balance({
+          chainId: contract.chainId,
+          priority: ChainPriority.LOW,
+          erc20ContractAddress: collateralInfo.collateral,
+          address: entity.address as Address,
+        });
 
         usdcMap[entity.address] = usdcBalance;
 
-        const ethBalance =
-          entity.accountIndex === 1
-            ? await this.evmAdapterService.nativeBalance({
-                chainId: contract.chainId,
-                priority: ChainPriority.LOW,
-                address: entity.address as Address,
-              })
-            : 0n;
+        const ethBalance = await this.evmAdapterService.nativeBalance({
+          chainId: contract.chainId,
+          priority: ChainPriority.LOW,
+          address: entity.address as Address,
+        });
 
         ethMap[entity.address] = ethBalance;
 
