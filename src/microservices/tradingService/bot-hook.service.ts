@@ -7,6 +7,7 @@ import {
   webSocket,
   fallback,
   WatchContractEventReturnType,
+  Log,
 } from 'viem';
 import {
   Contract,
@@ -265,7 +266,7 @@ export class BotHookService {
       this.unwatchs[contract.id] = client.watchContractEvent({
         address: contract.address as Address,
         abi: getWeb3Info(contract.platform, contract.version).abi,
-        onLogs: (logs: any[]) => {
+        onLogs: (logs: Log[]) => {
           if (logs.length === 0) {
             return;
           }
