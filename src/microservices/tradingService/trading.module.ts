@@ -18,6 +18,7 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 
 import { TradingService } from './trading.service';
+import { BotHookService } from './bot-hook.service';
 
 import { TradingController } from './trading.controller';
 
@@ -41,6 +42,6 @@ import { TradingController } from './trading.controller';
     Web3Module,
   ],
   controllers: [TradingController],
-  providers: [TradingService],
+  providers: [TradingService, BotHookService],
 })
 export class TradingModule {}

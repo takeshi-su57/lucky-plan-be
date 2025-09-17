@@ -751,8 +751,6 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      const contract = await this.contractService.findOne(input.contractId);
-
       const follower = await this.prismaService.follower.findUnique({
         where: {
           address: input.address.toLowerCase(),
@@ -992,7 +990,6 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
-      const contract = await this.contractService.findOne(input.contractId);
       const follower = await this.prismaService.follower.findUnique({
         where: {
           address: input.address.toLowerCase(),

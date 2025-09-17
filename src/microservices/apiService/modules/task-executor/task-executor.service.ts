@@ -458,17 +458,6 @@ export class TaskExecutorService {
                 );
               }
 
-              const usdcPrice = await this.gnsService.getCollateralPrice({
-                contractId: followerContract.id,
-                priority: ChainPriority.HIGH,
-                args: {
-                  collateralIndex:
-                    USDCCollateralIndex[
-                      followerContract.chainId as keyof typeof USDCCollateralIndex
-                    ],
-                },
-              });
-
               if (
                 getWeb3Info(
                   leaderContract.platform,
@@ -489,7 +478,7 @@ export class TaskExecutorService {
                         collateral,
                       },
                       bot.leaderCollateralBaseline,
-                      usdcPrice,
+                      100_000_000n,
                       t.pairIndex,
                     );
 
@@ -633,17 +622,6 @@ export class TaskExecutorService {
           );
         }
 
-        const usdcPrice = await this.gnsService.getCollateralPrice({
-          contractId: followerContract.id,
-          priority: ChainPriority.HIGH,
-          args: {
-            collateralIndex:
-              USDCCollateralIndex[
-                followerContract.chainId as keyof typeof USDCCollateralIndex
-              ],
-          },
-        });
-
         const executionPrice = BigInt(
           Math.floor(
             Number(gmxEvent.args.executionPrice) /
@@ -696,7 +674,7 @@ export class TaskExecutorService {
                   },
                 },
                 bot.leaderCollateralBaseline,
-                usdcPrice,
+                100_000_000n,
                 pairIndex,
               );
 

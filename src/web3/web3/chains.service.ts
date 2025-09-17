@@ -24,8 +24,8 @@ import 'dotenv';
 
 import { ChainPriority } from 'src/types';
 
-const privateRPCProviders = [
-  {
+export const privateRPCProviders = {
+  drpc: {
     provider: 'drpc',
     getUrl: (network: string, token: string) =>
       `https://lb.drpc.org/ogrpc?network=${network}&dkey=${token}`,
@@ -74,26 +74,30 @@ const privateRPCProviders = [
       'AqtKk9PeCEZBqKUvQww9n2trk0TvkxER8I48zltYSRe_',
     ],
   },
-  // {
-  //   provider: 'alchemy',
-  //   getUrl: (network: string, token: string) =>
-  //     `'https://${network}.g.alchemy.com/v2/${token}`,
-  //   networks: {
-  //     137: 'polygon-mainnet',
-  //     8453: 'base-mainnet',
-  //     42161: 'arb-mainnet',
-  //     421614: 'arb-sepolia',
-  //     33139: 'apechain-mainnet',
-  //     43114: 'avalanche-mainnet',
-  //   },
-  //   tokens: [
-  //     'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_',
-  //     'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-  //     'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
-  //     'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
-  //   ],
-  // },
-];
+  alchemy: {
+    provider: 'alchemy',
+    getUrl: (network: string, token: string) =>
+      `https://${network}.g.alchemy.com/v2/${token}`,
+    getWebsocket: (network: string, token: string) =>
+      `wss://${network}.g.alchemy.com/v2/${token}`,
+    networks: {
+      137: 'polygon-mainnet',
+      8453: 'base-mainnet',
+      42161: 'arb-mainnet',
+      421614: 'arb-sepolia',
+      33139: 'apechain-mainnet',
+      43114: 'avalanche-mainnet',
+    },
+    tokens: [
+      'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_', // 'takeshisuz
+      'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
+      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+      'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
+      'wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ', // takeshisuz
+      'qf9Xqi-AIXnz1_mNnbgbN', // wpope
+    ],
+  },
+};
 
 const publicRpcProviders = {
   137: [
@@ -193,19 +197,20 @@ export class ChainsService {
         },
       }) as unknown as PublicClient;
 
+      const drpcProvider = privateRPCProviders.drpc;
+
       this.paidPublicClients[chain.id] = createPublicClient({
         chain: chain,
         transport: fallback([
-          ...privateRPCProviders
-            .map((item) =>
-              item.tokens.map((token) =>
-                item.getUrl(
-                  item.networks[chain.id as keyof typeof item.networks],
-                  token,
-                ),
+          ...drpcProvider.tokens
+            .map((token) =>
+              drpcProvider.getUrl(
+                drpcProvider.networks[
+                  chain.id as keyof typeof drpcProvider.networks
+                ],
+                token,
               ),
             )
-            .flat()
             .map((url) => http(url, { batch: true })),
         ]),
         batch: {
@@ -300,20 +305,21 @@ export class ChainsService {
       return this.walletClients[chainId][account.address.toLowerCase()];
     }
 
+    const drpcProvider = privateRPCProviders.drpc;
+
     const client = createWalletClient({
       account,
       chain: chain,
       transport: fallback([
-        ...privateRPCProviders
-          .map((item) =>
-            item.tokens.map((token) =>
-              item.getUrl(
-                item.networks[chain.id as keyof typeof item.networks],
-                token,
-              ),
+        ...drpcProvider.tokens
+          .map((token) =>
+            drpcProvider.getUrl(
+              drpcProvider.networks[
+                chain.id as keyof typeof drpcProvider.networks
+              ],
+              token,
             ),
           )
-          .flat()
           .map((url) => http(url, { batch: true })),
       ]),
     });
