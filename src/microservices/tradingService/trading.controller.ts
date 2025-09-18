@@ -34,7 +34,7 @@ export class TradingController implements OnApplicationBootstrap {
   @EventPattern(PATTERNS.AskProcessStatus)
   async askProcessStatus() {
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      service: SERVICE_NAMES.TRADING_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
     });
