@@ -48,6 +48,7 @@ import { FollowerService } from '../apiService/modules/follower/follower.service
 import { TradeType, PendingOrderType } from 'src/web3/platform/gns/v10/types';
 import { ChainPriority } from 'src/types';
 import { USDCCollateralIndex } from 'src/utils/constants';
+import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 
 const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
 
@@ -62,7 +63,7 @@ export class BotHookService {
   private mnemonic: string;
   private followerContract: Contract;
   public isRunning: boolean = false;
-  private round: Record<number, number> = {};
+  private round: Record<string, number> = {};
 
   constructor(
     private contractsService: ContractsService,
@@ -226,9 +227,10 @@ export class BotHookService {
         this.round[contract.chainId] = 0;
       });
 
-      const promises = validContracts.map((contract) =>
-        this.registerBotEventListeners(contract),
-      );
+      const promises = validContracts.map(async (contract) => {
+        await this.registerBotMarketExecutedEventListeners(contract);
+        await this.registerBotLimitExecutedEventListeners(contract);
+      });
 
       await Promise.allSettled(promises);
 
@@ -248,7 +250,7 @@ export class BotHookService {
     this.isRunning = false;
   }
 
-  createWsClient(chainId: number) {
+  createWsClient(chainId: number, eventName: string) {
     const chain = this.availableChains.find((chain) => chain.id === chainId);
 
     if (!chain) {
@@ -257,12 +259,14 @@ export class BotHookService {
 
     const alchemyProvider = privateRPCProviders.alchemy;
 
+    const roundKey = `${chainId}-${eventName}`;
+
     const token =
       alchemyProvider.tokens[
-        this.round[chainId] % alchemyProvider.tokens.length
+        this.round[roundKey] % alchemyProvider.tokens.length
       ];
 
-    this.round[chainId] = this.round[chainId] + 1;
+    this.round[roundKey] = this.round[roundKey] + 1;
 
     return createPublicClient({
       chain: chain,
@@ -278,58 +282,35 @@ export class BotHookService {
     }) as unknown as PublicClient;
   }
 
-  async registerBotEventListeners(contract: Contract) {
-    let client = this.createWsClient(contract.chainId);
+  async registerBotMarketExecutedEventListeners(contract: Contract) {
+    let client = this.createWsClient(
+      contract.chainId,
+      marketExecutedEventParser.eventName,
+    );
 
     try {
       this.unwatchs[contract.id] = client.watchContractEvent({
         address: contract.address as Address,
-        abi: getWeb3Info(contract.platform, contract.version).abi,
-        onLogs: (logs: Log[]) => {
+        abi: gnsMultiCollatDiamondAbi,
+        eventName: 'MarketExecuted',
+        onLogs: (logs) => {
           if (logs.length === 0) {
             return;
           }
 
-          const missionEvents = logs
-            .filter((log) => log.topics.length > 0)
-            .filter((log) => {
-              const info = getWeb3Info(contract.platform, contract.version);
-
-              return info.eventSignatures
-                ? info.eventSignatures[log.topics[0] as string]
-                : true;
-            })
-            .map((log) => {
-              const decoded: any = decodeEventLog({
-                abi: getWeb3Info(contract.platform, contract.version).abi,
-                data: log.data,
-                topics: log.topics,
-              });
-
-              return decoded;
-            })
-            .filter(
-              (item) =>
-                item.eventName === marketExecutedEventParser.eventName ||
-                item.eventName === limitExecutedEventParser.eventName,
-            ) as (MarketExecutedEvent | LimitExecutedEvent)[];
-
-          if (missionEvents.length > 0) {
-            this.handleMissionEvent(contract, missionEvents);
-          }
+          this.handleMissionEvent(contract, logs);
         },
         onError: async (err) => {
           this.logger.log({
             severity: 'Debug',
-            summary: 'trading>bot-hook>registerBotEventListeners',
+            summary: 'trading>bot-hook>registerBotMarketExecutedEventListeners',
             details: `chainId:${contract.chainId} ${getReadableError(err)}`,
           });
 
           await delay(5_000);
 
           this.unwatchs[contract.id]();
-          client = this.createWsClient(contract.chainId);
-          this.registerBotEventListeners(contract);
+          this.registerBotMarketExecutedEventListeners(contract);
         },
       });
 
@@ -337,23 +318,94 @@ export class BotHookService {
     } catch (err) {
       this.logger.log({
         severity: 'Debug',
-        summary: 'trading>bot-hook>registerBotEventListeners',
+        summary: 'trading>bot-hook>registerBotMarketExecutedEventListeners',
         details: `chainId:${contract.chainId} ${getReadableError(err)}`,
       });
 
       await delay(5_000);
 
       this.unwatchs[contract.id]();
-      client = this.createWsClient(contract.chainId);
-      this.registerBotEventListeners(contract);
+      this.registerBotMarketExecutedEventListeners(contract);
     }
   }
 
-  async handleMissionEvent(
-    contract: Contract,
-    events: (MarketExecutedEvent | LimitExecutedEvent)[],
-  ) {
-    for (const event of events) {
+  async registerBotLimitExecutedEventListeners(contract: Contract) {
+    let client = this.createWsClient(
+      contract.chainId,
+      limitExecutedEventParser.eventName,
+    );
+
+    try {
+      this.unwatchs[contract.id] = client.watchContractEvent({
+        address: contract.address as Address,
+        abi: gnsMultiCollatDiamondAbi,
+        eventName: 'LimitExecuted',
+        onLogs: (logs) => {
+          if (logs.length === 0) {
+            return;
+          }
+
+          this.handleMissionEvent(contract, logs);
+        },
+        onError: async (err) => {
+          this.logger.log({
+            severity: 'Debug',
+            summary: 'trading>bot-hook>registerBotLimitExecutedEventListeners',
+            details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+          });
+
+          await delay(5_000);
+
+          this.unwatchs[contract.id]();
+          this.registerBotLimitExecutedEventListeners(contract);
+        },
+      });
+
+      console.log('setuped bot-hook service', contract.chainId);
+    } catch (err) {
+      this.logger.log({
+        severity: 'Debug',
+        summary: 'trading>bot-hook>registerBotLimitExecutedEventListeners',
+        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+      });
+
+      await delay(5_000);
+
+      this.unwatchs[contract.id]();
+      this.registerBotLimitExecutedEventListeners(contract);
+    }
+  }
+
+  async handleMissionEvent(contract: Contract, logs: Log[]) {
+    const missionEvents = logs
+      .filter((log) => log.topics.length > 0)
+      .filter((log) => {
+        const info = getWeb3Info(contract.platform, contract.version);
+
+        return info.eventSignatures
+          ? info.eventSignatures[log.topics[0] as string]
+          : true;
+      })
+      .map((log) => {
+        const decoded: any = decodeEventLog({
+          abi: getWeb3Info(contract.platform, contract.version).abi,
+          data: log.data,
+          topics: log.topics,
+        });
+
+        return decoded;
+      })
+      .filter(
+        (item) =>
+          item.eventName === marketExecutedEventParser.eventName ||
+          item.eventName === limitExecutedEventParser.eventName,
+      ) as (MarketExecutedEvent | LimitExecutedEvent)[];
+
+    if (missionEvents.length === 0) {
+      return;
+    }
+
+    for (const event of missionEvents) {
       try {
         // it's not a bot event
         if (event.args.user.toLowerCase() !== botAddress.toLowerCase()) {
