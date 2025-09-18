@@ -1,23 +1,16 @@
 import { Controller, Inject, OnApplicationBootstrap } from '@nestjs/common';
-import {
-  ClientProxy,
-  EventPattern,
-  MessagePattern,
-  Payload,
-} from '@nestjs/microservices';
+import { ClientProxy, EventPattern, Payload } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay } from 'src/utils';
 
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
 import { TradingService } from './trading.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from '../apiService/modules/plans/plans.service';
-import { BotHookService } from './bot-hook.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
@@ -27,7 +20,6 @@ export class TradingController implements OnApplicationBootstrap {
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
-    private readonly botHookService: BotHookService,
     private readonly logger: LogsService,
   ) {}
 
@@ -37,11 +29,6 @@ export class TradingController implements OnApplicationBootstrap {
       pid: process.pid,
       status: ServiceStatus.READY,
     });
-  }
-
-  @MessagePattern(PATTERNS.BotHook.IsRunning)
-  isBotHookRunning() {
-    return this.botHookService.isRunning;
   }
 
   @EventPattern(PATTERNS.AskProcessStatus)
@@ -66,19 +53,6 @@ export class TradingController implements OnApplicationBootstrap {
       summary: 'Trading service killProcess',
       details: 'received kill process event',
     });
-
-    while (true) {
-      await delay(1000);
-
-      if (
-        this.tradingService.status !== ServiceStatus.READY ||
-        this.botsService.status !== ServiceStatus.READY
-      ) {
-        continue;
-      }
-
-      break;
-    }
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.TRADING_SERVICE,
@@ -118,15 +92,6 @@ export class TradingController implements OnApplicationBootstrap {
 
     if (this.plansService.status === ServiceStatus.READY) {
       await this.plansService.checkAndUpdateAllPlans();
-    }
-  }
-
-  @Cron(CronExpression.EVERY_10_MINUTES)
-  async checkBotHook() {
-    const hasRisk = await this.botHookService.hasRisky();
-
-    if (hasRisk) {
-      await this.botHookService.stop();
     }
   }
 }

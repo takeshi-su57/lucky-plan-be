@@ -53,9 +53,9 @@ import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMulti
 const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
 
 @Injectable()
-export class BotHookService {
+export class BotHooksService {
   readonly availableChains: Chain[];
-  private unwatchs: Record<number, WatchContractEventReturnType> = {};
+  private unwatchs: Record<string, WatchContractEventReturnType> = {};
   private vaultConfigs: Record<
     number,
     { follower: Follower; positionIndex?: number }
@@ -82,65 +82,76 @@ export class BotHookService {
     ];
 
     this.unwatchs = {};
+    this.round = {};
 
     this.init();
   }
 
   async hasRisky() {
-    const testContracts = await this.prismaService.contract.findMany();
+    try {
+      const testContracts = await this.prismaService.contract.findMany();
 
-    const testContractIds: number[] = [];
+      const testContractIds: number[] = [];
 
-    const contractsMap = new Map<number, Contract>();
+      const contractsMap = new Map<number, Contract>();
 
-    for (const contract of testContracts) {
-      if (contract.isTestnet) {
-        testContractIds.push(contract.id);
-      } else {
-        contractsMap.set(contract.id, contract);
+      for (const contract of testContracts) {
+        if (contract.isTestnet) {
+          testContractIds.push(contract.id);
+        } else {
+          contractsMap.set(contract.id, contract);
+        }
       }
+
+      const perpLogs = await this.prismaService.perpTradingEventLog.findMany({
+        where: {
+          address: botAddress.toLowerCase(),
+          platform: Platform.GNS,
+          contractId: {
+            notIn: testContractIds,
+          },
+        },
+      });
+
+      const perpHistories = perpLogs
+        .map((item) => {
+          const contract = contractsMap.get(item.contractId);
+
+          if (!contract) {
+            return null;
+          }
+
+          const web3Info = getWeb3Info(contract.platform, contract.version);
+
+          const history = web3Info.eventToPerpTradeHistory(
+            contract.chainId,
+            JSON.parse(item.jsonLog) as any,
+          );
+
+          return history;
+        })
+        .filter((item) => item !== null);
+
+      const negativePnlHistories = perpHistories.filter(
+        (item) => item.usdPnl < -10,
+      );
+
+      this.logger.log({
+        severity: 'Debug',
+        summary: 'trading>bot-hook>hasRisky',
+        details: `negativePnlHistories.length: ${negativePnlHistories.length}`,
+      });
+
+      return negativePnlHistories.length > 10;
+    } catch (err) {
+      this.logger.log({
+        severity: 'Error',
+        summary: 'trading>bot-hook>hasRisky',
+        details: getReadableError(err),
+      });
     }
 
-    const perpLogs = await this.prismaService.perpTradingEventLog.findMany({
-      where: {
-        address: botAddress.toLowerCase(),
-        platform: Platform.GNS,
-        contractId: {
-          notIn: testContractIds,
-        },
-      },
-    });
-
-    const perpHistories = perpLogs
-      .map((item) => {
-        const contract = contractsMap.get(item.contractId);
-
-        if (!contract) {
-          return null;
-        }
-
-        const web3Info = getWeb3Info(contract.platform, contract.version);
-
-        const history = web3Info.eventToPerpTradeHistory(
-          contract.chainId,
-          JSON.parse(item.jsonLog) as any,
-        );
-
-        return history;
-      })
-      .filter((item) => item !== null);
-
-    const negativePnlHistories = perpHistories.filter(
-      (item) => item.usdPnl < -10,
-    );
-
-    this.logger.log({
-      severity: 'Debug',
-      summary: 'trading>bot-hook>hasRisky',
-      details: `negativePnlHistories.length: ${negativePnlHistories.length}`,
-    });
-
-    return negativePnlHistories.length > 10;
+    return true;
   }
 
   async init() {
@@ -223,10 +234,6 @@ export class BotHookService {
           !contract.isTestnet,
       );
 
-      validContracts.forEach((contract) => {
-        this.round[contract.chainId] = 0;
-      });
-
       const promises = validContracts.map(async (contract) => {
         await this.registerBotMarketExecutedEventListeners(contract);
         await this.registerBotLimitExecutedEventListeners(contract);
@@ -263,10 +270,10 @@ export class BotHookService {
 
     const token =
       alchemyProvider.tokens[
-        this.round[roundKey] % alchemyProvider.tokens.length
+        (this.round[roundKey] || 0) % alchemyProvider.tokens.length
       ];
 
-    this.round[roundKey] = this.round[roundKey] + 1;
+    this.round[roundKey] = (this.round[roundKey] || 0) + 1;
 
     return createPublicClient({
       chain: chain,
@@ -288,8 +295,10 @@ export class BotHookService {
       marketExecutedEventParser.eventName,
     );
 
+    const key = `${contract.chainId}-${marketExecutedEventParser.eventName}`;
+
     try {
-      this.unwatchs[contract.id] = client.watchContractEvent({
+      this.unwatchs[key] = client.watchContractEvent({
         address: contract.address as Address,
         abi: gnsMultiCollatDiamondAbi,
         eventName: 'MarketExecuted',
@@ -309,7 +318,7 @@ export class BotHookService {
 
           await delay(5_000);
 
-          this.unwatchs[contract.id]();
+          this.unwatchs[key]?.();
           this.registerBotMarketExecutedEventListeners(contract);
         },
       });
@@ -324,7 +333,7 @@ export class BotHookService {
 
       await delay(5_000);
 
-      this.unwatchs[contract.id]();
+      this.unwatchs[key]?.();
       this.registerBotMarketExecutedEventListeners(contract);
     }
   }
@@ -335,8 +344,10 @@ export class BotHookService {
       limitExecutedEventParser.eventName,
     );
 
+    const key = `${contract.chainId}-${limitExecutedEventParser.eventName}`;
+
     try {
-      this.unwatchs[contract.id] = client.watchContractEvent({
+      this.unwatchs[key] = client.watchContractEvent({
         address: contract.address as Address,
         abi: gnsMultiCollatDiamondAbi,
         eventName: 'LimitExecuted',
@@ -356,7 +367,7 @@ export class BotHookService {
 
           await delay(5_000);
 
-          this.unwatchs[contract.id]();
+          this.unwatchs[key]?.();
           this.registerBotLimitExecutedEventListeners(contract);
         },
       });
@@ -371,7 +382,7 @@ export class BotHookService {
 
       await delay(5_000);
 
-      this.unwatchs[contract.id]();
+      this.unwatchs[key]?.();
       this.registerBotLimitExecutedEventListeners(contract);
     }
   }
