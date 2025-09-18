@@ -24,7 +24,7 @@ export class BotHooksController implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.TRADING_SERVICE,
+      service: SERVICE_NAMES.BOT_HOOKS_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
     });
@@ -38,7 +38,7 @@ export class BotHooksController implements OnApplicationBootstrap {
   @EventPattern(PATTERNS.AskProcessStatus)
   async askProcessStatus() {
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.LEADERBOARD_SERVICE,
+      service: SERVICE_NAMES.BOT_HOOKS_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
     });
@@ -46,7 +46,10 @@ export class BotHooksController implements OnApplicationBootstrap {
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess(@Payload() payload?: { service?: string }) {
-    if (payload?.service && payload.service !== SERVICE_NAMES.TRADING_SERVICE) {
+    if (
+      payload?.service &&
+      payload.service !== SERVICE_NAMES.BOT_HOOKS_SERVICE
+    ) {
       return;
     }
 
@@ -54,12 +57,12 @@ export class BotHooksController implements OnApplicationBootstrap {
 
     this.logger.nativeLog({
       severity: 'Info',
-      summary: 'Trading service killProcess',
+      summary: 'Bot hooks service killProcess',
       details: 'received kill process event',
     });
 
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.TRADING_SERVICE,
+      service: SERVICE_NAMES.BOT_HOOKS_SERVICE,
       pid: process.pid,
       status: ServiceStatus.KILLED,
     });
