@@ -175,7 +175,7 @@ export class BacktestV2Service {
     > = {};
 
     rangeHistories
-      .slice(rangeHistories.length - 512, rangeHistories.length)
+      .slice(Math.max(0, rangeHistories.length - 512), rangeHistories.length)
       .forEach((history) => {
         if (groupedByPositionKey[history.positionKey]) {
           groupedByPositionKey[history.positionKey].push(history);
