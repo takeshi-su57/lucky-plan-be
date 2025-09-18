@@ -189,7 +189,7 @@ export class AutoPlansV2Service {
     }
 
     const openHistories = totalOpenHistories.slice(
-      totalOpenHistories.length - 512,
+      Math.max(0, totalOpenHistories.length - 512),
       totalOpenHistories.length,
     );
 
@@ -922,7 +922,7 @@ export class AutoPlansV2Service {
 
           expert.histories
             .slice(
-              expert.histories.length - (expert.lastCount || 512),
+              Math.max(0, expert.histories.length - (expert.lastCount || 512)),
               expert.histories.length,
             )
             .forEach((history) => {

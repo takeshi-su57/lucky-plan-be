@@ -17,9 +17,9 @@ import { PlansModule } from '../apiService/modules/plans/plans.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 
-import { TradingService } from './trading.service';
+import { BotHooksService } from './bot-hooks.service';
 
-import { TradingController } from './trading.controller';
+import { BotHooksController } from './bot-hooks.controller';
 
 @Module({
   imports: [
@@ -40,7 +40,7 @@ import { TradingController } from './trading.controller';
     GnsModule,
     Web3Module,
   ],
-  controllers: [TradingController],
-  providers: [TradingService],
+  controllers: [BotHooksController],
+  providers: [BotHooksService],
 })
-export class TradingModule {}
+export class BotHooksModule {}
