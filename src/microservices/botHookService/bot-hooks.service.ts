@@ -5,7 +5,6 @@ import {
   createPublicClient,
   PublicClient,
   webSocket,
-  fallback,
   WatchContractEventReturnType,
   Log,
 } from 'viem';
@@ -32,7 +31,7 @@ import { LogsService } from 'src/global/logs.service';
 
 import { getWeb3Info } from 'src/web3/utils';
 
-import { privateRPCProviders } from 'src/web3/web3/chains.service';
+import { privateRPCProviders } from 'src/web3/web3/evm-chains.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
 import {
@@ -290,7 +289,7 @@ export class BotHooksService {
   }
 
   async registerBotMarketExecutedEventListeners(contract: Contract) {
-    let client = this.createWsClient(
+    const client = this.createWsClient(
       contract.chainId,
       marketExecutedEventParser.eventName,
     );
@@ -339,7 +338,7 @@ export class BotHooksService {
   }
 
   async registerBotLimitExecutedEventListeners(contract: Contract) {
-    let client = this.createWsClient(
+    const client = this.createWsClient(
       contract.chainId,
       limitExecutedEventParser.eventName,
     );

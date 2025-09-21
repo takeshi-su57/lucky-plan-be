@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
-import { ChainsService } from './chains.service';
+import { EvmChainsService } from './evm-chains.service';
 import { EvmAdapterService } from './evm-adapter.service';
 
 @Module({
-  providers: [EvmAdapterService, ChainsService],
-  exports: [EvmAdapterService, ChainsService],
+  providers: [EvmAdapterService, EvmChainsService],
+  exports: [EvmAdapterService, EvmChainsService],
 })
 export class Web3Module {}

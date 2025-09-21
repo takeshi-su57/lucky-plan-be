@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Block, erc20Abi, GetBlockErrorType } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 
-import { ChainsService } from './chains.service';
+import { EvmChainsService } from './evm-chains.service';
 import {
   Erc20TransferPayload,
   Erc20BalancePayload,
@@ -21,7 +21,7 @@ import { ChainPriority } from 'src/types';
 
 @Injectable()
 export class EvmAdapterService {
-  constructor(private readonly chainsService: ChainsService) {}
+  constructor(private readonly chainsService: EvmChainsService) {}
 
   async erc20Transfer(payload: Erc20TransferPayload) {
     return await this.chainsService.writeWithMutex(

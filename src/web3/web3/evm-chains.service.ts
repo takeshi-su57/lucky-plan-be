@@ -161,7 +161,7 @@ const publicRpcProviders = {
 };
 
 @Injectable()
-export class ChainsService {
+export class EvmChainsService {
   readonly availableChains: Chain[];
   readonly freePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
