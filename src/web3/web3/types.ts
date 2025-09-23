@@ -74,7 +74,7 @@ export type GetLogsPayload = {
   priority: ChainPriority;
   address: Address;
   fromBlock: bigint;
-  toBlock: bigint;
+  toBlock?: bigint;
 };
 
 export type EstimateFeesPerGasPayload = {
