@@ -140,5 +140,6 @@ export class ExpertPnlSnapshotV2PageInfo {
 export class ExpertPnlSnapshotV2Connection {
   @Field(() => [ExpertPnlSnapshotV2Edge])
   edges: ExpertPnlSnapshotV2Edge[];
-  @Field(() => ExpertPnlSnapshotV2PageInfo) pageInfo: ExpertPnlSnapshotV2PageInfo;
+  @Field(() => ExpertPnlSnapshotV2PageInfo)
+  pageInfo: ExpertPnlSnapshotV2PageInfo;
 }

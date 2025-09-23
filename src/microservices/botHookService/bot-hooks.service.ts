@@ -5,7 +5,6 @@ import {
   createPublicClient,
   PublicClient,
   webSocket,
-  fallback,
   WatchContractEventReturnType,
   Log,
 } from 'viem';
@@ -32,7 +31,7 @@ import { LogsService } from 'src/global/logs.service';
 
 import { getWeb3Info } from 'src/web3/utils';
 
-import { privateRPCProviders } from 'src/web3/web3/chains.service';
+import { privateRPCProviders } from 'src/web3/web3/evm-chains.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
 import {
@@ -49,6 +48,7 @@ import { TradeType, PendingOrderType } from 'src/web3/platform/gns/v10/types';
 import { ChainPriority } from 'src/types';
 import { USDCCollateralIndex } from 'src/utils/constants';
 import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
+import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 
 const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
 
@@ -56,6 +56,7 @@ const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
 export class BotHooksService {
   readonly availableChains: Chain[];
   private unwatchs: Record<string, WatchContractEventReturnType> = {};
+  private lastBlockNumbers: Record<string, bigint> = {};
   private vaultConfigs: Record<
     number,
     { follower: Follower; positionIndex?: number }
@@ -71,6 +72,7 @@ export class BotHooksService {
     private prismaService: PrismaService,
     private followerService: FollowerService,
     private readonly logger: LogsService,
+    private evmAdapterService: EvmAdapterService,
   ) {
     this.availableChains = [
       arbitrum,
@@ -235,8 +237,8 @@ export class BotHooksService {
       );
 
       const promises = validContracts.map(async (contract) => {
-        await this.registerBotMarketExecutedEventListeners(contract);
-        await this.registerBotLimitExecutedEventListeners(contract);
+        await this.registerBotEventListeners(contract, 'MarketExecuted');
+        await this.registerBotEventListeners(contract, 'LimitExecuted');
       });
 
       await Promise.allSettled(promises);
@@ -289,71 +291,47 @@ export class BotHooksService {
     }) as unknown as PublicClient;
   }
 
-  async registerBotMarketExecutedEventListeners(contract: Contract) {
-    let client = this.createWsClient(
-      contract.chainId,
-      marketExecutedEventParser.eventName,
-    );
+  async registerBotEventListeners(
+    contract: Contract,
+    eventName: 'MarketExecuted' | 'LimitExecuted',
+  ) {
+    const client = this.createWsClient(contract.chainId, eventName);
 
-    const key = `${contract.chainId}-${marketExecutedEventParser.eventName}`;
+    const key = `${contract.chainId}-${eventName}`;
 
-    try {
-      this.unwatchs[key] = client.watchContractEvent({
+    const fromBlock = this.lastBlockNumbers[key];
+    let nextBlock: bigint | undefined;
+
+    if (fromBlock) {
+      // handle missing events cuz ws client doesn't have all events
+      const logs = await this.evmAdapterService.getLogs({
+        chainId: contract.chainId,
+        priority: ChainPriority.HIGH,
         address: contract.address as Address,
-        abi: gnsMultiCollatDiamondAbi,
-        eventName: 'MarketExecuted',
-        onLogs: (logs) => {
-          if (logs.length === 0) {
-            return;
-          }
-
-          this.handleMissionEvent(contract, logs);
-        },
-        onError: async (err) => {
-          this.logger.log({
-            severity: 'Debug',
-            summary: 'trading>bot-hook>registerBotMarketExecutedEventListeners',
-            details: `chainId:${contract.chainId} ${getReadableError(err)}`,
-          });
-
-          await delay(5_000);
-
-          this.unwatchs[key]?.();
-          this.registerBotMarketExecutedEventListeners(contract);
-        },
+        fromBlock: fromBlock,
       });
 
-      console.log('setuped bot-hook service', contract.chainId);
-    } catch (err) {
-      this.logger.log({
-        severity: 'Debug',
-        summary: 'trading>bot-hook>registerBotMarketExecutedEventListeners',
-        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
-      });
+      this.handleMissionEvent(contract, logs);
 
-      await delay(5_000);
-
-      this.unwatchs[key]?.();
-      this.registerBotMarketExecutedEventListeners(contract);
+      nextBlock =
+        logs.length > 0 ? logs[logs.length - 1].blockNumber : undefined;
     }
-  }
-
-  async registerBotLimitExecutedEventListeners(contract: Contract) {
-    let client = this.createWsClient(
-      contract.chainId,
-      limitExecutedEventParser.eventName,
-    );
-
-    const key = `${contract.chainId}-${limitExecutedEventParser.eventName}`;
 
     try {
       this.unwatchs[key] = client.watchContractEvent({
         address: contract.address as Address,
         abi: gnsMultiCollatDiamondAbi,
-        eventName: 'LimitExecuted',
+        eventName: eventName,
+        fromBlock: nextBlock,
         onLogs: (logs) => {
           if (logs.length === 0) {
             return;
+          }
+
+          const lastBlockNumber = logs[logs.length - 1].blockNumber;
+
+          if (lastBlockNumber > this.lastBlockNumbers[key]) {
+            this.lastBlockNumbers[key] = lastBlockNumber;
           }
 
           this.handleMissionEvent(contract, logs);
@@ -361,14 +339,14 @@ export class BotHooksService {
         onError: async (err) => {
           this.logger.log({
             severity: 'Debug',
-            summary: 'trading>bot-hook>registerBotLimitExecutedEventListeners',
-            details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+            summary: 'trading>bot-hook>registerBotEventListeners',
+            details: `chainId:${contract.chainId} ${eventName} ${getReadableError(err)}`,
           });
 
           await delay(5_000);
 
           this.unwatchs[key]?.();
-          this.registerBotLimitExecutedEventListeners(contract);
+          this.registerBotEventListeners(contract, eventName);
         },
       });
 
@@ -376,14 +354,14 @@ export class BotHooksService {
     } catch (err) {
       this.logger.log({
         severity: 'Debug',
-        summary: 'trading>bot-hook>registerBotLimitExecutedEventListeners',
-        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+        summary: 'trading>bot-hook>registerBotEventListeners',
+        details: `chainId:${contract.chainId} ${eventName} ${getReadableError(err)}`,
       });
 
       await delay(5_000);
 
       this.unwatchs[key]?.();
-      this.registerBotLimitExecutedEventListeners(contract);
+      this.registerBotEventListeners(contract, eventName);
     }
   }
 

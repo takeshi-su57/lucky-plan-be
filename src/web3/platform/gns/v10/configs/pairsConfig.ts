@@ -71,8 +71,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 2,
       depth: {
-        onePercentDepthAboveUsd: '2581534',
-        onePercentDepthBelowUsd: '2728450',
+        onePercentDepthAboveUsd: '2453020',
+        onePercentDepthBelowUsd: '2966913',
       },
     },
     {
@@ -89,8 +89,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 3,
       depth: {
-        onePercentDepthAboveUsd: '6737714',
-        onePercentDepthBelowUsd: '6992776',
+        onePercentDepthAboveUsd: '4309381',
+        onePercentDepthBelowUsd: '4979245',
       },
     },
     {
@@ -125,8 +125,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 5,
       depth: {
-        onePercentDepthAboveUsd: '2884367',
-        onePercentDepthBelowUsd: '3257582',
+        onePercentDepthAboveUsd: '2674893',
+        onePercentDepthBelowUsd: '2890982',
       },
     },
     {
@@ -161,8 +161,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 7,
       depth: {
-        onePercentDepthAboveUsd: '930428',
-        onePercentDepthBelowUsd: '1096322',
+        onePercentDepthAboveUsd: '917318',
+        onePercentDepthBelowUsd: '964418',
       },
     },
     {
@@ -179,8 +179,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 8,
       depth: {
-        onePercentDepthAboveUsd: '185366',
-        onePercentDepthBelowUsd: '332852',
+        onePercentDepthAboveUsd: '204491',
+        onePercentDepthBelowUsd: '229670',
       },
     },
     {
@@ -197,8 +197,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 9,
       depth: {
-        onePercentDepthAboveUsd: '44588',
-        onePercentDepthBelowUsd: '62416',
+        onePercentDepthAboveUsd: '44664',
+        onePercentDepthBelowUsd: '55648',
       },
     },
     {
@@ -215,8 +215,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 10,
       depth: {
-        onePercentDepthAboveUsd: '46966',
-        onePercentDepthBelowUsd: '86501',
+        onePercentDepthAboveUsd: '51039',
+        onePercentDepthBelowUsd: '102858',
       },
     },
     {
@@ -233,8 +233,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 11,
       depth: {
-        onePercentDepthAboveUsd: '716135',
-        onePercentDepthBelowUsd: '810001',
+        onePercentDepthAboveUsd: '481044',
+        onePercentDepthBelowUsd: '590315',
       },
     },
     {
@@ -269,8 +269,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 13,
       depth: {
-        onePercentDepthAboveUsd: '865202',
-        onePercentDepthBelowUsd: '757657',
+        onePercentDepthAboveUsd: '886202',
+        onePercentDepthBelowUsd: '933464',
       },
     },
     {
@@ -287,8 +287,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 14,
       depth: {
-        onePercentDepthAboveUsd: '64937',
-        onePercentDepthBelowUsd: '79505',
+        onePercentDepthAboveUsd: '67173',
+        onePercentDepthBelowUsd: '53701',
       },
     },
     {
@@ -323,8 +323,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 16,
       depth: {
-        onePercentDepthAboveUsd: '77829',
-        onePercentDepthBelowUsd: '85693',
+        onePercentDepthAboveUsd: '51384',
+        onePercentDepthBelowUsd: '65716',
       },
     },
     {
@@ -341,8 +341,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 17,
       depth: {
-        onePercentDepthAboveUsd: '581653',
-        onePercentDepthBelowUsd: '838767',
+        onePercentDepthAboveUsd: '745484',
+        onePercentDepthBelowUsd: '720748',
       },
     },
     {
@@ -359,8 +359,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 18,
       depth: {
-        onePercentDepthAboveUsd: '1076180',
-        onePercentDepthBelowUsd: '1177779',
+        onePercentDepthAboveUsd: '1142691',
+        onePercentDepthBelowUsd: '1279464',
       },
     },
     {
@@ -377,8 +377,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 19,
       depth: {
-        onePercentDepthAboveUsd: '7605781',
-        onePercentDepthBelowUsd: '7778727',
+        onePercentDepthAboveUsd: '7583347',
+        onePercentDepthBelowUsd: '9580872',
       },
     },
     {
@@ -413,8 +413,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 21,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -431,8 +431,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 22,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -449,8 +449,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 23,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -467,8 +467,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 24,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -485,8 +485,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 25,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -503,8 +503,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 26,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -521,8 +521,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 27,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -539,8 +539,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 28,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -557,8 +557,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 29,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -575,8 +575,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 30,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -611,8 +611,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 32,
       depth: {
-        onePercentDepthAboveUsd: '34542',
-        onePercentDepthBelowUsd: '34320',
+        onePercentDepthAboveUsd: '38797',
+        onePercentDepthBelowUsd: '51774',
       },
     },
     {
@@ -629,8 +629,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 33,
       depth: {
-        onePercentDepthAboveUsd: '25276474',
-        onePercentDepthBelowUsd: '19424412',
+        onePercentDepthAboveUsd: '13770460',
+        onePercentDepthBelowUsd: '13158442',
       },
     },
     {
@@ -647,8 +647,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 34,
       depth: {
-        onePercentDepthAboveUsd: '21182',
-        onePercentDepthBelowUsd: '30134',
+        onePercentDepthAboveUsd: '24972',
+        onePercentDepthBelowUsd: '32484',
       },
     },
     {
@@ -665,8 +665,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 35,
       depth: {
-        onePercentDepthAboveUsd: '613169',
-        onePercentDepthBelowUsd: '776717',
+        onePercentDepthAboveUsd: '735424',
+        onePercentDepthBelowUsd: '551813',
       },
     },
     {
@@ -701,8 +701,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 37,
       depth: {
-        onePercentDepthAboveUsd: '325159',
-        onePercentDepthBelowUsd: '426910',
+        onePercentDepthAboveUsd: '464527',
+        onePercentDepthBelowUsd: '624724',
       },
     },
     {
@@ -719,8 +719,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 38,
       depth: {
-        onePercentDepthAboveUsd: '14150',
-        onePercentDepthBelowUsd: '41159',
+        onePercentDepthAboveUsd: '43889',
+        onePercentDepthBelowUsd: '46036',
       },
     },
     {
@@ -737,8 +737,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 39,
       depth: {
-        onePercentDepthAboveUsd: '418535',
-        onePercentDepthBelowUsd: '614476',
+        onePercentDepthAboveUsd: '551133',
+        onePercentDepthBelowUsd: '657060',
       },
     },
     {
@@ -755,8 +755,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 40,
       depth: {
-        onePercentDepthAboveUsd: '261697',
-        onePercentDepthBelowUsd: '323632',
+        onePercentDepthAboveUsd: '332520',
+        onePercentDepthBelowUsd: '383450',
       },
     },
     {
@@ -773,8 +773,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 41,
       depth: {
-        onePercentDepthAboveUsd: '40943',
-        onePercentDepthBelowUsd: '35633',
+        onePercentDepthAboveUsd: '1',
+        onePercentDepthBelowUsd: '1',
       },
     },
     {
@@ -791,8 +791,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 42,
       depth: {
-        onePercentDepthAboveUsd: '88408',
-        onePercentDepthBelowUsd: '128122',
+        onePercentDepthAboveUsd: '96167',
+        onePercentDepthBelowUsd: '115749',
       },
     },
     {
@@ -809,8 +809,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 43,
       depth: {
-        onePercentDepthAboveUsd: '134187',
-        onePercentDepthBelowUsd: '133735',
+        onePercentDepthAboveUsd: '111249',
+        onePercentDepthBelowUsd: '124862',
       },
     },
     {
@@ -827,8 +827,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 44,
       depth: {
-        onePercentDepthAboveUsd: '3992748',
-        onePercentDepthBelowUsd: '4027663',
+        onePercentDepthAboveUsd: '3600299',
+        onePercentDepthBelowUsd: '3447505',
       },
     },
     {
@@ -845,8 +845,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 45,
       depth: {
-        onePercentDepthAboveUsd: '51200',
-        onePercentDepthBelowUsd: '49886',
+        onePercentDepthAboveUsd: '47686',
+        onePercentDepthBelowUsd: '55887',
       },
     },
     {
@@ -863,8 +863,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 46,
       depth: {
-        onePercentDepthAboveUsd: '88437',
-        onePercentDepthBelowUsd: '201061',
+        onePercentDepthAboveUsd: '183217',
+        onePercentDepthBelowUsd: '187028',
       },
     },
     {
@@ -881,8 +881,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 47,
       depth: {
-        onePercentDepthAboveUsd: '14282525',
-        onePercentDepthBelowUsd: '14411018',
+        onePercentDepthAboveUsd: '8725800',
+        onePercentDepthBelowUsd: '14959589',
       },
     },
     {
@@ -917,8 +917,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 49,
       depth: {
-        onePercentDepthAboveUsd: '152616',
-        onePercentDepthBelowUsd: '246641',
+        onePercentDepthAboveUsd: '177759',
+        onePercentDepthBelowUsd: '217604',
       },
     },
     {
@@ -935,8 +935,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 50,
       depth: {
-        onePercentDepthAboveUsd: '876813',
-        onePercentDepthBelowUsd: '1133842',
+        onePercentDepthAboveUsd: '1096558',
+        onePercentDepthBelowUsd: '1089798',
       },
     },
     {
@@ -1025,8 +1025,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 55,
       depth: {
-        onePercentDepthAboveUsd: '213987',
-        onePercentDepthBelowUsd: '238510',
+        onePercentDepthAboveUsd: '223975',
+        onePercentDepthBelowUsd: '158509',
       },
     },
     {
@@ -1061,8 +1061,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 57,
       depth: {
-        onePercentDepthAboveUsd: '632193',
-        onePercentDepthBelowUsd: '736110',
+        onePercentDepthAboveUsd: '586769',
+        onePercentDepthBelowUsd: '941885',
       },
     },
     {
@@ -1691,8 +1691,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 92,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1709,8 +1709,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 93,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1727,8 +1727,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 94,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1745,8 +1745,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 95,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1763,8 +1763,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 96,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1781,8 +1781,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 97,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1799,8 +1799,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 98,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1817,8 +1817,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 99,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1835,8 +1835,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 100,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1853,8 +1853,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 101,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -1871,8 +1871,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 102,
       depth: {
-        onePercentDepthAboveUsd: '2054994',
-        onePercentDepthBelowUsd: '2521124',
+        onePercentDepthAboveUsd: '2328885',
+        onePercentDepthBelowUsd: '1555926',
       },
     },
     {
@@ -1889,8 +1889,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 103,
       depth: {
-        onePercentDepthAboveUsd: '259002',
-        onePercentDepthBelowUsd: '364250',
+        onePercentDepthAboveUsd: '343398',
+        onePercentDepthBelowUsd: '227876',
       },
     },
     {
@@ -1907,8 +1907,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 104,
       depth: {
-        onePercentDepthAboveUsd: '642758',
-        onePercentDepthBelowUsd: '745360',
+        onePercentDepthAboveUsd: '551635',
+        onePercentDepthBelowUsd: '787988',
       },
     },
     {
@@ -1925,8 +1925,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 105,
       depth: {
-        onePercentDepthAboveUsd: '74694',
-        onePercentDepthBelowUsd: '104161',
+        onePercentDepthAboveUsd: '85275',
+        onePercentDepthBelowUsd: '114745',
       },
     },
     {
@@ -1961,8 +1961,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 107,
       depth: {
-        onePercentDepthAboveUsd: '180580',
-        onePercentDepthBelowUsd: '156589',
+        onePercentDepthAboveUsd: '126251',
+        onePercentDepthBelowUsd: '152454',
       },
     },
     {
@@ -1979,8 +1979,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 108,
       depth: {
-        onePercentDepthAboveUsd: '26372',
-        onePercentDepthBelowUsd: '23297',
+        onePercentDepthAboveUsd: '30625',
+        onePercentDepthBelowUsd: '19652',
       },
     },
     {
@@ -1997,8 +1997,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 109,
       depth: {
-        onePercentDepthAboveUsd: '746322',
-        onePercentDepthBelowUsd: '698989',
+        onePercentDepthAboveUsd: '443691',
+        onePercentDepthBelowUsd: '529311',
       },
     },
     {
@@ -2015,8 +2015,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 110,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2033,8 +2033,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 111,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2051,8 +2051,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 112,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2069,8 +2069,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 113,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2087,8 +2087,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 114,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2105,8 +2105,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 115,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2123,8 +2123,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 116,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2141,8 +2141,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 117,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2159,8 +2159,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 118,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2177,8 +2177,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 119,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2195,8 +2195,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 120,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2213,8 +2213,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 121,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2231,8 +2231,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 122,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2249,8 +2249,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 123,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2267,8 +2267,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 124,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2285,8 +2285,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 125,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2303,8 +2303,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 126,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2321,8 +2321,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 127,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -2339,8 +2339,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 128,
       depth: {
-        onePercentDepthAboveUsd: '332420',
-        onePercentDepthBelowUsd: '365699',
+        onePercentDepthAboveUsd: '298348',
+        onePercentDepthBelowUsd: '414645',
       },
     },
     {
@@ -2357,8 +2357,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 129,
       depth: {
-        onePercentDepthAboveUsd: '598813',
-        onePercentDepthBelowUsd: '865750',
+        onePercentDepthAboveUsd: '891683',
+        onePercentDepthBelowUsd: '803651',
       },
     },
     {
@@ -2393,8 +2393,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 131,
       depth: {
-        onePercentDepthAboveUsd: '118321',
-        onePercentDepthBelowUsd: '165228',
+        onePercentDepthAboveUsd: '179143',
+        onePercentDepthBelowUsd: '221418',
       },
     },
     {
@@ -2411,8 +2411,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 132,
       depth: {
-        onePercentDepthAboveUsd: '53017',
-        onePercentDepthBelowUsd: '31644',
+        onePercentDepthAboveUsd: '76205',
+        onePercentDepthBelowUsd: '42515',
       },
     },
     {
@@ -2429,8 +2429,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 133,
       depth: {
-        onePercentDepthAboveUsd: '36674',
-        onePercentDepthBelowUsd: '48314',
+        onePercentDepthAboveUsd: '61398',
+        onePercentDepthBelowUsd: '81318',
       },
     },
     {
@@ -2447,8 +2447,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 134,
       depth: {
-        onePercentDepthAboveUsd: '3604497',
-        onePercentDepthBelowUsd: '3360208',
+        onePercentDepthAboveUsd: '2749454',
+        onePercentDepthBelowUsd: '3846425',
       },
     },
     {
@@ -2465,8 +2465,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 135,
       depth: {
-        onePercentDepthAboveUsd: '253540',
-        onePercentDepthBelowUsd: '489394',
+        onePercentDepthAboveUsd: '264873',
+        onePercentDepthBelowUsd: '469083',
       },
     },
     {
@@ -2483,8 +2483,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 136,
       depth: {
-        onePercentDepthAboveUsd: '26373',
-        onePercentDepthBelowUsd: '40752',
+        onePercentDepthAboveUsd: '36000',
+        onePercentDepthBelowUsd: '30129',
       },
     },
     {
@@ -2501,8 +2501,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 137,
       depth: {
-        onePercentDepthAboveUsd: '605389',
-        onePercentDepthBelowUsd: '669337',
+        onePercentDepthAboveUsd: '364509',
+        onePercentDepthBelowUsd: '618337',
       },
     },
     {
@@ -2519,8 +2519,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 138,
       depth: {
-        onePercentDepthAboveUsd: '1787180',
-        onePercentDepthBelowUsd: '2249570',
+        onePercentDepthAboveUsd: '1693265',
+        onePercentDepthBelowUsd: '2353225',
       },
     },
     {
@@ -2537,8 +2537,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 139,
       depth: {
-        onePercentDepthAboveUsd: '110511',
-        onePercentDepthBelowUsd: '126464',
+        onePercentDepthAboveUsd: '138178',
+        onePercentDepthBelowUsd: '246265',
       },
     },
     {
@@ -2555,8 +2555,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 140,
       depth: {
-        onePercentDepthAboveUsd: '177536',
-        onePercentDepthBelowUsd: '222096',
+        onePercentDepthAboveUsd: '151362',
+        onePercentDepthBelowUsd: '184526',
       },
     },
     {
@@ -2573,8 +2573,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 141,
       depth: {
-        onePercentDepthAboveUsd: '263208',
-        onePercentDepthBelowUsd: '511307',
+        onePercentDepthAboveUsd: '561755',
+        onePercentDepthBelowUsd: '529433',
       },
     },
     {
@@ -2591,8 +2591,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 142,
       depth: {
-        onePercentDepthAboveUsd: '259087',
-        onePercentDepthBelowUsd: '301200',
+        onePercentDepthAboveUsd: '207300',
+        onePercentDepthBelowUsd: '218660',
       },
     },
     {
@@ -2609,8 +2609,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 143,
       depth: {
-        onePercentDepthAboveUsd: '60838',
-        onePercentDepthBelowUsd: '73673',
+        onePercentDepthAboveUsd: '42449',
+        onePercentDepthBelowUsd: '57665',
       },
     },
     {
@@ -2627,8 +2627,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 144,
       depth: {
-        onePercentDepthAboveUsd: '569024',
-        onePercentDepthBelowUsd: '567967',
+        onePercentDepthAboveUsd: '684867',
+        onePercentDepthBelowUsd: '594467',
       },
     },
     {
@@ -2645,8 +2645,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 145,
       depth: {
-        onePercentDepthAboveUsd: '200584',
-        onePercentDepthBelowUsd: '296707',
+        onePercentDepthAboveUsd: '280686',
+        onePercentDepthBelowUsd: '283621',
       },
     },
     {
@@ -2663,8 +2663,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 146,
       depth: {
-        onePercentDepthAboveUsd: '81716',
-        onePercentDepthBelowUsd: '78209',
+        onePercentDepthAboveUsd: '55876',
+        onePercentDepthBelowUsd: '81064',
       },
     },
     {
@@ -2699,8 +2699,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 148,
       depth: {
-        onePercentDepthAboveUsd: '144608',
-        onePercentDepthBelowUsd: '306233',
+        onePercentDepthAboveUsd: '165249',
+        onePercentDepthBelowUsd: '245708',
       },
     },
     {
@@ -2717,8 +2717,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 149,
       depth: {
-        onePercentDepthAboveUsd: '73382',
-        onePercentDepthBelowUsd: '65645',
+        onePercentDepthAboveUsd: '65122',
+        onePercentDepthBelowUsd: '60100',
       },
     },
     {
@@ -2735,8 +2735,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 150,
       depth: {
-        onePercentDepthAboveUsd: '151914',
-        onePercentDepthBelowUsd: '198475',
+        onePercentDepthAboveUsd: '114533',
+        onePercentDepthBelowUsd: '190826',
       },
     },
     {
@@ -2753,8 +2753,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 151,
       depth: {
-        onePercentDepthAboveUsd: '30748',
-        onePercentDepthBelowUsd: '49866',
+        onePercentDepthAboveUsd: '47187',
+        onePercentDepthBelowUsd: '51286',
       },
     },
     {
@@ -2789,8 +2789,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 153,
       depth: {
-        onePercentDepthAboveUsd: '2684497',
-        onePercentDepthBelowUsd: '2767288',
+        onePercentDepthAboveUsd: '2322454',
+        onePercentDepthBelowUsd: '2618359',
       },
     },
     {
@@ -2807,8 +2807,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 154,
       depth: {
-        onePercentDepthAboveUsd: '52928',
-        onePercentDepthBelowUsd: '68090',
+        onePercentDepthAboveUsd: '44790',
+        onePercentDepthBelowUsd: '51009',
       },
     },
     {
@@ -2825,8 +2825,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 155,
       depth: {
-        onePercentDepthAboveUsd: '607809',
-        onePercentDepthBelowUsd: '652204',
+        onePercentDepthAboveUsd: '522787',
+        onePercentDepthBelowUsd: '348225',
       },
     },
     {
@@ -2843,8 +2843,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 156,
       depth: {
-        onePercentDepthAboveUsd: '275563',
-        onePercentDepthBelowUsd: '354793',
+        onePercentDepthAboveUsd: '356452',
+        onePercentDepthBelowUsd: '399107',
       },
     },
     {
@@ -2861,8 +2861,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 157,
       depth: {
-        onePercentDepthAboveUsd: '43104',
-        onePercentDepthBelowUsd: '27853',
+        onePercentDepthAboveUsd: '41943',
+        onePercentDepthBelowUsd: '35096',
       },
     },
     {
@@ -2879,8 +2879,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 158,
       depth: {
-        onePercentDepthAboveUsd: '133604',
-        onePercentDepthBelowUsd: '156355',
+        onePercentDepthAboveUsd: '140773',
+        onePercentDepthBelowUsd: '117287',
       },
     },
     {
@@ -2897,8 +2897,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 159,
       depth: {
-        onePercentDepthAboveUsd: '400185',
-        onePercentDepthBelowUsd: '238645',
+        onePercentDepthAboveUsd: '364745',
+        onePercentDepthBelowUsd: '469126',
       },
     },
     {
@@ -2933,8 +2933,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 161,
       depth: {
-        onePercentDepthAboveUsd: '70247',
-        onePercentDepthBelowUsd: '72886',
+        onePercentDepthAboveUsd: '67302',
+        onePercentDepthBelowUsd: '81672',
       },
     },
     {
@@ -2951,8 +2951,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 162,
       depth: {
-        onePercentDepthAboveUsd: '28886',
-        onePercentDepthBelowUsd: '42406',
+        onePercentDepthAboveUsd: '38528',
+        onePercentDepthBelowUsd: '46007',
       },
     },
     {
@@ -2987,8 +2987,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 164,
       depth: {
-        onePercentDepthAboveUsd: '48395',
-        onePercentDepthBelowUsd: '50497',
+        onePercentDepthAboveUsd: '56551',
+        onePercentDepthBelowUsd: '79180',
       },
     },
     {
@@ -3005,8 +3005,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 165,
       depth: {
-        onePercentDepthAboveUsd: '98498',
-        onePercentDepthBelowUsd: '125761',
+        onePercentDepthAboveUsd: '76163',
+        onePercentDepthBelowUsd: '98174',
       },
     },
     {
@@ -3023,8 +3023,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 166,
       depth: {
-        onePercentDepthAboveUsd: '47485',
-        onePercentDepthBelowUsd: '74917',
+        onePercentDepthAboveUsd: '32711',
+        onePercentDepthBelowUsd: '78305',
       },
     },
     {
@@ -3041,8 +3041,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 167,
       depth: {
-        onePercentDepthAboveUsd: '44559',
-        onePercentDepthBelowUsd: '89225',
+        onePercentDepthAboveUsd: '41577',
+        onePercentDepthBelowUsd: '57573',
       },
     },
     {
@@ -3059,8 +3059,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 168,
       depth: {
-        onePercentDepthAboveUsd: '250744',
-        onePercentDepthBelowUsd: '248041',
+        onePercentDepthAboveUsd: '167976',
+        onePercentDepthBelowUsd: '302969',
       },
     },
     {
@@ -3077,8 +3077,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 169,
       depth: {
-        onePercentDepthAboveUsd: '50385',
-        onePercentDepthBelowUsd: '51281',
+        onePercentDepthAboveUsd: '52228',
+        onePercentDepthBelowUsd: '63320',
       },
     },
     {
@@ -3113,8 +3113,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 171,
       depth: {
-        onePercentDepthAboveUsd: '1020073',
-        onePercentDepthBelowUsd: '1214319',
+        onePercentDepthAboveUsd: '1094712',
+        onePercentDepthBelowUsd: '1073897',
       },
     },
     {
@@ -3131,8 +3131,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 172,
       depth: {
-        onePercentDepthAboveUsd: '141790',
-        onePercentDepthBelowUsd: '162378',
+        onePercentDepthAboveUsd: '133735',
+        onePercentDepthBelowUsd: '146603',
       },
     },
     {
@@ -3149,8 +3149,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 173,
       depth: {
-        onePercentDepthAboveUsd: '43546',
-        onePercentDepthBelowUsd: '64092',
+        onePercentDepthAboveUsd: '57963',
+        onePercentDepthBelowUsd: '60948',
       },
     },
     {
@@ -3167,8 +3167,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 174,
       depth: {
-        onePercentDepthAboveUsd: '59190',
-        onePercentDepthBelowUsd: '56969',
+        onePercentDepthAboveUsd: '62621',
+        onePercentDepthBelowUsd: '50015',
       },
     },
     {
@@ -3185,8 +3185,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 175,
       depth: {
-        onePercentDepthAboveUsd: '243591',
-        onePercentDepthBelowUsd: '183684',
+        onePercentDepthAboveUsd: '154662',
+        onePercentDepthBelowUsd: '330182',
       },
     },
     {
@@ -3203,8 +3203,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 176,
       depth: {
-        onePercentDepthAboveUsd: '75161',
-        onePercentDepthBelowUsd: '101239',
+        onePercentDepthAboveUsd: '100240',
+        onePercentDepthBelowUsd: '161455',
       },
     },
     {
@@ -3221,8 +3221,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 177,
       depth: {
-        onePercentDepthAboveUsd: '37299',
-        onePercentDepthBelowUsd: '42061',
+        onePercentDepthAboveUsd: '33962',
+        onePercentDepthBelowUsd: '35542',
       },
     },
     {
@@ -3239,8 +3239,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 178,
       depth: {
-        onePercentDepthAboveUsd: '33001',
-        onePercentDepthBelowUsd: '43904',
+        onePercentDepthAboveUsd: '63349',
+        onePercentDepthBelowUsd: '72747',
       },
     },
     {
@@ -3275,8 +3275,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 180,
       depth: {
-        onePercentDepthAboveUsd: '43924',
-        onePercentDepthBelowUsd: '59981',
+        onePercentDepthAboveUsd: '45795',
+        onePercentDepthBelowUsd: '67197',
       },
     },
     {
@@ -3293,8 +3293,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 181,
       depth: {
-        onePercentDepthAboveUsd: '48117',
-        onePercentDepthBelowUsd: '56033',
+        onePercentDepthAboveUsd: '62434',
+        onePercentDepthBelowUsd: '76374',
       },
     },
     {
@@ -3347,8 +3347,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 184,
       depth: {
-        onePercentDepthAboveUsd: '40720',
-        onePercentDepthBelowUsd: '66836',
+        onePercentDepthAboveUsd: '62908',
+        onePercentDepthBelowUsd: '47151',
       },
     },
     {
@@ -3365,8 +3365,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 185,
       depth: {
-        onePercentDepthAboveUsd: '40624',
-        onePercentDepthBelowUsd: '63204',
+        onePercentDepthAboveUsd: '9167',
+        onePercentDepthBelowUsd: '28524',
       },
     },
     {
@@ -3473,8 +3473,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 191,
       depth: {
-        onePercentDepthAboveUsd: '258394',
-        onePercentDepthBelowUsd: '314818',
+        onePercentDepthAboveUsd: '280104',
+        onePercentDepthBelowUsd: '253766',
       },
     },
     {
@@ -3491,8 +3491,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 192,
       depth: {
-        onePercentDepthAboveUsd: '55210',
-        onePercentDepthBelowUsd: '58077',
+        onePercentDepthAboveUsd: '56090',
+        onePercentDepthBelowUsd: '48043',
       },
     },
     {
@@ -3509,8 +3509,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 193,
       depth: {
-        onePercentDepthAboveUsd: '1213085',
-        onePercentDepthBelowUsd: '1497318',
+        onePercentDepthAboveUsd: '1445614',
+        onePercentDepthBelowUsd: '1240512',
       },
     },
     {
@@ -3527,8 +3527,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 194,
       depth: {
-        onePercentDepthAboveUsd: '262861',
-        onePercentDepthBelowUsd: '303112',
+        onePercentDepthAboveUsd: '242993',
+        onePercentDepthBelowUsd: '312293',
       },
     },
     {
@@ -3545,8 +3545,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 195,
       depth: {
-        onePercentDepthAboveUsd: '14020',
-        onePercentDepthBelowUsd: '23802',
+        onePercentDepthAboveUsd: '13558',
+        onePercentDepthBelowUsd: '13851',
       },
     },
     {
@@ -3563,8 +3563,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 196,
       depth: {
-        onePercentDepthAboveUsd: '79148',
-        onePercentDepthBelowUsd: '93112',
+        onePercentDepthAboveUsd: '84856',
+        onePercentDepthBelowUsd: '108854',
       },
     },
     {
@@ -3581,8 +3581,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 197,
       depth: {
-        onePercentDepthAboveUsd: '54332',
-        onePercentDepthBelowUsd: '62863',
+        onePercentDepthAboveUsd: '78066',
+        onePercentDepthBelowUsd: '96874',
       },
     },
     {
@@ -3599,8 +3599,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 198,
       depth: {
-        onePercentDepthAboveUsd: '74197',
-        onePercentDepthBelowUsd: '94490',
+        onePercentDepthAboveUsd: '72751',
+        onePercentDepthBelowUsd: '68317',
       },
     },
     {
@@ -3617,8 +3617,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 199,
       depth: {
-        onePercentDepthAboveUsd: '87978',
-        onePercentDepthBelowUsd: '84417',
+        onePercentDepthAboveUsd: '41740',
+        onePercentDepthBelowUsd: '53077',
       },
     },
     {
@@ -3635,8 +3635,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 200,
       depth: {
-        onePercentDepthAboveUsd: '144194',
-        onePercentDepthBelowUsd: '142544',
+        onePercentDepthAboveUsd: '112104',
+        onePercentDepthBelowUsd: '123105',
       },
     },
     {
@@ -3653,8 +3653,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 201,
       depth: {
-        onePercentDepthAboveUsd: '87232',
-        onePercentDepthBelowUsd: '41598',
+        onePercentDepthAboveUsd: '193266',
+        onePercentDepthBelowUsd: '164750',
       },
     },
     {
@@ -3671,8 +3671,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 202,
       depth: {
-        onePercentDepthAboveUsd: '34748',
-        onePercentDepthBelowUsd: '34082',
+        onePercentDepthAboveUsd: '26824',
+        onePercentDepthBelowUsd: '31202',
       },
     },
     {
@@ -3689,8 +3689,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 203,
       depth: {
-        onePercentDepthAboveUsd: '236484',
-        onePercentDepthBelowUsd: '356265',
+        onePercentDepthAboveUsd: '240034',
+        onePercentDepthBelowUsd: '291983',
       },
     },
     {
@@ -3707,8 +3707,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 204,
       depth: {
-        onePercentDepthAboveUsd: '27070',
-        onePercentDepthBelowUsd: '35636',
+        onePercentDepthAboveUsd: '12356',
+        onePercentDepthBelowUsd: '23675',
       },
     },
     {
@@ -3725,8 +3725,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 205,
       depth: {
-        onePercentDepthAboveUsd: '1235519',
-        onePercentDepthBelowUsd: '1295544',
+        onePercentDepthAboveUsd: '775238',
+        onePercentDepthBelowUsd: '1082188',
       },
     },
     {
@@ -3743,8 +3743,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 206,
       depth: {
-        onePercentDepthAboveUsd: '63040',
-        onePercentDepthBelowUsd: '64588',
+        onePercentDepthAboveUsd: '46748',
+        onePercentDepthBelowUsd: '34102',
       },
     },
     {
@@ -3761,8 +3761,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 207,
       depth: {
-        onePercentDepthAboveUsd: '163685',
-        onePercentDepthBelowUsd: '155226',
+        onePercentDepthAboveUsd: '179643',
+        onePercentDepthBelowUsd: '178631',
       },
     },
     {
@@ -3815,8 +3815,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 210,
       depth: {
-        onePercentDepthAboveUsd: '35378',
-        onePercentDepthBelowUsd: '45140',
+        onePercentDepthAboveUsd: '39003',
+        onePercentDepthBelowUsd: '47050',
       },
     },
     {
@@ -3833,8 +3833,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 211,
       depth: {
-        onePercentDepthAboveUsd: '146519',
-        onePercentDepthBelowUsd: '192059',
+        onePercentDepthAboveUsd: '111963',
+        onePercentDepthBelowUsd: '168371',
       },
     },
     {
@@ -3851,8 +3851,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 212,
       depth: {
-        onePercentDepthAboveUsd: '242437',
-        onePercentDepthBelowUsd: '303844',
+        onePercentDepthAboveUsd: '279499',
+        onePercentDepthBelowUsd: '241197',
       },
     },
     {
@@ -3869,8 +3869,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 213,
       depth: {
-        onePercentDepthAboveUsd: '41426',
-        onePercentDepthBelowUsd: '32796',
+        onePercentDepthAboveUsd: '51127',
+        onePercentDepthBelowUsd: '47512',
       },
     },
     {
@@ -3887,8 +3887,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 214,
       depth: {
-        onePercentDepthAboveUsd: '98043',
-        onePercentDepthBelowUsd: '101815',
+        onePercentDepthAboveUsd: '90906',
+        onePercentDepthBelowUsd: '110098',
       },
     },
     {
@@ -3905,8 +3905,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 215,
       depth: {
-        onePercentDepthAboveUsd: '216911',
-        onePercentDepthBelowUsd: '287684',
+        onePercentDepthAboveUsd: '191657',
+        onePercentDepthBelowUsd: '249332',
       },
     },
     {
@@ -3923,8 +3923,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 216,
       depth: {
-        onePercentDepthAboveUsd: '180421',
-        onePercentDepthBelowUsd: '43226',
+        onePercentDepthAboveUsd: '182292',
+        onePercentDepthBelowUsd: '188657',
       },
     },
     {
@@ -3941,8 +3941,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 217,
       depth: {
-        onePercentDepthAboveUsd: '110479',
-        onePercentDepthBelowUsd: '102769',
+        onePercentDepthAboveUsd: '99827',
+        onePercentDepthBelowUsd: '114944',
       },
     },
     {
@@ -3959,8 +3959,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 218,
       depth: {
-        onePercentDepthAboveUsd: '83843',
-        onePercentDepthBelowUsd: '112788',
+        onePercentDepthAboveUsd: '52483',
+        onePercentDepthBelowUsd: '85868',
       },
     },
     {
@@ -3977,8 +3977,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 219,
       depth: {
-        onePercentDepthAboveUsd: '1782114',
-        onePercentDepthBelowUsd: '2010065',
+        onePercentDepthAboveUsd: '1394291',
+        onePercentDepthBelowUsd: '1459164',
       },
     },
     {
@@ -3995,8 +3995,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 220,
       depth: {
-        onePercentDepthAboveUsd: '173840',
-        onePercentDepthBelowUsd: '216239',
+        onePercentDepthAboveUsd: '125039',
+        onePercentDepthBelowUsd: '165311',
       },
     },
     {
@@ -4013,8 +4013,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 221,
       depth: {
-        onePercentDepthAboveUsd: '9071',
-        onePercentDepthBelowUsd: '7108',
+        onePercentDepthAboveUsd: '9800',
+        onePercentDepthBelowUsd: '8724',
       },
     },
     {
@@ -4031,8 +4031,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 222,
       depth: {
-        onePercentDepthAboveUsd: '83054',
-        onePercentDepthBelowUsd: '85375',
+        onePercentDepthAboveUsd: '69317',
+        onePercentDepthBelowUsd: '28606',
       },
     },
     {
@@ -4049,8 +4049,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 223,
       depth: {
-        onePercentDepthAboveUsd: '382535',
-        onePercentDepthBelowUsd: '456816',
+        onePercentDepthAboveUsd: '472044',
+        onePercentDepthBelowUsd: '575709',
       },
     },
     {
@@ -4067,8 +4067,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 224,
       depth: {
-        onePercentDepthAboveUsd: '36535',
-        onePercentDepthBelowUsd: '49139',
+        onePercentDepthAboveUsd: '4187',
+        onePercentDepthBelowUsd: '22494',
       },
     },
     {
@@ -4103,8 +4103,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 226,
       depth: {
-        onePercentDepthAboveUsd: '54455',
-        onePercentDepthBelowUsd: '57178',
+        onePercentDepthAboveUsd: '58900',
+        onePercentDepthBelowUsd: '72129',
       },
     },
     {
@@ -4121,8 +4121,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 227,
       depth: {
-        onePercentDepthAboveUsd: '34872',
-        onePercentDepthBelowUsd: '47822',
+        onePercentDepthAboveUsd: '54172',
+        onePercentDepthBelowUsd: '70978',
       },
     },
     {
@@ -4139,8 +4139,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 228,
       depth: {
-        onePercentDepthAboveUsd: '149467',
-        onePercentDepthBelowUsd: '150975',
+        onePercentDepthAboveUsd: '136986',
+        onePercentDepthBelowUsd: '140547',
       },
     },
     {
@@ -4211,8 +4211,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 232,
       depth: {
-        onePercentDepthAboveUsd: '94945',
-        onePercentDepthBelowUsd: '114649',
+        onePercentDepthAboveUsd: '90525',
+        onePercentDepthBelowUsd: '95431',
       },
     },
     {
@@ -4229,8 +4229,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 233,
       depth: {
-        onePercentDepthAboveUsd: '143845',
-        onePercentDepthBelowUsd: '222471',
+        onePercentDepthAboveUsd: '133374',
+        onePercentDepthBelowUsd: '217092',
       },
     },
     {
@@ -4247,8 +4247,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 234,
       depth: {
-        onePercentDepthAboveUsd: '37297',
-        onePercentDepthBelowUsd: '38919',
+        onePercentDepthAboveUsd: '41151',
+        onePercentDepthBelowUsd: '40690',
       },
     },
     {
@@ -4265,8 +4265,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 235,
       depth: {
-        onePercentDepthAboveUsd: '67867',
-        onePercentDepthBelowUsd: '62516',
+        onePercentDepthAboveUsd: '57506',
+        onePercentDepthBelowUsd: '87000',
       },
     },
     {
@@ -4283,8 +4283,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 236,
       depth: {
-        onePercentDepthAboveUsd: '149240',
-        onePercentDepthBelowUsd: '172106',
+        onePercentDepthAboveUsd: '114725',
+        onePercentDepthBelowUsd: '162318',
       },
     },
     {
@@ -4301,8 +4301,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 237,
       depth: {
-        onePercentDepthAboveUsd: '257410',
-        onePercentDepthBelowUsd: '310304',
+        onePercentDepthAboveUsd: '270878',
+        onePercentDepthBelowUsd: '194642',
       },
     },
     {
@@ -4355,8 +4355,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 240,
       depth: {
-        onePercentDepthAboveUsd: '29074',
-        onePercentDepthBelowUsd: '34402',
+        onePercentDepthAboveUsd: '26718',
+        onePercentDepthBelowUsd: '31378',
       },
     },
     {
@@ -4391,8 +4391,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 242,
       depth: {
-        onePercentDepthAboveUsd: '80046',
-        onePercentDepthBelowUsd: '84722',
+        onePercentDepthAboveUsd: '92528',
+        onePercentDepthBelowUsd: '119048',
       },
     },
     {
@@ -4409,8 +4409,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 243,
       depth: {
-        onePercentDepthAboveUsd: '47448',
-        onePercentDepthBelowUsd: '95142',
+        onePercentDepthAboveUsd: '43489',
+        onePercentDepthBelowUsd: '85617',
       },
     },
     {
@@ -4427,8 +4427,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 244,
       depth: {
-        onePercentDepthAboveUsd: '59750',
-        onePercentDepthBelowUsd: '72614',
+        onePercentDepthAboveUsd: '50009',
+        onePercentDepthBelowUsd: '70896',
       },
     },
     {
@@ -4445,8 +4445,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 245,
       depth: {
-        onePercentDepthAboveUsd: '98530',
-        onePercentDepthBelowUsd: '236040',
+        onePercentDepthAboveUsd: '150828',
+        onePercentDepthBelowUsd: '226116',
       },
     },
     {
@@ -4463,8 +4463,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 246,
       depth: {
-        onePercentDepthAboveUsd: '54066',
-        onePercentDepthBelowUsd: '57580',
+        onePercentDepthAboveUsd: '66103',
+        onePercentDepthBelowUsd: '59957',
       },
     },
     {
@@ -4481,8 +4481,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 247,
       depth: {
-        onePercentDepthAboveUsd: '171691',
-        onePercentDepthBelowUsd: '185568',
+        onePercentDepthAboveUsd: '129857',
+        onePercentDepthBelowUsd: '170971',
       },
     },
     {
@@ -4499,8 +4499,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 248,
       depth: {
-        onePercentDepthAboveUsd: '55011',
-        onePercentDepthBelowUsd: '54541',
+        onePercentDepthAboveUsd: '65289',
+        onePercentDepthBelowUsd: '74725',
       },
     },
     {
@@ -4517,8 +4517,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 249,
       depth: {
-        onePercentDepthAboveUsd: '74913',
-        onePercentDepthBelowUsd: '78718',
+        onePercentDepthAboveUsd: '97934',
+        onePercentDepthBelowUsd: '84142',
       },
     },
     {
@@ -4553,8 +4553,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 251,
       depth: {
-        onePercentDepthAboveUsd: '35823',
-        onePercentDepthBelowUsd: '65033',
+        onePercentDepthAboveUsd: '54604',
+        onePercentDepthBelowUsd: '89390',
       },
     },
     {
@@ -4571,8 +4571,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 252,
       depth: {
-        onePercentDepthAboveUsd: '9319',
-        onePercentDepthBelowUsd: '15020',
+        onePercentDepthAboveUsd: '5691',
+        onePercentDepthBelowUsd: '11194',
       },
     },
     {
@@ -4625,8 +4625,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 255,
       depth: {
-        onePercentDepthAboveUsd: '5162',
-        onePercentDepthBelowUsd: '7358',
+        onePercentDepthAboveUsd: '11649',
+        onePercentDepthBelowUsd: '9426',
       },
     },
     {
@@ -4643,8 +4643,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 256,
       depth: {
-        onePercentDepthAboveUsd: '42287',
-        onePercentDepthBelowUsd: '35277',
+        onePercentDepthAboveUsd: '51934',
+        onePercentDepthBelowUsd: '40171',
       },
     },
     {
@@ -4661,8 +4661,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 257,
       depth: {
-        onePercentDepthAboveUsd: '62261',
-        onePercentDepthBelowUsd: '72864',
+        onePercentDepthAboveUsd: '69111',
+        onePercentDepthBelowUsd: '95295',
       },
     },
     {
@@ -4697,8 +4697,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 259,
       depth: {
-        onePercentDepthAboveUsd: '102241',
-        onePercentDepthBelowUsd: '118793',
+        onePercentDepthAboveUsd: '9184',
+        onePercentDepthBelowUsd: '20880',
       },
     },
     {
@@ -4715,8 +4715,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 260,
       depth: {
-        onePercentDepthAboveUsd: '69699',
-        onePercentDepthBelowUsd: '86184',
+        onePercentDepthAboveUsd: '90745',
+        onePercentDepthBelowUsd: '103111',
       },
     },
     {
@@ -4733,8 +4733,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 261,
       depth: {
-        onePercentDepthAboveUsd: '31366',
-        onePercentDepthBelowUsd: '24932',
+        onePercentDepthAboveUsd: '27171',
+        onePercentDepthBelowUsd: '22602',
       },
     },
     {
@@ -4751,8 +4751,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 262,
       depth: {
-        onePercentDepthAboveUsd: '71441',
-        onePercentDepthBelowUsd: '108008',
+        onePercentDepthAboveUsd: '55894',
+        onePercentDepthBelowUsd: '80682',
       },
     },
     {
@@ -4769,8 +4769,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 263,
       depth: {
-        onePercentDepthAboveUsd: '34075',
-        onePercentDepthBelowUsd: '43845',
+        onePercentDepthAboveUsd: '40185',
+        onePercentDepthBelowUsd: '36749',
       },
     },
     {
@@ -4787,8 +4787,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 264,
       depth: {
-        onePercentDepthAboveUsd: '62046',
-        onePercentDepthBelowUsd: '81650',
+        onePercentDepthAboveUsd: '53863',
+        onePercentDepthBelowUsd: '99769',
       },
     },
     {
@@ -4805,8 +4805,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 265,
       depth: {
-        onePercentDepthAboveUsd: '118279',
-        onePercentDepthBelowUsd: '94492',
+        onePercentDepthAboveUsd: '97088',
+        onePercentDepthBelowUsd: '153745',
       },
     },
     {
@@ -4823,8 +4823,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 266,
       depth: {
-        onePercentDepthAboveUsd: '62289',
-        onePercentDepthBelowUsd: '77524',
+        onePercentDepthAboveUsd: '42175',
+        onePercentDepthBelowUsd: '82741',
       },
     },
     {
@@ -4841,8 +4841,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 267,
       depth: {
-        onePercentDepthAboveUsd: '69500',
-        onePercentDepthBelowUsd: '99191',
+        onePercentDepthAboveUsd: '48784',
+        onePercentDepthBelowUsd: '92715',
       },
     },
     {
@@ -4859,8 +4859,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 268,
       depth: {
-        onePercentDepthAboveUsd: '12612',
-        onePercentDepthBelowUsd: '18666',
+        onePercentDepthAboveUsd: '15450',
+        onePercentDepthBelowUsd: '14570',
       },
     },
     {
@@ -4877,8 +4877,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 269,
       depth: {
-        onePercentDepthAboveUsd: '327598',
-        onePercentDepthBelowUsd: '498366',
+        onePercentDepthAboveUsd: '375315',
+        onePercentDepthBelowUsd: '556627',
       },
     },
     {
@@ -4913,8 +4913,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 271,
       depth: {
-        onePercentDepthAboveUsd: '15762',
-        onePercentDepthBelowUsd: '37985',
+        onePercentDepthAboveUsd: '25858',
+        onePercentDepthBelowUsd: '28255',
       },
     },
     {
@@ -4931,8 +4931,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 272,
       depth: {
-        onePercentDepthAboveUsd: '5581',
-        onePercentDepthBelowUsd: '10480',
+        onePercentDepthAboveUsd: '6335',
+        onePercentDepthBelowUsd: '461',
       },
     },
     {
@@ -4949,8 +4949,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 273,
       depth: {
-        onePercentDepthAboveUsd: '2382',
-        onePercentDepthBelowUsd: '2869',
+        onePercentDepthAboveUsd: '3703',
+        onePercentDepthBelowUsd: '3594',
       },
     },
     {
@@ -4967,8 +4967,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 274,
       depth: {
-        onePercentDepthAboveUsd: '22200',
-        onePercentDepthBelowUsd: '26580',
+        onePercentDepthAboveUsd: '33751',
+        onePercentDepthBelowUsd: '39648',
       },
     },
     {
@@ -5021,8 +5021,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 277,
       depth: {
-        onePercentDepthAboveUsd: '21238',
-        onePercentDepthBelowUsd: '94251',
+        onePercentDepthAboveUsd: '55676',
+        onePercentDepthBelowUsd: '85243',
       },
     },
     {
@@ -5075,8 +5075,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 280,
       depth: {
-        onePercentDepthAboveUsd: '85538',
-        onePercentDepthBelowUsd: '132110',
+        onePercentDepthAboveUsd: '105981',
+        onePercentDepthBelowUsd: '121160',
       },
     },
     {
@@ -5093,8 +5093,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 281,
       depth: {
-        onePercentDepthAboveUsd: '37808',
-        onePercentDepthBelowUsd: '44853',
+        onePercentDepthAboveUsd: '37529',
+        onePercentDepthBelowUsd: '44566',
       },
     },
     {
@@ -5129,8 +5129,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 283,
       depth: {
-        onePercentDepthAboveUsd: '81448',
-        onePercentDepthBelowUsd: '82279',
+        onePercentDepthAboveUsd: '86473',
+        onePercentDepthBelowUsd: '67529',
       },
     },
     {
@@ -5147,8 +5147,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 284,
       depth: {
-        onePercentDepthAboveUsd: '218180',
-        onePercentDepthBelowUsd: '260514',
+        onePercentDepthAboveUsd: '252450',
+        onePercentDepthBelowUsd: '280324',
       },
     },
     {
@@ -5183,8 +5183,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 286,
       depth: {
-        onePercentDepthAboveUsd: '62608',
-        onePercentDepthBelowUsd: '76958',
+        onePercentDepthAboveUsd: '43566',
+        onePercentDepthBelowUsd: '83606',
       },
     },
     {
@@ -5201,8 +5201,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 287,
       depth: {
-        onePercentDepthAboveUsd: '28109',
-        onePercentDepthBelowUsd: '40802',
+        onePercentDepthAboveUsd: '24928',
+        onePercentDepthBelowUsd: '29942',
       },
     },
     {
@@ -5219,8 +5219,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 288,
       depth: {
-        onePercentDepthAboveUsd: '138661',
-        onePercentDepthBelowUsd: '231993',
+        onePercentDepthAboveUsd: '147224',
+        onePercentDepthBelowUsd: '166923',
       },
     },
     {
@@ -5237,8 +5237,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 289,
       depth: {
-        onePercentDepthAboveUsd: '24986',
-        onePercentDepthBelowUsd: '23632',
+        onePercentDepthAboveUsd: '23714',
+        onePercentDepthBelowUsd: '29438',
       },
     },
     {
@@ -5273,8 +5273,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 291,
       depth: {
-        onePercentDepthAboveUsd: '8454',
-        onePercentDepthBelowUsd: '8991',
+        onePercentDepthAboveUsd: '9138',
+        onePercentDepthBelowUsd: '11387',
       },
     },
     {
@@ -5291,8 +5291,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 292,
       depth: {
-        onePercentDepthAboveUsd: '3894',
-        onePercentDepthBelowUsd: '2640',
+        onePercentDepthAboveUsd: '4514',
+        onePercentDepthBelowUsd: '3008',
       },
     },
     {
@@ -5309,8 +5309,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 293,
       depth: {
-        onePercentDepthAboveUsd: '17464',
-        onePercentDepthBelowUsd: '23767',
+        onePercentDepthAboveUsd: '12490',
+        onePercentDepthBelowUsd: '21537',
       },
     },
     {
@@ -5345,8 +5345,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 295,
       depth: {
-        onePercentDepthAboveUsd: '14861',
-        onePercentDepthBelowUsd: '41536',
+        onePercentDepthAboveUsd: '20612',
+        onePercentDepthBelowUsd: '32827',
       },
     },
     {
@@ -5381,8 +5381,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 297,
       depth: {
-        onePercentDepthAboveUsd: '39370',
-        onePercentDepthBelowUsd: '34155',
+        onePercentDepthAboveUsd: '30016',
+        onePercentDepthBelowUsd: '32110',
       },
     },
     {
@@ -5399,8 +5399,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 298,
       depth: {
-        onePercentDepthAboveUsd: '25372',
-        onePercentDepthBelowUsd: '20195',
+        onePercentDepthAboveUsd: '19875',
+        onePercentDepthBelowUsd: '21841',
       },
     },
     {
@@ -5417,8 +5417,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 299,
       depth: {
-        onePercentDepthAboveUsd: '258519',
-        onePercentDepthBelowUsd: '226676',
+        onePercentDepthAboveUsd: '174314',
+        onePercentDepthBelowUsd: '132283',
       },
     },
     {
@@ -5453,8 +5453,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 301,
       depth: {
-        onePercentDepthAboveUsd: '188641',
-        onePercentDepthBelowUsd: '219935',
+        onePercentDepthAboveUsd: '116320',
+        onePercentDepthBelowUsd: '228728',
       },
     },
     {
@@ -5471,8 +5471,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 302,
       depth: {
-        onePercentDepthAboveUsd: '74327',
-        onePercentDepthBelowUsd: '90338',
+        onePercentDepthAboveUsd: '68518',
+        onePercentDepthBelowUsd: '72903',
       },
     },
     {
@@ -5489,8 +5489,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 303,
       depth: {
-        onePercentDepthAboveUsd: '178308',
-        onePercentDepthBelowUsd: '161673',
+        onePercentDepthAboveUsd: '151825',
+        onePercentDepthBelowUsd: '110559',
       },
     },
     {
@@ -5507,8 +5507,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 304,
       depth: {
-        onePercentDepthAboveUsd: '59523',
-        onePercentDepthBelowUsd: '64485',
+        onePercentDepthAboveUsd: '59363',
+        onePercentDepthBelowUsd: '91229',
       },
     },
     {
@@ -5543,8 +5543,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 306,
       depth: {
-        onePercentDepthAboveUsd: '12627',
-        onePercentDepthBelowUsd: '9597',
+        onePercentDepthAboveUsd: '5391',
+        onePercentDepthBelowUsd: '9054',
       },
     },
     {
@@ -5561,8 +5561,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 307,
       depth: {
-        onePercentDepthAboveUsd: '108817',
-        onePercentDepthBelowUsd: '155700',
+        onePercentDepthAboveUsd: '92029',
+        onePercentDepthBelowUsd: '153497',
       },
     },
     {
@@ -5579,8 +5579,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 308,
       depth: {
-        onePercentDepthAboveUsd: '76540',
-        onePercentDepthBelowUsd: '111938',
+        onePercentDepthAboveUsd: '60284',
+        onePercentDepthBelowUsd: '139660',
       },
     },
     {
@@ -5597,8 +5597,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 309,
       depth: {
-        onePercentDepthAboveUsd: '39740',
-        onePercentDepthBelowUsd: '33593',
+        onePercentDepthAboveUsd: '24778',
+        onePercentDepthBelowUsd: '29319',
       },
     },
     {
@@ -5615,8 +5615,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 310,
       depth: {
-        onePercentDepthAboveUsd: '23769',
-        onePercentDepthBelowUsd: '22235',
+        onePercentDepthAboveUsd: '39422',
+        onePercentDepthBelowUsd: '27481',
       },
     },
     {
@@ -5651,8 +5651,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 312,
       depth: {
-        onePercentDepthAboveUsd: '3898',
-        onePercentDepthBelowUsd: '3064',
+        onePercentDepthAboveUsd: '6496',
+        onePercentDepthBelowUsd: '6248',
       },
     },
     {
@@ -5705,8 +5705,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 315,
       depth: {
-        onePercentDepthAboveUsd: '73747',
-        onePercentDepthBelowUsd: '104531',
+        onePercentDepthAboveUsd: '69338',
+        onePercentDepthBelowUsd: '98647',
       },
     },
     {
@@ -5723,8 +5723,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 316,
       depth: {
-        onePercentDepthAboveUsd: '144185',
-        onePercentDepthBelowUsd: '169318',
+        onePercentDepthAboveUsd: '11685',
+        onePercentDepthBelowUsd: '16378',
       },
     },
     {
@@ -5741,8 +5741,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 317,
       depth: {
-        onePercentDepthAboveUsd: '52041',
-        onePercentDepthBelowUsd: '55594',
+        onePercentDepthAboveUsd: '51759',
+        onePercentDepthBelowUsd: '56195',
       },
     },
     {
@@ -5759,8 +5759,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 318,
       depth: {
-        onePercentDepthAboveUsd: '25521',
-        onePercentDepthBelowUsd: '26565',
+        onePercentDepthAboveUsd: '19780',
+        onePercentDepthBelowUsd: '29113',
       },
     },
     {
@@ -5777,8 +5777,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 319,
       depth: {
-        onePercentDepthAboveUsd: '10717',
-        onePercentDepthBelowUsd: '12018',
+        onePercentDepthAboveUsd: '9420',
+        onePercentDepthBelowUsd: '12407',
       },
     },
     {
@@ -5795,8 +5795,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 320,
       depth: {
-        onePercentDepthAboveUsd: '385543',
-        onePercentDepthBelowUsd: '425625',
+        onePercentDepthAboveUsd: '395283',
+        onePercentDepthBelowUsd: '343846',
       },
     },
     {
@@ -5813,8 +5813,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 321,
       depth: {
-        onePercentDepthAboveUsd: '214455',
-        onePercentDepthBelowUsd: '521960',
+        onePercentDepthAboveUsd: '175932',
+        onePercentDepthBelowUsd: '452518',
       },
     },
     {
@@ -5831,8 +5831,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 322,
       depth: {
-        onePercentDepthAboveUsd: '6567',
-        onePercentDepthBelowUsd: '6011',
+        onePercentDepthAboveUsd: '1015',
+        onePercentDepthBelowUsd: '2522',
       },
     },
     {
@@ -5849,8 +5849,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 323,
       depth: {
-        onePercentDepthAboveUsd: '57494',
-        onePercentDepthBelowUsd: '67534',
+        onePercentDepthAboveUsd: '73404',
+        onePercentDepthBelowUsd: '58336',
       },
     },
     {
@@ -5867,8 +5867,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 324,
       depth: {
-        onePercentDepthAboveUsd: '89887',
-        onePercentDepthBelowUsd: '121736',
+        onePercentDepthAboveUsd: '86953',
+        onePercentDepthBelowUsd: '116802',
       },
     },
     {
@@ -5885,8 +5885,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 325,
       depth: {
-        onePercentDepthAboveUsd: '80782',
-        onePercentDepthBelowUsd: '107301',
+        onePercentDepthAboveUsd: '90469',
+        onePercentDepthBelowUsd: '116257',
       },
     },
     {
@@ -5939,8 +5939,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 328,
       depth: {
-        onePercentDepthAboveUsd: '1386262',
-        onePercentDepthBelowUsd: '1520733',
+        onePercentDepthAboveUsd: '1448967',
+        onePercentDepthBelowUsd: '1648336',
       },
     },
     {
@@ -5957,8 +5957,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 329,
       depth: {
-        onePercentDepthAboveUsd: '12914',
-        onePercentDepthBelowUsd: '13521',
+        onePercentDepthAboveUsd: '12334',
+        onePercentDepthBelowUsd: '14138',
       },
     },
     {
@@ -5993,8 +5993,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 331,
       depth: {
-        onePercentDepthAboveUsd: '242193',
-        onePercentDepthBelowUsd: '500322',
+        onePercentDepthAboveUsd: '85498',
+        onePercentDepthBelowUsd: '307243',
       },
     },
     {
@@ -6011,8 +6011,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 332,
       depth: {
-        onePercentDepthAboveUsd: '229750',
-        onePercentDepthBelowUsd: '251786',
+        onePercentDepthAboveUsd: '264309',
+        onePercentDepthBelowUsd: '277090',
       },
     },
     {
@@ -6029,8 +6029,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 333,
       depth: {
-        onePercentDepthAboveUsd: '3858',
-        onePercentDepthBelowUsd: '4852',
+        onePercentDepthAboveUsd: '1945',
+        onePercentDepthBelowUsd: '2822',
       },
     },
     {
@@ -6047,8 +6047,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 334,
       depth: {
-        onePercentDepthAboveUsd: '201672',
-        onePercentDepthBelowUsd: '232191',
+        onePercentDepthAboveUsd: '168341',
+        onePercentDepthBelowUsd: '144185',
       },
     },
     {
@@ -6065,8 +6065,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 335,
       depth: {
-        onePercentDepthAboveUsd: '11040',
-        onePercentDepthBelowUsd: '14255',
+        onePercentDepthAboveUsd: '19867',
+        onePercentDepthBelowUsd: '23615',
       },
     },
     {
@@ -6083,8 +6083,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 336,
       depth: {
-        onePercentDepthAboveUsd: '7337',
-        onePercentDepthBelowUsd: '6365',
+        onePercentDepthAboveUsd: '10209',
+        onePercentDepthBelowUsd: '9169',
       },
     },
     {
@@ -6101,8 +6101,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 337,
       depth: {
-        onePercentDepthAboveUsd: '111384',
-        onePercentDepthBelowUsd: '93416',
+        onePercentDepthAboveUsd: '93040',
+        onePercentDepthBelowUsd: '78455',
       },
     },
     {
@@ -6119,8 +6119,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 338,
       depth: {
-        onePercentDepthAboveUsd: '105779',
-        onePercentDepthBelowUsd: '55669',
+        onePercentDepthAboveUsd: '113305',
+        onePercentDepthBelowUsd: '78541',
       },
     },
     {
@@ -6137,8 +6137,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 339,
       depth: {
-        onePercentDepthAboveUsd: '7880',
-        onePercentDepthBelowUsd: '13220',
+        onePercentDepthAboveUsd: '16509',
+        onePercentDepthBelowUsd: '10373',
       },
     },
     {
@@ -6155,8 +6155,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 340,
       depth: {
-        onePercentDepthAboveUsd: '71004',
-        onePercentDepthBelowUsd: '69186',
+        onePercentDepthAboveUsd: '70091',
+        onePercentDepthBelowUsd: '46015',
       },
     },
     {
@@ -6173,8 +6173,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 341,
       depth: {
-        onePercentDepthAboveUsd: '62556',
-        onePercentDepthBelowUsd: '60591',
+        onePercentDepthAboveUsd: '31333',
+        onePercentDepthBelowUsd: '28619',
       },
     },
     {
@@ -6191,8 +6191,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 342,
       depth: {
-        onePercentDepthAboveUsd: '72369',
-        onePercentDepthBelowUsd: '180100',
+        onePercentDepthAboveUsd: '78331',
+        onePercentDepthBelowUsd: '128225',
       },
     },
     {
@@ -6209,8 +6209,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 343,
       depth: {
-        onePercentDepthAboveUsd: '50206',
-        onePercentDepthBelowUsd: '84257',
+        onePercentDepthAboveUsd: '63010',
+        onePercentDepthBelowUsd: '72734',
       },
     },
     {
@@ -6227,8 +6227,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 344,
       depth: {
-        onePercentDepthAboveUsd: '5520',
-        onePercentDepthBelowUsd: '8354',
+        onePercentDepthAboveUsd: '11057',
+        onePercentDepthBelowUsd: '15101',
       },
     },
     {
@@ -6245,8 +6245,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 345,
       depth: {
-        onePercentDepthAboveUsd: '101868',
-        onePercentDepthBelowUsd: '57997',
+        onePercentDepthAboveUsd: '79475',
+        onePercentDepthBelowUsd: '139985',
       },
     },
     {
@@ -6263,8 +6263,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 346,
       depth: {
-        onePercentDepthAboveUsd: '36174',
-        onePercentDepthBelowUsd: '27967',
+        onePercentDepthAboveUsd: '33428',
+        onePercentDepthBelowUsd: '42427',
       },
     },
     {
@@ -6281,8 +6281,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 347,
       depth: {
-        onePercentDepthAboveUsd: '90694',
-        onePercentDepthBelowUsd: '101625',
+        onePercentDepthAboveUsd: '57859',
+        onePercentDepthBelowUsd: '59382',
       },
     },
     {
@@ -6299,8 +6299,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 348,
       depth: {
-        onePercentDepthAboveUsd: '92254',
-        onePercentDepthBelowUsd: '98458',
+        onePercentDepthAboveUsd: '117559',
+        onePercentDepthBelowUsd: '146207',
       },
     },
     {
@@ -6335,8 +6335,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 350,
       depth: {
-        onePercentDepthAboveUsd: '120619',
-        onePercentDepthBelowUsd: '107619',
+        onePercentDepthAboveUsd: '112958',
+        onePercentDepthBelowUsd: '135098',
       },
     },
     {
@@ -6353,8 +6353,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 351,
       depth: {
-        onePercentDepthAboveUsd: '49728',
-        onePercentDepthBelowUsd: '61016',
+        onePercentDepthAboveUsd: '38218',
+        onePercentDepthBelowUsd: '50312',
       },
     },
     {
@@ -6443,8 +6443,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 356,
       depth: {
-        onePercentDepthAboveUsd: '71194',
-        onePercentDepthBelowUsd: '83636',
+        onePercentDepthAboveUsd: '67227',
+        onePercentDepthBelowUsd: '61016',
       },
     },
     {
@@ -6479,8 +6479,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 358,
       depth: {
-        onePercentDepthAboveUsd: '77804',
-        onePercentDepthBelowUsd: '112219',
+        onePercentDepthAboveUsd: '104120',
+        onePercentDepthBelowUsd: '128349',
       },
     },
     {
@@ -6497,8 +6497,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 359,
       depth: {
-        onePercentDepthAboveUsd: '25798',
-        onePercentDepthBelowUsd: '45856',
+        onePercentDepthAboveUsd: '40712',
+        onePercentDepthBelowUsd: '44203',
       },
     },
     {
@@ -6515,8 +6515,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 360,
       depth: {
-        onePercentDepthAboveUsd: '39333',
-        onePercentDepthBelowUsd: '66795',
+        onePercentDepthAboveUsd: '27775',
+        onePercentDepthBelowUsd: '58049',
       },
     },
     {
@@ -6533,8 +6533,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 361,
       depth: {
-        onePercentDepthAboveUsd: '60166',
-        onePercentDepthBelowUsd: '42740',
+        onePercentDepthAboveUsd: '46160',
+        onePercentDepthBelowUsd: '32234',
       },
     },
     {
@@ -6551,8 +6551,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 362,
       depth: {
-        onePercentDepthAboveUsd: '7027',
-        onePercentDepthBelowUsd: '5737',
+        onePercentDepthAboveUsd: '6365',
+        onePercentDepthBelowUsd: '8146',
       },
     },
     {
@@ -6569,8 +6569,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 363,
       depth: {
-        onePercentDepthAboveUsd: '38537',
-        onePercentDepthBelowUsd: '38250',
+        onePercentDepthAboveUsd: '19100',
+        onePercentDepthBelowUsd: '31596',
       },
     },
     {
@@ -6587,8 +6587,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 364,
       depth: {
-        onePercentDepthAboveUsd: '52294',
-        onePercentDepthBelowUsd: '63225',
+        onePercentDepthAboveUsd: '45477',
+        onePercentDepthBelowUsd: '76796',
       },
     },
     {
@@ -6641,8 +6641,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 367,
       depth: {
-        onePercentDepthAboveUsd: '259016',
-        onePercentDepthBelowUsd: '261724',
+        onePercentDepthAboveUsd: '292087',
+        onePercentDepthBelowUsd: '296820',
       },
     },
     {
@@ -6659,8 +6659,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 368,
       depth: {
-        onePercentDepthAboveUsd: '156592',
-        onePercentDepthBelowUsd: '84743',
+        onePercentDepthAboveUsd: '142151',
+        onePercentDepthBelowUsd: '64309',
       },
     },
     {
@@ -6677,8 +6677,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 369,
       depth: {
-        onePercentDepthAboveUsd: '215059',
-        onePercentDepthBelowUsd: '161139',
+        onePercentDepthAboveUsd: '205158',
+        onePercentDepthBelowUsd: '177617',
       },
     },
     {
@@ -6695,8 +6695,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 370,
       depth: {
-        onePercentDepthAboveUsd: '96284',
-        onePercentDepthBelowUsd: '101699',
+        onePercentDepthAboveUsd: '78147',
+        onePercentDepthBelowUsd: '82203',
       },
     },
     {
@@ -6713,8 +6713,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 371,
       depth: {
-        onePercentDepthAboveUsd: '46921',
-        onePercentDepthBelowUsd: '46442',
+        onePercentDepthAboveUsd: '80697',
+        onePercentDepthBelowUsd: '89044',
       },
     },
     {
@@ -6731,8 +6731,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 372,
       depth: {
-        onePercentDepthAboveUsd: '110249',
-        onePercentDepthBelowUsd: '96783',
+        onePercentDepthAboveUsd: '117975',
+        onePercentDepthBelowUsd: '106360',
       },
     },
     {
@@ -6749,8 +6749,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 373,
       depth: {
-        onePercentDepthAboveUsd: '104811',
-        onePercentDepthBelowUsd: '152819',
+        onePercentDepthAboveUsd: '113607',
+        onePercentDepthBelowUsd: '142664',
       },
     },
     {
@@ -6767,8 +6767,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 374,
       depth: {
-        onePercentDepthAboveUsd: '31306',
-        onePercentDepthBelowUsd: '104150',
+        onePercentDepthAboveUsd: '102392',
+        onePercentDepthBelowUsd: '116813',
       },
     },
     {
@@ -6785,8 +6785,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 375,
       depth: {
-        onePercentDepthAboveUsd: '202744',
-        onePercentDepthBelowUsd: '184235',
+        onePercentDepthAboveUsd: '246693',
+        onePercentDepthBelowUsd: '235104',
       },
     },
     {
@@ -6803,8 +6803,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '4',
       pairIndex: 376,
       depth: {
-        onePercentDepthAboveUsd: '0',
-        onePercentDepthBelowUsd: '0',
+        onePercentDepthAboveUsd: '350000',
+        onePercentDepthBelowUsd: '350000',
       },
     },
     {
@@ -6875,8 +6875,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 380,
       depth: {
-        onePercentDepthAboveUsd: '43375',
-        onePercentDepthBelowUsd: '48097',
+        onePercentDepthAboveUsd: '35492',
+        onePercentDepthBelowUsd: '63542',
       },
     },
     {
@@ -6893,8 +6893,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 381,
       depth: {
-        onePercentDepthAboveUsd: '226228',
-        onePercentDepthBelowUsd: '373456',
+        onePercentDepthAboveUsd: '211769',
+        onePercentDepthBelowUsd: '279558',
       },
     },
     {
@@ -6911,8 +6911,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 382,
       depth: {
-        onePercentDepthAboveUsd: '54124',
-        onePercentDepthBelowUsd: '44420',
+        onePercentDepthAboveUsd: '56100',
+        onePercentDepthBelowUsd: '49393',
       },
     },
     {
@@ -6929,8 +6929,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 383,
       depth: {
-        onePercentDepthAboveUsd: '59490',
-        onePercentDepthBelowUsd: '75834',
+        onePercentDepthAboveUsd: '59982',
+        onePercentDepthBelowUsd: '123284',
       },
     },
     {
@@ -6947,8 +6947,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 384,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -6965,8 +6965,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 385,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -7001,8 +7001,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 387,
       depth: {
-        onePercentDepthAboveUsd: '192505',
-        onePercentDepthBelowUsd: '167341',
+        onePercentDepthAboveUsd: '197432',
+        onePercentDepthBelowUsd: '163100',
       },
     },
     {
@@ -7019,8 +7019,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 388,
       depth: {
-        onePercentDepthAboveUsd: '12084',
-        onePercentDepthBelowUsd: '13616',
+        onePercentDepthAboveUsd: '22588',
+        onePercentDepthBelowUsd: '20608',
       },
     },
     {
@@ -7037,8 +7037,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 389,
       depth: {
-        onePercentDepthAboveUsd: '149234',
-        onePercentDepthBelowUsd: '115686',
+        onePercentDepthAboveUsd: '121368',
+        onePercentDepthBelowUsd: '88738',
       },
     },
     {
@@ -7055,8 +7055,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 390,
       depth: {
-        onePercentDepthAboveUsd: '29691',
-        onePercentDepthBelowUsd: '38695',
+        onePercentDepthAboveUsd: '49902',
+        onePercentDepthBelowUsd: '51504',
       },
     },
     {
@@ -7073,8 +7073,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 391,
       depth: {
-        onePercentDepthAboveUsd: '12047',
-        onePercentDepthBelowUsd: '6882',
+        onePercentDepthAboveUsd: '14347',
+        onePercentDepthBelowUsd: '12955',
       },
     },
     {
@@ -7091,8 +7091,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 392,
       depth: {
-        onePercentDepthAboveUsd: '48679',
-        onePercentDepthBelowUsd: '60088',
+        onePercentDepthAboveUsd: '47406',
+        onePercentDepthBelowUsd: '55593',
       },
     },
     {
@@ -7253,8 +7253,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 401,
       depth: {
-        onePercentDepthAboveUsd: '49546',
-        onePercentDepthBelowUsd: '47306',
+        onePercentDepthAboveUsd: '18536',
+        onePercentDepthBelowUsd: '76800',
       },
     },
     {
@@ -7271,8 +7271,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 402,
       depth: {
-        onePercentDepthAboveUsd: '48435',
-        onePercentDepthBelowUsd: '37317',
+        onePercentDepthAboveUsd: '44369',
+        onePercentDepthBelowUsd: '55243',
       },
     },
     {
@@ -7289,8 +7289,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 403,
       depth: {
-        onePercentDepthAboveUsd: '42671',
-        onePercentDepthBelowUsd: '38342',
+        onePercentDepthAboveUsd: '37314',
+        onePercentDepthBelowUsd: '39059',
       },
     },
     {
@@ -7307,8 +7307,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 404,
       depth: {
-        onePercentDepthAboveUsd: '29140',
-        onePercentDepthBelowUsd: '29592',
+        onePercentDepthAboveUsd: '43580',
+        onePercentDepthBelowUsd: '38673',
       },
     },
     {
@@ -7325,8 +7325,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 405,
       depth: {
-        onePercentDepthAboveUsd: '60009',
-        onePercentDepthBelowUsd: '72107',
+        onePercentDepthAboveUsd: '80598',
+        onePercentDepthBelowUsd: '70757',
       },
     },
     {
@@ -7343,8 +7343,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 406,
       depth: {
-        onePercentDepthAboveUsd: '120020',
-        onePercentDepthBelowUsd: '113077',
+        onePercentDepthAboveUsd: '80359',
+        onePercentDepthBelowUsd: '102160',
       },
     },
     {
@@ -7361,8 +7361,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 407,
       depth: {
-        onePercentDepthAboveUsd: '120416',
-        onePercentDepthBelowUsd: '174139',
+        onePercentDepthAboveUsd: '68327',
+        onePercentDepthBelowUsd: '71532',
       },
     },
     {
@@ -7379,8 +7379,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 408,
       depth: {
-        onePercentDepthAboveUsd: '14618',
-        onePercentDepthBelowUsd: '18458',
+        onePercentDepthAboveUsd: '20602',
+        onePercentDepthBelowUsd: '73020',
       },
     },
     {
@@ -7397,8 +7397,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 409,
       depth: {
-        onePercentDepthAboveUsd: '173799',
-        onePercentDepthBelowUsd: '171493',
+        onePercentDepthAboveUsd: '188592',
+        onePercentDepthBelowUsd: '101321',
       },
     },
     {
@@ -7415,8 +7415,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 410,
       depth: {
-        onePercentDepthAboveUsd: '171369',
-        onePercentDepthBelowUsd: '183226',
+        onePercentDepthAboveUsd: '202831',
+        onePercentDepthBelowUsd: '200350',
       },
     },
     {
@@ -7433,8 +7433,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 411,
       depth: {
-        onePercentDepthAboveUsd: '2304',
-        onePercentDepthBelowUsd: '7151',
+        onePercentDepthAboveUsd: '1518',
+        onePercentDepthBelowUsd: '1794',
       },
     },
     {
@@ -7451,8 +7451,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 412,
       depth: {
-        onePercentDepthAboveUsd: '9386',
-        onePercentDepthBelowUsd: '9704',
+        onePercentDepthAboveUsd: '9582',
+        onePercentDepthBelowUsd: '8620',
       },
     },
     {
@@ -7469,8 +7469,80 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 413,
       depth: {
-        onePercentDepthAboveUsd: '443084',
-        onePercentDepthBelowUsd: '447231',
+        onePercentDepthAboveUsd: '616209',
+        onePercentDepthBelowUsd: '835366',
+      },
+    },
+    {
+      from: 'ASTER',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 414,
+      depth: {
+        onePercentDepthAboveUsd: '63198',
+        onePercentDepthBelowUsd: '62010',
+      },
+    },
+    {
+      from: 'OKB',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 415,
+      depth: {
+        onePercentDepthAboveUsd: '464702',
+        onePercentDepthBelowUsd: '319446',
+      },
+    },
+    {
+      from: 'CRO',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 416,
+      depth: {
+        onePercentDepthAboveUsd: '196752',
+        onePercentDepthBelowUsd: '253119',
+      },
+    },
+    {
+      from: 'SKY',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 417,
+      depth: {
+        onePercentDepthAboveUsd: '137882',
+        onePercentDepthBelowUsd: '146808',
       },
     },
   ],
@@ -7525,8 +7597,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 2,
       depth: {
-        onePercentDepthAboveUsd: '2581534',
-        onePercentDepthBelowUsd: '2728450',
+        onePercentDepthAboveUsd: '2182474',
+        onePercentDepthBelowUsd: '2967134',
       },
     },
     {
@@ -7543,8 +7615,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 3,
       depth: {
-        onePercentDepthAboveUsd: '6737714',
-        onePercentDepthBelowUsd: '6992776',
+        onePercentDepthAboveUsd: '4309381',
+        onePercentDepthBelowUsd: '4979245',
       },
     },
     {
@@ -7579,8 +7651,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 5,
       depth: {
-        onePercentDepthAboveUsd: '2884367',
-        onePercentDepthBelowUsd: '3257582',
+        onePercentDepthAboveUsd: '2501006',
+        onePercentDepthBelowUsd: '2722022',
       },
     },
     {
@@ -7615,8 +7687,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 7,
       depth: {
-        onePercentDepthAboveUsd: '930428',
-        onePercentDepthBelowUsd: '1096322',
+        onePercentDepthAboveUsd: '917318',
+        onePercentDepthBelowUsd: '964418',
       },
     },
     {
@@ -7633,8 +7705,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 8,
       depth: {
-        onePercentDepthAboveUsd: '185366',
-        onePercentDepthBelowUsd: '332852',
+        onePercentDepthAboveUsd: '204491',
+        onePercentDepthBelowUsd: '229670',
       },
     },
     {
@@ -7651,8 +7723,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 9,
       depth: {
-        onePercentDepthAboveUsd: '44588',
-        onePercentDepthBelowUsd: '62416',
+        onePercentDepthAboveUsd: '44664',
+        onePercentDepthBelowUsd: '55648',
       },
     },
     {
@@ -7669,8 +7741,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 10,
       depth: {
-        onePercentDepthAboveUsd: '49000',
-        onePercentDepthBelowUsd: '95047',
+        onePercentDepthAboveUsd: '51039',
+        onePercentDepthBelowUsd: '102858',
       },
     },
     {
@@ -7687,8 +7759,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 11,
       depth: {
-        onePercentDepthAboveUsd: '716135',
-        onePercentDepthBelowUsd: '810001',
+        onePercentDepthAboveUsd: '481044',
+        onePercentDepthBelowUsd: '590315',
       },
     },
     {
@@ -7723,8 +7795,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 13,
       depth: {
-        onePercentDepthAboveUsd: '865202',
-        onePercentDepthBelowUsd: '757657',
+        onePercentDepthAboveUsd: '886202',
+        onePercentDepthBelowUsd: '933464',
       },
     },
     {
@@ -7741,8 +7813,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 14,
       depth: {
-        onePercentDepthAboveUsd: '64937',
-        onePercentDepthBelowUsd: '79505',
+        onePercentDepthAboveUsd: '67173',
+        onePercentDepthBelowUsd: '53701',
       },
     },
     {
@@ -7777,8 +7849,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 16,
       depth: {
-        onePercentDepthAboveUsd: '77829',
-        onePercentDepthBelowUsd: '85693',
+        onePercentDepthAboveUsd: '51384',
+        onePercentDepthBelowUsd: '65716',
       },
     },
     {
@@ -7795,8 +7867,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 17,
       depth: {
-        onePercentDepthAboveUsd: '581653',
-        onePercentDepthBelowUsd: '838767',
+        onePercentDepthAboveUsd: '745484',
+        onePercentDepthBelowUsd: '720748',
       },
     },
     {
@@ -7813,8 +7885,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 18,
       depth: {
-        onePercentDepthAboveUsd: '1076180',
-        onePercentDepthBelowUsd: '1177779',
+        onePercentDepthAboveUsd: '1142691',
+        onePercentDepthBelowUsd: '1279464',
       },
     },
     {
@@ -7831,8 +7903,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 19,
       depth: {
-        onePercentDepthAboveUsd: '7605781',
-        onePercentDepthBelowUsd: '7778727',
+        onePercentDepthAboveUsd: '7583347',
+        onePercentDepthBelowUsd: '9580872',
       },
     },
     {
@@ -7867,8 +7939,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 21,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7885,8 +7957,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 22,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7903,8 +7975,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 23,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7921,8 +7993,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 24,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7939,8 +8011,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 25,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7957,8 +8029,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 26,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7975,8 +8047,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 27,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -7993,8 +8065,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 28,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -8011,8 +8083,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 29,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -8029,8 +8101,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 30,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -8065,8 +8137,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 32,
       depth: {
-        onePercentDepthAboveUsd: '34542',
-        onePercentDepthBelowUsd: '34320',
+        onePercentDepthAboveUsd: '38797',
+        onePercentDepthBelowUsd: '51774',
       },
     },
     {
@@ -8083,8 +8155,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 33,
       depth: {
-        onePercentDepthAboveUsd: '25276474',
-        onePercentDepthBelowUsd: '19424412',
+        onePercentDepthAboveUsd: '13770460',
+        onePercentDepthBelowUsd: '13158442',
       },
     },
     {
@@ -8101,8 +8173,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 34,
       depth: {
-        onePercentDepthAboveUsd: '21182',
-        onePercentDepthBelowUsd: '30134',
+        onePercentDepthAboveUsd: '24972',
+        onePercentDepthBelowUsd: '32484',
       },
     },
     {
@@ -8119,8 +8191,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 35,
       depth: {
-        onePercentDepthAboveUsd: '613169',
-        onePercentDepthBelowUsd: '776717',
+        onePercentDepthAboveUsd: '723938',
+        onePercentDepthBelowUsd: '541909',
       },
     },
     {
@@ -8155,8 +8227,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 37,
       depth: {
-        onePercentDepthAboveUsd: '325159',
-        onePercentDepthBelowUsd: '426910',
+        onePercentDepthAboveUsd: '464527',
+        onePercentDepthBelowUsd: '624724',
       },
     },
     {
@@ -8173,8 +8245,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 38,
       depth: {
-        onePercentDepthAboveUsd: '14150',
-        onePercentDepthBelowUsd: '41159',
+        onePercentDepthAboveUsd: '43889',
+        onePercentDepthBelowUsd: '46036',
       },
     },
     {
@@ -8191,8 +8263,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 39,
       depth: {
-        onePercentDepthAboveUsd: '418535',
-        onePercentDepthBelowUsd: '614476',
+        onePercentDepthAboveUsd: '551133',
+        onePercentDepthBelowUsd: '657060',
       },
     },
     {
@@ -8209,8 +8281,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 40,
       depth: {
-        onePercentDepthAboveUsd: '261697',
-        onePercentDepthBelowUsd: '323632',
+        onePercentDepthAboveUsd: '332520',
+        onePercentDepthBelowUsd: '383450',
       },
     },
     {
@@ -8227,8 +8299,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 41,
       depth: {
-        onePercentDepthAboveUsd: '40943',
-        onePercentDepthBelowUsd: '35633',
+        onePercentDepthAboveUsd: '1',
+        onePercentDepthBelowUsd: '1',
       },
     },
     {
@@ -8245,8 +8317,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 42,
       depth: {
-        onePercentDepthAboveUsd: '88408',
-        onePercentDepthBelowUsd: '128122',
+        onePercentDepthAboveUsd: '96167',
+        onePercentDepthBelowUsd: '115749',
       },
     },
     {
@@ -8263,8 +8335,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 43,
       depth: {
-        onePercentDepthAboveUsd: '134187',
-        onePercentDepthBelowUsd: '133735',
+        onePercentDepthAboveUsd: '111249',
+        onePercentDepthBelowUsd: '124862',
       },
     },
     {
@@ -8281,8 +8353,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 44,
       depth: {
-        onePercentDepthAboveUsd: '3992748',
-        onePercentDepthBelowUsd: '4027663',
+        onePercentDepthAboveUsd: '3600299',
+        onePercentDepthBelowUsd: '3447505',
       },
     },
     {
@@ -8299,8 +8371,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 45,
       depth: {
-        onePercentDepthAboveUsd: '47149',
-        onePercentDepthBelowUsd: '47154',
+        onePercentDepthAboveUsd: '47686',
+        onePercentDepthBelowUsd: '55887',
       },
     },
     {
@@ -8317,8 +8389,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 46,
       depth: {
-        onePercentDepthAboveUsd: '88437',
-        onePercentDepthBelowUsd: '201061',
+        onePercentDepthAboveUsd: '183217',
+        onePercentDepthBelowUsd: '187028',
       },
     },
     {
@@ -8335,8 +8407,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 47,
       depth: {
-        onePercentDepthAboveUsd: '14282525',
-        onePercentDepthBelowUsd: '14411018',
+        onePercentDepthAboveUsd: '8725800',
+        onePercentDepthBelowUsd: '14959589',
       },
     },
     {
@@ -8371,8 +8443,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 49,
       depth: {
-        onePercentDepthAboveUsd: '152616',
-        onePercentDepthBelowUsd: '246641',
+        onePercentDepthAboveUsd: '177759',
+        onePercentDepthBelowUsd: '217604',
       },
     },
     {
@@ -8389,8 +8461,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 50,
       depth: {
-        onePercentDepthAboveUsd: '876813',
-        onePercentDepthBelowUsd: '1133842',
+        onePercentDepthAboveUsd: '1096558',
+        onePercentDepthBelowUsd: '1089798',
       },
     },
     {
@@ -8479,8 +8551,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 55,
       depth: {
-        onePercentDepthAboveUsd: '213987',
-        onePercentDepthBelowUsd: '238510',
+        onePercentDepthAboveUsd: '223975',
+        onePercentDepthBelowUsd: '158509',
       },
     },
     {
@@ -8515,8 +8587,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 57,
       depth: {
-        onePercentDepthAboveUsd: '632193',
-        onePercentDepthBelowUsd: '736110',
+        onePercentDepthAboveUsd: '586769',
+        onePercentDepthBelowUsd: '941885',
       },
     },
     {
@@ -9145,8 +9217,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 92,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9163,8 +9235,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 93,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9181,8 +9253,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 94,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9199,8 +9271,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 95,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9217,8 +9289,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 96,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9235,8 +9307,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 97,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9253,8 +9325,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 98,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9271,8 +9343,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 99,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9289,8 +9361,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 100,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9307,8 +9379,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 101,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9325,8 +9397,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 102,
       depth: {
-        onePercentDepthAboveUsd: '2054994',
-        onePercentDepthBelowUsd: '2521124',
+        onePercentDepthAboveUsd: '2328885',
+        onePercentDepthBelowUsd: '1555926',
       },
     },
     {
@@ -9343,8 +9415,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 103,
       depth: {
-        onePercentDepthAboveUsd: '259002',
-        onePercentDepthBelowUsd: '364250',
+        onePercentDepthAboveUsd: '343398',
+        onePercentDepthBelowUsd: '227876',
       },
     },
     {
@@ -9361,8 +9433,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 104,
       depth: {
-        onePercentDepthAboveUsd: '642758',
-        onePercentDepthBelowUsd: '745360',
+        onePercentDepthAboveUsd: '569817',
+        onePercentDepthBelowUsd: '709991',
       },
     },
     {
@@ -9379,8 +9451,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 105,
       depth: {
-        onePercentDepthAboveUsd: '74694',
-        onePercentDepthBelowUsd: '104161',
+        onePercentDepthAboveUsd: '85275',
+        onePercentDepthBelowUsd: '114745',
       },
     },
     {
@@ -9415,8 +9487,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 107,
       depth: {
-        onePercentDepthAboveUsd: '180580',
-        onePercentDepthBelowUsd: '156589',
+        onePercentDepthAboveUsd: '126251',
+        onePercentDepthBelowUsd: '152454',
       },
     },
     {
@@ -9433,8 +9505,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 108,
       depth: {
-        onePercentDepthAboveUsd: '26372',
-        onePercentDepthBelowUsd: '23297',
+        onePercentDepthAboveUsd: '30625',
+        onePercentDepthBelowUsd: '19652',
       },
     },
     {
@@ -9451,8 +9523,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 109,
       depth: {
-        onePercentDepthAboveUsd: '746322',
-        onePercentDepthBelowUsd: '698989',
+        onePercentDepthAboveUsd: '443691',
+        onePercentDepthBelowUsd: '529311',
       },
     },
     {
@@ -9469,8 +9541,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 110,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9487,8 +9559,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 111,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9505,8 +9577,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 112,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9523,8 +9595,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 113,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9541,8 +9613,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 114,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9559,8 +9631,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 115,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9577,8 +9649,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 116,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9595,8 +9667,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 117,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9613,8 +9685,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 118,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9631,8 +9703,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 119,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9649,8 +9721,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 120,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9667,8 +9739,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 121,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9685,8 +9757,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 122,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9703,8 +9775,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 123,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9721,8 +9793,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 124,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9739,8 +9811,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 125,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9757,8 +9829,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 126,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9775,8 +9847,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 127,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -9793,8 +9865,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 128,
       depth: {
-        onePercentDepthAboveUsd: '332420',
-        onePercentDepthBelowUsd: '365699',
+        onePercentDepthAboveUsd: '298348',
+        onePercentDepthBelowUsd: '414645',
       },
     },
     {
@@ -9811,8 +9883,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 129,
       depth: {
-        onePercentDepthAboveUsd: '598813',
-        onePercentDepthBelowUsd: '865750',
+        onePercentDepthAboveUsd: '891683',
+        onePercentDepthBelowUsd: '803651',
       },
     },
     {
@@ -9847,8 +9919,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 131,
       depth: {
-        onePercentDepthAboveUsd: '133519',
-        onePercentDepthBelowUsd: '179846',
+        onePercentDepthAboveUsd: '179143',
+        onePercentDepthBelowUsd: '221418',
       },
     },
     {
@@ -9865,8 +9937,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 132,
       depth: {
-        onePercentDepthAboveUsd: '53017',
-        onePercentDepthBelowUsd: '31644',
+        onePercentDepthAboveUsd: '76205',
+        onePercentDepthBelowUsd: '42515',
       },
     },
     {
@@ -9883,8 +9955,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 133,
       depth: {
-        onePercentDepthAboveUsd: '36674',
-        onePercentDepthBelowUsd: '48314',
+        onePercentDepthAboveUsd: '61398',
+        onePercentDepthBelowUsd: '81318',
       },
     },
     {
@@ -9901,8 +9973,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 134,
       depth: {
-        onePercentDepthAboveUsd: '3604497',
-        onePercentDepthBelowUsd: '3360208',
+        onePercentDepthAboveUsd: '2749454',
+        onePercentDepthBelowUsd: '3846425',
       },
     },
     {
@@ -9919,8 +9991,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 135,
       depth: {
-        onePercentDepthAboveUsd: '253540',
-        onePercentDepthBelowUsd: '489394',
+        onePercentDepthAboveUsd: '264873',
+        onePercentDepthBelowUsd: '469083',
       },
     },
     {
@@ -9937,8 +10009,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 136,
       depth: {
-        onePercentDepthAboveUsd: '26373',
-        onePercentDepthBelowUsd: '40752',
+        onePercentDepthAboveUsd: '36000',
+        onePercentDepthBelowUsd: '30129',
       },
     },
     {
@@ -9955,8 +10027,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 137,
       depth: {
-        onePercentDepthAboveUsd: '605389',
-        onePercentDepthBelowUsd: '669337',
+        onePercentDepthAboveUsd: '364509',
+        onePercentDepthBelowUsd: '618337',
       },
     },
     {
@@ -9973,8 +10045,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 138,
       depth: {
-        onePercentDepthAboveUsd: '1787180',
-        onePercentDepthBelowUsd: '2249570',
+        onePercentDepthAboveUsd: '1693265',
+        onePercentDepthBelowUsd: '2353225',
       },
     },
     {
@@ -9991,8 +10063,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 139,
       depth: {
-        onePercentDepthAboveUsd: '110511',
-        onePercentDepthBelowUsd: '126464',
+        onePercentDepthAboveUsd: '138178',
+        onePercentDepthBelowUsd: '246265',
       },
     },
     {
@@ -10009,8 +10081,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 140,
       depth: {
-        onePercentDepthAboveUsd: '177536',
-        onePercentDepthBelowUsd: '222096',
+        onePercentDepthAboveUsd: '151362',
+        onePercentDepthBelowUsd: '184526',
       },
     },
     {
@@ -10027,8 +10099,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 141,
       depth: {
-        onePercentDepthAboveUsd: '263208',
-        onePercentDepthBelowUsd: '511307',
+        onePercentDepthAboveUsd: '550679',
+        onePercentDepthBelowUsd: '528583',
       },
     },
     {
@@ -10045,8 +10117,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 142,
       depth: {
-        onePercentDepthAboveUsd: '259087',
-        onePercentDepthBelowUsd: '301200',
+        onePercentDepthAboveUsd: '207300',
+        onePercentDepthBelowUsd: '218660',
       },
     },
     {
@@ -10063,8 +10135,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 143,
       depth: {
-        onePercentDepthAboveUsd: '61299',
-        onePercentDepthBelowUsd: '68974',
+        onePercentDepthAboveUsd: '42449',
+        onePercentDepthBelowUsd: '57665',
       },
     },
     {
@@ -10081,8 +10153,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 144,
       depth: {
-        onePercentDepthAboveUsd: '569024',
-        onePercentDepthBelowUsd: '567967',
+        onePercentDepthAboveUsd: '684867',
+        onePercentDepthBelowUsd: '594467',
       },
     },
     {
@@ -10099,8 +10171,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 145,
       depth: {
-        onePercentDepthAboveUsd: '200584',
-        onePercentDepthBelowUsd: '296707',
+        onePercentDepthAboveUsd: '279803',
+        onePercentDepthBelowUsd: '275701',
       },
     },
     {
@@ -10117,8 +10189,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 146,
       depth: {
-        onePercentDepthAboveUsd: '81716',
-        onePercentDepthBelowUsd: '78209',
+        onePercentDepthAboveUsd: '55876',
+        onePercentDepthBelowUsd: '81064',
       },
     },
     {
@@ -10153,8 +10225,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 148,
       depth: {
-        onePercentDepthAboveUsd: '144608',
-        onePercentDepthBelowUsd: '306233',
+        onePercentDepthAboveUsd: '165249',
+        onePercentDepthBelowUsd: '245708',
       },
     },
     {
@@ -10171,8 +10243,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 149,
       depth: {
-        onePercentDepthAboveUsd: '69715',
-        onePercentDepthBelowUsd: '63302',
+        onePercentDepthAboveUsd: '65122',
+        onePercentDepthBelowUsd: '60100',
       },
     },
     {
@@ -10189,8 +10261,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 150,
       depth: {
-        onePercentDepthAboveUsd: '151914',
-        onePercentDepthBelowUsd: '198475',
+        onePercentDepthAboveUsd: '114533',
+        onePercentDepthBelowUsd: '190826',
       },
     },
     {
@@ -10207,8 +10279,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 151,
       depth: {
-        onePercentDepthAboveUsd: '30748',
-        onePercentDepthBelowUsd: '49866',
+        onePercentDepthAboveUsd: '47187',
+        onePercentDepthBelowUsd: '51286',
       },
     },
     {
@@ -10243,8 +10315,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 153,
       depth: {
-        onePercentDepthAboveUsd: '2626987',
-        onePercentDepthBelowUsd: '2671203',
+        onePercentDepthAboveUsd: '2322454',
+        onePercentDepthBelowUsd: '2618359',
       },
     },
     {
@@ -10261,8 +10333,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 154,
       depth: {
-        onePercentDepthAboveUsd: '60195',
-        onePercentDepthBelowUsd: '73651',
+        onePercentDepthAboveUsd: '44294',
+        onePercentDepthBelowUsd: '43553',
       },
     },
     {
@@ -10279,8 +10351,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 155,
       depth: {
-        onePercentDepthAboveUsd: '621392',
-        onePercentDepthBelowUsd: '674177',
+        onePercentDepthAboveUsd: '522787',
+        onePercentDepthBelowUsd: '348225',
       },
     },
     {
@@ -10297,8 +10369,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 156,
       depth: {
-        onePercentDepthAboveUsd: '274929',
-        onePercentDepthBelowUsd: '366717',
+        onePercentDepthAboveUsd: '356452',
+        onePercentDepthBelowUsd: '399107',
       },
     },
     {
@@ -10315,8 +10387,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 157,
       depth: {
-        onePercentDepthAboveUsd: '43104',
-        onePercentDepthBelowUsd: '27853',
+        onePercentDepthAboveUsd: '41943',
+        onePercentDepthBelowUsd: '35096',
       },
     },
     {
@@ -10333,8 +10405,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 158,
       depth: {
-        onePercentDepthAboveUsd: '133604',
-        onePercentDepthBelowUsd: '156355',
+        onePercentDepthAboveUsd: '140773',
+        onePercentDepthBelowUsd: '117287',
       },
     },
     {
@@ -10351,8 +10423,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 159,
       depth: {
-        onePercentDepthAboveUsd: '400185',
-        onePercentDepthBelowUsd: '238645',
+        onePercentDepthAboveUsd: '364745',
+        onePercentDepthBelowUsd: '469126',
       },
     },
     {
@@ -10387,8 +10459,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 161,
       depth: {
-        onePercentDepthAboveUsd: '70247',
-        onePercentDepthBelowUsd: '72886',
+        onePercentDepthAboveUsd: '67302',
+        onePercentDepthBelowUsd: '81672',
       },
     },
     {
@@ -10405,8 +10477,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 162,
       depth: {
-        onePercentDepthAboveUsd: '28886',
-        onePercentDepthBelowUsd: '42406',
+        onePercentDepthAboveUsd: '38528',
+        onePercentDepthBelowUsd: '46007',
       },
     },
     {
@@ -10441,8 +10513,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 164,
       depth: {
-        onePercentDepthAboveUsd: '48395',
-        onePercentDepthBelowUsd: '50497',
+        onePercentDepthAboveUsd: '56551',
+        onePercentDepthBelowUsd: '79180',
       },
     },
     {
@@ -10459,8 +10531,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 165,
       depth: {
-        onePercentDepthAboveUsd: '98498',
-        onePercentDepthBelowUsd: '125761',
+        onePercentDepthAboveUsd: '76163',
+        onePercentDepthBelowUsd: '98174',
       },
     },
     {
@@ -10477,8 +10549,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 166,
       depth: {
-        onePercentDepthAboveUsd: '47485',
-        onePercentDepthBelowUsd: '74917',
+        onePercentDepthAboveUsd: '32711',
+        onePercentDepthBelowUsd: '78305',
       },
     },
     {
@@ -10495,8 +10567,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 167,
       depth: {
-        onePercentDepthAboveUsd: '44559',
-        onePercentDepthBelowUsd: '89225',
+        onePercentDepthAboveUsd: '41577',
+        onePercentDepthBelowUsd: '57573',
       },
     },
     {
@@ -10513,8 +10585,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 168,
       depth: {
-        onePercentDepthAboveUsd: '250744',
-        onePercentDepthBelowUsd: '248041',
+        onePercentDepthAboveUsd: '167976',
+        onePercentDepthBelowUsd: '302969',
       },
     },
     {
@@ -10531,8 +10603,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 169,
       depth: {
-        onePercentDepthAboveUsd: '50435',
-        onePercentDepthBelowUsd: '48153',
+        onePercentDepthAboveUsd: '52228',
+        onePercentDepthBelowUsd: '63320',
       },
     },
     {
@@ -10567,8 +10639,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 171,
       depth: {
-        onePercentDepthAboveUsd: '1020073',
-        onePercentDepthBelowUsd: '1214319',
+        onePercentDepthAboveUsd: '1094712',
+        onePercentDepthBelowUsd: '1073897',
       },
     },
     {
@@ -10585,8 +10657,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 172,
       depth: {
-        onePercentDepthAboveUsd: '141790',
-        onePercentDepthBelowUsd: '162378',
+        onePercentDepthAboveUsd: '141907',
+        onePercentDepthBelowUsd: '149557',
       },
     },
     {
@@ -10603,8 +10675,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 173,
       depth: {
-        onePercentDepthAboveUsd: '44713',
-        onePercentDepthBelowUsd: '68769',
+        onePercentDepthAboveUsd: '57963',
+        onePercentDepthBelowUsd: '60948',
       },
     },
     {
@@ -10621,8 +10693,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 174,
       depth: {
-        onePercentDepthAboveUsd: '59190',
-        onePercentDepthBelowUsd: '56969',
+        onePercentDepthAboveUsd: '62621',
+        onePercentDepthBelowUsd: '50015',
       },
     },
     {
@@ -10639,8 +10711,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 175,
       depth: {
-        onePercentDepthAboveUsd: '226120',
-        onePercentDepthBelowUsd: '225194',
+        onePercentDepthAboveUsd: '154662',
+        onePercentDepthBelowUsd: '330182',
       },
     },
     {
@@ -10657,8 +10729,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 176,
       depth: {
-        onePercentDepthAboveUsd: '75161',
-        onePercentDepthBelowUsd: '101239',
+        onePercentDepthAboveUsd: '100240',
+        onePercentDepthBelowUsd: '161455',
       },
     },
     {
@@ -10675,8 +10747,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 177,
       depth: {
-        onePercentDepthAboveUsd: '37299',
-        onePercentDepthBelowUsd: '42061',
+        onePercentDepthAboveUsd: '33962',
+        onePercentDepthBelowUsd: '35542',
       },
     },
     {
@@ -10693,8 +10765,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 178,
       depth: {
-        onePercentDepthAboveUsd: '33001',
-        onePercentDepthBelowUsd: '43904',
+        onePercentDepthAboveUsd: '63349',
+        onePercentDepthBelowUsd: '72747',
       },
     },
     {
@@ -10729,8 +10801,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 180,
       depth: {
-        onePercentDepthAboveUsd: '43924',
-        onePercentDepthBelowUsd: '59981',
+        onePercentDepthAboveUsd: '45795',
+        onePercentDepthBelowUsd: '67197',
       },
     },
     {
@@ -10747,8 +10819,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 181,
       depth: {
-        onePercentDepthAboveUsd: '48117',
-        onePercentDepthBelowUsd: '56033',
+        onePercentDepthAboveUsd: '62434',
+        onePercentDepthBelowUsd: '76374',
       },
     },
     {
@@ -10801,8 +10873,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 184,
       depth: {
-        onePercentDepthAboveUsd: '40720',
-        onePercentDepthBelowUsd: '66836',
+        onePercentDepthAboveUsd: '62908',
+        onePercentDepthBelowUsd: '47151',
       },
     },
     {
@@ -10819,8 +10891,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 185,
       depth: {
-        onePercentDepthAboveUsd: '40624',
-        onePercentDepthBelowUsd: '63204',
+        onePercentDepthAboveUsd: '9167',
+        onePercentDepthBelowUsd: '28524',
       },
     },
     {
@@ -10927,8 +10999,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 191,
       depth: {
-        onePercentDepthAboveUsd: '258394',
-        onePercentDepthBelowUsd: '314818',
+        onePercentDepthAboveUsd: '280104',
+        onePercentDepthBelowUsd: '253766',
       },
     },
     {
@@ -10945,8 +11017,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 192,
       depth: {
-        onePercentDepthAboveUsd: '55210',
-        onePercentDepthBelowUsd: '58077',
+        onePercentDepthAboveUsd: '56090',
+        onePercentDepthBelowUsd: '48043',
       },
     },
     {
@@ -10963,8 +11035,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 193,
       depth: {
-        onePercentDepthAboveUsd: '1213085',
-        onePercentDepthBelowUsd: '1497318',
+        onePercentDepthAboveUsd: '1445614',
+        onePercentDepthBelowUsd: '1240512',
       },
     },
     {
@@ -10981,8 +11053,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 194,
       depth: {
-        onePercentDepthAboveUsd: '262861',
-        onePercentDepthBelowUsd: '303112',
+        onePercentDepthAboveUsd: '242993',
+        onePercentDepthBelowUsd: '312293',
       },
     },
     {
@@ -10999,8 +11071,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 195,
       depth: {
-        onePercentDepthAboveUsd: '14020',
-        onePercentDepthBelowUsd: '23802',
+        onePercentDepthAboveUsd: '13558',
+        onePercentDepthBelowUsd: '13851',
       },
     },
     {
@@ -11017,8 +11089,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 196,
       depth: {
-        onePercentDepthAboveUsd: '75945',
-        onePercentDepthBelowUsd: '93957',
+        onePercentDepthAboveUsd: '84856',
+        onePercentDepthBelowUsd: '108854',
       },
     },
     {
@@ -11035,8 +11107,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 197,
       depth: {
-        onePercentDepthAboveUsd: '54332',
-        onePercentDepthBelowUsd: '62863',
+        onePercentDepthAboveUsd: '78066',
+        onePercentDepthBelowUsd: '96874',
       },
     },
     {
@@ -11053,8 +11125,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 198,
       depth: {
-        onePercentDepthAboveUsd: '69165',
-        onePercentDepthBelowUsd: '91975',
+        onePercentDepthAboveUsd: '72751',
+        onePercentDepthBelowUsd: '68317',
       },
     },
     {
@@ -11071,8 +11143,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 199,
       depth: {
-        onePercentDepthAboveUsd: '87978',
-        onePercentDepthBelowUsd: '84417',
+        onePercentDepthAboveUsd: '41740',
+        onePercentDepthBelowUsd: '53077',
       },
     },
     {
@@ -11089,8 +11161,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 200,
       depth: {
-        onePercentDepthAboveUsd: '144194',
-        onePercentDepthBelowUsd: '142544',
+        onePercentDepthAboveUsd: '112104',
+        onePercentDepthBelowUsd: '123105',
       },
     },
     {
@@ -11107,8 +11179,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 201,
       depth: {
-        onePercentDepthAboveUsd: '87232',
-        onePercentDepthBelowUsd: '41598',
+        onePercentDepthAboveUsd: '193266',
+        onePercentDepthBelowUsd: '164750',
       },
     },
     {
@@ -11125,8 +11197,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 202,
       depth: {
-        onePercentDepthAboveUsd: '34748',
-        onePercentDepthBelowUsd: '34082',
+        onePercentDepthAboveUsd: '26824',
+        onePercentDepthBelowUsd: '31202',
       },
     },
     {
@@ -11143,8 +11215,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 203,
       depth: {
-        onePercentDepthAboveUsd: '282414',
-        onePercentDepthBelowUsd: '350399',
+        onePercentDepthAboveUsd: '240034',
+        onePercentDepthBelowUsd: '291983',
       },
     },
     {
@@ -11161,8 +11233,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 204,
       depth: {
-        onePercentDepthAboveUsd: '27070',
-        onePercentDepthBelowUsd: '35636',
+        onePercentDepthAboveUsd: '12356',
+        onePercentDepthBelowUsd: '23675',
       },
     },
     {
@@ -11179,8 +11251,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 205,
       depth: {
-        onePercentDepthAboveUsd: '1235519',
-        onePercentDepthBelowUsd: '1295544',
+        onePercentDepthAboveUsd: '775238',
+        onePercentDepthBelowUsd: '1082188',
       },
     },
     {
@@ -11197,8 +11269,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 206,
       depth: {
-        onePercentDepthAboveUsd: '63040',
-        onePercentDepthBelowUsd: '64588',
+        onePercentDepthAboveUsd: '46748',
+        onePercentDepthBelowUsd: '34102',
       },
     },
     {
@@ -11215,8 +11287,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 207,
       depth: {
-        onePercentDepthAboveUsd: '163685',
-        onePercentDepthBelowUsd: '155226',
+        onePercentDepthAboveUsd: '179643',
+        onePercentDepthBelowUsd: '178631',
       },
     },
     {
@@ -11269,8 +11341,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 210,
       depth: {
-        onePercentDepthAboveUsd: '35378',
-        onePercentDepthBelowUsd: '45140',
+        onePercentDepthAboveUsd: '39003',
+        onePercentDepthBelowUsd: '47050',
       },
     },
     {
@@ -11287,8 +11359,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 211,
       depth: {
-        onePercentDepthAboveUsd: '146519',
-        onePercentDepthBelowUsd: '192059',
+        onePercentDepthAboveUsd: '111963',
+        onePercentDepthBelowUsd: '168371',
       },
     },
     {
@@ -11305,8 +11377,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 212,
       depth: {
-        onePercentDepthAboveUsd: '242437',
-        onePercentDepthBelowUsd: '303844',
+        onePercentDepthAboveUsd: '279499',
+        onePercentDepthBelowUsd: '241197',
       },
     },
     {
@@ -11323,8 +11395,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 213,
       depth: {
-        onePercentDepthAboveUsd: '41426',
-        onePercentDepthBelowUsd: '32796',
+        onePercentDepthAboveUsd: '51127',
+        onePercentDepthBelowUsd: '47512',
       },
     },
     {
@@ -11341,8 +11413,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 214,
       depth: {
-        onePercentDepthAboveUsd: '98043',
-        onePercentDepthBelowUsd: '101815',
+        onePercentDepthAboveUsd: '110515',
+        onePercentDepthBelowUsd: '119332',
       },
     },
     {
@@ -11359,8 +11431,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 215,
       depth: {
-        onePercentDepthAboveUsd: '216911',
-        onePercentDepthBelowUsd: '287684',
+        onePercentDepthAboveUsd: '191657',
+        onePercentDepthBelowUsd: '249332',
       },
     },
     {
@@ -11377,8 +11449,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 216,
       depth: {
-        onePercentDepthAboveUsd: '180421',
-        onePercentDepthBelowUsd: '43226',
+        onePercentDepthAboveUsd: '182292',
+        onePercentDepthBelowUsd: '188657',
       },
     },
     {
@@ -11395,8 +11467,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 217,
       depth: {
-        onePercentDepthAboveUsd: '110479',
-        onePercentDepthBelowUsd: '102769',
+        onePercentDepthAboveUsd: '99827',
+        onePercentDepthBelowUsd: '114944',
       },
     },
     {
@@ -11413,8 +11485,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 218,
       depth: {
-        onePercentDepthAboveUsd: '83843',
-        onePercentDepthBelowUsd: '112788',
+        onePercentDepthAboveUsd: '52483',
+        onePercentDepthBelowUsd: '85868',
       },
     },
     {
@@ -11431,8 +11503,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 219,
       depth: {
-        onePercentDepthAboveUsd: '1782114',
-        onePercentDepthBelowUsd: '2010065',
+        onePercentDepthAboveUsd: '1394291',
+        onePercentDepthBelowUsd: '1459164',
       },
     },
     {
@@ -11449,8 +11521,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 220,
       depth: {
-        onePercentDepthAboveUsd: '173840',
-        onePercentDepthBelowUsd: '216239',
+        onePercentDepthAboveUsd: '125039',
+        onePercentDepthBelowUsd: '165311',
       },
     },
     {
@@ -11467,8 +11539,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 221,
       depth: {
-        onePercentDepthAboveUsd: '9071',
-        onePercentDepthBelowUsd: '7108',
+        onePercentDepthAboveUsd: '9800',
+        onePercentDepthBelowUsd: '8724',
       },
     },
     {
@@ -11485,8 +11557,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 222,
       depth: {
-        onePercentDepthAboveUsd: '83054',
-        onePercentDepthBelowUsd: '85375',
+        onePercentDepthAboveUsd: '69317',
+        onePercentDepthBelowUsd: '28606',
       },
     },
     {
@@ -11503,8 +11575,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 223,
       depth: {
-        onePercentDepthAboveUsd: '382535',
-        onePercentDepthBelowUsd: '456816',
+        onePercentDepthAboveUsd: '472044',
+        onePercentDepthBelowUsd: '575709',
       },
     },
     {
@@ -11521,8 +11593,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 224,
       depth: {
-        onePercentDepthAboveUsd: '36535',
-        onePercentDepthBelowUsd: '49139',
+        onePercentDepthAboveUsd: '4187',
+        onePercentDepthBelowUsd: '22494',
       },
     },
     {
@@ -11557,8 +11629,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 226,
       depth: {
-        onePercentDepthAboveUsd: '54455',
-        onePercentDepthBelowUsd: '57178',
+        onePercentDepthAboveUsd: '58900',
+        onePercentDepthBelowUsd: '72129',
       },
     },
     {
@@ -11575,8 +11647,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 227,
       depth: {
-        onePercentDepthAboveUsd: '34872',
-        onePercentDepthBelowUsd: '47822',
+        onePercentDepthAboveUsd: '54172',
+        onePercentDepthBelowUsd: '70978',
       },
     },
     {
@@ -11593,8 +11665,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 228,
       depth: {
-        onePercentDepthAboveUsd: '149467',
-        onePercentDepthBelowUsd: '150975',
+        onePercentDepthAboveUsd: '136986',
+        onePercentDepthBelowUsd: '140547',
       },
     },
     {
@@ -11665,8 +11737,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 232,
       depth: {
-        onePercentDepthAboveUsd: '94945',
-        onePercentDepthBelowUsd: '114649',
+        onePercentDepthAboveUsd: '90525',
+        onePercentDepthBelowUsd: '95431',
       },
     },
     {
@@ -11683,8 +11755,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 233,
       depth: {
-        onePercentDepthAboveUsd: '143845',
-        onePercentDepthBelowUsd: '222471',
+        onePercentDepthAboveUsd: '133374',
+        onePercentDepthBelowUsd: '217092',
       },
     },
     {
@@ -11701,8 +11773,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 234,
       depth: {
-        onePercentDepthAboveUsd: '40147',
-        onePercentDepthBelowUsd: '46994',
+        onePercentDepthAboveUsd: '41151',
+        onePercentDepthBelowUsd: '40690',
       },
     },
     {
@@ -11719,8 +11791,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 235,
       depth: {
-        onePercentDepthAboveUsd: '67867',
-        onePercentDepthBelowUsd: '62516',
+        onePercentDepthAboveUsd: '57506',
+        onePercentDepthBelowUsd: '87000',
       },
     },
     {
@@ -11737,8 +11809,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 236,
       depth: {
-        onePercentDepthAboveUsd: '149240',
-        onePercentDepthBelowUsd: '172106',
+        onePercentDepthAboveUsd: '114725',
+        onePercentDepthBelowUsd: '162318',
       },
     },
     {
@@ -11755,8 +11827,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 237,
       depth: {
-        onePercentDepthAboveUsd: '257410',
-        onePercentDepthBelowUsd: '310304',
+        onePercentDepthAboveUsd: '270878',
+        onePercentDepthBelowUsd: '194642',
       },
     },
     {
@@ -11809,8 +11881,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 240,
       depth: {
-        onePercentDepthAboveUsd: '29074',
-        onePercentDepthBelowUsd: '34402',
+        onePercentDepthAboveUsd: '27888',
+        onePercentDepthBelowUsd: '28866',
       },
     },
     {
@@ -11845,8 +11917,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 242,
       depth: {
-        onePercentDepthAboveUsd: '80046',
-        onePercentDepthBelowUsd: '84722',
+        onePercentDepthAboveUsd: '92528',
+        onePercentDepthBelowUsd: '119048',
       },
     },
     {
@@ -11863,8 +11935,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 243,
       depth: {
-        onePercentDepthAboveUsd: '47448',
-        onePercentDepthBelowUsd: '95142',
+        onePercentDepthAboveUsd: '43489',
+        onePercentDepthBelowUsd: '85617',
       },
     },
     {
@@ -11881,8 +11953,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 244,
       depth: {
-        onePercentDepthAboveUsd: '59750',
-        onePercentDepthBelowUsd: '72614',
+        onePercentDepthAboveUsd: '50009',
+        onePercentDepthBelowUsd: '70896',
       },
     },
     {
@@ -11899,8 +11971,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 245,
       depth: {
-        onePercentDepthAboveUsd: '98530',
-        onePercentDepthBelowUsd: '236040',
+        onePercentDepthAboveUsd: '150828',
+        onePercentDepthBelowUsd: '226116',
       },
     },
     {
@@ -11917,8 +11989,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 246,
       depth: {
-        onePercentDepthAboveUsd: '61372',
-        onePercentDepthBelowUsd: '55846',
+        onePercentDepthAboveUsd: '66103',
+        onePercentDepthBelowUsd: '59957',
       },
     },
     {
@@ -11935,8 +12007,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 247,
       depth: {
-        onePercentDepthAboveUsd: '171691',
-        onePercentDepthBelowUsd: '185568',
+        onePercentDepthAboveUsd: '129857',
+        onePercentDepthBelowUsd: '170971',
       },
     },
     {
@@ -11953,8 +12025,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 248,
       depth: {
-        onePercentDepthAboveUsd: '55011',
-        onePercentDepthBelowUsd: '54541',
+        onePercentDepthAboveUsd: '65289',
+        onePercentDepthBelowUsd: '74725',
       },
     },
     {
@@ -11971,8 +12043,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 249,
       depth: {
-        onePercentDepthAboveUsd: '79269',
-        onePercentDepthBelowUsd: '81256',
+        onePercentDepthAboveUsd: '97934',
+        onePercentDepthBelowUsd: '84142',
       },
     },
     {
@@ -12007,8 +12079,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 251,
       depth: {
-        onePercentDepthAboveUsd: '35823',
-        onePercentDepthBelowUsd: '65033',
+        onePercentDepthAboveUsd: '54604',
+        onePercentDepthBelowUsd: '89390',
       },
     },
     {
@@ -12025,8 +12097,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 252,
       depth: {
-        onePercentDepthAboveUsd: '9319',
-        onePercentDepthBelowUsd: '15020',
+        onePercentDepthAboveUsd: '5691',
+        onePercentDepthBelowUsd: '11194',
       },
     },
     {
@@ -12079,8 +12151,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 255,
       depth: {
-        onePercentDepthAboveUsd: '5162',
-        onePercentDepthBelowUsd: '7358',
+        onePercentDepthAboveUsd: '11649',
+        onePercentDepthBelowUsd: '9426',
       },
     },
     {
@@ -12097,8 +12169,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 256,
       depth: {
-        onePercentDepthAboveUsd: '42313',
-        onePercentDepthBelowUsd: '43661',
+        onePercentDepthAboveUsd: '51934',
+        onePercentDepthBelowUsd: '40171',
       },
     },
     {
@@ -12115,8 +12187,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 257,
       depth: {
-        onePercentDepthAboveUsd: '62261',
-        onePercentDepthBelowUsd: '72864',
+        onePercentDepthAboveUsd: '69111',
+        onePercentDepthBelowUsd: '95295',
       },
     },
     {
@@ -12151,8 +12223,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 259,
       depth: {
-        onePercentDepthAboveUsd: '102241',
-        onePercentDepthBelowUsd: '118793',
+        onePercentDepthAboveUsd: '10855',
+        onePercentDepthBelowUsd: '24038',
       },
     },
     {
@@ -12169,8 +12241,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 260,
       depth: {
-        onePercentDepthAboveUsd: '78433',
-        onePercentDepthBelowUsd: '78986',
+        onePercentDepthAboveUsd: '90745',
+        onePercentDepthBelowUsd: '103111',
       },
     },
     {
@@ -12187,8 +12259,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 261,
       depth: {
-        onePercentDepthAboveUsd: '31366',
-        onePercentDepthBelowUsd: '24932',
+        onePercentDepthAboveUsd: '27171',
+        onePercentDepthBelowUsd: '22602',
       },
     },
     {
@@ -12205,8 +12277,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 262,
       depth: {
-        onePercentDepthAboveUsd: '71441',
-        onePercentDepthBelowUsd: '108008',
+        onePercentDepthAboveUsd: '55183',
+        onePercentDepthBelowUsd: '79682',
       },
     },
     {
@@ -12223,8 +12295,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 263,
       depth: {
-        onePercentDepthAboveUsd: '40274',
-        onePercentDepthBelowUsd: '43371',
+        onePercentDepthAboveUsd: '40185',
+        onePercentDepthBelowUsd: '36749',
       },
     },
     {
@@ -12241,8 +12313,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 264,
       depth: {
-        onePercentDepthAboveUsd: '62046',
-        onePercentDepthBelowUsd: '81650',
+        onePercentDepthAboveUsd: '53863',
+        onePercentDepthBelowUsd: '99769',
       },
     },
     {
@@ -12259,8 +12331,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 265,
       depth: {
-        onePercentDepthAboveUsd: '118279',
-        onePercentDepthBelowUsd: '94492',
+        onePercentDepthAboveUsd: '97088',
+        onePercentDepthBelowUsd: '153745',
       },
     },
     {
@@ -12277,8 +12349,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 266,
       depth: {
-        onePercentDepthAboveUsd: '62289',
-        onePercentDepthBelowUsd: '77524',
+        onePercentDepthAboveUsd: '42175',
+        onePercentDepthBelowUsd: '82741',
       },
     },
     {
@@ -12295,8 +12367,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 267,
       depth: {
-        onePercentDepthAboveUsd: '69500',
-        onePercentDepthBelowUsd: '99191',
+        onePercentDepthAboveUsd: '48784',
+        onePercentDepthBelowUsd: '92715',
       },
     },
     {
@@ -12313,8 +12385,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 268,
       depth: {
-        onePercentDepthAboveUsd: '12612',
-        onePercentDepthBelowUsd: '18666',
+        onePercentDepthAboveUsd: '15450',
+        onePercentDepthBelowUsd: '14570',
       },
     },
     {
@@ -12331,8 +12403,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 269,
       depth: {
-        onePercentDepthAboveUsd: '327598',
-        onePercentDepthBelowUsd: '498366',
+        onePercentDepthAboveUsd: '375315',
+        onePercentDepthBelowUsd: '556627',
       },
     },
     {
@@ -12367,8 +12439,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 271,
       depth: {
-        onePercentDepthAboveUsd: '15762',
-        onePercentDepthBelowUsd: '37985',
+        onePercentDepthAboveUsd: '25858',
+        onePercentDepthBelowUsd: '28255',
       },
     },
     {
@@ -12385,8 +12457,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 272,
       depth: {
-        onePercentDepthAboveUsd: '5581',
-        onePercentDepthBelowUsd: '10480',
+        onePercentDepthAboveUsd: '6335',
+        onePercentDepthBelowUsd: '461',
       },
     },
     {
@@ -12403,8 +12475,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 273,
       depth: {
-        onePercentDepthAboveUsd: '2382',
-        onePercentDepthBelowUsd: '2869',
+        onePercentDepthAboveUsd: '3703',
+        onePercentDepthBelowUsd: '3594',
       },
     },
     {
@@ -12421,8 +12493,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 274,
       depth: {
-        onePercentDepthAboveUsd: '22200',
-        onePercentDepthBelowUsd: '26580',
+        onePercentDepthAboveUsd: '33751',
+        onePercentDepthBelowUsd: '39648',
       },
     },
     {
@@ -12475,8 +12547,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 277,
       depth: {
-        onePercentDepthAboveUsd: '21238',
-        onePercentDepthBelowUsd: '94251',
+        onePercentDepthAboveUsd: '55676',
+        onePercentDepthBelowUsd: '85243',
       },
     },
     {
@@ -12529,8 +12601,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 280,
       depth: {
-        onePercentDepthAboveUsd: '85538',
-        onePercentDepthBelowUsd: '132110',
+        onePercentDepthAboveUsd: '105981',
+        onePercentDepthBelowUsd: '121160',
       },
     },
     {
@@ -12547,8 +12619,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 281,
       depth: {
-        onePercentDepthAboveUsd: '37808',
-        onePercentDepthBelowUsd: '44853',
+        onePercentDepthAboveUsd: '37529',
+        onePercentDepthBelowUsd: '44566',
       },
     },
     {
@@ -12583,8 +12655,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 283,
       depth: {
-        onePercentDepthAboveUsd: '84292',
-        onePercentDepthBelowUsd: '93904',
+        onePercentDepthAboveUsd: '86473',
+        onePercentDepthBelowUsd: '67529',
       },
     },
     {
@@ -12601,8 +12673,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 284,
       depth: {
-        onePercentDepthAboveUsd: '218180',
-        onePercentDepthBelowUsd: '260514',
+        onePercentDepthAboveUsd: '252450',
+        onePercentDepthBelowUsd: '280324',
       },
     },
     {
@@ -12637,8 +12709,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 286,
       depth: {
-        onePercentDepthAboveUsd: '62608',
-        onePercentDepthBelowUsd: '76958',
+        onePercentDepthAboveUsd: '43566',
+        onePercentDepthBelowUsd: '83606',
       },
     },
     {
@@ -12655,8 +12727,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 287,
       depth: {
-        onePercentDepthAboveUsd: '28109',
-        onePercentDepthBelowUsd: '40802',
+        onePercentDepthAboveUsd: '24928',
+        onePercentDepthBelowUsd: '29942',
       },
     },
     {
@@ -12673,8 +12745,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 288,
       depth: {
-        onePercentDepthAboveUsd: '138661',
-        onePercentDepthBelowUsd: '231993',
+        onePercentDepthAboveUsd: '147224',
+        onePercentDepthBelowUsd: '166923',
       },
     },
     {
@@ -12691,8 +12763,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 289,
       depth: {
-        onePercentDepthAboveUsd: '27373',
-        onePercentDepthBelowUsd: '21258',
+        onePercentDepthAboveUsd: '23714',
+        onePercentDepthBelowUsd: '29438',
       },
     },
     {
@@ -12727,8 +12799,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 291,
       depth: {
-        onePercentDepthAboveUsd: '8458',
-        onePercentDepthBelowUsd: '9481',
+        onePercentDepthAboveUsd: '9138',
+        onePercentDepthBelowUsd: '11387',
       },
     },
     {
@@ -12745,8 +12817,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 292,
       depth: {
-        onePercentDepthAboveUsd: '3894',
-        onePercentDepthBelowUsd: '2640',
+        onePercentDepthAboveUsd: '4514',
+        onePercentDepthBelowUsd: '3008',
       },
     },
     {
@@ -12763,8 +12835,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 293,
       depth: {
-        onePercentDepthAboveUsd: '17464',
-        onePercentDepthBelowUsd: '23767',
+        onePercentDepthAboveUsd: '12490',
+        onePercentDepthBelowUsd: '21537',
       },
     },
     {
@@ -12799,8 +12871,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 295,
       depth: {
-        onePercentDepthAboveUsd: '14861',
-        onePercentDepthBelowUsd: '41536',
+        onePercentDepthAboveUsd: '20612',
+        onePercentDepthBelowUsd: '32827',
       },
     },
     {
@@ -12835,8 +12907,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 297,
       depth: {
-        onePercentDepthAboveUsd: '40956',
-        onePercentDepthBelowUsd: '36420',
+        onePercentDepthAboveUsd: '30016',
+        onePercentDepthBelowUsd: '32110',
       },
     },
     {
@@ -12853,8 +12925,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 298,
       depth: {
-        onePercentDepthAboveUsd: '25372',
-        onePercentDepthBelowUsd: '20195',
+        onePercentDepthAboveUsd: '19875',
+        onePercentDepthBelowUsd: '21841',
       },
     },
     {
@@ -12871,8 +12943,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 299,
       depth: {
-        onePercentDepthAboveUsd: '258519',
-        onePercentDepthBelowUsd: '226676',
+        onePercentDepthAboveUsd: '171014',
+        onePercentDepthBelowUsd: '132437',
       },
     },
     {
@@ -12907,8 +12979,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 301,
       depth: {
-        onePercentDepthAboveUsd: '188641',
-        onePercentDepthBelowUsd: '219935',
+        onePercentDepthAboveUsd: '125739',
+        onePercentDepthBelowUsd: '229939',
       },
     },
     {
@@ -12925,8 +12997,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 302,
       depth: {
-        onePercentDepthAboveUsd: '68502',
-        onePercentDepthBelowUsd: '79883',
+        onePercentDepthAboveUsd: '68518',
+        onePercentDepthBelowUsd: '72903',
       },
     },
     {
@@ -12943,8 +13015,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 303,
       depth: {
-        onePercentDepthAboveUsd: '178308',
-        onePercentDepthBelowUsd: '161673',
+        onePercentDepthAboveUsd: '151825',
+        onePercentDepthBelowUsd: '110559',
       },
     },
     {
@@ -12961,8 +13033,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 304,
       depth: {
-        onePercentDepthAboveUsd: '54689',
-        onePercentDepthBelowUsd: '55319',
+        onePercentDepthAboveUsd: '59363',
+        onePercentDepthBelowUsd: '91229',
       },
     },
     {
@@ -12997,8 +13069,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 306,
       depth: {
-        onePercentDepthAboveUsd: '12627',
-        onePercentDepthBelowUsd: '9597',
+        onePercentDepthAboveUsd: '5391',
+        onePercentDepthBelowUsd: '9054',
       },
     },
     {
@@ -13015,8 +13087,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 307,
       depth: {
-        onePercentDepthAboveUsd: '108817',
-        onePercentDepthBelowUsd: '155700',
+        onePercentDepthAboveUsd: '89138',
+        onePercentDepthBelowUsd: '144264',
       },
     },
     {
@@ -13033,8 +13105,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 308,
       depth: {
-        onePercentDepthAboveUsd: '76540',
-        onePercentDepthBelowUsd: '111938',
+        onePercentDepthAboveUsd: '60284',
+        onePercentDepthBelowUsd: '139660',
       },
     },
     {
@@ -13051,8 +13123,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 309,
       depth: {
-        onePercentDepthAboveUsd: '39740',
-        onePercentDepthBelowUsd: '33593',
+        onePercentDepthAboveUsd: '24778',
+        onePercentDepthBelowUsd: '29319',
       },
     },
     {
@@ -13069,8 +13141,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 310,
       depth: {
-        onePercentDepthAboveUsd: '23769',
-        onePercentDepthBelowUsd: '22235',
+        onePercentDepthAboveUsd: '39422',
+        onePercentDepthBelowUsd: '27481',
       },
     },
     {
@@ -13105,8 +13177,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 312,
       depth: {
-        onePercentDepthAboveUsd: '3898',
-        onePercentDepthBelowUsd: '3064',
+        onePercentDepthAboveUsd: '6496',
+        onePercentDepthBelowUsd: '6248',
       },
     },
     {
@@ -13159,8 +13231,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 315,
       depth: {
-        onePercentDepthAboveUsd: '73747',
-        onePercentDepthBelowUsd: '104531',
+        onePercentDepthAboveUsd: '69338',
+        onePercentDepthBelowUsd: '98647',
       },
     },
     {
@@ -13177,8 +13249,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 316,
       depth: {
-        onePercentDepthAboveUsd: '144185',
-        onePercentDepthBelowUsd: '169318',
+        onePercentDepthAboveUsd: '11685',
+        onePercentDepthBelowUsd: '16378',
       },
     },
     {
@@ -13195,8 +13267,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 317,
       depth: {
-        onePercentDepthAboveUsd: '52583',
-        onePercentDepthBelowUsd: '60523',
+        onePercentDepthAboveUsd: '51759',
+        onePercentDepthBelowUsd: '56195',
       },
     },
     {
@@ -13213,8 +13285,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 318,
       depth: {
-        onePercentDepthAboveUsd: '26298',
-        onePercentDepthBelowUsd: '26607',
+        onePercentDepthAboveUsd: '19780',
+        onePercentDepthBelowUsd: '29113',
       },
     },
     {
@@ -13231,8 +13303,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 319,
       depth: {
-        onePercentDepthAboveUsd: '8598',
-        onePercentDepthBelowUsd: '13811',
+        onePercentDepthAboveUsd: '9420',
+        onePercentDepthBelowUsd: '12407',
       },
     },
     {
@@ -13249,8 +13321,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 320,
       depth: {
-        onePercentDepthAboveUsd: '390262',
-        onePercentDepthBelowUsd: '489336',
+        onePercentDepthAboveUsd: '403191',
+        onePercentDepthBelowUsd: '363494',
       },
     },
     {
@@ -13267,8 +13339,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 321,
       depth: {
-        onePercentDepthAboveUsd: '214455',
-        onePercentDepthBelowUsd: '521960',
+        onePercentDepthAboveUsd: '175932',
+        onePercentDepthBelowUsd: '452518',
       },
     },
     {
@@ -13285,8 +13357,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 322,
       depth: {
-        onePercentDepthAboveUsd: '6567',
-        onePercentDepthBelowUsd: '6011',
+        onePercentDepthAboveUsd: '1015',
+        onePercentDepthBelowUsd: '2522',
       },
     },
     {
@@ -13303,8 +13375,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 323,
       depth: {
-        onePercentDepthAboveUsd: '57494',
-        onePercentDepthBelowUsd: '67534',
+        onePercentDepthAboveUsd: '73046',
+        onePercentDepthBelowUsd: '71193',
       },
     },
     {
@@ -13321,8 +13393,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 324,
       depth: {
-        onePercentDepthAboveUsd: '89887',
-        onePercentDepthBelowUsd: '121736',
+        onePercentDepthAboveUsd: '86953',
+        onePercentDepthBelowUsd: '116802',
       },
     },
     {
@@ -13339,8 +13411,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 325,
       depth: {
-        onePercentDepthAboveUsd: '80782',
-        onePercentDepthBelowUsd: '107301',
+        onePercentDepthAboveUsd: '90469',
+        onePercentDepthBelowUsd: '116257',
       },
     },
     {
@@ -13393,8 +13465,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 328,
       depth: {
-        onePercentDepthAboveUsd: '1522448',
-        onePercentDepthBelowUsd: '1644431',
+        onePercentDepthAboveUsd: '1448967',
+        onePercentDepthBelowUsd: '1648336',
       },
     },
     {
@@ -13411,8 +13483,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 329,
       depth: {
-        onePercentDepthAboveUsd: '12914',
-        onePercentDepthBelowUsd: '13521',
+        onePercentDepthAboveUsd: '12334',
+        onePercentDepthBelowUsd: '14138',
       },
     },
     {
@@ -13447,8 +13519,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 331,
       depth: {
-        onePercentDepthAboveUsd: '242193',
-        onePercentDepthBelowUsd: '500322',
+        onePercentDepthAboveUsd: '85498',
+        onePercentDepthBelowUsd: '307243',
       },
     },
     {
@@ -13465,8 +13537,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 332,
       depth: {
-        onePercentDepthAboveUsd: '229750',
-        onePercentDepthBelowUsd: '251786',
+        onePercentDepthAboveUsd: '264309',
+        onePercentDepthBelowUsd: '277090',
       },
     },
     {
@@ -13483,8 +13555,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 333,
       depth: {
-        onePercentDepthAboveUsd: '3858',
-        onePercentDepthBelowUsd: '4852',
+        onePercentDepthAboveUsd: '2057',
+        onePercentDepthBelowUsd: '2730',
       },
     },
     {
@@ -13501,8 +13573,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 334,
       depth: {
-        onePercentDepthAboveUsd: '184245',
-        onePercentDepthBelowUsd: '203855',
+        onePercentDepthAboveUsd: '168341',
+        onePercentDepthBelowUsd: '144185',
       },
     },
     {
@@ -13519,8 +13591,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 335,
       depth: {
-        onePercentDepthAboveUsd: '11040',
-        onePercentDepthBelowUsd: '14255',
+        onePercentDepthAboveUsd: '19867',
+        onePercentDepthBelowUsd: '23615',
       },
     },
     {
@@ -13537,8 +13609,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 336,
       depth: {
-        onePercentDepthAboveUsd: '7337',
-        onePercentDepthBelowUsd: '6365',
+        onePercentDepthAboveUsd: '10209',
+        onePercentDepthBelowUsd: '9169',
       },
     },
     {
@@ -13555,8 +13627,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 337,
       depth: {
-        onePercentDepthAboveUsd: '111384',
-        onePercentDepthBelowUsd: '93416',
+        onePercentDepthAboveUsd: '93040',
+        onePercentDepthBelowUsd: '78455',
       },
     },
     {
@@ -13573,8 +13645,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 338,
       depth: {
-        onePercentDepthAboveUsd: '105779',
-        onePercentDepthBelowUsd: '55669',
+        onePercentDepthAboveUsd: '113305',
+        onePercentDepthBelowUsd: '78541',
       },
     },
     {
@@ -13591,8 +13663,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 339,
       depth: {
-        onePercentDepthAboveUsd: '7880',
-        onePercentDepthBelowUsd: '13220',
+        onePercentDepthAboveUsd: '16509',
+        onePercentDepthBelowUsd: '10373',
       },
     },
     {
@@ -13609,8 +13681,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 340,
       depth: {
-        onePercentDepthAboveUsd: '71004',
-        onePercentDepthBelowUsd: '69186',
+        onePercentDepthAboveUsd: '70091',
+        onePercentDepthBelowUsd: '46015',
       },
     },
     {
@@ -13627,8 +13699,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 341,
       depth: {
-        onePercentDepthAboveUsd: '61238',
-        onePercentDepthBelowUsd: '57640',
+        onePercentDepthAboveUsd: '31333',
+        onePercentDepthBelowUsd: '28619',
       },
     },
     {
@@ -13645,8 +13717,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 342,
       depth: {
-        onePercentDepthAboveUsd: '72369',
-        onePercentDepthBelowUsd: '180100',
+        onePercentDepthAboveUsd: '78331',
+        onePercentDepthBelowUsd: '128225',
       },
     },
     {
@@ -13663,8 +13735,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 343,
       depth: {
-        onePercentDepthAboveUsd: '50206',
-        onePercentDepthBelowUsd: '84257',
+        onePercentDepthAboveUsd: '63010',
+        onePercentDepthBelowUsd: '72734',
       },
     },
     {
@@ -13681,8 +13753,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 344,
       depth: {
-        onePercentDepthAboveUsd: '5520',
-        onePercentDepthBelowUsd: '8354',
+        onePercentDepthAboveUsd: '11057',
+        onePercentDepthBelowUsd: '15101',
       },
     },
     {
@@ -13699,8 +13771,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 345,
       depth: {
-        onePercentDepthAboveUsd: '101868',
-        onePercentDepthBelowUsd: '57997',
+        onePercentDepthAboveUsd: '79475',
+        onePercentDepthBelowUsd: '139985',
       },
     },
     {
@@ -13717,8 +13789,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 346,
       depth: {
-        onePercentDepthAboveUsd: '36174',
-        onePercentDepthBelowUsd: '27967',
+        onePercentDepthAboveUsd: '33428',
+        onePercentDepthBelowUsd: '42427',
       },
     },
     {
@@ -13735,8 +13807,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 347,
       depth: {
-        onePercentDepthAboveUsd: '90694',
-        onePercentDepthBelowUsd: '101625',
+        onePercentDepthAboveUsd: '57859',
+        onePercentDepthBelowUsd: '59382',
       },
     },
     {
@@ -13753,8 +13825,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 348,
       depth: {
-        onePercentDepthAboveUsd: '92254',
-        onePercentDepthBelowUsd: '98458',
+        onePercentDepthAboveUsd: '111883',
+        onePercentDepthBelowUsd: '130067',
       },
     },
     {
@@ -13789,8 +13861,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 350,
       depth: {
-        onePercentDepthAboveUsd: '120619',
-        onePercentDepthBelowUsd: '107619',
+        onePercentDepthAboveUsd: '112958',
+        onePercentDepthBelowUsd: '135098',
       },
     },
     {
@@ -13807,8 +13879,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 351,
       depth: {
-        onePercentDepthAboveUsd: '49728',
-        onePercentDepthBelowUsd: '61016',
+        onePercentDepthAboveUsd: '38218',
+        onePercentDepthBelowUsd: '50312',
       },
     },
     {
@@ -13897,8 +13969,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 356,
       depth: {
-        onePercentDepthAboveUsd: '71194',
-        onePercentDepthBelowUsd: '83636',
+        onePercentDepthAboveUsd: '67227',
+        onePercentDepthBelowUsd: '61016',
       },
     },
     {
@@ -13933,8 +14005,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 358,
       depth: {
-        onePercentDepthAboveUsd: '77804',
-        onePercentDepthBelowUsd: '112219',
+        onePercentDepthAboveUsd: '104120',
+        onePercentDepthBelowUsd: '128349',
       },
     },
     {
@@ -13951,8 +14023,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 359,
       depth: {
-        onePercentDepthAboveUsd: '25798',
-        onePercentDepthBelowUsd: '45856',
+        onePercentDepthAboveUsd: '40712',
+        onePercentDepthBelowUsd: '44203',
       },
     },
     {
@@ -13969,8 +14041,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 360,
       depth: {
-        onePercentDepthAboveUsd: '39333',
-        onePercentDepthBelowUsd: '66795',
+        onePercentDepthAboveUsd: '24434',
+        onePercentDepthBelowUsd: '50324',
       },
     },
     {
@@ -13987,8 +14059,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 361,
       depth: {
-        onePercentDepthAboveUsd: '60166',
-        onePercentDepthBelowUsd: '42740',
+        onePercentDepthAboveUsd: '46160',
+        onePercentDepthBelowUsd: '32234',
       },
     },
     {
@@ -14005,8 +14077,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 362,
       depth: {
-        onePercentDepthAboveUsd: '7027',
-        onePercentDepthBelowUsd: '5737',
+        onePercentDepthAboveUsd: '6365',
+        onePercentDepthBelowUsd: '8146',
       },
     },
     {
@@ -14023,8 +14095,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 363,
       depth: {
-        onePercentDepthAboveUsd: '38537',
-        onePercentDepthBelowUsd: '38250',
+        onePercentDepthAboveUsd: '19100',
+        onePercentDepthBelowUsd: '31596',
       },
     },
     {
@@ -14041,8 +14113,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 364,
       depth: {
-        onePercentDepthAboveUsd: '52294',
-        onePercentDepthBelowUsd: '63225',
+        onePercentDepthAboveUsd: '45477',
+        onePercentDepthBelowUsd: '76796',
       },
     },
     {
@@ -14095,8 +14167,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 367,
       depth: {
-        onePercentDepthAboveUsd: '259016',
-        onePercentDepthBelowUsd: '261724',
+        onePercentDepthAboveUsd: '292087',
+        onePercentDepthBelowUsd: '296820',
       },
     },
     {
@@ -14113,8 +14185,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 368,
       depth: {
-        onePercentDepthAboveUsd: '156592',
-        onePercentDepthBelowUsd: '84743',
+        onePercentDepthAboveUsd: '142151',
+        onePercentDepthBelowUsd: '64309',
       },
     },
     {
@@ -14131,8 +14203,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 369,
       depth: {
-        onePercentDepthAboveUsd: '215059',
-        onePercentDepthBelowUsd: '161139',
+        onePercentDepthAboveUsd: '205158',
+        onePercentDepthBelowUsd: '177617',
       },
     },
     {
@@ -14149,8 +14221,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 370,
       depth: {
-        onePercentDepthAboveUsd: '96284',
-        onePercentDepthBelowUsd: '101699',
+        onePercentDepthAboveUsd: '78147',
+        onePercentDepthBelowUsd: '82203',
       },
     },
     {
@@ -14167,8 +14239,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 371,
       depth: {
-        onePercentDepthAboveUsd: '46921',
-        onePercentDepthBelowUsd: '46442',
+        onePercentDepthAboveUsd: '80697',
+        onePercentDepthBelowUsd: '89044',
       },
     },
     {
@@ -14185,8 +14257,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 372,
       depth: {
-        onePercentDepthAboveUsd: '110249',
-        onePercentDepthBelowUsd: '96783',
+        onePercentDepthAboveUsd: '117975',
+        onePercentDepthBelowUsd: '106360',
       },
     },
     {
@@ -14203,8 +14275,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 373,
       depth: {
-        onePercentDepthAboveUsd: '104811',
-        onePercentDepthBelowUsd: '152819',
+        onePercentDepthAboveUsd: '104008',
+        onePercentDepthBelowUsd: '141613',
       },
     },
     {
@@ -14221,8 +14293,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 374,
       depth: {
-        onePercentDepthAboveUsd: '31306',
-        onePercentDepthBelowUsd: '104150',
+        onePercentDepthAboveUsd: '102392',
+        onePercentDepthBelowUsd: '116813',
       },
     },
     {
@@ -14239,8 +14311,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 375,
       depth: {
-        onePercentDepthAboveUsd: '202744',
-        onePercentDepthBelowUsd: '184235',
+        onePercentDepthAboveUsd: '246693',
+        onePercentDepthBelowUsd: '235104',
       },
     },
     {
@@ -14257,8 +14329,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '4',
       pairIndex: 376,
       depth: {
-        onePercentDepthAboveUsd: '0',
-        onePercentDepthBelowUsd: '0',
+        onePercentDepthAboveUsd: '350000',
+        onePercentDepthBelowUsd: '350000',
       },
     },
     {
@@ -14329,8 +14401,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 380,
       depth: {
-        onePercentDepthAboveUsd: '43375',
-        onePercentDepthBelowUsd: '48097',
+        onePercentDepthAboveUsd: '35492',
+        onePercentDepthBelowUsd: '63542',
       },
     },
     {
@@ -14347,8 +14419,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 381,
       depth: {
-        onePercentDepthAboveUsd: '226228',
-        onePercentDepthBelowUsd: '373456',
+        onePercentDepthAboveUsd: '211769',
+        onePercentDepthBelowUsd: '279558',
       },
     },
     {
@@ -14365,8 +14437,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 382,
       depth: {
-        onePercentDepthAboveUsd: '54124',
-        onePercentDepthBelowUsd: '44420',
+        onePercentDepthAboveUsd: '50909',
+        onePercentDepthBelowUsd: '50486',
       },
     },
     {
@@ -14383,8 +14455,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 383,
       depth: {
-        onePercentDepthAboveUsd: '65928',
-        onePercentDepthBelowUsd: '80259',
+        onePercentDepthAboveUsd: '59982',
+        onePercentDepthBelowUsd: '123284',
       },
     },
     {
@@ -14401,8 +14473,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 384,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -14419,8 +14491,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 385,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -14455,8 +14527,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 387,
       depth: {
-        onePercentDepthAboveUsd: '192505',
-        onePercentDepthBelowUsd: '167341',
+        onePercentDepthAboveUsd: '197432',
+        onePercentDepthBelowUsd: '163100',
       },
     },
     {
@@ -14473,8 +14545,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 388,
       depth: {
-        onePercentDepthAboveUsd: '12084',
-        onePercentDepthBelowUsd: '13616',
+        onePercentDepthAboveUsd: '22588',
+        onePercentDepthBelowUsd: '20608',
       },
     },
     {
@@ -14491,8 +14563,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 389,
       depth: {
-        onePercentDepthAboveUsd: '149234',
-        onePercentDepthBelowUsd: '115686',
+        onePercentDepthAboveUsd: '121368',
+        onePercentDepthBelowUsd: '88738',
       },
     },
     {
@@ -14509,8 +14581,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 390,
       depth: {
-        onePercentDepthAboveUsd: '29691',
-        onePercentDepthBelowUsd: '38695',
+        onePercentDepthAboveUsd: '49902',
+        onePercentDepthBelowUsd: '51504',
       },
     },
     {
@@ -14527,8 +14599,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 391,
       depth: {
-        onePercentDepthAboveUsd: '12047',
-        onePercentDepthBelowUsd: '6882',
+        onePercentDepthAboveUsd: '14347',
+        onePercentDepthBelowUsd: '12955',
       },
     },
     {
@@ -14545,8 +14617,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 392,
       depth: {
-        onePercentDepthAboveUsd: '48679',
-        onePercentDepthBelowUsd: '60088',
+        onePercentDepthAboveUsd: '47406',
+        onePercentDepthBelowUsd: '55593',
       },
     },
     {
@@ -14707,8 +14779,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 401,
       depth: {
-        onePercentDepthAboveUsd: '49546',
-        onePercentDepthBelowUsd: '47306',
+        onePercentDepthAboveUsd: '18536',
+        onePercentDepthBelowUsd: '76800',
       },
     },
     {
@@ -14725,8 +14797,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 402,
       depth: {
-        onePercentDepthAboveUsd: '48435',
-        onePercentDepthBelowUsd: '37317',
+        onePercentDepthAboveUsd: '44369',
+        onePercentDepthBelowUsd: '55243',
       },
     },
     {
@@ -14743,8 +14815,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 403,
       depth: {
-        onePercentDepthAboveUsd: '42671',
-        onePercentDepthBelowUsd: '38342',
+        onePercentDepthAboveUsd: '37314',
+        onePercentDepthBelowUsd: '39059',
       },
     },
     {
@@ -14761,8 +14833,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 404,
       depth: {
-        onePercentDepthAboveUsd: '29140',
-        onePercentDepthBelowUsd: '29592',
+        onePercentDepthAboveUsd: '42694',
+        onePercentDepthBelowUsd: '39158',
       },
     },
     {
@@ -14779,8 +14851,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 405,
       depth: {
-        onePercentDepthAboveUsd: '60009',
-        onePercentDepthBelowUsd: '72107',
+        onePercentDepthAboveUsd: '80598',
+        onePercentDepthBelowUsd: '70757',
       },
     },
     {
@@ -14797,8 +14869,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 406,
       depth: {
-        onePercentDepthAboveUsd: '120020',
-        onePercentDepthBelowUsd: '113077',
+        onePercentDepthAboveUsd: '80359',
+        onePercentDepthBelowUsd: '102160',
       },
     },
     {
@@ -14815,8 +14887,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 407,
       depth: {
-        onePercentDepthAboveUsd: '120416',
-        onePercentDepthBelowUsd: '174139',
+        onePercentDepthAboveUsd: '68327',
+        onePercentDepthBelowUsd: '71532',
       },
     },
     {
@@ -14833,8 +14905,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 408,
       depth: {
-        onePercentDepthAboveUsd: '14618',
-        onePercentDepthBelowUsd: '18458',
+        onePercentDepthAboveUsd: '20602',
+        onePercentDepthBelowUsd: '73020',
       },
     },
     {
@@ -14851,8 +14923,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 409,
       depth: {
-        onePercentDepthAboveUsd: '191762',
-        onePercentDepthBelowUsd: '194107',
+        onePercentDepthAboveUsd: '188592',
+        onePercentDepthBelowUsd: '101321',
       },
     },
     {
@@ -14869,8 +14941,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 410,
       depth: {
-        onePercentDepthAboveUsd: '160405',
-        onePercentDepthBelowUsd: '169290',
+        onePercentDepthAboveUsd: '202831',
+        onePercentDepthBelowUsd: '200350',
       },
     },
     {
@@ -14887,8 +14959,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 411,
       depth: {
-        onePercentDepthAboveUsd: '2304',
-        onePercentDepthBelowUsd: '7151',
+        onePercentDepthAboveUsd: '1518',
+        onePercentDepthBelowUsd: '1794',
       },
     },
     {
@@ -14905,8 +14977,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 412,
       depth: {
-        onePercentDepthAboveUsd: '9386',
-        onePercentDepthBelowUsd: '9704',
+        onePercentDepthAboveUsd: '9582',
+        onePercentDepthBelowUsd: '8620',
       },
     },
     {
@@ -14923,8 +14995,80 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 413,
       depth: {
-        onePercentDepthAboveUsd: '443084',
-        onePercentDepthBelowUsd: '447231',
+        onePercentDepthAboveUsd: '616209',
+        onePercentDepthBelowUsd: '835366',
+      },
+    },
+    {
+      from: 'ASTER',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 414,
+      depth: {
+        onePercentDepthAboveUsd: '59433',
+        onePercentDepthBelowUsd: '60634',
+      },
+    },
+    {
+      from: 'OKB',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 415,
+      depth: {
+        onePercentDepthAboveUsd: '464702',
+        onePercentDepthBelowUsd: '319446',
+      },
+    },
+    {
+      from: 'CRO',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 416,
+      depth: {
+        onePercentDepthAboveUsd: '204101',
+        onePercentDepthBelowUsd: '244766',
+      },
+    },
+    {
+      from: 'SKY',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 417,
+      depth: {
+        onePercentDepthAboveUsd: '137882',
+        onePercentDepthBelowUsd: '146808',
       },
     },
   ],
@@ -14979,8 +15123,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 2,
       depth: {
-        onePercentDepthAboveUsd: '1941003',
-        onePercentDepthBelowUsd: '2051466',
+        onePercentDepthAboveUsd: '1844376',
+        onePercentDepthBelowUsd: '2230762',
       },
     },
     {
@@ -14997,8 +15141,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 3,
       depth: {
-        onePercentDepthAboveUsd: '5065950',
-        onePercentDepthBelowUsd: '5257726',
+        onePercentDepthAboveUsd: '3240136',
+        onePercentDepthBelowUsd: '3743793',
       },
     },
     {
@@ -15033,8 +15177,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 5,
       depth: {
-        onePercentDepthAboveUsd: '2168697',
-        onePercentDepthBelowUsd: '2449310',
+        onePercentDepthAboveUsd: '2011198',
+        onePercentDepthBelowUsd: '2173671',
       },
     },
     {
@@ -15069,8 +15213,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 7,
       depth: {
-        onePercentDepthAboveUsd: '1399140',
-        onePercentDepthBelowUsd: '1648604',
+        onePercentDepthAboveUsd: '1379426',
+        onePercentDepthBelowUsd: '1450252',
       },
     },
     {
@@ -15087,8 +15231,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 8,
       depth: {
-        onePercentDepthAboveUsd: '139373',
-        onePercentDepthBelowUsd: '250265',
+        onePercentDepthAboveUsd: '153753',
+        onePercentDepthBelowUsd: '172684',
       },
     },
     {
@@ -15105,8 +15249,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 9,
       depth: {
-        onePercentDepthAboveUsd: '44588',
-        onePercentDepthBelowUsd: '62416',
+        onePercentDepthAboveUsd: '44664',
+        onePercentDepthBelowUsd: '55648',
       },
     },
     {
@@ -15123,8 +15267,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 10,
       depth: {
-        onePercentDepthAboveUsd: '46966',
-        onePercentDepthBelowUsd: '86501',
+        onePercentDepthAboveUsd: '51039',
+        onePercentDepthBelowUsd: '102858',
       },
     },
     {
@@ -15141,8 +15285,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 11,
       depth: {
-        onePercentDepthAboveUsd: '538447',
-        onePercentDepthBelowUsd: '609023',
+        onePercentDepthAboveUsd: '361687',
+        onePercentDepthBelowUsd: '443846',
       },
     },
     {
@@ -15177,8 +15321,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 13,
       depth: {
-        onePercentDepthAboveUsd: '1042412',
-        onePercentDepthBelowUsd: '912840',
+        onePercentDepthAboveUsd: '1067713',
+        onePercentDepthBelowUsd: '1124656',
       },
     },
     {
@@ -15195,8 +15339,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 14,
       depth: {
-        onePercentDepthAboveUsd: '64937',
-        onePercentDepthBelowUsd: '79505',
+        onePercentDepthAboveUsd: '67173',
+        onePercentDepthBelowUsd: '53701',
       },
     },
     {
@@ -15231,8 +15375,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 16,
       depth: {
-        onePercentDepthAboveUsd: '77829',
-        onePercentDepthBelowUsd: '85693',
+        onePercentDepthAboveUsd: '51384',
+        onePercentDepthBelowUsd: '65716',
       },
     },
     {
@@ -15249,8 +15393,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 17,
       depth: {
-        onePercentDepthAboveUsd: '437333',
-        onePercentDepthBelowUsd: '630652',
+        onePercentDepthAboveUsd: '560514',
+        onePercentDepthBelowUsd: '541916',
       },
     },
     {
@@ -15267,8 +15411,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 18,
       depth: {
-        onePercentDepthAboveUsd: '809158',
-        onePercentDepthBelowUsd: '885548',
+        onePercentDepthAboveUsd: '859166',
+        onePercentDepthBelowUsd: '962003',
       },
     },
     {
@@ -15285,8 +15429,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 19,
       depth: {
-        onePercentDepthAboveUsd: '5718632',
-        onePercentDepthBelowUsd: '5848667',
+        onePercentDepthAboveUsd: '5701765',
+        onePercentDepthBelowUsd: '7203663',
       },
     },
     {
@@ -15321,8 +15465,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 21,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15339,8 +15483,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 22,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15357,8 +15501,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 23,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15375,8 +15519,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 24,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15393,8 +15537,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 25,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15411,8 +15555,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 26,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15429,8 +15573,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 27,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15447,8 +15591,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 28,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15465,8 +15609,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 29,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15483,8 +15627,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 30,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -15519,8 +15663,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 32,
       depth: {
-        onePercentDepthAboveUsd: '34542',
-        onePercentDepthBelowUsd: '34320',
+        onePercentDepthAboveUsd: '38797',
+        onePercentDepthBelowUsd: '51774',
       },
     },
     {
@@ -15537,8 +15681,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 33,
       depth: {
-        onePercentDepthAboveUsd: '11484974',
-        onePercentDepthBelowUsd: '9529912',
+        onePercentDepthAboveUsd: '6885230',
+        onePercentDepthBelowUsd: '6579221',
       },
     },
     {
@@ -15555,8 +15699,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 34,
       depth: {
-        onePercentDepthAboveUsd: '21182',
-        onePercentDepthBelowUsd: '30134',
+        onePercentDepthAboveUsd: '24972',
+        onePercentDepthBelowUsd: '32484',
       },
     },
     {
@@ -15573,8 +15717,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 35,
       depth: {
-        onePercentDepthAboveUsd: '288143',
-        onePercentDepthBelowUsd: '364999',
+        onePercentDepthAboveUsd: '340196',
+        onePercentDepthBelowUsd: '254656',
       },
     },
     {
@@ -15609,8 +15753,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 37,
       depth: {
-        onePercentDepthAboveUsd: '325159',
-        onePercentDepthBelowUsd: '426910',
+        onePercentDepthAboveUsd: '464527',
+        onePercentDepthBelowUsd: '624724',
       },
     },
     {
@@ -15627,8 +15771,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 38,
       depth: {
-        onePercentDepthAboveUsd: '14150',
-        onePercentDepthBelowUsd: '41159',
+        onePercentDepthAboveUsd: '43889',
+        onePercentDepthBelowUsd: '46036',
       },
     },
     {
@@ -15645,8 +15789,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 39,
       depth: {
-        onePercentDepthAboveUsd: '314688',
-        onePercentDepthBelowUsd: '462012',
+        onePercentDepthAboveUsd: '414386',
+        onePercentDepthBelowUsd: '494030',
       },
     },
     {
@@ -15663,8 +15807,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 40,
       depth: {
-        onePercentDepthAboveUsd: '196765',
-        onePercentDepthBelowUsd: '243332',
+        onePercentDepthAboveUsd: '250015',
+        onePercentDepthBelowUsd: '288308',
       },
     },
     {
@@ -15681,8 +15825,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 41,
       depth: {
-        onePercentDepthAboveUsd: '28860',
-        onePercentDepthBelowUsd: '25118',
+        onePercentDepthAboveUsd: '1',
+        onePercentDepthBelowUsd: '1',
       },
     },
     {
@@ -15699,8 +15843,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 42,
       depth: {
-        onePercentDepthAboveUsd: '88408',
-        onePercentDepthBelowUsd: '128122',
+        onePercentDepthAboveUsd: '96167',
+        onePercentDepthBelowUsd: '115749',
       },
     },
     {
@@ -15717,8 +15861,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 43,
       depth: {
-        onePercentDepthAboveUsd: '134187',
-        onePercentDepthBelowUsd: '133735',
+        onePercentDepthAboveUsd: '111249',
+        onePercentDepthBelowUsd: '124862',
       },
     },
     {
@@ -15735,8 +15879,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 44,
       depth: {
-        onePercentDepthAboveUsd: '3002066',
-        onePercentDepthBelowUsd: '3028318',
+        onePercentDepthAboveUsd: '2706992',
+        onePercentDepthBelowUsd: '2592109',
       },
     },
     {
@@ -15753,8 +15897,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 45,
       depth: {
-        onePercentDepthAboveUsd: '51200',
-        onePercentDepthBelowUsd: '49886',
+        onePercentDepthAboveUsd: '47686',
+        onePercentDepthBelowUsd: '55887',
       },
     },
     {
@@ -15771,8 +15915,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 46,
       depth: {
-        onePercentDepthAboveUsd: '88437',
-        onePercentDepthBelowUsd: '201061',
+        onePercentDepthAboveUsd: '183217',
+        onePercentDepthBelowUsd: '187028',
       },
     },
     {
@@ -15789,8 +15933,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 47,
       depth: {
-        onePercentDepthAboveUsd: '4276205',
-        onePercentDepthBelowUsd: '4314676',
+        onePercentDepthAboveUsd: '2612515',
+        onePercentDepthBelowUsd: '4478919',
       },
     },
     {
@@ -15825,8 +15969,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 49,
       depth: {
-        onePercentDepthAboveUsd: '122093',
-        onePercentDepthBelowUsd: '197313',
+        onePercentDepthAboveUsd: '142207',
+        onePercentDepthBelowUsd: '174083',
       },
     },
     {
@@ -15843,8 +15987,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 50,
       depth: {
-        onePercentDepthAboveUsd: '659258',
-        onePercentDepthBelowUsd: '852513',
+        onePercentDepthAboveUsd: '824480',
+        onePercentDepthBelowUsd: '819397',
       },
     },
     {
@@ -15933,8 +16077,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 55,
       depth: {
-        onePercentDepthAboveUsd: '213987',
-        onePercentDepthBelowUsd: '238510',
+        onePercentDepthAboveUsd: '223975',
+        onePercentDepthBelowUsd: '158509',
       },
     },
     {
@@ -15969,8 +16113,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 57,
       depth: {
-        onePercentDepthAboveUsd: '475333',
-        onePercentDepthBelowUsd: '553466',
+        onePercentDepthAboveUsd: '441180',
+        onePercentDepthBelowUsd: '708184',
       },
     },
     {
@@ -16599,8 +16743,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 92,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16617,8 +16761,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 93,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16635,8 +16779,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 94,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16653,8 +16797,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 95,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16671,8 +16815,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 96,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16689,8 +16833,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 97,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16707,8 +16851,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 98,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16725,8 +16869,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 99,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16743,8 +16887,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 100,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16761,8 +16905,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 101,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16779,8 +16923,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 102,
       depth: {
-        onePercentDepthAboveUsd: '1545108',
-        onePercentDepthBelowUsd: '1895582',
+        onePercentDepthAboveUsd: '1751041',
+        onePercentDepthBelowUsd: '1169869',
       },
     },
     {
@@ -16797,8 +16941,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 103,
       depth: {
-        onePercentDepthAboveUsd: '194738',
-        onePercentDepthBelowUsd: '273872',
+        onePercentDepthAboveUsd: '258194',
+        onePercentDepthBelowUsd: '171335',
       },
     },
     {
@@ -16815,8 +16959,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 104,
       depth: {
-        onePercentDepthAboveUsd: '453072',
-        onePercentDepthBelowUsd: '525395',
+        onePercentDepthAboveUsd: '388840',
+        onePercentDepthBelowUsd: '555443',
       },
     },
     {
@@ -16833,8 +16977,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 105,
       depth: {
-        onePercentDepthAboveUsd: '56020',
-        onePercentDepthBelowUsd: '78121',
+        onePercentDepthAboveUsd: '63956',
+        onePercentDepthBelowUsd: '86059',
       },
     },
     {
@@ -16869,8 +17013,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 107,
       depth: {
-        onePercentDepthAboveUsd: '271958',
-        onePercentDepthBelowUsd: '235826',
+        onePercentDepthAboveUsd: '190138',
+        onePercentDepthBelowUsd: '229599',
       },
     },
     {
@@ -16887,8 +17031,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 108,
       depth: {
-        onePercentDepthAboveUsd: '26372',
-        onePercentDepthBelowUsd: '23297',
+        onePercentDepthAboveUsd: '30625',
+        onePercentDepthBelowUsd: '19652',
       },
     },
     {
@@ -16905,8 +17049,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 109,
       depth: {
-        onePercentDepthAboveUsd: '561144',
-        onePercentDepthBelowUsd: '525556',
+        onePercentDepthAboveUsd: '333602',
+        onePercentDepthBelowUsd: '397978',
       },
     },
     {
@@ -16923,8 +17067,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 110,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16941,8 +17085,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 111,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16959,8 +17103,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 112,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16977,8 +17121,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 113,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -16995,8 +17139,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 114,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17013,8 +17157,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 115,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17031,8 +17175,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 116,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17049,8 +17193,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 117,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17067,8 +17211,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 118,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17085,8 +17229,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 119,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17103,8 +17247,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 120,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17121,8 +17265,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 121,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17139,8 +17283,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 122,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17157,8 +17301,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 123,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17175,8 +17319,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 124,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17193,8 +17337,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 125,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17211,8 +17355,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 126,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17229,8 +17373,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 127,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -17247,8 +17391,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 128,
       depth: {
-        onePercentDepthAboveUsd: '332420',
-        onePercentDepthBelowUsd: '365699',
+        onePercentDepthAboveUsd: '298348',
+        onePercentDepthBelowUsd: '414645',
       },
     },
     {
@@ -17265,8 +17409,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 129,
       depth: {
-        onePercentDepthAboveUsd: '434994',
-        onePercentDepthBelowUsd: '680225',
+        onePercentDepthAboveUsd: '670438',
+        onePercentDepthBelowUsd: '604249',
       },
     },
     {
@@ -17301,8 +17445,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 131,
       depth: {
-        onePercentDepthAboveUsd: '118321',
-        onePercentDepthBelowUsd: '165228',
+        onePercentDepthAboveUsd: '179143',
+        onePercentDepthBelowUsd: '221418',
       },
     },
     {
@@ -17319,8 +17463,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 132,
       depth: {
-        onePercentDepthAboveUsd: '53017',
-        onePercentDepthBelowUsd: '31644',
+        onePercentDepthAboveUsd: '76205',
+        onePercentDepthBelowUsd: '42515',
       },
     },
     {
@@ -17337,8 +17481,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 133,
       depth: {
-        onePercentDepthAboveUsd: '36674',
-        onePercentDepthBelowUsd: '48314',
+        onePercentDepthAboveUsd: '61398',
+        onePercentDepthBelowUsd: '81318',
       },
     },
     {
@@ -17355,8 +17499,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 134,
       depth: {
-        onePercentDepthAboveUsd: '1693843',
-        onePercentDepthBelowUsd: '1579045',
+        onePercentDepthAboveUsd: '1292037',
+        onePercentDepthBelowUsd: '1807531',
       },
     },
     {
@@ -17373,8 +17517,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 135,
       depth: {
-        onePercentDepthAboveUsd: '253540',
-        onePercentDepthBelowUsd: '489394',
+        onePercentDepthAboveUsd: '264873',
+        onePercentDepthBelowUsd: '469083',
       },
     },
     {
@@ -17391,8 +17535,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 136,
       depth: {
-        onePercentDepthAboveUsd: '26373',
-        onePercentDepthBelowUsd: '40752',
+        onePercentDepthAboveUsd: '36000',
+        onePercentDepthBelowUsd: '30129',
       },
     },
     {
@@ -17409,8 +17553,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 137,
       depth: {
-        onePercentDepthAboveUsd: '455180',
-        onePercentDepthBelowUsd: '503261',
+        onePercentDepthAboveUsd: '274067',
+        onePercentDepthBelowUsd: '464915',
       },
     },
     {
@@ -17427,8 +17571,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 138,
       depth: {
-        onePercentDepthAboveUsd: '357436',
-        onePercentDepthBelowUsd: '449914',
+        onePercentDepthAboveUsd: '338653',
+        onePercentDepthBelowUsd: '470645',
       },
     },
     {
@@ -17445,8 +17589,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 139,
       depth: {
-        onePercentDepthAboveUsd: '85539',
-        onePercentDepthBelowUsd: '92779',
+        onePercentDepthAboveUsd: '110542',
+        onePercentDepthBelowUsd: '197012',
       },
     },
     {
@@ -17463,8 +17607,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 140,
       depth: {
-        onePercentDepthAboveUsd: '115283',
-        onePercentDepthBelowUsd: '144218',
+        onePercentDepthAboveUsd: '98287',
+        onePercentDepthBelowUsd: '119822',
       },
     },
     {
@@ -17481,8 +17625,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 141,
       depth: {
-        onePercentDepthAboveUsd: '202467',
-        onePercentDepthBelowUsd: '408163',
+        onePercentDepthAboveUsd: '422372',
+        onePercentDepthBelowUsd: '398070',
       },
     },
     {
@@ -17499,8 +17643,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 142,
       depth: {
-        onePercentDepthAboveUsd: '194802',
-        onePercentDepthBelowUsd: '226466',
+        onePercentDepthAboveUsd: '155865',
+        onePercentDepthBelowUsd: '164406',
       },
     },
     {
@@ -17517,8 +17661,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 143,
       depth: {
-        onePercentDepthAboveUsd: '60838',
-        onePercentDepthBelowUsd: '73673',
+        onePercentDepthAboveUsd: '42449',
+        onePercentDepthBelowUsd: '57665',
       },
     },
     {
@@ -17535,8 +17679,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 144,
       depth: {
-        onePercentDepthAboveUsd: '392822',
-        onePercentDepthBelowUsd: '368508',
+        onePercentDepthAboveUsd: '410100',
+        onePercentDepthBelowUsd: '355968',
       },
     },
     {
@@ -17553,8 +17697,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 145,
       depth: {
-        onePercentDepthAboveUsd: '167971',
-        onePercentDepthBelowUsd: '203152',
+        onePercentDepthAboveUsd: '197852',
+        onePercentDepthBelowUsd: '199921',
       },
     },
     {
@@ -17571,8 +17715,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 146,
       depth: {
-        onePercentDepthAboveUsd: '81716',
-        onePercentDepthBelowUsd: '78209',
+        onePercentDepthAboveUsd: '55876',
+        onePercentDepthBelowUsd: '81064',
       },
     },
     {
@@ -17607,8 +17751,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 148,
       depth: {
-        onePercentDepthAboveUsd: '144608',
-        onePercentDepthBelowUsd: '306233',
+        onePercentDepthAboveUsd: '165249',
+        onePercentDepthBelowUsd: '245708',
       },
     },
     {
@@ -17625,8 +17769,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 149,
       depth: {
-        onePercentDepthAboveUsd: '69715',
-        onePercentDepthBelowUsd: '63302',
+        onePercentDepthAboveUsd: '65122',
+        onePercentDepthBelowUsd: '60100',
       },
     },
     {
@@ -17643,8 +17787,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 150,
       depth: {
-        onePercentDepthAboveUsd: '151914',
-        onePercentDepthBelowUsd: '198475',
+        onePercentDepthAboveUsd: '114533',
+        onePercentDepthBelowUsd: '190826',
       },
     },
     {
@@ -17661,8 +17805,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 151,
       depth: {
-        onePercentDepthAboveUsd: '30748',
-        onePercentDepthBelowUsd: '49866',
+        onePercentDepthAboveUsd: '47187',
+        onePercentDepthBelowUsd: '51286',
       },
     },
     {
@@ -17697,8 +17841,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 153,
       depth: {
-        onePercentDepthAboveUsd: '1975178',
-        onePercentDepthBelowUsd: '2008423',
+        onePercentDepthAboveUsd: '1746206',
+        onePercentDepthBelowUsd: '1968691',
       },
     },
     {
@@ -17715,8 +17859,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 154,
       depth: {
-        onePercentDepthAboveUsd: '52928',
-        onePercentDepthBelowUsd: '68090',
+        onePercentDepthAboveUsd: '44790',
+        onePercentDepthBelowUsd: '51009',
       },
     },
     {
@@ -17733,8 +17877,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 155,
       depth: {
-        onePercentDepthAboveUsd: '456999',
-        onePercentDepthBelowUsd: '490379',
+        onePercentDepthAboveUsd: '393073',
+        onePercentDepthBelowUsd: '261823',
       },
     },
     {
@@ -17751,8 +17895,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 156,
       depth: {
-        onePercentDepthAboveUsd: '275563',
-        onePercentDepthBelowUsd: '354793',
+        onePercentDepthAboveUsd: '356452',
+        onePercentDepthBelowUsd: '399107',
       },
     },
     {
@@ -17769,8 +17913,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 157,
       depth: {
-        onePercentDepthAboveUsd: '43104',
-        onePercentDepthBelowUsd: '27853',
+        onePercentDepthAboveUsd: '41943',
+        onePercentDepthBelowUsd: '35096',
       },
     },
     {
@@ -17787,8 +17931,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 158,
       depth: {
-        onePercentDepthAboveUsd: '133604',
-        onePercentDepthBelowUsd: '156355',
+        onePercentDepthAboveUsd: '140773',
+        onePercentDepthBelowUsd: '117287',
       },
     },
     {
@@ -17805,8 +17949,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 159,
       depth: {
-        onePercentDepthAboveUsd: '430306',
-        onePercentDepthBelowUsd: '256608',
+        onePercentDepthAboveUsd: '392199',
+        onePercentDepthBelowUsd: '504437',
       },
     },
     {
@@ -17841,8 +17985,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 161,
       depth: {
-        onePercentDepthAboveUsd: '70247',
-        onePercentDepthBelowUsd: '72886',
+        onePercentDepthAboveUsd: '67302',
+        onePercentDepthBelowUsd: '81672',
       },
     },
     {
@@ -17859,8 +18003,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 162,
       depth: {
-        onePercentDepthAboveUsd: '28886',
-        onePercentDepthBelowUsd: '42406',
+        onePercentDepthAboveUsd: '38528',
+        onePercentDepthBelowUsd: '46007',
       },
     },
     {
@@ -17895,8 +18039,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 164,
       depth: {
-        onePercentDepthAboveUsd: '48395',
-        onePercentDepthBelowUsd: '50497',
+        onePercentDepthAboveUsd: '56551',
+        onePercentDepthBelowUsd: '79180',
       },
     },
     {
@@ -17913,8 +18057,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 165,
       depth: {
-        onePercentDepthAboveUsd: '98498',
-        onePercentDepthBelowUsd: '125761',
+        onePercentDepthAboveUsd: '76163',
+        onePercentDepthBelowUsd: '98174',
       },
     },
     {
@@ -17931,8 +18075,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 166,
       depth: {
-        onePercentDepthAboveUsd: '47485',
-        onePercentDepthBelowUsd: '74917',
+        onePercentDepthAboveUsd: '32711',
+        onePercentDepthBelowUsd: '78305',
       },
     },
     {
@@ -17949,8 +18093,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 167,
       depth: {
-        onePercentDepthAboveUsd: '44559',
-        onePercentDepthBelowUsd: '89225',
+        onePercentDepthAboveUsd: '41577',
+        onePercentDepthBelowUsd: '57573',
       },
     },
     {
@@ -17967,8 +18111,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 168,
       depth: {
-        onePercentDepthAboveUsd: '163436',
-        onePercentDepthBelowUsd: '195341',
+        onePercentDepthAboveUsd: '126298',
+        onePercentDepthBelowUsd: '227796',
       },
     },
     {
@@ -17985,8 +18129,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 169,
       depth: {
-        onePercentDepthAboveUsd: '50385',
-        onePercentDepthBelowUsd: '51281',
+        onePercentDepthAboveUsd: '52228',
+        onePercentDepthBelowUsd: '63320',
       },
     },
     {
@@ -18021,8 +18165,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 171,
       depth: {
-        onePercentDepthAboveUsd: '705559',
-        onePercentDepthBelowUsd: '792174',
+        onePercentDepthAboveUsd: '823092',
+        onePercentDepthBelowUsd: '807441',
       },
     },
     {
@@ -18039,8 +18183,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 172,
       depth: {
-        onePercentDepthAboveUsd: '141790',
-        onePercentDepthBelowUsd: '162378',
+        onePercentDepthAboveUsd: '133735',
+        onePercentDepthBelowUsd: '146603',
       },
     },
     {
@@ -18057,8 +18201,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 173,
       depth: {
-        onePercentDepthAboveUsd: '43546',
-        onePercentDepthBelowUsd: '64092',
+        onePercentDepthAboveUsd: '57963',
+        onePercentDepthBelowUsd: '60948',
       },
     },
     {
@@ -18075,8 +18219,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 174,
       depth: {
-        onePercentDepthAboveUsd: '59190',
-        onePercentDepthBelowUsd: '56969',
+        onePercentDepthAboveUsd: '62621',
+        onePercentDepthBelowUsd: '50015',
       },
     },
     {
@@ -18093,8 +18237,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 175,
       depth: {
-        onePercentDepthAboveUsd: '243591',
-        onePercentDepthBelowUsd: '183684',
+        onePercentDepthAboveUsd: '154662',
+        onePercentDepthBelowUsd: '330182',
       },
     },
     {
@@ -18111,8 +18255,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 176,
       depth: {
-        onePercentDepthAboveUsd: '75161',
-        onePercentDepthBelowUsd: '101239',
+        onePercentDepthAboveUsd: '100240',
+        onePercentDepthBelowUsd: '161455',
       },
     },
     {
@@ -18129,8 +18273,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 177,
       depth: {
-        onePercentDepthAboveUsd: '37299',
-        onePercentDepthBelowUsd: '42061',
+        onePercentDepthAboveUsd: '33962',
+        onePercentDepthBelowUsd: '35542',
       },
     },
     {
@@ -18147,8 +18291,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 178,
       depth: {
-        onePercentDepthAboveUsd: '33001',
-        onePercentDepthBelowUsd: '43904',
+        onePercentDepthAboveUsd: '63349',
+        onePercentDepthBelowUsd: '72747',
       },
     },
     {
@@ -18183,8 +18327,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 180,
       depth: {
-        onePercentDepthAboveUsd: '43924',
-        onePercentDepthBelowUsd: '59981',
+        onePercentDepthAboveUsd: '45795',
+        onePercentDepthBelowUsd: '67197',
       },
     },
     {
@@ -18201,8 +18345,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 181,
       depth: {
-        onePercentDepthAboveUsd: '48117',
-        onePercentDepthBelowUsd: '56033',
+        onePercentDepthAboveUsd: '62434',
+        onePercentDepthBelowUsd: '76374',
       },
     },
     {
@@ -18255,8 +18399,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 184,
       depth: {
-        onePercentDepthAboveUsd: '40720',
-        onePercentDepthBelowUsd: '66836',
+        onePercentDepthAboveUsd: '62908',
+        onePercentDepthBelowUsd: '47151',
       },
     },
     {
@@ -18273,8 +18417,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 185,
       depth: {
-        onePercentDepthAboveUsd: '40624',
-        onePercentDepthBelowUsd: '63204',
+        onePercentDepthAboveUsd: '9167',
+        onePercentDepthBelowUsd: '28524',
       },
     },
     {
@@ -18381,8 +18525,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 191,
       depth: {
-        onePercentDepthAboveUsd: '193527',
-        onePercentDepthBelowUsd: '223287',
+        onePercentDepthAboveUsd: '224083',
+        onePercentDepthBelowUsd: '203013',
       },
     },
     {
@@ -18399,8 +18543,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 192,
       depth: {
-        onePercentDepthAboveUsd: '55210',
-        onePercentDepthBelowUsd: '58077',
+        onePercentDepthAboveUsd: '56090',
+        onePercentDepthBelowUsd: '48043',
       },
     },
     {
@@ -18417,8 +18561,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 193,
       depth: {
-        onePercentDepthAboveUsd: '909646',
-        onePercentDepthBelowUsd: '949193',
+        onePercentDepthAboveUsd: '1086928',
+        onePercentDepthBelowUsd: '932716',
       },
     },
     {
@@ -18435,8 +18579,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 194,
       depth: {
-        onePercentDepthAboveUsd: '262861',
-        onePercentDepthBelowUsd: '303112',
+        onePercentDepthAboveUsd: '242993',
+        onePercentDepthBelowUsd: '312293',
       },
     },
     {
@@ -18453,8 +18597,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 195,
       depth: {
-        onePercentDepthAboveUsd: '14020',
-        onePercentDepthBelowUsd: '23802',
+        onePercentDepthAboveUsd: '13558',
+        onePercentDepthBelowUsd: '13851',
       },
     },
     {
@@ -18471,8 +18615,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 196,
       depth: {
-        onePercentDepthAboveUsd: '79148',
-        onePercentDepthBelowUsd: '93112',
+        onePercentDepthAboveUsd: '84856',
+        onePercentDepthBelowUsd: '108854',
       },
     },
     {
@@ -18489,8 +18633,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 197,
       depth: {
-        onePercentDepthAboveUsd: '54332',
-        onePercentDepthBelowUsd: '62863',
+        onePercentDepthAboveUsd: '78066',
+        onePercentDepthBelowUsd: '96874',
       },
     },
     {
@@ -18507,8 +18651,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 198,
       depth: {
-        onePercentDepthAboveUsd: '74197',
-        onePercentDepthBelowUsd: '94490',
+        onePercentDepthAboveUsd: '72751',
+        onePercentDepthBelowUsd: '68317',
       },
     },
     {
@@ -18525,8 +18669,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 199,
       depth: {
-        onePercentDepthAboveUsd: '87978',
-        onePercentDepthBelowUsd: '84417',
+        onePercentDepthAboveUsd: '41740',
+        onePercentDepthBelowUsd: '53077',
       },
     },
     {
@@ -18543,8 +18687,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 200,
       depth: {
-        onePercentDepthAboveUsd: '144194',
-        onePercentDepthBelowUsd: '142544',
+        onePercentDepthAboveUsd: '112104',
+        onePercentDepthBelowUsd: '123105',
       },
     },
     {
@@ -18561,8 +18705,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 201,
       depth: {
-        onePercentDepthAboveUsd: '87232',
-        onePercentDepthBelowUsd: '41598',
+        onePercentDepthAboveUsd: '193266',
+        onePercentDepthBelowUsd: '164750',
       },
     },
     {
@@ -18579,8 +18723,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 202,
       depth: {
-        onePercentDepthAboveUsd: '34748',
-        onePercentDepthBelowUsd: '34082',
+        onePercentDepthAboveUsd: '26824',
+        onePercentDepthBelowUsd: '31202',
       },
     },
     {
@@ -18597,8 +18741,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 203,
       depth: {
-        onePercentDepthAboveUsd: '282414',
-        onePercentDepthBelowUsd: '350399',
+        onePercentDepthAboveUsd: '240034',
+        onePercentDepthBelowUsd: '291983',
       },
     },
     {
@@ -18615,8 +18759,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 204,
       depth: {
-        onePercentDepthAboveUsd: '27070',
-        onePercentDepthBelowUsd: '35636',
+        onePercentDepthAboveUsd: '12356',
+        onePercentDepthBelowUsd: '23675',
       },
     },
     {
@@ -18633,8 +18777,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 205,
       depth: {
-        onePercentDepthAboveUsd: '963463',
-        onePercentDepthBelowUsd: '1218689',
+        onePercentDepthAboveUsd: '582886',
+        onePercentDepthBelowUsd: '813675',
       },
     },
     {
@@ -18651,8 +18795,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 206,
       depth: {
-        onePercentDepthAboveUsd: '63040',
-        onePercentDepthBelowUsd: '64588',
+        onePercentDepthAboveUsd: '46748',
+        onePercentDepthBelowUsd: '34102',
       },
     },
     {
@@ -18669,8 +18813,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 207,
       depth: {
-        onePercentDepthAboveUsd: '163685',
-        onePercentDepthBelowUsd: '155226',
+        onePercentDepthAboveUsd: '179643',
+        onePercentDepthBelowUsd: '178631',
       },
     },
     {
@@ -18723,8 +18867,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 210,
       depth: {
-        onePercentDepthAboveUsd: '35378',
-        onePercentDepthBelowUsd: '45140',
+        onePercentDepthAboveUsd: '39003',
+        onePercentDepthBelowUsd: '47050',
       },
     },
     {
@@ -18741,8 +18885,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 211,
       depth: {
-        onePercentDepthAboveUsd: '146519',
-        onePercentDepthBelowUsd: '192059',
+        onePercentDepthAboveUsd: '111963',
+        onePercentDepthBelowUsd: '168371',
       },
     },
     {
@@ -18759,8 +18903,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 212,
       depth: {
-        onePercentDepthAboveUsd: '242437',
-        onePercentDepthBelowUsd: '303844',
+        onePercentDepthAboveUsd: '279499',
+        onePercentDepthBelowUsd: '241197',
       },
     },
     {
@@ -18777,8 +18921,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 213,
       depth: {
-        onePercentDepthAboveUsd: '41426',
-        onePercentDepthBelowUsd: '32796',
+        onePercentDepthAboveUsd: '51127',
+        onePercentDepthBelowUsd: '47512',
       },
     },
     {
@@ -18795,8 +18939,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 214,
       depth: {
-        onePercentDepthAboveUsd: '98043',
-        onePercentDepthBelowUsd: '101815',
+        onePercentDepthAboveUsd: '110515',
+        onePercentDepthBelowUsd: '119332',
       },
     },
     {
@@ -18813,8 +18957,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 215,
       depth: {
-        onePercentDepthAboveUsd: '163091',
-        onePercentDepthBelowUsd: '216304',
+        onePercentDepthAboveUsd: '144103',
+        onePercentDepthBelowUsd: '187468',
       },
     },
     {
@@ -18831,8 +18975,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 216,
       depth: {
-        onePercentDepthAboveUsd: '135655',
-        onePercentDepthBelowUsd: '32501',
+        onePercentDepthAboveUsd: '137062',
+        onePercentDepthBelowUsd: '141847',
       },
     },
     {
@@ -18849,8 +18993,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 217,
       depth: {
-        onePercentDepthAboveUsd: '83067',
-        onePercentDepthBelowUsd: '77270',
+        onePercentDepthAboveUsd: '75058',
+        onePercentDepthBelowUsd: '86424',
       },
     },
     {
@@ -18867,8 +19011,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 218,
       depth: {
-        onePercentDepthAboveUsd: '83843',
-        onePercentDepthBelowUsd: '112788',
+        onePercentDepthAboveUsd: '52483',
+        onePercentDepthBelowUsd: '85868',
       },
     },
     {
@@ -18885,8 +19029,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 219,
       depth: {
-        onePercentDepthAboveUsd: '1674919',
-        onePercentDepthBelowUsd: '1889159',
+        onePercentDepthAboveUsd: '1310424',
+        onePercentDepthBelowUsd: '1371395',
       },
     },
     {
@@ -18903,8 +19047,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 220,
       depth: {
-        onePercentDepthAboveUsd: '173840',
-        onePercentDepthBelowUsd: '216239',
+        onePercentDepthAboveUsd: '125039',
+        onePercentDepthBelowUsd: '165311',
       },
     },
     {
@@ -18921,8 +19065,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 221,
       depth: {
-        onePercentDepthAboveUsd: '9071',
-        onePercentDepthBelowUsd: '7108',
+        onePercentDepthAboveUsd: '9800',
+        onePercentDepthBelowUsd: '8724',
       },
     },
     {
@@ -18939,8 +19083,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 222,
       depth: {
-        onePercentDepthAboveUsd: '83054',
-        onePercentDepthBelowUsd: '85375',
+        onePercentDepthAboveUsd: '69317',
+        onePercentDepthBelowUsd: '28606',
       },
     },
     {
@@ -18957,8 +19101,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 223,
       depth: {
-        onePercentDepthAboveUsd: '306028',
-        onePercentDepthBelowUsd: '365453',
+        onePercentDepthAboveUsd: '377635',
+        onePercentDepthBelowUsd: '460567',
       },
     },
     {
@@ -18975,8 +19119,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 224,
       depth: {
-        onePercentDepthAboveUsd: '36535',
-        onePercentDepthBelowUsd: '49139',
+        onePercentDepthAboveUsd: '4187',
+        onePercentDepthBelowUsd: '22494',
       },
     },
     {
@@ -19011,8 +19155,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 226,
       depth: {
-        onePercentDepthAboveUsd: '54455',
-        onePercentDepthBelowUsd: '57178',
+        onePercentDepthAboveUsd: '58900',
+        onePercentDepthBelowUsd: '72129',
       },
     },
     {
@@ -19029,8 +19173,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 227,
       depth: {
-        onePercentDepthAboveUsd: '34872',
-        onePercentDepthBelowUsd: '47822',
+        onePercentDepthAboveUsd: '54172',
+        onePercentDepthBelowUsd: '70978',
       },
     },
     {
@@ -19047,8 +19191,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 228,
       depth: {
-        onePercentDepthAboveUsd: '149467',
-        onePercentDepthBelowUsd: '150975',
+        onePercentDepthAboveUsd: '136986',
+        onePercentDepthBelowUsd: '140547',
       },
     },
     {
@@ -19119,8 +19263,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 232,
       depth: {
-        onePercentDepthAboveUsd: '94945',
-        onePercentDepthBelowUsd: '114649',
+        onePercentDepthAboveUsd: '90525',
+        onePercentDepthBelowUsd: '95431',
       },
     },
     {
@@ -19137,8 +19281,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 233,
       depth: {
-        onePercentDepthAboveUsd: '143845',
-        onePercentDepthBelowUsd: '222471',
+        onePercentDepthAboveUsd: '133374',
+        onePercentDepthBelowUsd: '217092',
       },
     },
     {
@@ -19155,8 +19299,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 234,
       depth: {
-        onePercentDepthAboveUsd: '37297',
-        onePercentDepthBelowUsd: '38919',
+        onePercentDepthAboveUsd: '41151',
+        onePercentDepthBelowUsd: '40690',
       },
     },
     {
@@ -19173,8 +19317,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 235,
       depth: {
-        onePercentDepthAboveUsd: '67867',
-        onePercentDepthBelowUsd: '62516',
+        onePercentDepthAboveUsd: '57506',
+        onePercentDepthBelowUsd: '87000',
       },
     },
     {
@@ -19191,8 +19335,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 236,
       depth: {
-        onePercentDepthAboveUsd: '149240',
-        onePercentDepthBelowUsd: '172106',
+        onePercentDepthAboveUsd: '114725',
+        onePercentDepthBelowUsd: '162318',
       },
     },
     {
@@ -19209,8 +19353,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 237,
       depth: {
-        onePercentDepthAboveUsd: '257410',
-        onePercentDepthBelowUsd: '310304',
+        onePercentDepthAboveUsd: '270878',
+        onePercentDepthBelowUsd: '194642',
       },
     },
     {
@@ -19263,8 +19407,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 240,
       depth: {
-        onePercentDepthAboveUsd: '29074',
-        onePercentDepthBelowUsd: '34402',
+        onePercentDepthAboveUsd: '27888',
+        onePercentDepthBelowUsd: '28866',
       },
     },
     {
@@ -19299,8 +19443,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 242,
       depth: {
-        onePercentDepthAboveUsd: '80046',
-        onePercentDepthBelowUsd: '84722',
+        onePercentDepthAboveUsd: '92528',
+        onePercentDepthBelowUsd: '119048',
       },
     },
     {
@@ -19317,8 +19461,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 243,
       depth: {
-        onePercentDepthAboveUsd: '47448',
-        onePercentDepthBelowUsd: '95142',
+        onePercentDepthAboveUsd: '43489',
+        onePercentDepthBelowUsd: '85617',
       },
     },
     {
@@ -19335,8 +19479,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 244,
       depth: {
-        onePercentDepthAboveUsd: '59750',
-        onePercentDepthBelowUsd: '72614',
+        onePercentDepthAboveUsd: '50009',
+        onePercentDepthBelowUsd: '70896',
       },
     },
     {
@@ -19353,8 +19497,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 245,
       depth: {
-        onePercentDepthAboveUsd: '98530',
-        onePercentDepthBelowUsd: '236040',
+        onePercentDepthAboveUsd: '150828',
+        onePercentDepthBelowUsd: '226116',
       },
     },
     {
@@ -19371,8 +19515,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 246,
       depth: {
-        onePercentDepthAboveUsd: '54066',
-        onePercentDepthBelowUsd: '57580',
+        onePercentDepthAboveUsd: '66103',
+        onePercentDepthBelowUsd: '59957',
       },
     },
     {
@@ -19389,8 +19533,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 247,
       depth: {
-        onePercentDepthAboveUsd: '171691',
-        onePercentDepthBelowUsd: '185568',
+        onePercentDepthAboveUsd: '129857',
+        onePercentDepthBelowUsd: '170971',
       },
     },
     {
@@ -19407,8 +19551,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 248,
       depth: {
-        onePercentDepthAboveUsd: '55011',
-        onePercentDepthBelowUsd: '54541',
+        onePercentDepthAboveUsd: '65289',
+        onePercentDepthBelowUsd: '74725',
       },
     },
     {
@@ -19425,8 +19569,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 249,
       depth: {
-        onePercentDepthAboveUsd: '74913',
-        onePercentDepthBelowUsd: '78718',
+        onePercentDepthAboveUsd: '97934',
+        onePercentDepthBelowUsd: '84142',
       },
     },
     {
@@ -19461,8 +19605,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 251,
       depth: {
-        onePercentDepthAboveUsd: '35823',
-        onePercentDepthBelowUsd: '65033',
+        onePercentDepthAboveUsd: '54604',
+        onePercentDepthBelowUsd: '89390',
       },
     },
     {
@@ -19479,8 +19623,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 252,
       depth: {
-        onePercentDepthAboveUsd: '9319',
-        onePercentDepthBelowUsd: '15020',
+        onePercentDepthAboveUsd: '5691',
+        onePercentDepthBelowUsd: '11194',
       },
     },
     {
@@ -19533,8 +19677,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 255,
       depth: {
-        onePercentDepthAboveUsd: '5162',
-        onePercentDepthBelowUsd: '7358',
+        onePercentDepthAboveUsd: '11649',
+        onePercentDepthBelowUsd: '9426',
       },
     },
     {
@@ -19551,8 +19695,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 256,
       depth: {
-        onePercentDepthAboveUsd: '42287',
-        onePercentDepthBelowUsd: '35277',
+        onePercentDepthAboveUsd: '51934',
+        onePercentDepthBelowUsd: '40171',
       },
     },
     {
@@ -19569,8 +19713,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 257,
       depth: {
-        onePercentDepthAboveUsd: '62261',
-        onePercentDepthBelowUsd: '72864',
+        onePercentDepthAboveUsd: '69111',
+        onePercentDepthBelowUsd: '95295',
       },
     },
     {
@@ -19605,8 +19749,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 259,
       depth: {
-        onePercentDepthAboveUsd: '102241',
-        onePercentDepthBelowUsd: '118793',
+        onePercentDepthAboveUsd: '10855',
+        onePercentDepthBelowUsd: '24038',
       },
     },
     {
@@ -19623,8 +19767,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 260,
       depth: {
-        onePercentDepthAboveUsd: '69699',
-        onePercentDepthBelowUsd: '86184',
+        onePercentDepthAboveUsd: '90745',
+        onePercentDepthBelowUsd: '103111',
       },
     },
     {
@@ -19641,8 +19785,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 261,
       depth: {
-        onePercentDepthAboveUsd: '25755',
-        onePercentDepthBelowUsd: '21486',
+        onePercentDepthAboveUsd: '27171',
+        onePercentDepthBelowUsd: '22602',
       },
     },
     {
@@ -19659,8 +19803,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 262,
       depth: {
-        onePercentDepthAboveUsd: '71441',
-        onePercentDepthBelowUsd: '108008',
+        onePercentDepthAboveUsd: '55183',
+        onePercentDepthBelowUsd: '79682',
       },
     },
     {
@@ -19677,8 +19821,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 263,
       depth: {
-        onePercentDepthAboveUsd: '34075',
-        onePercentDepthBelowUsd: '43845',
+        onePercentDepthAboveUsd: '40185',
+        onePercentDepthBelowUsd: '36749',
       },
     },
     {
@@ -19695,8 +19839,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 264,
       depth: {
-        onePercentDepthAboveUsd: '62046',
-        onePercentDepthBelowUsd: '81650',
+        onePercentDepthAboveUsd: '53863',
+        onePercentDepthBelowUsd: '99769',
       },
     },
     {
@@ -19713,8 +19857,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 265,
       depth: {
-        onePercentDepthAboveUsd: '118279',
-        onePercentDepthBelowUsd: '94492',
+        onePercentDepthAboveUsd: '97088',
+        onePercentDepthBelowUsd: '153745',
       },
     },
     {
@@ -19731,8 +19875,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 266,
       depth: {
-        onePercentDepthAboveUsd: '62289',
-        onePercentDepthBelowUsd: '77524',
+        onePercentDepthAboveUsd: '42175',
+        onePercentDepthBelowUsd: '82741',
       },
     },
     {
@@ -19749,8 +19893,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 267,
       depth: {
-        onePercentDepthAboveUsd: '69500',
-        onePercentDepthBelowUsd: '99191',
+        onePercentDepthAboveUsd: '48784',
+        onePercentDepthBelowUsd: '92715',
       },
     },
     {
@@ -19767,8 +19911,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 268,
       depth: {
-        onePercentDepthAboveUsd: '12612',
-        onePercentDepthBelowUsd: '18666',
+        onePercentDepthAboveUsd: '15450',
+        onePercentDepthBelowUsd: '14570',
       },
     },
     {
@@ -19785,8 +19929,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 269,
       depth: {
-        onePercentDepthAboveUsd: '157499',
-        onePercentDepthBelowUsd: '239599',
+        onePercentDepthAboveUsd: '180440',
+        onePercentDepthBelowUsd: '267609',
       },
     },
     {
@@ -19821,8 +19965,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 271,
       depth: {
-        onePercentDepthAboveUsd: '15762',
-        onePercentDepthBelowUsd: '37985',
+        onePercentDepthAboveUsd: '25858',
+        onePercentDepthBelowUsd: '28255',
       },
     },
     {
@@ -19839,8 +19983,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 272,
       depth: {
-        onePercentDepthAboveUsd: '5581',
-        onePercentDepthBelowUsd: '10480',
+        onePercentDepthAboveUsd: '6335',
+        onePercentDepthBelowUsd: '461',
       },
     },
     {
@@ -19857,8 +20001,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 273,
       depth: {
-        onePercentDepthAboveUsd: '2382',
-        onePercentDepthBelowUsd: '2869',
+        onePercentDepthAboveUsd: '3703',
+        onePercentDepthBelowUsd: '3594',
       },
     },
     {
@@ -19875,8 +20019,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 274,
       depth: {
-        onePercentDepthAboveUsd: '22200',
-        onePercentDepthBelowUsd: '26580',
+        onePercentDepthAboveUsd: '33751',
+        onePercentDepthBelowUsd: '39648',
       },
     },
     {
@@ -19929,8 +20073,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 277,
       depth: {
-        onePercentDepthAboveUsd: '21238',
-        onePercentDepthBelowUsd: '94251',
+        onePercentDepthAboveUsd: '55676',
+        onePercentDepthBelowUsd: '85243',
       },
     },
     {
@@ -19983,8 +20127,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 280,
       depth: {
-        onePercentDepthAboveUsd: '85538',
-        onePercentDepthBelowUsd: '132110',
+        onePercentDepthAboveUsd: '105981',
+        onePercentDepthBelowUsd: '121160',
       },
     },
     {
@@ -20001,8 +20145,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 281,
       depth: {
-        onePercentDepthAboveUsd: '37808',
-        onePercentDepthBelowUsd: '44853',
+        onePercentDepthAboveUsd: '37529',
+        onePercentDepthBelowUsd: '44566',
       },
     },
     {
@@ -20037,8 +20181,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 283,
       depth: {
-        onePercentDepthAboveUsd: '81448',
-        onePercentDepthBelowUsd: '82279',
+        onePercentDepthAboveUsd: '86473',
+        onePercentDepthBelowUsd: '67529',
       },
     },
     {
@@ -20055,8 +20199,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 284,
       depth: {
-        onePercentDepthAboveUsd: '218180',
-        onePercentDepthBelowUsd: '260514',
+        onePercentDepthAboveUsd: '252450',
+        onePercentDepthBelowUsd: '280324',
       },
     },
     {
@@ -20091,8 +20235,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 286,
       depth: {
-        onePercentDepthAboveUsd: '62608',
-        onePercentDepthBelowUsd: '76958',
+        onePercentDepthAboveUsd: '43566',
+        onePercentDepthBelowUsd: '83606',
       },
     },
     {
@@ -20109,8 +20253,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 287,
       depth: {
-        onePercentDepthAboveUsd: '28109',
-        onePercentDepthBelowUsd: '40802',
+        onePercentDepthAboveUsd: '24928',
+        onePercentDepthBelowUsd: '29942',
       },
     },
     {
@@ -20127,8 +20271,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 288,
       depth: {
-        onePercentDepthAboveUsd: '138661',
-        onePercentDepthBelowUsd: '231993',
+        onePercentDepthAboveUsd: '147224',
+        onePercentDepthBelowUsd: '166923',
       },
     },
     {
@@ -20145,8 +20289,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 289,
       depth: {
-        onePercentDepthAboveUsd: '24986',
-        onePercentDepthBelowUsd: '23632',
+        onePercentDepthAboveUsd: '23714',
+        onePercentDepthBelowUsd: '29438',
       },
     },
     {
@@ -20181,8 +20325,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 291,
       depth: {
-        onePercentDepthAboveUsd: '8454',
-        onePercentDepthBelowUsd: '8991',
+        onePercentDepthAboveUsd: '9138',
+        onePercentDepthBelowUsd: '11387',
       },
     },
     {
@@ -20199,8 +20343,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 292,
       depth: {
-        onePercentDepthAboveUsd: '3894',
-        onePercentDepthBelowUsd: '2640',
+        onePercentDepthAboveUsd: '4514',
+        onePercentDepthBelowUsd: '3008',
       },
     },
     {
@@ -20217,8 +20361,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 293,
       depth: {
-        onePercentDepthAboveUsd: '17464',
-        onePercentDepthBelowUsd: '23767',
+        onePercentDepthAboveUsd: '12490',
+        onePercentDepthBelowUsd: '21537',
       },
     },
     {
@@ -20253,8 +20397,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 295,
       depth: {
-        onePercentDepthAboveUsd: '14861',
-        onePercentDepthBelowUsd: '41536',
+        onePercentDepthAboveUsd: '20612',
+        onePercentDepthBelowUsd: '32827',
       },
     },
     {
@@ -20289,8 +20433,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 297,
       depth: {
-        onePercentDepthAboveUsd: '39370',
-        onePercentDepthBelowUsd: '34155',
+        onePercentDepthAboveUsd: '30016',
+        onePercentDepthBelowUsd: '32110',
       },
     },
     {
@@ -20307,8 +20451,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 298,
       depth: {
-        onePercentDepthAboveUsd: '25372',
-        onePercentDepthBelowUsd: '20195',
+        onePercentDepthAboveUsd: '19875',
+        onePercentDepthBelowUsd: '21841',
       },
     },
     {
@@ -20325,8 +20469,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 299,
       depth: {
-        onePercentDepthAboveUsd: '194375',
-        onePercentDepthBelowUsd: '170433',
+        onePercentDepthAboveUsd: '128582',
+        onePercentDepthBelowUsd: '99577',
       },
     },
     {
@@ -20361,8 +20505,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 301,
       depth: {
-        onePercentDepthAboveUsd: '188641',
-        onePercentDepthBelowUsd: '219935',
+        onePercentDepthAboveUsd: '116320',
+        onePercentDepthBelowUsd: '228728',
       },
     },
     {
@@ -20379,8 +20523,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 302,
       depth: {
-        onePercentDepthAboveUsd: '74327',
-        onePercentDepthBelowUsd: '90338',
+        onePercentDepthAboveUsd: '68518',
+        onePercentDepthBelowUsd: '72903',
       },
     },
     {
@@ -20397,8 +20541,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 303,
       depth: {
-        onePercentDepthAboveUsd: '178308',
-        onePercentDepthBelowUsd: '161673',
+        onePercentDepthAboveUsd: '151825',
+        onePercentDepthBelowUsd: '110559',
       },
     },
     {
@@ -20415,8 +20559,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 304,
       depth: {
-        onePercentDepthAboveUsd: '59523',
-        onePercentDepthBelowUsd: '64485',
+        onePercentDepthAboveUsd: '59363',
+        onePercentDepthBelowUsd: '91229',
       },
     },
     {
@@ -20451,8 +20595,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 306,
       depth: {
-        onePercentDepthAboveUsd: '12627',
-        onePercentDepthBelowUsd: '9597',
+        onePercentDepthAboveUsd: '5391',
+        onePercentDepthBelowUsd: '9054',
       },
     },
     {
@@ -20469,8 +20613,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 307,
       depth: {
-        onePercentDepthAboveUsd: '55099',
-        onePercentDepthBelowUsd: '80277',
+        onePercentDepthAboveUsd: '46915',
+        onePercentDepthBelowUsd: '75928',
       },
     },
     {
@@ -20487,8 +20631,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 308,
       depth: {
-        onePercentDepthAboveUsd: '76540',
-        onePercentDepthBelowUsd: '111938',
+        onePercentDepthAboveUsd: '60284',
+        onePercentDepthBelowUsd: '139660',
       },
     },
     {
@@ -20505,8 +20649,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 309,
       depth: {
-        onePercentDepthAboveUsd: '39740',
-        onePercentDepthBelowUsd: '33593',
+        onePercentDepthAboveUsd: '24778',
+        onePercentDepthBelowUsd: '29319',
       },
     },
     {
@@ -20523,8 +20667,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 310,
       depth: {
-        onePercentDepthAboveUsd: '23769',
-        onePercentDepthBelowUsd: '22235',
+        onePercentDepthAboveUsd: '39422',
+        onePercentDepthBelowUsd: '27481',
       },
     },
     {
@@ -20559,8 +20703,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 312,
       depth: {
-        onePercentDepthAboveUsd: '3898',
-        onePercentDepthBelowUsd: '3064',
+        onePercentDepthAboveUsd: '6496',
+        onePercentDepthBelowUsd: '6248',
       },
     },
     {
@@ -20613,8 +20757,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 315,
       depth: {
-        onePercentDepthAboveUsd: '73747',
-        onePercentDepthBelowUsd: '104531',
+        onePercentDepthAboveUsd: '69338',
+        onePercentDepthBelowUsd: '98647',
       },
     },
     {
@@ -20631,8 +20775,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 316,
       depth: {
-        onePercentDepthAboveUsd: '144185',
-        onePercentDepthBelowUsd: '169318',
+        onePercentDepthAboveUsd: '11685',
+        onePercentDepthBelowUsd: '16378',
       },
     },
     {
@@ -20649,8 +20793,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 317,
       depth: {
-        onePercentDepthAboveUsd: '52041',
-        onePercentDepthBelowUsd: '55594',
+        onePercentDepthAboveUsd: '51759',
+        onePercentDepthBelowUsd: '56195',
       },
     },
     {
@@ -20667,8 +20811,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 318,
       depth: {
-        onePercentDepthAboveUsd: '25521',
-        onePercentDepthBelowUsd: '26565',
+        onePercentDepthAboveUsd: '19780',
+        onePercentDepthBelowUsd: '29113',
       },
     },
     {
@@ -20685,8 +20829,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 319,
       depth: {
-        onePercentDepthAboveUsd: '8598',
-        onePercentDepthBelowUsd: '13811',
+        onePercentDepthAboveUsd: '9420',
+        onePercentDepthBelowUsd: '12407',
       },
     },
     {
@@ -20703,8 +20847,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 320,
       depth: {
-        onePercentDepthAboveUsd: '385543',
-        onePercentDepthBelowUsd: '425625',
+        onePercentDepthAboveUsd: '395283',
+        onePercentDepthBelowUsd: '343846',
       },
     },
     {
@@ -20721,8 +20865,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 321,
       depth: {
-        onePercentDepthAboveUsd: '186126',
-        onePercentDepthBelowUsd: '392386',
+        onePercentDepthAboveUsd: '132280',
+        onePercentDepthBelowUsd: '340239',
       },
     },
     {
@@ -20739,8 +20883,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 322,
       depth: {
-        onePercentDepthAboveUsd: '6567',
-        onePercentDepthBelowUsd: '6011',
+        onePercentDepthAboveUsd: '1015',
+        onePercentDepthBelowUsd: '2522',
       },
     },
     {
@@ -20757,8 +20901,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 323,
       depth: {
-        onePercentDepthAboveUsd: '57494',
-        onePercentDepthBelowUsd: '67534',
+        onePercentDepthAboveUsd: '73046',
+        onePercentDepthBelowUsd: '71193',
       },
     },
     {
@@ -20775,8 +20919,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 324,
       depth: {
-        onePercentDepthAboveUsd: '89887',
-        onePercentDepthBelowUsd: '121736',
+        onePercentDepthAboveUsd: '86953',
+        onePercentDepthBelowUsd: '116802',
       },
     },
     {
@@ -20793,8 +20937,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 325,
       depth: {
-        onePercentDepthAboveUsd: '80782',
-        onePercentDepthBelowUsd: '107301',
+        onePercentDepthAboveUsd: '90469',
+        onePercentDepthBelowUsd: '116257',
       },
     },
     {
@@ -20847,8 +20991,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 328,
       depth: {
-        onePercentDepthAboveUsd: '1042302',
-        onePercentDepthBelowUsd: '1143408',
+        onePercentDepthAboveUsd: '1089449',
+        onePercentDepthBelowUsd: '1239350',
       },
     },
     {
@@ -20865,8 +21009,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 329,
       depth: {
-        onePercentDepthAboveUsd: '12914',
-        onePercentDepthBelowUsd: '13521',
+        onePercentDepthAboveUsd: '12334',
+        onePercentDepthBelowUsd: '14138',
       },
     },
     {
@@ -20901,8 +21045,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 331,
       depth: {
-        onePercentDepthAboveUsd: '242193',
-        onePercentDepthBelowUsd: '500322',
+        onePercentDepthAboveUsd: '85498',
+        onePercentDepthBelowUsd: '307243',
       },
     },
     {
@@ -20919,8 +21063,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 332,
       depth: {
-        onePercentDepthAboveUsd: '229750',
-        onePercentDepthBelowUsd: '251786',
+        onePercentDepthAboveUsd: '211447',
+        onePercentDepthBelowUsd: '221672',
       },
     },
     {
@@ -20937,8 +21081,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 333,
       depth: {
-        onePercentDepthAboveUsd: '3858',
-        onePercentDepthBelowUsd: '4852',
+        onePercentDepthAboveUsd: '2057',
+        onePercentDepthBelowUsd: '2730',
       },
     },
     {
@@ -20955,8 +21099,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 334,
       depth: {
-        onePercentDepthAboveUsd: '201672',
-        onePercentDepthBelowUsd: '232191',
+        onePercentDepthAboveUsd: '168341',
+        onePercentDepthBelowUsd: '144185',
       },
     },
     {
@@ -20973,8 +21117,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 335,
       depth: {
-        onePercentDepthAboveUsd: '11040',
-        onePercentDepthBelowUsd: '14255',
+        onePercentDepthAboveUsd: '19867',
+        onePercentDepthBelowUsd: '23615',
       },
     },
     {
@@ -20991,8 +21135,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 336,
       depth: {
-        onePercentDepthAboveUsd: '7337',
-        onePercentDepthBelowUsd: '6365',
+        onePercentDepthAboveUsd: '10209',
+        onePercentDepthBelowUsd: '9169',
       },
     },
     {
@@ -21009,8 +21153,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 337,
       depth: {
-        onePercentDepthAboveUsd: '111384',
-        onePercentDepthBelowUsd: '93416',
+        onePercentDepthAboveUsd: '93040',
+        onePercentDepthBelowUsd: '78455',
       },
     },
     {
@@ -21027,8 +21171,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 338,
       depth: {
-        onePercentDepthAboveUsd: '105779',
-        onePercentDepthBelowUsd: '55669',
+        onePercentDepthAboveUsd: '113305',
+        onePercentDepthBelowUsd: '78541',
       },
     },
     {
@@ -21045,8 +21189,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 339,
       depth: {
-        onePercentDepthAboveUsd: '7880',
-        onePercentDepthBelowUsd: '13220',
+        onePercentDepthAboveUsd: '16509',
+        onePercentDepthBelowUsd: '10373',
       },
     },
     {
@@ -21063,8 +21207,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 340,
       depth: {
-        onePercentDepthAboveUsd: '71004',
-        onePercentDepthBelowUsd: '69186',
+        onePercentDepthAboveUsd: '70091',
+        onePercentDepthBelowUsd: '46015',
       },
     },
     {
@@ -21081,8 +21225,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 341,
       depth: {
-        onePercentDepthAboveUsd: '61238',
-        onePercentDepthBelowUsd: '57640',
+        onePercentDepthAboveUsd: '31333',
+        onePercentDepthBelowUsd: '28619',
       },
     },
     {
@@ -21099,8 +21243,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 342,
       depth: {
-        onePercentDepthAboveUsd: '72369',
-        onePercentDepthBelowUsd: '180100',
+        onePercentDepthAboveUsd: '78331',
+        onePercentDepthBelowUsd: '128225',
       },
     },
     {
@@ -21117,8 +21261,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 343,
       depth: {
-        onePercentDepthAboveUsd: '50206',
-        onePercentDepthBelowUsd: '84257',
+        onePercentDepthAboveUsd: '63010',
+        onePercentDepthBelowUsd: '72734',
       },
     },
     {
@@ -21135,8 +21279,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 344,
       depth: {
-        onePercentDepthAboveUsd: '5520',
-        onePercentDepthBelowUsd: '8354',
+        onePercentDepthAboveUsd: '11057',
+        onePercentDepthBelowUsd: '15101',
       },
     },
     {
@@ -21153,8 +21297,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 345,
       depth: {
-        onePercentDepthAboveUsd: '101868',
-        onePercentDepthBelowUsd: '57997',
+        onePercentDepthAboveUsd: '79475',
+        onePercentDepthBelowUsd: '139985',
       },
     },
     {
@@ -21171,8 +21315,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 346,
       depth: {
-        onePercentDepthAboveUsd: '36174',
-        onePercentDepthBelowUsd: '27967',
+        onePercentDepthAboveUsd: '33428',
+        onePercentDepthBelowUsd: '42427',
       },
     },
     {
@@ -21189,8 +21333,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 347,
       depth: {
-        onePercentDepthAboveUsd: '68191',
-        onePercentDepthBelowUsd: '76410',
+        onePercentDepthAboveUsd: '43503',
+        onePercentDepthBelowUsd: '44648',
       },
     },
     {
@@ -21207,8 +21351,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 348,
       depth: {
-        onePercentDepthAboveUsd: '92254',
-        onePercentDepthBelowUsd: '98458',
+        onePercentDepthAboveUsd: '117559',
+        onePercentDepthBelowUsd: '146207',
       },
     },
     {
@@ -21243,8 +21387,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 350,
       depth: {
-        onePercentDepthAboveUsd: '120619',
-        onePercentDepthBelowUsd: '107619',
+        onePercentDepthAboveUsd: '112958',
+        onePercentDepthBelowUsd: '135098',
       },
     },
     {
@@ -21261,8 +21405,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 351,
       depth: {
-        onePercentDepthAboveUsd: '49728',
-        onePercentDepthBelowUsd: '61016',
+        onePercentDepthAboveUsd: '38218',
+        onePercentDepthBelowUsd: '50312',
       },
     },
     {
@@ -21351,8 +21495,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 356,
       depth: {
-        onePercentDepthAboveUsd: '71194',
-        onePercentDepthBelowUsd: '83636',
+        onePercentDepthAboveUsd: '67227',
+        onePercentDepthBelowUsd: '61016',
       },
     },
     {
@@ -21387,8 +21531,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 358,
       depth: {
-        onePercentDepthAboveUsd: '58499',
-        onePercentDepthBelowUsd: '84375',
+        onePercentDepthAboveUsd: '78286',
+        onePercentDepthBelowUsd: '96503',
       },
     },
     {
@@ -21405,8 +21549,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 359,
       depth: {
-        onePercentDepthAboveUsd: '25798',
-        onePercentDepthBelowUsd: '45856',
+        onePercentDepthAboveUsd: '40712',
+        onePercentDepthBelowUsd: '44203',
       },
     },
     {
@@ -21423,8 +21567,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 360,
       depth: {
-        onePercentDepthAboveUsd: '39333',
-        onePercentDepthBelowUsd: '66795',
+        onePercentDepthAboveUsd: '24434',
+        onePercentDepthBelowUsd: '50324',
       },
     },
     {
@@ -21441,8 +21585,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 361,
       depth: {
-        onePercentDepthAboveUsd: '60166',
-        onePercentDepthBelowUsd: '42740',
+        onePercentDepthAboveUsd: '46160',
+        onePercentDepthBelowUsd: '32234',
       },
     },
     {
@@ -21459,8 +21603,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 362,
       depth: {
-        onePercentDepthAboveUsd: '7027',
-        onePercentDepthBelowUsd: '5737',
+        onePercentDepthAboveUsd: '6365',
+        onePercentDepthBelowUsd: '8146',
       },
     },
     {
@@ -21477,8 +21621,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 363,
       depth: {
-        onePercentDepthAboveUsd: '38537',
-        onePercentDepthBelowUsd: '38250',
+        onePercentDepthAboveUsd: '19100',
+        onePercentDepthBelowUsd: '31596',
       },
     },
     {
@@ -21495,8 +21639,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 364,
       depth: {
-        onePercentDepthAboveUsd: '52294',
-        onePercentDepthBelowUsd: '63225',
+        onePercentDepthAboveUsd: '45477',
+        onePercentDepthBelowUsd: '76796',
       },
     },
     {
@@ -21549,8 +21693,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 367,
       depth: {
-        onePercentDepthAboveUsd: '259016',
-        onePercentDepthBelowUsd: '261724',
+        onePercentDepthAboveUsd: '292087',
+        onePercentDepthBelowUsd: '296820',
       },
     },
     {
@@ -21567,8 +21711,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 368,
       depth: {
-        onePercentDepthAboveUsd: '156592',
-        onePercentDepthBelowUsd: '84743',
+        onePercentDepthAboveUsd: '142151',
+        onePercentDepthBelowUsd: '64309',
       },
     },
     {
@@ -21585,8 +21729,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 369,
       depth: {
-        onePercentDepthAboveUsd: '215059',
-        onePercentDepthBelowUsd: '161139',
+        onePercentDepthAboveUsd: '205158',
+        onePercentDepthBelowUsd: '177617',
       },
     },
     {
@@ -21603,8 +21747,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 370,
       depth: {
-        onePercentDepthAboveUsd: '96284',
-        onePercentDepthBelowUsd: '101699',
+        onePercentDepthAboveUsd: '78147',
+        onePercentDepthBelowUsd: '82203',
       },
     },
     {
@@ -21621,8 +21765,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 371,
       depth: {
-        onePercentDepthAboveUsd: '46921',
-        onePercentDepthBelowUsd: '46442',
+        onePercentDepthAboveUsd: '80697',
+        onePercentDepthBelowUsd: '89044',
       },
     },
     {
@@ -21639,8 +21783,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 372,
       depth: {
-        onePercentDepthAboveUsd: '110249',
-        onePercentDepthBelowUsd: '96783',
+        onePercentDepthAboveUsd: '117975',
+        onePercentDepthBelowUsd: '106360',
       },
     },
     {
@@ -21657,8 +21801,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 373,
       depth: {
-        onePercentDepthAboveUsd: '104811',
-        onePercentDepthBelowUsd: '152819',
+        onePercentDepthAboveUsd: '113607',
+        onePercentDepthBelowUsd: '142664',
       },
     },
     {
@@ -21675,8 +21819,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 374,
       depth: {
-        onePercentDepthAboveUsd: '31306',
-        onePercentDepthBelowUsd: '104150',
+        onePercentDepthAboveUsd: '102392',
+        onePercentDepthBelowUsd: '116813',
       },
     },
     {
@@ -21693,8 +21837,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 375,
       depth: {
-        onePercentDepthAboveUsd: '202744',
-        onePercentDepthBelowUsd: '184235',
+        onePercentDepthAboveUsd: '246693',
+        onePercentDepthBelowUsd: '235104',
       },
     },
     {
@@ -21711,8 +21855,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '4',
       pairIndex: 376,
       depth: {
-        onePercentDepthAboveUsd: '0',
-        onePercentDepthBelowUsd: '0',
+        onePercentDepthAboveUsd: '350000',
+        onePercentDepthBelowUsd: '350000',
       },
     },
     {
@@ -21783,8 +21927,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 380,
       depth: {
-        onePercentDepthAboveUsd: '43375',
-        onePercentDepthBelowUsd: '48097',
+        onePercentDepthAboveUsd: '35492',
+        onePercentDepthBelowUsd: '63542',
       },
     },
     {
@@ -21801,8 +21945,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 381,
       depth: {
-        onePercentDepthAboveUsd: '226228',
-        onePercentDepthBelowUsd: '373456',
+        onePercentDepthAboveUsd: '211769',
+        onePercentDepthBelowUsd: '279558',
       },
     },
     {
@@ -21819,8 +21963,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 382,
       depth: {
-        onePercentDepthAboveUsd: '54124',
-        onePercentDepthBelowUsd: '44420',
+        onePercentDepthAboveUsd: '56100',
+        onePercentDepthBelowUsd: '49393',
       },
     },
     {
@@ -21837,8 +21981,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 383,
       depth: {
-        onePercentDepthAboveUsd: '59490',
-        onePercentDepthBelowUsd: '75834',
+        onePercentDepthAboveUsd: '59982',
+        onePercentDepthBelowUsd: '123284',
       },
     },
     {
@@ -21855,8 +21999,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 384,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -21873,8 +22017,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 385,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -21909,8 +22053,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 387,
       depth: {
-        onePercentDepthAboveUsd: '192505',
-        onePercentDepthBelowUsd: '167341',
+        onePercentDepthAboveUsd: '197432',
+        onePercentDepthBelowUsd: '163100',
       },
     },
     {
@@ -21927,8 +22071,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 388,
       depth: {
-        onePercentDepthAboveUsd: '12084',
-        onePercentDepthBelowUsd: '13616',
+        onePercentDepthAboveUsd: '22588',
+        onePercentDepthBelowUsd: '20608',
       },
     },
     {
@@ -21945,8 +22089,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 389,
       depth: {
-        onePercentDepthAboveUsd: '149234',
-        onePercentDepthBelowUsd: '115686',
+        onePercentDepthAboveUsd: '121368',
+        onePercentDepthBelowUsd: '88738',
       },
     },
     {
@@ -21963,8 +22107,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 390,
       depth: {
-        onePercentDepthAboveUsd: '29691',
-        onePercentDepthBelowUsd: '38695',
+        onePercentDepthAboveUsd: '49902',
+        onePercentDepthBelowUsd: '51504',
       },
     },
     {
@@ -21981,8 +22125,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 391,
       depth: {
-        onePercentDepthAboveUsd: '12047',
-        onePercentDepthBelowUsd: '6882',
+        onePercentDepthAboveUsd: '14347',
+        onePercentDepthBelowUsd: '12955',
       },
     },
     {
@@ -21999,8 +22143,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 392,
       depth: {
-        onePercentDepthAboveUsd: '48679',
-        onePercentDepthBelowUsd: '60088',
+        onePercentDepthAboveUsd: '47406',
+        onePercentDepthBelowUsd: '55593',
       },
     },
     {
@@ -22161,8 +22305,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 401,
       depth: {
-        onePercentDepthAboveUsd: '49546',
-        onePercentDepthBelowUsd: '47306',
+        onePercentDepthAboveUsd: '18536',
+        onePercentDepthBelowUsd: '76800',
       },
     },
     {
@@ -22179,8 +22323,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 402,
       depth: {
-        onePercentDepthAboveUsd: '48435',
-        onePercentDepthBelowUsd: '37317',
+        onePercentDepthAboveUsd: '44369',
+        onePercentDepthBelowUsd: '55243',
       },
     },
     {
@@ -22197,8 +22341,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 403,
       depth: {
-        onePercentDepthAboveUsd: '42671',
-        onePercentDepthBelowUsd: '38342',
+        onePercentDepthAboveUsd: '37314',
+        onePercentDepthBelowUsd: '39059',
       },
     },
     {
@@ -22215,8 +22359,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 404,
       depth: {
-        onePercentDepthAboveUsd: '29140',
-        onePercentDepthBelowUsd: '29592',
+        onePercentDepthAboveUsd: '42694',
+        onePercentDepthBelowUsd: '39158',
       },
     },
     {
@@ -22233,8 +22377,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 405,
       depth: {
-        onePercentDepthAboveUsd: '60009',
-        onePercentDepthBelowUsd: '72107',
+        onePercentDepthAboveUsd: '80598',
+        onePercentDepthBelowUsd: '70757',
       },
     },
     {
@@ -22251,8 +22395,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 406,
       depth: {
-        onePercentDepthAboveUsd: '120020',
-        onePercentDepthBelowUsd: '113077',
+        onePercentDepthAboveUsd: '80359',
+        onePercentDepthBelowUsd: '102160',
       },
     },
     {
@@ -22269,8 +22413,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 407,
       depth: {
-        onePercentDepthAboveUsd: '120416',
-        onePercentDepthBelowUsd: '174139',
+        onePercentDepthAboveUsd: '68327',
+        onePercentDepthBelowUsd: '71532',
       },
     },
     {
@@ -22287,8 +22431,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 408,
       depth: {
-        onePercentDepthAboveUsd: '14618',
-        onePercentDepthBelowUsd: '18458',
+        onePercentDepthAboveUsd: '20602',
+        onePercentDepthBelowUsd: '73020',
       },
     },
     {
@@ -22305,8 +22449,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 409,
       depth: {
-        onePercentDepthAboveUsd: '173799',
-        onePercentDepthBelowUsd: '171493',
+        onePercentDepthAboveUsd: '188592',
+        onePercentDepthBelowUsd: '101321',
       },
     },
     {
@@ -22323,8 +22467,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 410,
       depth: {
-        onePercentDepthAboveUsd: '160405',
-        onePercentDepthBelowUsd: '169290',
+        onePercentDepthAboveUsd: '202831',
+        onePercentDepthBelowUsd: '200350',
       },
     },
     {
@@ -22341,8 +22485,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 411,
       depth: {
-        onePercentDepthAboveUsd: '2304',
-        onePercentDepthBelowUsd: '7151',
+        onePercentDepthAboveUsd: '1518',
+        onePercentDepthBelowUsd: '1794',
       },
     },
     {
@@ -22359,8 +22503,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 412,
       depth: {
-        onePercentDepthAboveUsd: '9386',
-        onePercentDepthBelowUsd: '9704',
+        onePercentDepthAboveUsd: '9582',
+        onePercentDepthBelowUsd: '8620',
       },
     },
     {
@@ -22377,8 +22521,80 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 413,
       depth: {
-        onePercentDepthAboveUsd: '443084',
-        onePercentDepthBelowUsd: '447231',
+        onePercentDepthAboveUsd: '616209',
+        onePercentDepthBelowUsd: '835366',
+      },
+    },
+    {
+      from: 'ASTER',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 414,
+      depth: {
+        onePercentDepthAboveUsd: '59433',
+        onePercentDepthBelowUsd: '60634',
+      },
+    },
+    {
+      from: 'OKB',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 415,
+      depth: {
+        onePercentDepthAboveUsd: '464702',
+        onePercentDepthBelowUsd: '319446',
+      },
+    },
+    {
+      from: 'CRO',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 416,
+      depth: {
+        onePercentDepthAboveUsd: '196752',
+        onePercentDepthBelowUsd: '253119',
+      },
+    },
+    {
+      from: 'SKY',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 417,
+      depth: {
+        onePercentDepthAboveUsd: '137882',
+        onePercentDepthBelowUsd: '146808',
       },
     },
   ],
@@ -22433,8 +22649,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 2,
       depth: {
-        onePercentDepthAboveUsd: '2581534',
-        onePercentDepthBelowUsd: '2728450',
+        onePercentDepthAboveUsd: '2453020',
+        onePercentDepthBelowUsd: '2966913',
       },
     },
     {
@@ -22451,8 +22667,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 3,
       depth: {
-        onePercentDepthAboveUsd: '6737714',
-        onePercentDepthBelowUsd: '6992776',
+        onePercentDepthAboveUsd: '4309381',
+        onePercentDepthBelowUsd: '4979245',
       },
     },
     {
@@ -22487,8 +22703,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 5,
       depth: {
-        onePercentDepthAboveUsd: '2884367',
-        onePercentDepthBelowUsd: '3257582',
+        onePercentDepthAboveUsd: '2674893',
+        onePercentDepthBelowUsd: '2890982',
       },
     },
     {
@@ -22523,8 +22739,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 7,
       depth: {
-        onePercentDepthAboveUsd: '930428',
-        onePercentDepthBelowUsd: '1096322',
+        onePercentDepthAboveUsd: '917318',
+        onePercentDepthBelowUsd: '964418',
       },
     },
     {
@@ -22541,8 +22757,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 8,
       depth: {
-        onePercentDepthAboveUsd: '185366',
-        onePercentDepthBelowUsd: '332852',
+        onePercentDepthAboveUsd: '204491',
+        onePercentDepthBelowUsd: '229670',
       },
     },
     {
@@ -22559,8 +22775,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 9,
       depth: {
-        onePercentDepthAboveUsd: '44588',
-        onePercentDepthBelowUsd: '62416',
+        onePercentDepthAboveUsd: '44664',
+        onePercentDepthBelowUsd: '55648',
       },
     },
     {
@@ -22577,8 +22793,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 10,
       depth: {
-        onePercentDepthAboveUsd: '46966',
-        onePercentDepthBelowUsd: '86501',
+        onePercentDepthAboveUsd: '51039',
+        onePercentDepthBelowUsd: '102858',
       },
     },
     {
@@ -22595,8 +22811,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 11,
       depth: {
-        onePercentDepthAboveUsd: '716135',
-        onePercentDepthBelowUsd: '810001',
+        onePercentDepthAboveUsd: '481044',
+        onePercentDepthBelowUsd: '590315',
       },
     },
     {
@@ -22631,8 +22847,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 13,
       depth: {
-        onePercentDepthAboveUsd: '865202',
-        onePercentDepthBelowUsd: '757657',
+        onePercentDepthAboveUsd: '886202',
+        onePercentDepthBelowUsd: '933464',
       },
     },
     {
@@ -22649,8 +22865,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 14,
       depth: {
-        onePercentDepthAboveUsd: '64937',
-        onePercentDepthBelowUsd: '79505',
+        onePercentDepthAboveUsd: '67173',
+        onePercentDepthBelowUsd: '53701',
       },
     },
     {
@@ -22685,8 +22901,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 16,
       depth: {
-        onePercentDepthAboveUsd: '77829',
-        onePercentDepthBelowUsd: '85693',
+        onePercentDepthAboveUsd: '51384',
+        onePercentDepthBelowUsd: '65716',
       },
     },
     {
@@ -22703,8 +22919,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 17,
       depth: {
-        onePercentDepthAboveUsd: '581653',
-        onePercentDepthBelowUsd: '838767',
+        onePercentDepthAboveUsd: '745484',
+        onePercentDepthBelowUsd: '720748',
       },
     },
     {
@@ -22721,8 +22937,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 18,
       depth: {
-        onePercentDepthAboveUsd: '1076180',
-        onePercentDepthBelowUsd: '1177779',
+        onePercentDepthAboveUsd: '1142691',
+        onePercentDepthBelowUsd: '1279464',
       },
     },
     {
@@ -22739,8 +22955,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 19,
       depth: {
-        onePercentDepthAboveUsd: '7605781',
-        onePercentDepthBelowUsd: '7778727',
+        onePercentDepthAboveUsd: '7583347',
+        onePercentDepthBelowUsd: '9580872',
       },
     },
     {
@@ -22775,8 +22991,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 21,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22793,8 +23009,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 22,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22811,8 +23027,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 23,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22829,8 +23045,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 24,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22847,8 +23063,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 25,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22865,8 +23081,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 26,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22883,8 +23099,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 27,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22901,8 +23117,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 28,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22919,8 +23135,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 29,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22937,8 +23153,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 30,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -22973,8 +23189,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 32,
       depth: {
-        onePercentDepthAboveUsd: '34542',
-        onePercentDepthBelowUsd: '34320',
+        onePercentDepthAboveUsd: '38797',
+        onePercentDepthBelowUsd: '51774',
       },
     },
     {
@@ -22991,8 +23207,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 33,
       depth: {
-        onePercentDepthAboveUsd: '22969948',
-        onePercentDepthBelowUsd: '19059824',
+        onePercentDepthAboveUsd: '13770460',
+        onePercentDepthBelowUsd: '13158442',
       },
     },
     {
@@ -23009,8 +23225,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 34,
       depth: {
-        onePercentDepthAboveUsd: '21182',
-        onePercentDepthBelowUsd: '30134',
+        onePercentDepthAboveUsd: '24972',
+        onePercentDepthBelowUsd: '32484',
       },
     },
     {
@@ -23027,8 +23243,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 35,
       depth: {
-        onePercentDepthAboveUsd: '613169',
-        onePercentDepthBelowUsd: '776717',
+        onePercentDepthAboveUsd: '723938',
+        onePercentDepthBelowUsd: '541909',
       },
     },
     {
@@ -23063,8 +23279,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 37,
       depth: {
-        onePercentDepthAboveUsd: '325159',
-        onePercentDepthBelowUsd: '426910',
+        onePercentDepthAboveUsd: '464527',
+        onePercentDepthBelowUsd: '624724',
       },
     },
     {
@@ -23081,8 +23297,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 38,
       depth: {
-        onePercentDepthAboveUsd: '14150',
-        onePercentDepthBelowUsd: '41159',
+        onePercentDepthAboveUsd: '43889',
+        onePercentDepthBelowUsd: '46036',
       },
     },
     {
@@ -23099,8 +23315,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 39,
       depth: {
-        onePercentDepthAboveUsd: '418535',
-        onePercentDepthBelowUsd: '614476',
+        onePercentDepthAboveUsd: '551133',
+        onePercentDepthBelowUsd: '657060',
       },
     },
     {
@@ -23117,8 +23333,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 40,
       depth: {
-        onePercentDepthAboveUsd: '261697',
-        onePercentDepthBelowUsd: '323632',
+        onePercentDepthAboveUsd: '332520',
+        onePercentDepthBelowUsd: '383450',
       },
     },
     {
@@ -23135,8 +23351,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 41,
       depth: {
-        onePercentDepthAboveUsd: '40943',
-        onePercentDepthBelowUsd: '35633',
+        onePercentDepthAboveUsd: '1',
+        onePercentDepthBelowUsd: '1',
       },
     },
     {
@@ -23153,8 +23369,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 42,
       depth: {
-        onePercentDepthAboveUsd: '88408',
-        onePercentDepthBelowUsd: '128122',
+        onePercentDepthAboveUsd: '96167',
+        onePercentDepthBelowUsd: '115749',
       },
     },
     {
@@ -23171,8 +23387,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 43,
       depth: {
-        onePercentDepthAboveUsd: '134187',
-        onePercentDepthBelowUsd: '133735',
+        onePercentDepthAboveUsd: '111249',
+        onePercentDepthBelowUsd: '124862',
       },
     },
     {
@@ -23189,8 +23405,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 44,
       depth: {
-        onePercentDepthAboveUsd: '3992748',
-        onePercentDepthBelowUsd: '4027663',
+        onePercentDepthAboveUsd: '3600299',
+        onePercentDepthBelowUsd: '3447505',
       },
     },
     {
@@ -23207,8 +23423,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 45,
       depth: {
-        onePercentDepthAboveUsd: '51200',
-        onePercentDepthBelowUsd: '49886',
+        onePercentDepthAboveUsd: '47686',
+        onePercentDepthBelowUsd: '55887',
       },
     },
     {
@@ -23225,8 +23441,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 46,
       depth: {
-        onePercentDepthAboveUsd: '88437',
-        onePercentDepthBelowUsd: '201061',
+        onePercentDepthAboveUsd: '183217',
+        onePercentDepthBelowUsd: '187028',
       },
     },
     {
@@ -23243,8 +23459,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 47,
       depth: {
-        onePercentDepthAboveUsd: '14282525',
-        onePercentDepthBelowUsd: '14411018',
+        onePercentDepthAboveUsd: '8725800',
+        onePercentDepthBelowUsd: '14959589',
       },
     },
     {
@@ -23279,8 +23495,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 49,
       depth: {
-        onePercentDepthAboveUsd: '163893',
-        onePercentDepthBelowUsd: '284589',
+        onePercentDepthAboveUsd: '177759',
+        onePercentDepthBelowUsd: '217604',
       },
     },
     {
@@ -23297,8 +23513,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 50,
       depth: {
-        onePercentDepthAboveUsd: '876813',
-        onePercentDepthBelowUsd: '1133842',
+        onePercentDepthAboveUsd: '1096558',
+        onePercentDepthBelowUsd: '1089798',
       },
     },
     {
@@ -23387,8 +23603,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 55,
       depth: {
-        onePercentDepthAboveUsd: '213987',
-        onePercentDepthBelowUsd: '238510',
+        onePercentDepthAboveUsd: '223975',
+        onePercentDepthBelowUsd: '158509',
       },
     },
     {
@@ -23423,8 +23639,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 57,
       depth: {
-        onePercentDepthAboveUsd: '632193',
-        onePercentDepthBelowUsd: '736110',
+        onePercentDepthAboveUsd: '586769',
+        onePercentDepthBelowUsd: '941885',
       },
     },
     {
@@ -24053,8 +24269,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 92,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24071,8 +24287,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 93,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24089,8 +24305,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 94,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24107,8 +24323,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 95,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24125,8 +24341,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 96,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24143,8 +24359,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 97,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24161,8 +24377,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 98,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24179,8 +24395,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 99,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24197,8 +24413,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 100,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24215,8 +24431,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 101,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24233,8 +24449,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 102,
       depth: {
-        onePercentDepthAboveUsd: '2054994',
-        onePercentDepthBelowUsd: '2521124',
+        onePercentDepthAboveUsd: '2328885',
+        onePercentDepthBelowUsd: '1555926',
       },
     },
     {
@@ -24251,8 +24467,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 103,
       depth: {
-        onePercentDepthAboveUsd: '259002',
-        onePercentDepthBelowUsd: '364250',
+        onePercentDepthAboveUsd: '343398',
+        onePercentDepthBelowUsd: '227876',
       },
     },
     {
@@ -24269,8 +24485,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 104,
       depth: {
-        onePercentDepthAboveUsd: '642758',
-        onePercentDepthBelowUsd: '745360',
+        onePercentDepthAboveUsd: '551635',
+        onePercentDepthBelowUsd: '787988',
       },
     },
     {
@@ -24287,8 +24503,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 105,
       depth: {
-        onePercentDepthAboveUsd: '74694',
-        onePercentDepthBelowUsd: '104161',
+        onePercentDepthAboveUsd: '85275',
+        onePercentDepthBelowUsd: '114745',
       },
     },
     {
@@ -24323,8 +24539,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 107,
       depth: {
-        onePercentDepthAboveUsd: '180580',
-        onePercentDepthBelowUsd: '156589',
+        onePercentDepthAboveUsd: '126251',
+        onePercentDepthBelowUsd: '152454',
       },
     },
     {
@@ -24341,8 +24557,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 108,
       depth: {
-        onePercentDepthAboveUsd: '26372',
-        onePercentDepthBelowUsd: '23297',
+        onePercentDepthAboveUsd: '30625',
+        onePercentDepthBelowUsd: '19652',
       },
     },
     {
@@ -24359,8 +24575,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 109,
       depth: {
-        onePercentDepthAboveUsd: '746322',
-        onePercentDepthBelowUsd: '698989',
+        onePercentDepthAboveUsd: '443691',
+        onePercentDepthBelowUsd: '529311',
       },
     },
     {
@@ -24377,8 +24593,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 110,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24395,8 +24611,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 111,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24413,8 +24629,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 112,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24431,8 +24647,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 113,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24449,8 +24665,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 114,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24467,8 +24683,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 115,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24485,8 +24701,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 116,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24503,8 +24719,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 117,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24521,8 +24737,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 118,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24539,8 +24755,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 119,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24557,8 +24773,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 120,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24575,8 +24791,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 121,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24593,8 +24809,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 122,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24611,8 +24827,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 123,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24629,8 +24845,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 124,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24647,8 +24863,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 125,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24665,8 +24881,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 126,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24683,8 +24899,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 127,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -24701,8 +24917,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 128,
       depth: {
-        onePercentDepthAboveUsd: '332420',
-        onePercentDepthBelowUsd: '365699',
+        onePercentDepthAboveUsd: '298348',
+        onePercentDepthBelowUsd: '414645',
       },
     },
     {
@@ -24719,8 +24935,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 129,
       depth: {
-        onePercentDepthAboveUsd: '550403',
-        onePercentDepthBelowUsd: '938936',
+        onePercentDepthAboveUsd: '891683',
+        onePercentDepthBelowUsd: '803651',
       },
     },
     {
@@ -24755,8 +24971,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 131,
       depth: {
-        onePercentDepthAboveUsd: '118321',
-        onePercentDepthBelowUsd: '165228',
+        onePercentDepthAboveUsd: '179143',
+        onePercentDepthBelowUsd: '221418',
       },
     },
     {
@@ -24773,8 +24989,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 132,
       depth: {
-        onePercentDepthAboveUsd: '53017',
-        onePercentDepthBelowUsd: '31644',
+        onePercentDepthAboveUsd: '76205',
+        onePercentDepthBelowUsd: '42515',
       },
     },
     {
@@ -24791,8 +25007,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 133,
       depth: {
-        onePercentDepthAboveUsd: '36674',
-        onePercentDepthBelowUsd: '48314',
+        onePercentDepthAboveUsd: '61398',
+        onePercentDepthBelowUsd: '81318',
       },
     },
     {
@@ -24809,8 +25025,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 134,
       depth: {
-        onePercentDepthAboveUsd: '3604497',
-        onePercentDepthBelowUsd: '3360208',
+        onePercentDepthAboveUsd: '2749454',
+        onePercentDepthBelowUsd: '3846425',
       },
     },
     {
@@ -24827,8 +25043,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 135,
       depth: {
-        onePercentDepthAboveUsd: '253540',
-        onePercentDepthBelowUsd: '489394',
+        onePercentDepthAboveUsd: '264873',
+        onePercentDepthBelowUsd: '469083',
       },
     },
     {
@@ -24845,8 +25061,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 136,
       depth: {
-        onePercentDepthAboveUsd: '26373',
-        onePercentDepthBelowUsd: '40752',
+        onePercentDepthAboveUsd: '36000',
+        onePercentDepthBelowUsd: '30129',
       },
     },
     {
@@ -24863,8 +25079,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 137,
       depth: {
-        onePercentDepthAboveUsd: '605389',
-        onePercentDepthBelowUsd: '669337',
+        onePercentDepthAboveUsd: '364509',
+        onePercentDepthBelowUsd: '618337',
       },
     },
     {
@@ -24881,8 +25097,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 138,
       depth: {
-        onePercentDepthAboveUsd: '1787180',
-        onePercentDepthBelowUsd: '2249570',
+        onePercentDepthAboveUsd: '1693265',
+        onePercentDepthBelowUsd: '2353225',
       },
     },
     {
@@ -24899,8 +25115,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 139,
       depth: {
-        onePercentDepthAboveUsd: '92473',
-        onePercentDepthBelowUsd: '119685',
+        onePercentDepthAboveUsd: '138178',
+        onePercentDepthBelowUsd: '246265',
       },
     },
     {
@@ -24917,8 +25133,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 140,
       depth: {
-        onePercentDepthAboveUsd: '177536',
-        onePercentDepthBelowUsd: '222096',
+        onePercentDepthAboveUsd: '151362',
+        onePercentDepthBelowUsd: '184526',
       },
     },
     {
@@ -24935,8 +25151,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 141,
       depth: {
-        onePercentDepthAboveUsd: '233273',
-        onePercentDepthBelowUsd: '594566',
+        onePercentDepthAboveUsd: '561755',
+        onePercentDepthBelowUsd: '529433',
       },
     },
     {
@@ -24953,8 +25169,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 142,
       depth: {
-        onePercentDepthAboveUsd: '259087',
-        onePercentDepthBelowUsd: '301200',
+        onePercentDepthAboveUsd: '207300',
+        onePercentDepthBelowUsd: '218660',
       },
     },
     {
@@ -24971,8 +25187,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 143,
       depth: {
-        onePercentDepthAboveUsd: '60838',
-        onePercentDepthBelowUsd: '73673',
+        onePercentDepthAboveUsd: '42449',
+        onePercentDepthBelowUsd: '57665',
       },
     },
     {
@@ -24989,8 +25205,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 144,
       depth: {
-        onePercentDepthAboveUsd: '605717',
-        onePercentDepthBelowUsd: '644881',
+        onePercentDepthAboveUsd: '684867',
+        onePercentDepthBelowUsd: '594467',
       },
     },
     {
@@ -25007,8 +25223,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 145,
       depth: {
-        onePercentDepthAboveUsd: '200584',
-        onePercentDepthBelowUsd: '296707',
+        onePercentDepthAboveUsd: '280686',
+        onePercentDepthBelowUsd: '283621',
       },
     },
     {
@@ -25025,8 +25241,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 146,
       depth: {
-        onePercentDepthAboveUsd: '81716',
-        onePercentDepthBelowUsd: '78209',
+        onePercentDepthAboveUsd: '55876',
+        onePercentDepthBelowUsd: '81064',
       },
     },
     {
@@ -25061,8 +25277,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 148,
       depth: {
-        onePercentDepthAboveUsd: '144608',
-        onePercentDepthBelowUsd: '306233',
+        onePercentDepthAboveUsd: '165249',
+        onePercentDepthBelowUsd: '245708',
       },
     },
     {
@@ -25079,8 +25295,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 149,
       depth: {
-        onePercentDepthAboveUsd: '69715',
-        onePercentDepthBelowUsd: '63302',
+        onePercentDepthAboveUsd: '65122',
+        onePercentDepthBelowUsd: '60100',
       },
     },
     {
@@ -25097,8 +25313,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 150,
       depth: {
-        onePercentDepthAboveUsd: '151914',
-        onePercentDepthBelowUsd: '198475',
+        onePercentDepthAboveUsd: '114533',
+        onePercentDepthBelowUsd: '190826',
       },
     },
     {
@@ -25115,8 +25331,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 151,
       depth: {
-        onePercentDepthAboveUsd: '30748',
-        onePercentDepthBelowUsd: '49866',
+        onePercentDepthAboveUsd: '47187',
+        onePercentDepthBelowUsd: '51286',
       },
     },
     {
@@ -25151,8 +25367,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 153,
       depth: {
-        onePercentDepthAboveUsd: '2626987',
-        onePercentDepthBelowUsd: '2671203',
+        onePercentDepthAboveUsd: '2322454',
+        onePercentDepthBelowUsd: '2618359',
       },
     },
     {
@@ -25169,8 +25385,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 154,
       depth: {
-        onePercentDepthAboveUsd: '52928',
-        onePercentDepthBelowUsd: '68090',
+        onePercentDepthAboveUsd: '44790',
+        onePercentDepthBelowUsd: '51009',
       },
     },
     {
@@ -25187,8 +25403,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 155,
       depth: {
-        onePercentDepthAboveUsd: '607809',
-        onePercentDepthBelowUsd: '652204',
+        onePercentDepthAboveUsd: '522787',
+        onePercentDepthBelowUsd: '348225',
       },
     },
     {
@@ -25205,8 +25421,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 156,
       depth: {
-        onePercentDepthAboveUsd: '275563',
-        onePercentDepthBelowUsd: '354793',
+        onePercentDepthAboveUsd: '356452',
+        onePercentDepthBelowUsd: '399107',
       },
     },
     {
@@ -25223,8 +25439,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 157,
       depth: {
-        onePercentDepthAboveUsd: '43104',
-        onePercentDepthBelowUsd: '27853',
+        onePercentDepthAboveUsd: '41943',
+        onePercentDepthBelowUsd: '35096',
       },
     },
     {
@@ -25241,8 +25457,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 158,
       depth: {
-        onePercentDepthAboveUsd: '133604',
-        onePercentDepthBelowUsd: '156355',
+        onePercentDepthAboveUsd: '140773',
+        onePercentDepthBelowUsd: '117287',
       },
     },
     {
@@ -25259,8 +25475,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 159,
       depth: {
-        onePercentDepthAboveUsd: '400185',
-        onePercentDepthBelowUsd: '238645',
+        onePercentDepthAboveUsd: '364745',
+        onePercentDepthBelowUsd: '469126',
       },
     },
     {
@@ -25295,8 +25511,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 161,
       depth: {
-        onePercentDepthAboveUsd: '70247',
-        onePercentDepthBelowUsd: '72886',
+        onePercentDepthAboveUsd: '67302',
+        onePercentDepthBelowUsd: '81672',
       },
     },
     {
@@ -25313,8 +25529,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 162,
       depth: {
-        onePercentDepthAboveUsd: '28886',
-        onePercentDepthBelowUsd: '42406',
+        onePercentDepthAboveUsd: '38528',
+        onePercentDepthBelowUsd: '46007',
       },
     },
     {
@@ -25349,8 +25565,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 164,
       depth: {
-        onePercentDepthAboveUsd: '48395',
-        onePercentDepthBelowUsd: '50497',
+        onePercentDepthAboveUsd: '56551',
+        onePercentDepthBelowUsd: '79180',
       },
     },
     {
@@ -25367,8 +25583,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 165,
       depth: {
-        onePercentDepthAboveUsd: '98498',
-        onePercentDepthBelowUsd: '125761',
+        onePercentDepthAboveUsd: '87994',
+        onePercentDepthBelowUsd: '99150',
       },
     },
     {
@@ -25385,8 +25601,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 166,
       depth: {
-        onePercentDepthAboveUsd: '47485',
-        onePercentDepthBelowUsd: '74917',
+        onePercentDepthAboveUsd: '32711',
+        onePercentDepthBelowUsd: '78305',
       },
     },
     {
@@ -25403,8 +25619,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 167,
       depth: {
-        onePercentDepthAboveUsd: '44559',
-        onePercentDepthBelowUsd: '89225',
+        onePercentDepthAboveUsd: '41577',
+        onePercentDepthBelowUsd: '57573',
       },
     },
     {
@@ -25421,8 +25637,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 168,
       depth: {
-        onePercentDepthAboveUsd: '253200',
-        onePercentDepthBelowUsd: '247538',
+        onePercentDepthAboveUsd: '167976',
+        onePercentDepthBelowUsd: '302969',
       },
     },
     {
@@ -25439,8 +25655,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 169,
       depth: {
-        onePercentDepthAboveUsd: '50385',
-        onePercentDepthBelowUsd: '51281',
+        onePercentDepthAboveUsd: '52228',
+        onePercentDepthBelowUsd: '63320',
       },
     },
     {
@@ -25475,8 +25691,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 171,
       depth: {
-        onePercentDepthAboveUsd: '962631',
-        onePercentDepthBelowUsd: '1150372',
+        onePercentDepthAboveUsd: '1094712',
+        onePercentDepthBelowUsd: '1073897',
       },
     },
     {
@@ -25493,8 +25709,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 172,
       depth: {
-        onePercentDepthAboveUsd: '141790',
-        onePercentDepthBelowUsd: '162378',
+        onePercentDepthAboveUsd: '133735',
+        onePercentDepthBelowUsd: '146603',
       },
     },
     {
@@ -25511,8 +25727,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 173,
       depth: {
-        onePercentDepthAboveUsd: '43546',
-        onePercentDepthBelowUsd: '64092',
+        onePercentDepthAboveUsd: '57963',
+        onePercentDepthBelowUsd: '60948',
       },
     },
     {
@@ -25529,8 +25745,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 174,
       depth: {
-        onePercentDepthAboveUsd: '59190',
-        onePercentDepthBelowUsd: '56969',
+        onePercentDepthAboveUsd: '62621',
+        onePercentDepthBelowUsd: '50015',
       },
     },
     {
@@ -25547,8 +25763,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 175,
       depth: {
-        onePercentDepthAboveUsd: '243591',
-        onePercentDepthBelowUsd: '183684',
+        onePercentDepthAboveUsd: '154662',
+        onePercentDepthBelowUsd: '330182',
       },
     },
     {
@@ -25565,8 +25781,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 176,
       depth: {
-        onePercentDepthAboveUsd: '75161',
-        onePercentDepthBelowUsd: '101239',
+        onePercentDepthAboveUsd: '100240',
+        onePercentDepthBelowUsd: '161455',
       },
     },
     {
@@ -25583,8 +25799,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 177,
       depth: {
-        onePercentDepthAboveUsd: '37299',
-        onePercentDepthBelowUsd: '42061',
+        onePercentDepthAboveUsd: '33962',
+        onePercentDepthBelowUsd: '35542',
       },
     },
     {
@@ -25601,8 +25817,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 178,
       depth: {
-        onePercentDepthAboveUsd: '33001',
-        onePercentDepthBelowUsd: '43904',
+        onePercentDepthAboveUsd: '63349',
+        onePercentDepthBelowUsd: '72747',
       },
     },
     {
@@ -25637,8 +25853,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 180,
       depth: {
-        onePercentDepthAboveUsd: '43924',
-        onePercentDepthBelowUsd: '59981',
+        onePercentDepthAboveUsd: '45795',
+        onePercentDepthBelowUsd: '67197',
       },
     },
     {
@@ -25655,8 +25871,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 181,
       depth: {
-        onePercentDepthAboveUsd: '48117',
-        onePercentDepthBelowUsd: '56033',
+        onePercentDepthAboveUsd: '62434',
+        onePercentDepthBelowUsd: '76374',
       },
     },
     {
@@ -25709,8 +25925,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 184,
       depth: {
-        onePercentDepthAboveUsd: '40720',
-        onePercentDepthBelowUsd: '66836',
+        onePercentDepthAboveUsd: '62908',
+        onePercentDepthBelowUsd: '47151',
       },
     },
     {
@@ -25727,8 +25943,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 185,
       depth: {
-        onePercentDepthAboveUsd: '40624',
-        onePercentDepthBelowUsd: '63204',
+        onePercentDepthAboveUsd: '9167',
+        onePercentDepthBelowUsd: '28524',
       },
     },
     {
@@ -25835,8 +26051,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 191,
       depth: {
-        onePercentDepthAboveUsd: '258394',
-        onePercentDepthBelowUsd: '314818',
+        onePercentDepthAboveUsd: '280104',
+        onePercentDepthBelowUsd: '253766',
       },
     },
     {
@@ -25853,8 +26069,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 192,
       depth: {
-        onePercentDepthAboveUsd: '55210',
-        onePercentDepthBelowUsd: '58077',
+        onePercentDepthAboveUsd: '56090',
+        onePercentDepthBelowUsd: '48043',
       },
     },
     {
@@ -25871,8 +26087,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 193,
       depth: {
-        onePercentDepthAboveUsd: '1341966',
-        onePercentDepthBelowUsd: '1436036',
+        onePercentDepthAboveUsd: '1445614',
+        onePercentDepthBelowUsd: '1240512',
       },
     },
     {
@@ -25889,8 +26105,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 194,
       depth: {
-        onePercentDepthAboveUsd: '262861',
-        onePercentDepthBelowUsd: '303112',
+        onePercentDepthAboveUsd: '242993',
+        onePercentDepthBelowUsd: '312293',
       },
     },
     {
@@ -25907,8 +26123,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 195,
       depth: {
-        onePercentDepthAboveUsd: '14020',
-        onePercentDepthBelowUsd: '23802',
+        onePercentDepthAboveUsd: '13558',
+        onePercentDepthBelowUsd: '13851',
       },
     },
     {
@@ -25925,8 +26141,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 196,
       depth: {
-        onePercentDepthAboveUsd: '79148',
-        onePercentDepthBelowUsd: '93112',
+        onePercentDepthAboveUsd: '84856',
+        onePercentDepthBelowUsd: '108854',
       },
     },
     {
@@ -25943,8 +26159,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 197,
       depth: {
-        onePercentDepthAboveUsd: '54332',
-        onePercentDepthBelowUsd: '62863',
+        onePercentDepthAboveUsd: '78066',
+        onePercentDepthBelowUsd: '96874',
       },
     },
     {
@@ -25961,8 +26177,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 198,
       depth: {
-        onePercentDepthAboveUsd: '74197',
-        onePercentDepthBelowUsd: '94490',
+        onePercentDepthAboveUsd: '72751',
+        onePercentDepthBelowUsd: '68317',
       },
     },
     {
@@ -25979,8 +26195,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 199,
       depth: {
-        onePercentDepthAboveUsd: '87978',
-        onePercentDepthBelowUsd: '84417',
+        onePercentDepthAboveUsd: '41740',
+        onePercentDepthBelowUsd: '53077',
       },
     },
     {
@@ -25997,8 +26213,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 200,
       depth: {
-        onePercentDepthAboveUsd: '144194',
-        onePercentDepthBelowUsd: '142544',
+        onePercentDepthAboveUsd: '112104',
+        onePercentDepthBelowUsd: '123105',
       },
     },
     {
@@ -26015,8 +26231,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 201,
       depth: {
-        onePercentDepthAboveUsd: '87232',
-        onePercentDepthBelowUsd: '41598',
+        onePercentDepthAboveUsd: '193266',
+        onePercentDepthBelowUsd: '164750',
       },
     },
     {
@@ -26033,8 +26249,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 202,
       depth: {
-        onePercentDepthAboveUsd: '34748',
-        onePercentDepthBelowUsd: '34082',
+        onePercentDepthAboveUsd: '26824',
+        onePercentDepthBelowUsd: '31202',
       },
     },
     {
@@ -26051,8 +26267,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 203,
       depth: {
-        onePercentDepthAboveUsd: '282414',
-        onePercentDepthBelowUsd: '350399',
+        onePercentDepthAboveUsd: '240034',
+        onePercentDepthBelowUsd: '291983',
       },
     },
     {
@@ -26069,8 +26285,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 204,
       depth: {
-        onePercentDepthAboveUsd: '27070',
-        onePercentDepthBelowUsd: '35636',
+        onePercentDepthAboveUsd: '12356',
+        onePercentDepthBelowUsd: '23675',
       },
     },
     {
@@ -26087,8 +26303,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 205,
       depth: {
-        onePercentDepthAboveUsd: '1270451',
-        onePercentDepthBelowUsd: '1617409',
+        onePercentDepthAboveUsd: '775238',
+        onePercentDepthBelowUsd: '1082188',
       },
     },
     {
@@ -26105,8 +26321,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 206,
       depth: {
-        onePercentDepthAboveUsd: '63040',
-        onePercentDepthBelowUsd: '64588',
+        onePercentDepthAboveUsd: '46748',
+        onePercentDepthBelowUsd: '34102',
       },
     },
     {
@@ -26123,8 +26339,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 207,
       depth: {
-        onePercentDepthAboveUsd: '163685',
-        onePercentDepthBelowUsd: '155226',
+        onePercentDepthAboveUsd: '179643',
+        onePercentDepthBelowUsd: '178631',
       },
     },
     {
@@ -26177,8 +26393,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 210,
       depth: {
-        onePercentDepthAboveUsd: '35378',
-        onePercentDepthBelowUsd: '45140',
+        onePercentDepthAboveUsd: '39003',
+        onePercentDepthBelowUsd: '47050',
       },
     },
     {
@@ -26195,8 +26411,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 211,
       depth: {
-        onePercentDepthAboveUsd: '146519',
-        onePercentDepthBelowUsd: '192059',
+        onePercentDepthAboveUsd: '111963',
+        onePercentDepthBelowUsd: '168371',
       },
     },
     {
@@ -26213,8 +26429,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 212,
       depth: {
-        onePercentDepthAboveUsd: '242437',
-        onePercentDepthBelowUsd: '303844',
+        onePercentDepthAboveUsd: '279499',
+        onePercentDepthBelowUsd: '241197',
       },
     },
     {
@@ -26231,8 +26447,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 213,
       depth: {
-        onePercentDepthAboveUsd: '41426',
-        onePercentDepthBelowUsd: '32796',
+        onePercentDepthAboveUsd: '51127',
+        onePercentDepthBelowUsd: '47512',
       },
     },
     {
@@ -26249,8 +26465,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 214,
       depth: {
-        onePercentDepthAboveUsd: '98043',
-        onePercentDepthBelowUsd: '101815',
+        onePercentDepthAboveUsd: '110515',
+        onePercentDepthBelowUsd: '119332',
       },
     },
     {
@@ -26267,8 +26483,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 215,
       depth: {
-        onePercentDepthAboveUsd: '216911',
-        onePercentDepthBelowUsd: '287684',
+        onePercentDepthAboveUsd: '191657',
+        onePercentDepthBelowUsd: '249332',
       },
     },
     {
@@ -26285,8 +26501,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 216,
       depth: {
-        onePercentDepthAboveUsd: '180421',
-        onePercentDepthBelowUsd: '43226',
+        onePercentDepthAboveUsd: '182292',
+        onePercentDepthBelowUsd: '188657',
       },
     },
     {
@@ -26303,8 +26519,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 217,
       depth: {
-        onePercentDepthAboveUsd: '110479',
-        onePercentDepthBelowUsd: '102769',
+        onePercentDepthAboveUsd: '99827',
+        onePercentDepthBelowUsd: '114944',
       },
     },
     {
@@ -26321,8 +26537,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 218,
       depth: {
-        onePercentDepthAboveUsd: '83843',
-        onePercentDepthBelowUsd: '112788',
+        onePercentDepthAboveUsd: '52483',
+        onePercentDepthBelowUsd: '85868',
       },
     },
     {
@@ -26339,8 +26555,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 219,
       depth: {
-        onePercentDepthAboveUsd: '1782114',
-        onePercentDepthBelowUsd: '2010065',
+        onePercentDepthAboveUsd: '1394291',
+        onePercentDepthBelowUsd: '1459164',
       },
     },
     {
@@ -26357,8 +26573,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 220,
       depth: {
-        onePercentDepthAboveUsd: '173840',
-        onePercentDepthBelowUsd: '216239',
+        onePercentDepthAboveUsd: '125039',
+        onePercentDepthBelowUsd: '165311',
       },
     },
     {
@@ -26375,8 +26591,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 221,
       depth: {
-        onePercentDepthAboveUsd: '9071',
-        onePercentDepthBelowUsd: '7108',
+        onePercentDepthAboveUsd: '9026',
+        onePercentDepthBelowUsd: '8604',
       },
     },
     {
@@ -26393,8 +26609,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 222,
       depth: {
-        onePercentDepthAboveUsd: '83054',
-        onePercentDepthBelowUsd: '85375',
+        onePercentDepthAboveUsd: '69317',
+        onePercentDepthBelowUsd: '28606',
       },
     },
     {
@@ -26411,8 +26627,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 223,
       depth: {
-        onePercentDepthAboveUsd: '382535',
-        onePercentDepthBelowUsd: '456816',
+        onePercentDepthAboveUsd: '472044',
+        onePercentDepthBelowUsd: '575709',
       },
     },
     {
@@ -26429,8 +26645,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 224,
       depth: {
-        onePercentDepthAboveUsd: '36535',
-        onePercentDepthBelowUsd: '49139',
+        onePercentDepthAboveUsd: '4187',
+        onePercentDepthBelowUsd: '22494',
       },
     },
     {
@@ -26465,8 +26681,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 226,
       depth: {
-        onePercentDepthAboveUsd: '54455',
-        onePercentDepthBelowUsd: '57178',
+        onePercentDepthAboveUsd: '58900',
+        onePercentDepthBelowUsd: '72129',
       },
     },
     {
@@ -26483,8 +26699,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 227,
       depth: {
-        onePercentDepthAboveUsd: '34872',
-        onePercentDepthBelowUsd: '47822',
+        onePercentDepthAboveUsd: '54172',
+        onePercentDepthBelowUsd: '70978',
       },
     },
     {
@@ -26501,8 +26717,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 228,
       depth: {
-        onePercentDepthAboveUsd: '149467',
-        onePercentDepthBelowUsd: '150975',
+        onePercentDepthAboveUsd: '136986',
+        onePercentDepthBelowUsd: '140547',
       },
     },
     {
@@ -26573,8 +26789,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 232,
       depth: {
-        onePercentDepthAboveUsd: '94945',
-        onePercentDepthBelowUsd: '114649',
+        onePercentDepthAboveUsd: '90525',
+        onePercentDepthBelowUsd: '95431',
       },
     },
     {
@@ -26591,8 +26807,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 233,
       depth: {
-        onePercentDepthAboveUsd: '143845',
-        onePercentDepthBelowUsd: '222471',
+        onePercentDepthAboveUsd: '133374',
+        onePercentDepthBelowUsd: '217092',
       },
     },
     {
@@ -26609,8 +26825,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 234,
       depth: {
-        onePercentDepthAboveUsd: '37297',
-        onePercentDepthBelowUsd: '38919',
+        onePercentDepthAboveUsd: '41151',
+        onePercentDepthBelowUsd: '40690',
       },
     },
     {
@@ -26627,8 +26843,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 235,
       depth: {
-        onePercentDepthAboveUsd: '67867',
-        onePercentDepthBelowUsd: '62516',
+        onePercentDepthAboveUsd: '57506',
+        onePercentDepthBelowUsd: '87000',
       },
     },
     {
@@ -26645,8 +26861,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 236,
       depth: {
-        onePercentDepthAboveUsd: '149240',
-        onePercentDepthBelowUsd: '172106',
+        onePercentDepthAboveUsd: '114725',
+        onePercentDepthBelowUsd: '162318',
       },
     },
     {
@@ -26663,8 +26879,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 237,
       depth: {
-        onePercentDepthAboveUsd: '257410',
-        onePercentDepthBelowUsd: '310304',
+        onePercentDepthAboveUsd: '270878',
+        onePercentDepthBelowUsd: '194642',
       },
     },
     {
@@ -26717,8 +26933,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 240,
       depth: {
-        onePercentDepthAboveUsd: '29074',
-        onePercentDepthBelowUsd: '34402',
+        onePercentDepthAboveUsd: '27888',
+        onePercentDepthBelowUsd: '28866',
       },
     },
     {
@@ -26753,8 +26969,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 242,
       depth: {
-        onePercentDepthAboveUsd: '80046',
-        onePercentDepthBelowUsd: '84722',
+        onePercentDepthAboveUsd: '92528',
+        onePercentDepthBelowUsd: '119048',
       },
     },
     {
@@ -26771,8 +26987,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 243,
       depth: {
-        onePercentDepthAboveUsd: '47448',
-        onePercentDepthBelowUsd: '95142',
+        onePercentDepthAboveUsd: '43489',
+        onePercentDepthBelowUsd: '85617',
       },
     },
     {
@@ -26789,8 +27005,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 244,
       depth: {
-        onePercentDepthAboveUsd: '59750',
-        onePercentDepthBelowUsd: '72614',
+        onePercentDepthAboveUsd: '50009',
+        onePercentDepthBelowUsd: '70896',
       },
     },
     {
@@ -26807,8 +27023,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 245,
       depth: {
-        onePercentDepthAboveUsd: '98530',
-        onePercentDepthBelowUsd: '236040',
+        onePercentDepthAboveUsd: '150828',
+        onePercentDepthBelowUsd: '226116',
       },
     },
     {
@@ -26825,8 +27041,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 246,
       depth: {
-        onePercentDepthAboveUsd: '54066',
-        onePercentDepthBelowUsd: '57580',
+        onePercentDepthAboveUsd: '66103',
+        onePercentDepthBelowUsd: '59957',
       },
     },
     {
@@ -26843,8 +27059,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 247,
       depth: {
-        onePercentDepthAboveUsd: '171691',
-        onePercentDepthBelowUsd: '185568',
+        onePercentDepthAboveUsd: '129857',
+        onePercentDepthBelowUsd: '170971',
       },
     },
     {
@@ -26861,8 +27077,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 248,
       depth: {
-        onePercentDepthAboveUsd: '55011',
-        onePercentDepthBelowUsd: '54541',
+        onePercentDepthAboveUsd: '65289',
+        onePercentDepthBelowUsd: '74725',
       },
     },
     {
@@ -26879,8 +27095,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 249,
       depth: {
-        onePercentDepthAboveUsd: '74913',
-        onePercentDepthBelowUsd: '78718',
+        onePercentDepthAboveUsd: '97934',
+        onePercentDepthBelowUsd: '84142',
       },
     },
     {
@@ -26915,8 +27131,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 251,
       depth: {
-        onePercentDepthAboveUsd: '35823',
-        onePercentDepthBelowUsd: '65033',
+        onePercentDepthAboveUsd: '54604',
+        onePercentDepthBelowUsd: '89390',
       },
     },
     {
@@ -26933,8 +27149,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 252,
       depth: {
-        onePercentDepthAboveUsd: '9319',
-        onePercentDepthBelowUsd: '15020',
+        onePercentDepthAboveUsd: '5691',
+        onePercentDepthBelowUsd: '11194',
       },
     },
     {
@@ -26987,8 +27203,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 255,
       depth: {
-        onePercentDepthAboveUsd: '5162',
-        onePercentDepthBelowUsd: '7358',
+        onePercentDepthAboveUsd: '11649',
+        onePercentDepthBelowUsd: '9426',
       },
     },
     {
@@ -27005,8 +27221,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 256,
       depth: {
-        onePercentDepthAboveUsd: '42287',
-        onePercentDepthBelowUsd: '35277',
+        onePercentDepthAboveUsd: '51934',
+        onePercentDepthBelowUsd: '40171',
       },
     },
     {
@@ -27023,8 +27239,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 257,
       depth: {
-        onePercentDepthAboveUsd: '62261',
-        onePercentDepthBelowUsd: '72864',
+        onePercentDepthAboveUsd: '69111',
+        onePercentDepthBelowUsd: '95295',
       },
     },
     {
@@ -27059,8 +27275,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 259,
       depth: {
-        onePercentDepthAboveUsd: '102241',
-        onePercentDepthBelowUsd: '118793',
+        onePercentDepthAboveUsd: '10855',
+        onePercentDepthBelowUsd: '24038',
       },
     },
     {
@@ -27077,8 +27293,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 260,
       depth: {
-        onePercentDepthAboveUsd: '69699',
-        onePercentDepthBelowUsd: '86184',
+        onePercentDepthAboveUsd: '90745',
+        onePercentDepthBelowUsd: '103111',
       },
     },
     {
@@ -27095,8 +27311,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 261,
       depth: {
-        onePercentDepthAboveUsd: '25755',
-        onePercentDepthBelowUsd: '21486',
+        onePercentDepthAboveUsd: '27171',
+        onePercentDepthBelowUsd: '22602',
       },
     },
     {
@@ -27113,8 +27329,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 262,
       depth: {
-        onePercentDepthAboveUsd: '71441',
-        onePercentDepthBelowUsd: '108008',
+        onePercentDepthAboveUsd: '55183',
+        onePercentDepthBelowUsd: '79682',
       },
     },
     {
@@ -27131,8 +27347,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 263,
       depth: {
-        onePercentDepthAboveUsd: '34075',
-        onePercentDepthBelowUsd: '43845',
+        onePercentDepthAboveUsd: '40185',
+        onePercentDepthBelowUsd: '36749',
       },
     },
     {
@@ -27149,8 +27365,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 264,
       depth: {
-        onePercentDepthAboveUsd: '62046',
-        onePercentDepthBelowUsd: '81650',
+        onePercentDepthAboveUsd: '53863',
+        onePercentDepthBelowUsd: '99769',
       },
     },
     {
@@ -27167,8 +27383,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 265,
       depth: {
-        onePercentDepthAboveUsd: '118279',
-        onePercentDepthBelowUsd: '94492',
+        onePercentDepthAboveUsd: '97088',
+        onePercentDepthBelowUsd: '153745',
       },
     },
     {
@@ -27185,8 +27401,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 266,
       depth: {
-        onePercentDepthAboveUsd: '62289',
-        onePercentDepthBelowUsd: '77524',
+        onePercentDepthAboveUsd: '42175',
+        onePercentDepthBelowUsd: '82741',
       },
     },
     {
@@ -27203,8 +27419,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 267,
       depth: {
-        onePercentDepthAboveUsd: '69500',
-        onePercentDepthBelowUsd: '99191',
+        onePercentDepthAboveUsd: '48784',
+        onePercentDepthBelowUsd: '92715',
       },
     },
     {
@@ -27221,8 +27437,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 268,
       depth: {
-        onePercentDepthAboveUsd: '12612',
-        onePercentDepthBelowUsd: '18666',
+        onePercentDepthAboveUsd: '15450',
+        onePercentDepthBelowUsd: '14570',
       },
     },
     {
@@ -27239,8 +27455,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 269,
       depth: {
-        onePercentDepthAboveUsd: '327598',
-        onePercentDepthBelowUsd: '498366',
+        onePercentDepthAboveUsd: '375315',
+        onePercentDepthBelowUsd: '556627',
       },
     },
     {
@@ -27275,8 +27491,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 271,
       depth: {
-        onePercentDepthAboveUsd: '15762',
-        onePercentDepthBelowUsd: '37985',
+        onePercentDepthAboveUsd: '25858',
+        onePercentDepthBelowUsd: '28255',
       },
     },
     {
@@ -27293,8 +27509,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 272,
       depth: {
-        onePercentDepthAboveUsd: '5581',
-        onePercentDepthBelowUsd: '10480',
+        onePercentDepthAboveUsd: '6335',
+        onePercentDepthBelowUsd: '461',
       },
     },
     {
@@ -27311,8 +27527,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 273,
       depth: {
-        onePercentDepthAboveUsd: '2382',
-        onePercentDepthBelowUsd: '2869',
+        onePercentDepthAboveUsd: '3703',
+        onePercentDepthBelowUsd: '3594',
       },
     },
     {
@@ -27329,8 +27545,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 274,
       depth: {
-        onePercentDepthAboveUsd: '22200',
-        onePercentDepthBelowUsd: '26580',
+        onePercentDepthAboveUsd: '33751',
+        onePercentDepthBelowUsd: '39648',
       },
     },
     {
@@ -27383,8 +27599,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 277,
       depth: {
-        onePercentDepthAboveUsd: '21238',
-        onePercentDepthBelowUsd: '94251',
+        onePercentDepthAboveUsd: '55676',
+        onePercentDepthBelowUsd: '85243',
       },
     },
     {
@@ -27437,8 +27653,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 280,
       depth: {
-        onePercentDepthAboveUsd: '85538',
-        onePercentDepthBelowUsd: '132110',
+        onePercentDepthAboveUsd: '105981',
+        onePercentDepthBelowUsd: '121160',
       },
     },
     {
@@ -27455,8 +27671,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 281,
       depth: {
-        onePercentDepthAboveUsd: '37808',
-        onePercentDepthBelowUsd: '44853',
+        onePercentDepthAboveUsd: '37529',
+        onePercentDepthBelowUsd: '44566',
       },
     },
     {
@@ -27491,8 +27707,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 283,
       depth: {
-        onePercentDepthAboveUsd: '81448',
-        onePercentDepthBelowUsd: '82279',
+        onePercentDepthAboveUsd: '86473',
+        onePercentDepthBelowUsd: '67529',
       },
     },
     {
@@ -27509,8 +27725,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 284,
       depth: {
-        onePercentDepthAboveUsd: '218180',
-        onePercentDepthBelowUsd: '260514',
+        onePercentDepthAboveUsd: '252450',
+        onePercentDepthBelowUsd: '280324',
       },
     },
     {
@@ -27545,8 +27761,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 286,
       depth: {
-        onePercentDepthAboveUsd: '62608',
-        onePercentDepthBelowUsd: '76958',
+        onePercentDepthAboveUsd: '43566',
+        onePercentDepthBelowUsd: '83606',
       },
     },
     {
@@ -27563,8 +27779,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 287,
       depth: {
-        onePercentDepthAboveUsd: '28109',
-        onePercentDepthBelowUsd: '40802',
+        onePercentDepthAboveUsd: '24928',
+        onePercentDepthBelowUsd: '29942',
       },
     },
     {
@@ -27581,8 +27797,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 288,
       depth: {
-        onePercentDepthAboveUsd: '138661',
-        onePercentDepthBelowUsd: '231993',
+        onePercentDepthAboveUsd: '147224',
+        onePercentDepthBelowUsd: '166923',
       },
     },
     {
@@ -27599,8 +27815,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 289,
       depth: {
-        onePercentDepthAboveUsd: '24986',
-        onePercentDepthBelowUsd: '23632',
+        onePercentDepthAboveUsd: '23714',
+        onePercentDepthBelowUsd: '29438',
       },
     },
     {
@@ -27635,8 +27851,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 291,
       depth: {
-        onePercentDepthAboveUsd: '8454',
-        onePercentDepthBelowUsd: '8991',
+        onePercentDepthAboveUsd: '9138',
+        onePercentDepthBelowUsd: '11387',
       },
     },
     {
@@ -27653,8 +27869,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 292,
       depth: {
-        onePercentDepthAboveUsd: '3894',
-        onePercentDepthBelowUsd: '2640',
+        onePercentDepthAboveUsd: '4514',
+        onePercentDepthBelowUsd: '3008',
       },
     },
     {
@@ -27671,8 +27887,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 293,
       depth: {
-        onePercentDepthAboveUsd: '17464',
-        onePercentDepthBelowUsd: '23767',
+        onePercentDepthAboveUsd: '12490',
+        onePercentDepthBelowUsd: '21537',
       },
     },
     {
@@ -27707,8 +27923,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 295,
       depth: {
-        onePercentDepthAboveUsd: '14861',
-        onePercentDepthBelowUsd: '41536',
+        onePercentDepthAboveUsd: '20612',
+        onePercentDepthBelowUsd: '32827',
       },
     },
     {
@@ -27743,8 +27959,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 297,
       depth: {
-        onePercentDepthAboveUsd: '39370',
-        onePercentDepthBelowUsd: '34155',
+        onePercentDepthAboveUsd: '30016',
+        onePercentDepthBelowUsd: '32110',
       },
     },
     {
@@ -27761,8 +27977,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 298,
       depth: {
-        onePercentDepthAboveUsd: '25372',
-        onePercentDepthBelowUsd: '20195',
+        onePercentDepthAboveUsd: '20376',
+        onePercentDepthBelowUsd: '20409',
       },
     },
     {
@@ -27779,8 +27995,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 299,
       depth: {
-        onePercentDepthAboveUsd: '258519',
-        onePercentDepthBelowUsd: '226676',
+        onePercentDepthAboveUsd: '171014',
+        onePercentDepthBelowUsd: '132437',
       },
     },
     {
@@ -27815,8 +28031,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 301,
       depth: {
-        onePercentDepthAboveUsd: '188641',
-        onePercentDepthBelowUsd: '219935',
+        onePercentDepthAboveUsd: '116320',
+        onePercentDepthBelowUsd: '228728',
       },
     },
     {
@@ -27833,8 +28049,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 302,
       depth: {
-        onePercentDepthAboveUsd: '74327',
-        onePercentDepthBelowUsd: '90338',
+        onePercentDepthAboveUsd: '68518',
+        onePercentDepthBelowUsd: '72903',
       },
     },
     {
@@ -27851,8 +28067,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 303,
       depth: {
-        onePercentDepthAboveUsd: '178308',
-        onePercentDepthBelowUsd: '161673',
+        onePercentDepthAboveUsd: '151825',
+        onePercentDepthBelowUsd: '110559',
       },
     },
     {
@@ -27869,8 +28085,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 304,
       depth: {
-        onePercentDepthAboveUsd: '59523',
-        onePercentDepthBelowUsd: '64485',
+        onePercentDepthAboveUsd: '59363',
+        onePercentDepthBelowUsd: '91229',
       },
     },
     {
@@ -27905,8 +28121,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 306,
       depth: {
-        onePercentDepthAboveUsd: '12627',
-        onePercentDepthBelowUsd: '9597',
+        onePercentDepthAboveUsd: '5391',
+        onePercentDepthBelowUsd: '9054',
       },
     },
     {
@@ -27923,8 +28139,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 307,
       depth: {
-        onePercentDepthAboveUsd: '109700',
-        onePercentDepthBelowUsd: '143265',
+        onePercentDepthAboveUsd: '89138',
+        onePercentDepthBelowUsd: '144264',
       },
     },
     {
@@ -27941,8 +28157,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 308,
       depth: {
-        onePercentDepthAboveUsd: '76540',
-        onePercentDepthBelowUsd: '111938',
+        onePercentDepthAboveUsd: '60284',
+        onePercentDepthBelowUsd: '139660',
       },
     },
     {
@@ -27959,8 +28175,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 309,
       depth: {
-        onePercentDepthAboveUsd: '39740',
-        onePercentDepthBelowUsd: '33593',
+        onePercentDepthAboveUsd: '24778',
+        onePercentDepthBelowUsd: '29319',
       },
     },
     {
@@ -27977,8 +28193,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 310,
       depth: {
-        onePercentDepthAboveUsd: '23769',
-        onePercentDepthBelowUsd: '22235',
+        onePercentDepthAboveUsd: '39422',
+        onePercentDepthBelowUsd: '27481',
       },
     },
     {
@@ -28013,8 +28229,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 312,
       depth: {
-        onePercentDepthAboveUsd: '3898',
-        onePercentDepthBelowUsd: '3064',
+        onePercentDepthAboveUsd: '6496',
+        onePercentDepthBelowUsd: '6248',
       },
     },
     {
@@ -28067,8 +28283,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 315,
       depth: {
-        onePercentDepthAboveUsd: '73747',
-        onePercentDepthBelowUsd: '104531',
+        onePercentDepthAboveUsd: '69338',
+        onePercentDepthBelowUsd: '98647',
       },
     },
     {
@@ -28085,8 +28301,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 316,
       depth: {
-        onePercentDepthAboveUsd: '144185',
-        onePercentDepthBelowUsd: '169318',
+        onePercentDepthAboveUsd: '11685',
+        onePercentDepthBelowUsd: '16378',
       },
     },
     {
@@ -28103,8 +28319,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 317,
       depth: {
-        onePercentDepthAboveUsd: '52041',
-        onePercentDepthBelowUsd: '55594',
+        onePercentDepthAboveUsd: '51759',
+        onePercentDepthBelowUsd: '56195',
       },
     },
     {
@@ -28121,8 +28337,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 318,
       depth: {
-        onePercentDepthAboveUsd: '25521',
-        onePercentDepthBelowUsd: '26565',
+        onePercentDepthAboveUsd: '19780',
+        onePercentDepthBelowUsd: '29113',
       },
     },
     {
@@ -28139,8 +28355,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 319,
       depth: {
-        onePercentDepthAboveUsd: '8598',
-        onePercentDepthBelowUsd: '13811',
+        onePercentDepthAboveUsd: '9420',
+        onePercentDepthBelowUsd: '12407',
       },
     },
     {
@@ -28157,8 +28373,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 320,
       depth: {
-        onePercentDepthAboveUsd: '385543',
-        onePercentDepthBelowUsd: '425625',
+        onePercentDepthAboveUsd: '395283',
+        onePercentDepthBelowUsd: '343846',
       },
     },
     {
@@ -28175,8 +28391,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 321,
       depth: {
-        onePercentDepthAboveUsd: '206323',
-        onePercentDepthBelowUsd: '516654',
+        onePercentDepthAboveUsd: '175932',
+        onePercentDepthBelowUsd: '452518',
       },
     },
     {
@@ -28193,8 +28409,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 322,
       depth: {
-        onePercentDepthAboveUsd: '6567',
-        onePercentDepthBelowUsd: '6011',
+        onePercentDepthAboveUsd: '1015',
+        onePercentDepthBelowUsd: '2522',
       },
     },
     {
@@ -28211,8 +28427,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 323,
       depth: {
-        onePercentDepthAboveUsd: '57494',
-        onePercentDepthBelowUsd: '67534',
+        onePercentDepthAboveUsd: '73046',
+        onePercentDepthBelowUsd: '71193',
       },
     },
     {
@@ -28229,8 +28445,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 324,
       depth: {
-        onePercentDepthAboveUsd: '89887',
-        onePercentDepthBelowUsd: '121736',
+        onePercentDepthAboveUsd: '86953',
+        onePercentDepthBelowUsd: '116802',
       },
     },
     {
@@ -28247,8 +28463,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 325,
       depth: {
-        onePercentDepthAboveUsd: '80782',
-        onePercentDepthBelowUsd: '107301',
+        onePercentDepthAboveUsd: '90469',
+        onePercentDepthBelowUsd: '116257',
       },
     },
     {
@@ -28301,8 +28517,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 328,
       depth: {
-        onePercentDepthAboveUsd: '1386262',
-        onePercentDepthBelowUsd: '1520733',
+        onePercentDepthAboveUsd: '1448967',
+        onePercentDepthBelowUsd: '1648336',
       },
     },
     {
@@ -28319,8 +28535,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 329,
       depth: {
-        onePercentDepthAboveUsd: '12914',
-        onePercentDepthBelowUsd: '13521',
+        onePercentDepthAboveUsd: '12334',
+        onePercentDepthBelowUsd: '14138',
       },
     },
     {
@@ -28355,8 +28571,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 331,
       depth: {
-        onePercentDepthAboveUsd: '242193',
-        onePercentDepthBelowUsd: '500322',
+        onePercentDepthAboveUsd: '85498',
+        onePercentDepthBelowUsd: '307243',
       },
     },
     {
@@ -28373,8 +28589,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 332,
       depth: {
-        onePercentDepthAboveUsd: '235188',
-        onePercentDepthBelowUsd: '291738',
+        onePercentDepthAboveUsd: '264309',
+        onePercentDepthBelowUsd: '277090',
       },
     },
     {
@@ -28391,8 +28607,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 333,
       depth: {
-        onePercentDepthAboveUsd: '3858',
-        onePercentDepthBelowUsd: '4852',
+        onePercentDepthAboveUsd: '2057',
+        onePercentDepthBelowUsd: '2730',
       },
     },
     {
@@ -28409,8 +28625,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 334,
       depth: {
-        onePercentDepthAboveUsd: '201672',
-        onePercentDepthBelowUsd: '232191',
+        onePercentDepthAboveUsd: '168341',
+        onePercentDepthBelowUsd: '144185',
       },
     },
     {
@@ -28427,8 +28643,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 335,
       depth: {
-        onePercentDepthAboveUsd: '11040',
-        onePercentDepthBelowUsd: '14255',
+        onePercentDepthAboveUsd: '19867',
+        onePercentDepthBelowUsd: '23615',
       },
     },
     {
@@ -28445,8 +28661,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 336,
       depth: {
-        onePercentDepthAboveUsd: '7337',
-        onePercentDepthBelowUsd: '6365',
+        onePercentDepthAboveUsd: '10209',
+        onePercentDepthBelowUsd: '9169',
       },
     },
     {
@@ -28463,8 +28679,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 337,
       depth: {
-        onePercentDepthAboveUsd: '111384',
-        onePercentDepthBelowUsd: '93416',
+        onePercentDepthAboveUsd: '93040',
+        onePercentDepthBelowUsd: '78455',
       },
     },
     {
@@ -28481,8 +28697,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 338,
       depth: {
-        onePercentDepthAboveUsd: '105779',
-        onePercentDepthBelowUsd: '55669',
+        onePercentDepthAboveUsd: '113305',
+        onePercentDepthBelowUsd: '78541',
       },
     },
     {
@@ -28499,8 +28715,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 339,
       depth: {
-        onePercentDepthAboveUsd: '7880',
-        onePercentDepthBelowUsd: '13220',
+        onePercentDepthAboveUsd: '16509',
+        onePercentDepthBelowUsd: '10373',
       },
     },
     {
@@ -28517,8 +28733,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 340,
       depth: {
-        onePercentDepthAboveUsd: '71004',
-        onePercentDepthBelowUsd: '69186',
+        onePercentDepthAboveUsd: '70091',
+        onePercentDepthBelowUsd: '46015',
       },
     },
     {
@@ -28535,8 +28751,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 341,
       depth: {
-        onePercentDepthAboveUsd: '61238',
-        onePercentDepthBelowUsd: '57640',
+        onePercentDepthAboveUsd: '31333',
+        onePercentDepthBelowUsd: '28619',
       },
     },
     {
@@ -28553,8 +28769,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 342,
       depth: {
-        onePercentDepthAboveUsd: '72369',
-        onePercentDepthBelowUsd: '180100',
+        onePercentDepthAboveUsd: '78331',
+        onePercentDepthBelowUsd: '128225',
       },
     },
     {
@@ -28571,8 +28787,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 343,
       depth: {
-        onePercentDepthAboveUsd: '50206',
-        onePercentDepthBelowUsd: '84257',
+        onePercentDepthAboveUsd: '63010',
+        onePercentDepthBelowUsd: '72734',
       },
     },
     {
@@ -28589,8 +28805,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 344,
       depth: {
-        onePercentDepthAboveUsd: '5520',
-        onePercentDepthBelowUsd: '8354',
+        onePercentDepthAboveUsd: '11057',
+        onePercentDepthBelowUsd: '15101',
       },
     },
     {
@@ -28607,8 +28823,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 345,
       depth: {
-        onePercentDepthAboveUsd: '101868',
-        onePercentDepthBelowUsd: '57997',
+        onePercentDepthAboveUsd: '79475',
+        onePercentDepthBelowUsd: '139985',
       },
     },
     {
@@ -28625,8 +28841,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 346,
       depth: {
-        onePercentDepthAboveUsd: '36174',
-        onePercentDepthBelowUsd: '27967',
+        onePercentDepthAboveUsd: '33428',
+        onePercentDepthBelowUsd: '42427',
       },
     },
     {
@@ -28643,8 +28859,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 347,
       depth: {
-        onePercentDepthAboveUsd: '90694',
-        onePercentDepthBelowUsd: '101625',
+        onePercentDepthAboveUsd: '57859',
+        onePercentDepthBelowUsd: '59382',
       },
     },
     {
@@ -28661,8 +28877,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 348,
       depth: {
-        onePercentDepthAboveUsd: '92254',
-        onePercentDepthBelowUsd: '98458',
+        onePercentDepthAboveUsd: '117559',
+        onePercentDepthBelowUsd: '146207',
       },
     },
     {
@@ -28697,8 +28913,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 350,
       depth: {
-        onePercentDepthAboveUsd: '120619',
-        onePercentDepthBelowUsd: '107619',
+        onePercentDepthAboveUsd: '112958',
+        onePercentDepthBelowUsd: '135098',
       },
     },
     {
@@ -28715,8 +28931,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 351,
       depth: {
-        onePercentDepthAboveUsd: '49728',
-        onePercentDepthBelowUsd: '61016',
+        onePercentDepthAboveUsd: '38218',
+        onePercentDepthBelowUsd: '50312',
       },
     },
     {
@@ -28805,8 +29021,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 356,
       depth: {
-        onePercentDepthAboveUsd: '71194',
-        onePercentDepthBelowUsd: '83636',
+        onePercentDepthAboveUsd: '67227',
+        onePercentDepthBelowUsd: '61016',
       },
     },
     {
@@ -28841,8 +29057,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 358,
       depth: {
-        onePercentDepthAboveUsd: '77804',
-        onePercentDepthBelowUsd: '112219',
+        onePercentDepthAboveUsd: '104120',
+        onePercentDepthBelowUsd: '128349',
       },
     },
     {
@@ -28859,8 +29075,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 359,
       depth: {
-        onePercentDepthAboveUsd: '25798',
-        onePercentDepthBelowUsd: '45856',
+        onePercentDepthAboveUsd: '40712',
+        onePercentDepthBelowUsd: '44203',
       },
     },
     {
@@ -28877,8 +29093,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 360,
       depth: {
-        onePercentDepthAboveUsd: '39333',
-        onePercentDepthBelowUsd: '66795',
+        onePercentDepthAboveUsd: '24434',
+        onePercentDepthBelowUsd: '50324',
       },
     },
     {
@@ -28895,8 +29111,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 361,
       depth: {
-        onePercentDepthAboveUsd: '60166',
-        onePercentDepthBelowUsd: '42740',
+        onePercentDepthAboveUsd: '46160',
+        onePercentDepthBelowUsd: '32234',
       },
     },
     {
@@ -28913,8 +29129,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 362,
       depth: {
-        onePercentDepthAboveUsd: '7027',
-        onePercentDepthBelowUsd: '5737',
+        onePercentDepthAboveUsd: '6365',
+        onePercentDepthBelowUsd: '8146',
       },
     },
     {
@@ -28931,8 +29147,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 363,
       depth: {
-        onePercentDepthAboveUsd: '38537',
-        onePercentDepthBelowUsd: '38250',
+        onePercentDepthAboveUsd: '19100',
+        onePercentDepthBelowUsd: '31596',
       },
     },
     {
@@ -28949,8 +29165,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 364,
       depth: {
-        onePercentDepthAboveUsd: '52294',
-        onePercentDepthBelowUsd: '63225',
+        onePercentDepthAboveUsd: '45477',
+        onePercentDepthBelowUsd: '76796',
       },
     },
     {
@@ -29003,8 +29219,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 367,
       depth: {
-        onePercentDepthAboveUsd: '259016',
-        onePercentDepthBelowUsd: '261724',
+        onePercentDepthAboveUsd: '292087',
+        onePercentDepthBelowUsd: '296820',
       },
     },
     {
@@ -29021,8 +29237,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 368,
       depth: {
-        onePercentDepthAboveUsd: '156592',
-        onePercentDepthBelowUsd: '84743',
+        onePercentDepthAboveUsd: '142151',
+        onePercentDepthBelowUsd: '64309',
       },
     },
     {
@@ -29039,8 +29255,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 369,
       depth: {
-        onePercentDepthAboveUsd: '215059',
-        onePercentDepthBelowUsd: '161139',
+        onePercentDepthAboveUsd: '205158',
+        onePercentDepthBelowUsd: '177617',
       },
     },
     {
@@ -29057,8 +29273,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 370,
       depth: {
-        onePercentDepthAboveUsd: '96284',
-        onePercentDepthBelowUsd: '101699',
+        onePercentDepthAboveUsd: '78147',
+        onePercentDepthBelowUsd: '82203',
       },
     },
     {
@@ -29075,8 +29291,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 371,
       depth: {
-        onePercentDepthAboveUsd: '46921',
-        onePercentDepthBelowUsd: '46442',
+        onePercentDepthAboveUsd: '80697',
+        onePercentDepthBelowUsd: '89044',
       },
     },
     {
@@ -29093,8 +29309,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 372,
       depth: {
-        onePercentDepthAboveUsd: '110249',
-        onePercentDepthBelowUsd: '96783',
+        onePercentDepthAboveUsd: '117975',
+        onePercentDepthBelowUsd: '106360',
       },
     },
     {
@@ -29111,8 +29327,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 373,
       depth: {
-        onePercentDepthAboveUsd: '104811',
-        onePercentDepthBelowUsd: '152819',
+        onePercentDepthAboveUsd: '113607',
+        onePercentDepthBelowUsd: '142664',
       },
     },
     {
@@ -29129,8 +29345,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 374,
       depth: {
-        onePercentDepthAboveUsd: '31306',
-        onePercentDepthBelowUsd: '104150',
+        onePercentDepthAboveUsd: '102392',
+        onePercentDepthBelowUsd: '116813',
       },
     },
     {
@@ -29147,8 +29363,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 375,
       depth: {
-        onePercentDepthAboveUsd: '202744',
-        onePercentDepthBelowUsd: '184235',
+        onePercentDepthAboveUsd: '246693',
+        onePercentDepthBelowUsd: '235104',
       },
     },
     {
@@ -29165,8 +29381,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '4',
       pairIndex: 376,
       depth: {
-        onePercentDepthAboveUsd: '0',
-        onePercentDepthBelowUsd: '0',
+        onePercentDepthAboveUsd: '350000',
+        onePercentDepthBelowUsd: '350000',
       },
     },
     {
@@ -29237,8 +29453,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 380,
       depth: {
-        onePercentDepthAboveUsd: '43375',
-        onePercentDepthBelowUsd: '48097',
+        onePercentDepthAboveUsd: '35492',
+        onePercentDepthBelowUsd: '63542',
       },
     },
     {
@@ -29255,8 +29471,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 381,
       depth: {
-        onePercentDepthAboveUsd: '226228',
-        onePercentDepthBelowUsd: '373456',
+        onePercentDepthAboveUsd: '211769',
+        onePercentDepthBelowUsd: '279558',
       },
     },
     {
@@ -29273,8 +29489,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 382,
       depth: {
-        onePercentDepthAboveUsd: '54124',
-        onePercentDepthBelowUsd: '44420',
+        onePercentDepthAboveUsd: '56100',
+        onePercentDepthBelowUsd: '49393',
       },
     },
     {
@@ -29291,8 +29507,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 383,
       depth: {
-        onePercentDepthAboveUsd: '59490',
-        onePercentDepthBelowUsd: '75834',
+        onePercentDepthAboveUsd: '59982',
+        onePercentDepthBelowUsd: '123284',
       },
     },
     {
@@ -29309,8 +29525,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 384,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -29327,8 +29543,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 385,
       depth: {
-        onePercentDepthAboveUsd: '35000',
-        onePercentDepthBelowUsd: '35000',
+        onePercentDepthAboveUsd: '15000',
+        onePercentDepthBelowUsd: '15000',
       },
     },
     {
@@ -29363,8 +29579,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 387,
       depth: {
-        onePercentDepthAboveUsd: '192505',
-        onePercentDepthBelowUsd: '167341',
+        onePercentDepthAboveUsd: '197432',
+        onePercentDepthBelowUsd: '163100',
       },
     },
     {
@@ -29381,8 +29597,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 388,
       depth: {
-        onePercentDepthAboveUsd: '12084',
-        onePercentDepthBelowUsd: '13616',
+        onePercentDepthAboveUsd: '22588',
+        onePercentDepthBelowUsd: '20608',
       },
     },
     {
@@ -29399,8 +29615,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 389,
       depth: {
-        onePercentDepthAboveUsd: '149234',
-        onePercentDepthBelowUsd: '115686',
+        onePercentDepthAboveUsd: '121368',
+        onePercentDepthBelowUsd: '88738',
       },
     },
     {
@@ -29417,8 +29633,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 390,
       depth: {
-        onePercentDepthAboveUsd: '29691',
-        onePercentDepthBelowUsd: '38695',
+        onePercentDepthAboveUsd: '49902',
+        onePercentDepthBelowUsd: '51504',
       },
     },
     {
@@ -29435,8 +29651,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 391,
       depth: {
-        onePercentDepthAboveUsd: '12047',
-        onePercentDepthBelowUsd: '6882',
+        onePercentDepthAboveUsd: '14347',
+        onePercentDepthBelowUsd: '12955',
       },
     },
     {
@@ -29453,8 +29669,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 392,
       depth: {
-        onePercentDepthAboveUsd: '48679',
-        onePercentDepthBelowUsd: '60088',
+        onePercentDepthAboveUsd: '47406',
+        onePercentDepthBelowUsd: '55593',
       },
     },
     {
@@ -29615,8 +29831,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 401,
       depth: {
-        onePercentDepthAboveUsd: '49546',
-        onePercentDepthBelowUsd: '47306',
+        onePercentDepthAboveUsd: '18536',
+        onePercentDepthBelowUsd: '76800',
       },
     },
     {
@@ -29633,8 +29849,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 402,
       depth: {
-        onePercentDepthAboveUsd: '48435',
-        onePercentDepthBelowUsd: '37317',
+        onePercentDepthAboveUsd: '44369',
+        onePercentDepthBelowUsd: '55243',
       },
     },
     {
@@ -29651,8 +29867,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 403,
       depth: {
-        onePercentDepthAboveUsd: '42671',
-        onePercentDepthBelowUsd: '38342',
+        onePercentDepthAboveUsd: '37314',
+        onePercentDepthBelowUsd: '39059',
       },
     },
     {
@@ -29669,8 +29885,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 404,
       depth: {
-        onePercentDepthAboveUsd: '29140',
-        onePercentDepthBelowUsd: '29592',
+        onePercentDepthAboveUsd: '42694',
+        onePercentDepthBelowUsd: '39158',
       },
     },
     {
@@ -29687,8 +29903,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 405,
       depth: {
-        onePercentDepthAboveUsd: '60009',
-        onePercentDepthBelowUsd: '72107',
+        onePercentDepthAboveUsd: '80598',
+        onePercentDepthBelowUsd: '70757',
       },
     },
     {
@@ -29705,8 +29921,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 406,
       depth: {
-        onePercentDepthAboveUsd: '120020',
-        onePercentDepthBelowUsd: '113077',
+        onePercentDepthAboveUsd: '80359',
+        onePercentDepthBelowUsd: '102160',
       },
     },
     {
@@ -29723,8 +29939,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 407,
       depth: {
-        onePercentDepthAboveUsd: '120416',
-        onePercentDepthBelowUsd: '174139',
+        onePercentDepthAboveUsd: '68327',
+        onePercentDepthBelowUsd: '71532',
       },
     },
     {
@@ -29741,8 +29957,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 408,
       depth: {
-        onePercentDepthAboveUsd: '14618',
-        onePercentDepthBelowUsd: '18458',
+        onePercentDepthAboveUsd: '20602',
+        onePercentDepthBelowUsd: '73020',
       },
     },
     {
@@ -29759,8 +29975,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 409,
       depth: {
-        onePercentDepthAboveUsd: '173799',
-        onePercentDepthBelowUsd: '171493',
+        onePercentDepthAboveUsd: '188592',
+        onePercentDepthBelowUsd: '101321',
       },
     },
     {
@@ -29777,8 +29993,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 410,
       depth: {
-        onePercentDepthAboveUsd: '160405',
-        onePercentDepthBelowUsd: '169290',
+        onePercentDepthAboveUsd: '202831',
+        onePercentDepthBelowUsd: '200350',
       },
     },
     {
@@ -29795,8 +30011,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 411,
       depth: {
-        onePercentDepthAboveUsd: '2304',
-        onePercentDepthBelowUsd: '7151',
+        onePercentDepthAboveUsd: '1518',
+        onePercentDepthBelowUsd: '1794',
       },
     },
     {
@@ -29813,8 +30029,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 412,
       depth: {
-        onePercentDepthAboveUsd: '9386',
-        onePercentDepthBelowUsd: '9704',
+        onePercentDepthAboveUsd: '9582',
+        onePercentDepthBelowUsd: '8620',
       },
     },
     {
@@ -29831,8 +30047,80 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 413,
       depth: {
-        onePercentDepthAboveUsd: '443084',
-        onePercentDepthBelowUsd: '447231',
+        onePercentDepthAboveUsd: '616209',
+        onePercentDepthBelowUsd: '835366',
+      },
+    },
+    {
+      from: 'ASTER',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 414,
+      depth: {
+        onePercentDepthAboveUsd: '59433',
+        onePercentDepthBelowUsd: '60634',
+      },
+    },
+    {
+      from: 'OKB',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 415,
+      depth: {
+        onePercentDepthAboveUsd: '464702',
+        onePercentDepthBelowUsd: '319446',
+      },
+    },
+    {
+      from: 'CRO',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 416,
+      depth: {
+        onePercentDepthAboveUsd: '196752',
+        onePercentDepthBelowUsd: '253119',
+      },
+    },
+    {
+      from: 'SKY',
+      to: 'USD',
+      feed: {
+        feed1: '0x0000000000000000000000000000000000000000',
+        feed2: '0x0000000000000000000000000000000000000000',
+        feedCalculation: 0,
+        maxDeviationP: '100000000000000000000',
+      },
+      spreadP: '0',
+      groupIndex: '10',
+      feeIndex: '0',
+      pairIndex: 417,
+      depth: {
+        onePercentDepthAboveUsd: '137882',
+        onePercentDepthBelowUsd: '146808',
       },
     },
   ],
@@ -29887,8 +30175,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 2,
       depth: {
-        onePercentDepthAboveUsd: '2581534',
-        onePercentDepthBelowUsd: '2728450',
+        onePercentDepthAboveUsd: '2453020',
+        onePercentDepthBelowUsd: '2966913',
       },
     },
     {
@@ -29905,8 +30193,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 3,
       depth: {
-        onePercentDepthAboveUsd: '6737714',
-        onePercentDepthBelowUsd: '6992776',
+        onePercentDepthAboveUsd: '4309381',
+        onePercentDepthBelowUsd: '4979245',
       },
     },
     {
@@ -29941,8 +30229,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 5,
       depth: {
-        onePercentDepthAboveUsd: '2884367',
-        onePercentDepthBelowUsd: '3257582',
+        onePercentDepthAboveUsd: '2674893',
+        onePercentDepthBelowUsd: '2890982',
       },
     },
     {
@@ -29977,8 +30265,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 7,
       depth: {
-        onePercentDepthAboveUsd: '1057694',
-        onePercentDepthBelowUsd: '1128915',
+        onePercentDepthAboveUsd: '917318',
+        onePercentDepthBelowUsd: '964418',
       },
     },
     {
@@ -29995,8 +30283,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 8,
       depth: {
-        onePercentDepthAboveUsd: '185366',
-        onePercentDepthBelowUsd: '332852',
+        onePercentDepthAboveUsd: '204491',
+        onePercentDepthBelowUsd: '229670',
       },
     },
     {
@@ -30013,8 +30301,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 9,
       depth: {
-        onePercentDepthAboveUsd: '44588',
-        onePercentDepthBelowUsd: '62416',
+        onePercentDepthAboveUsd: '44664',
+        onePercentDepthBelowUsd: '55648',
       },
     },
     {
@@ -30031,8 +30319,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 10,
       depth: {
-        onePercentDepthAboveUsd: '46966',
-        onePercentDepthBelowUsd: '86501',
+        onePercentDepthAboveUsd: '51039',
+        onePercentDepthBelowUsd: '102858',
       },
     },
     {
@@ -30049,8 +30337,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 11,
       depth: {
-        onePercentDepthAboveUsd: '716135',
-        onePercentDepthBelowUsd: '810001',
+        onePercentDepthAboveUsd: '481044',
+        onePercentDepthBelowUsd: '590315',
       },
     },
     {
@@ -30085,8 +30373,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 13,
       depth: {
-        onePercentDepthAboveUsd: '865202',
-        onePercentDepthBelowUsd: '757657',
+        onePercentDepthAboveUsd: '886202',
+        onePercentDepthBelowUsd: '933464',
       },
     },
     {
@@ -30103,8 +30391,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 14,
       depth: {
-        onePercentDepthAboveUsd: '64937',
-        onePercentDepthBelowUsd: '79505',
+        onePercentDepthAboveUsd: '67173',
+        onePercentDepthBelowUsd: '53701',
       },
     },
     {
@@ -30139,8 +30427,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 16,
       depth: {
-        onePercentDepthAboveUsd: '77829',
-        onePercentDepthBelowUsd: '85693',
+        onePercentDepthAboveUsd: '51384',
+        onePercentDepthBelowUsd: '65716',
       },
     },
     {
@@ -30157,8 +30445,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 17,
       depth: {
-        onePercentDepthAboveUsd: '581653',
-        onePercentDepthBelowUsd: '838767',
+        onePercentDepthAboveUsd: '745484',
+        onePercentDepthBelowUsd: '720748',
       },
     },
     {
@@ -30175,8 +30463,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 18,
       depth: {
-        onePercentDepthAboveUsd: '1076180',
-        onePercentDepthBelowUsd: '1177779',
+        onePercentDepthAboveUsd: '1142691',
+        onePercentDepthBelowUsd: '1279464',
       },
     },
     {
@@ -30193,8 +30481,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 19,
       depth: {
-        onePercentDepthAboveUsd: '7605781',
-        onePercentDepthBelowUsd: '7778727',
+        onePercentDepthAboveUsd: '7583347',
+        onePercentDepthBelowUsd: '9580872',
       },
     },
     {
@@ -30229,8 +30517,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 21,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30247,8 +30535,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 22,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30265,8 +30553,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 23,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30283,8 +30571,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 24,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30301,8 +30589,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 25,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30319,8 +30607,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 26,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30337,8 +30625,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '1',
       pairIndex: 27,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30355,8 +30643,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 28,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30373,8 +30661,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 29,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30391,8 +30679,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 30,
       depth: {
-        onePercentDepthAboveUsd: '2500000',
-        onePercentDepthBelowUsd: '2500000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -30427,8 +30715,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 32,
       depth: {
-        onePercentDepthAboveUsd: '34542',
-        onePercentDepthBelowUsd: '34320',
+        onePercentDepthAboveUsd: '38797',
+        onePercentDepthBelowUsd: '51774',
       },
     },
     {
@@ -30445,8 +30733,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 33,
       depth: {
-        onePercentDepthAboveUsd: '25276474',
-        onePercentDepthBelowUsd: '19424412',
+        onePercentDepthAboveUsd: '13770460',
+        onePercentDepthBelowUsd: '13158442',
       },
     },
     {
@@ -30463,8 +30751,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 34,
       depth: {
-        onePercentDepthAboveUsd: '21182',
-        onePercentDepthBelowUsd: '30134',
+        onePercentDepthAboveUsd: '24972',
+        onePercentDepthBelowUsd: '32484',
       },
     },
     {
@@ -30481,8 +30769,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 35,
       depth: {
-        onePercentDepthAboveUsd: '613169',
-        onePercentDepthBelowUsd: '776717',
+        onePercentDepthAboveUsd: '723938',
+        onePercentDepthBelowUsd: '541909',
       },
     },
     {
@@ -30517,8 +30805,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 37,
       depth: {
-        onePercentDepthAboveUsd: '325159',
-        onePercentDepthBelowUsd: '426910',
+        onePercentDepthAboveUsd: '464527',
+        onePercentDepthBelowUsd: '624724',
       },
     },
     {
@@ -30535,8 +30823,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 38,
       depth: {
-        onePercentDepthAboveUsd: '14150',
-        onePercentDepthBelowUsd: '41159',
+        onePercentDepthAboveUsd: '43889',
+        onePercentDepthBelowUsd: '46036',
       },
     },
     {
@@ -30553,8 +30841,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 39,
       depth: {
-        onePercentDepthAboveUsd: '418535',
-        onePercentDepthBelowUsd: '614476',
+        onePercentDepthAboveUsd: '551133',
+        onePercentDepthBelowUsd: '657060',
       },
     },
     {
@@ -30571,8 +30859,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 40,
       depth: {
-        onePercentDepthAboveUsd: '261697',
-        onePercentDepthBelowUsd: '323632',
+        onePercentDepthAboveUsd: '332520',
+        onePercentDepthBelowUsd: '383450',
       },
     },
     {
@@ -30589,8 +30877,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 41,
       depth: {
-        onePercentDepthAboveUsd: '40943',
-        onePercentDepthBelowUsd: '35633',
+        onePercentDepthAboveUsd: '1',
+        onePercentDepthBelowUsd: '1',
       },
     },
     {
@@ -30607,8 +30895,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 42,
       depth: {
-        onePercentDepthAboveUsd: '88408',
-        onePercentDepthBelowUsd: '128122',
+        onePercentDepthAboveUsd: '96167',
+        onePercentDepthBelowUsd: '115749',
       },
     },
     {
@@ -30625,8 +30913,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 43,
       depth: {
-        onePercentDepthAboveUsd: '134187',
-        onePercentDepthBelowUsd: '133735',
+        onePercentDepthAboveUsd: '111249',
+        onePercentDepthBelowUsd: '124862',
       },
     },
     {
@@ -30643,8 +30931,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 44,
       depth: {
-        onePercentDepthAboveUsd: '3992748',
-        onePercentDepthBelowUsd: '4027663',
+        onePercentDepthAboveUsd: '3600299',
+        onePercentDepthBelowUsd: '3447505',
       },
     },
     {
@@ -30661,8 +30949,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 45,
       depth: {
-        onePercentDepthAboveUsd: '51200',
-        onePercentDepthBelowUsd: '49886',
+        onePercentDepthAboveUsd: '47686',
+        onePercentDepthBelowUsd: '55887',
       },
     },
     {
@@ -30679,8 +30967,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 46,
       depth: {
-        onePercentDepthAboveUsd: '88437',
-        onePercentDepthBelowUsd: '201061',
+        onePercentDepthAboveUsd: '183217',
+        onePercentDepthBelowUsd: '187028',
       },
     },
     {
@@ -30697,8 +30985,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 47,
       depth: {
-        onePercentDepthAboveUsd: '14282525',
-        onePercentDepthBelowUsd: '14411018',
+        onePercentDepthAboveUsd: '8725800',
+        onePercentDepthBelowUsd: '14959589',
       },
     },
     {
@@ -30733,8 +31021,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 49,
       depth: {
-        onePercentDepthAboveUsd: '152616',
-        onePercentDepthBelowUsd: '246641',
+        onePercentDepthAboveUsd: '177759',
+        onePercentDepthBelowUsd: '217604',
       },
     },
     {
@@ -30751,8 +31039,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 50,
       depth: {
-        onePercentDepthAboveUsd: '876813',
-        onePercentDepthBelowUsd: '1133842',
+        onePercentDepthAboveUsd: '1096558',
+        onePercentDepthBelowUsd: '1089798',
       },
     },
     {
@@ -30841,8 +31129,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 55,
       depth: {
-        onePercentDepthAboveUsd: '213987',
-        onePercentDepthBelowUsd: '238510',
+        onePercentDepthAboveUsd: '223975',
+        onePercentDepthBelowUsd: '158509',
       },
     },
     {
@@ -30877,8 +31165,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 57,
       depth: {
-        onePercentDepthAboveUsd: '632193',
-        onePercentDepthBelowUsd: '736110',
+        onePercentDepthAboveUsd: '586769',
+        onePercentDepthBelowUsd: '941885',
       },
     },
     {
@@ -31507,8 +31795,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 92,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31525,8 +31813,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 93,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31543,8 +31831,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 94,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31561,8 +31849,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 95,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31579,8 +31867,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 96,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31597,8 +31885,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 97,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31615,8 +31903,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 98,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31633,8 +31921,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 99,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31651,8 +31939,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 100,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31669,8 +31957,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '9',
       pairIndex: 101,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31687,8 +31975,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 102,
       depth: {
-        onePercentDepthAboveUsd: '2054994',
-        onePercentDepthBelowUsd: '2521124',
+        onePercentDepthAboveUsd: '2328885',
+        onePercentDepthBelowUsd: '1555926',
       },
     },
     {
@@ -31705,8 +31993,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 103,
       depth: {
-        onePercentDepthAboveUsd: '259002',
-        onePercentDepthBelowUsd: '364250',
+        onePercentDepthAboveUsd: '343398',
+        onePercentDepthBelowUsd: '227876',
       },
     },
     {
@@ -31723,8 +32011,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 104,
       depth: {
-        onePercentDepthAboveUsd: '688601',
-        onePercentDepthBelowUsd: '733762',
+        onePercentDepthAboveUsd: '551635',
+        onePercentDepthBelowUsd: '787988',
       },
     },
     {
@@ -31741,8 +32029,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 105,
       depth: {
-        onePercentDepthAboveUsd: '74694',
-        onePercentDepthBelowUsd: '104161',
+        onePercentDepthAboveUsd: '85275',
+        onePercentDepthBelowUsd: '114745',
       },
     },
     {
@@ -31777,8 +32065,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 107,
       depth: {
-        onePercentDepthAboveUsd: '180580',
-        onePercentDepthBelowUsd: '156589',
+        onePercentDepthAboveUsd: '126251',
+        onePercentDepthBelowUsd: '152454',
       },
     },
     {
@@ -31795,8 +32083,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 108,
       depth: {
-        onePercentDepthAboveUsd: '26372',
-        onePercentDepthBelowUsd: '23297',
+        onePercentDepthAboveUsd: '30625',
+        onePercentDepthBelowUsd: '19652',
       },
     },
     {
@@ -31813,8 +32101,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 109,
       depth: {
-        onePercentDepthAboveUsd: '620918',
-        onePercentDepthBelowUsd: '801485',
+        onePercentDepthAboveUsd: '443691',
+        onePercentDepthBelowUsd: '529311',
       },
     },
     {
@@ -31831,8 +32119,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 110,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31849,8 +32137,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 111,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31867,8 +32155,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 112,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31885,8 +32173,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 113,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31903,8 +32191,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 114,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31921,8 +32209,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 115,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31939,8 +32227,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 116,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31957,8 +32245,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 117,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31975,8 +32263,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 118,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -31993,8 +32281,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 119,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32011,8 +32299,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 120,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32029,8 +32317,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 121,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32047,8 +32335,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 122,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32065,8 +32353,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 123,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32083,8 +32371,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 124,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32101,8 +32389,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 125,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32119,8 +32407,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 126,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32137,8 +32425,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '8',
       pairIndex: 127,
       depth: {
-        onePercentDepthAboveUsd: '250000',
-        onePercentDepthBelowUsd: '250000',
+        onePercentDepthAboveUsd: '0',
+        onePercentDepthBelowUsd: '0',
       },
     },
     {
@@ -32155,8 +32443,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 128,
       depth: {
-        onePercentDepthAboveUsd: '332420',
-        onePercentDepthBelowUsd: '365699',
+        onePercentDepthAboveUsd: '298348',
+        onePercentDepthBelowUsd: '414645',
       },
     },
     {
@@ -32173,8 +32461,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 129,
       depth: {
-        onePercentDepthAboveUsd: '598813',
-        onePercentDepthBelowUsd: '865750',
+        onePercentDepthAboveUsd: '891683',
+        onePercentDepthBelowUsd: '803651',
       },
     },
     {
@@ -32209,8 +32497,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 131,
       depth: {
-        onePercentDepthAboveUsd: '118321',
-        onePercentDepthBelowUsd: '165228',
+        onePercentDepthAboveUsd: '179143',
+        onePercentDepthBelowUsd: '221418',
       },
     },
     {
@@ -32227,8 +32515,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 132,
       depth: {
-        onePercentDepthAboveUsd: '53017',
-        onePercentDepthBelowUsd: '31644',
+        onePercentDepthAboveUsd: '76205',
+        onePercentDepthBelowUsd: '42515',
       },
     },
     {
@@ -32245,8 +32533,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 133,
       depth: {
-        onePercentDepthAboveUsd: '36674',
-        onePercentDepthBelowUsd: '48314',
+        onePercentDepthAboveUsd: '61398',
+        onePercentDepthBelowUsd: '81318',
       },
     },
     {
@@ -32263,8 +32551,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 134,
       depth: {
-        onePercentDepthAboveUsd: '3604497',
-        onePercentDepthBelowUsd: '3360208',
+        onePercentDepthAboveUsd: '2749454',
+        onePercentDepthBelowUsd: '3846425',
       },
     },
     {
@@ -32281,8 +32569,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 135,
       depth: {
-        onePercentDepthAboveUsd: '253540',
-        onePercentDepthBelowUsd: '489394',
+        onePercentDepthAboveUsd: '264873',
+        onePercentDepthBelowUsd: '469083',
       },
     },
     {
@@ -32299,8 +32587,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 136,
       depth: {
-        onePercentDepthAboveUsd: '26373',
-        onePercentDepthBelowUsd: '40752',
+        onePercentDepthAboveUsd: '36000',
+        onePercentDepthBelowUsd: '30129',
       },
     },
     {
@@ -32317,8 +32605,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 137,
       depth: {
-        onePercentDepthAboveUsd: '575720',
-        onePercentDepthBelowUsd: '706064',
+        onePercentDepthAboveUsd: '364509',
+        onePercentDepthBelowUsd: '618337',
       },
     },
     {
@@ -32335,8 +32623,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 138,
       depth: {
-        onePercentDepthAboveUsd: '1611875',
-        onePercentDepthBelowUsd: '1944840',
+        onePercentDepthAboveUsd: '1693265',
+        onePercentDepthBelowUsd: '2353225',
       },
     },
     {
@@ -32353,8 +32641,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 139,
       depth: {
-        onePercentDepthAboveUsd: '110511',
-        onePercentDepthBelowUsd: '126464',
+        onePercentDepthAboveUsd: '138178',
+        onePercentDepthBelowUsd: '246265',
       },
     },
     {
@@ -32371,8 +32659,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 140,
       depth: {
-        onePercentDepthAboveUsd: '184660',
-        onePercentDepthBelowUsd: '178255',
+        onePercentDepthAboveUsd: '151362',
+        onePercentDepthBelowUsd: '184526',
       },
     },
     {
@@ -32389,8 +32677,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 141,
       depth: {
-        onePercentDepthAboveUsd: '263208',
-        onePercentDepthBelowUsd: '511307',
+        onePercentDepthAboveUsd: '561755',
+        onePercentDepthBelowUsd: '529433',
       },
     },
     {
@@ -32407,8 +32695,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 142,
       depth: {
-        onePercentDepthAboveUsd: '194802',
-        onePercentDepthBelowUsd: '226466',
+        onePercentDepthAboveUsd: '207300',
+        onePercentDepthBelowUsd: '218660',
       },
     },
     {
@@ -32425,8 +32713,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 143,
       depth: {
-        onePercentDepthAboveUsd: '60838',
-        onePercentDepthBelowUsd: '73673',
+        onePercentDepthAboveUsd: '42449',
+        onePercentDepthBelowUsd: '57665',
       },
     },
     {
@@ -32443,8 +32731,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 144,
       depth: {
-        onePercentDepthAboveUsd: '569024',
-        onePercentDepthBelowUsd: '567967',
+        onePercentDepthAboveUsd: '684867',
+        onePercentDepthBelowUsd: '594467',
       },
     },
     {
@@ -32461,8 +32749,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 145,
       depth: {
-        onePercentDepthAboveUsd: '200584',
-        onePercentDepthBelowUsd: '296707',
+        onePercentDepthAboveUsd: '280686',
+        onePercentDepthBelowUsd: '283621',
       },
     },
     {
@@ -32479,8 +32767,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 146,
       depth: {
-        onePercentDepthAboveUsd: '81716',
-        onePercentDepthBelowUsd: '78209',
+        onePercentDepthAboveUsd: '55876',
+        onePercentDepthBelowUsd: '81064',
       },
     },
     {
@@ -32515,8 +32803,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 148,
       depth: {
-        onePercentDepthAboveUsd: '144608',
-        onePercentDepthBelowUsd: '306233',
+        onePercentDepthAboveUsd: '165249',
+        onePercentDepthBelowUsd: '245708',
       },
     },
     {
@@ -32533,8 +32821,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 149,
       depth: {
-        onePercentDepthAboveUsd: '69715',
-        onePercentDepthBelowUsd: '63302',
+        onePercentDepthAboveUsd: '65122',
+        onePercentDepthBelowUsd: '60100',
       },
     },
     {
@@ -32551,8 +32839,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 150,
       depth: {
-        onePercentDepthAboveUsd: '151914',
-        onePercentDepthBelowUsd: '198475',
+        onePercentDepthAboveUsd: '114533',
+        onePercentDepthBelowUsd: '190826',
       },
     },
     {
@@ -32569,8 +32857,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 151,
       depth: {
-        onePercentDepthAboveUsd: '30748',
-        onePercentDepthBelowUsd: '49866',
+        onePercentDepthAboveUsd: '47187',
+        onePercentDepthBelowUsd: '51286',
       },
     },
     {
@@ -32605,8 +32893,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 153,
       depth: {
-        onePercentDepthAboveUsd: '2626987',
-        onePercentDepthBelowUsd: '2671203',
+        onePercentDepthAboveUsd: '2322454',
+        onePercentDepthBelowUsd: '2618359',
       },
     },
     {
@@ -32623,8 +32911,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 154,
       depth: {
-        onePercentDepthAboveUsd: '52928',
-        onePercentDepthBelowUsd: '68090',
+        onePercentDepthAboveUsd: '44790',
+        onePercentDepthBelowUsd: '51009',
       },
     },
     {
@@ -32641,8 +32929,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 155,
       depth: {
-        onePercentDepthAboveUsd: '629734',
-        onePercentDepthBelowUsd: '648927',
+        onePercentDepthAboveUsd: '522787',
+        onePercentDepthBelowUsd: '348225',
       },
     },
     {
@@ -32659,8 +32947,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 156,
       depth: {
-        onePercentDepthAboveUsd: '275563',
-        onePercentDepthBelowUsd: '354793',
+        onePercentDepthAboveUsd: '356452',
+        onePercentDepthBelowUsd: '399107',
       },
     },
     {
@@ -32677,8 +32965,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 157,
       depth: {
-        onePercentDepthAboveUsd: '43104',
-        onePercentDepthBelowUsd: '27853',
+        onePercentDepthAboveUsd: '41943',
+        onePercentDepthBelowUsd: '35096',
       },
     },
     {
@@ -32695,8 +32983,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 158,
       depth: {
-        onePercentDepthAboveUsd: '133604',
-        onePercentDepthBelowUsd: '156355',
+        onePercentDepthAboveUsd: '140773',
+        onePercentDepthBelowUsd: '117287',
       },
     },
     {
@@ -32713,8 +33001,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 159,
       depth: {
-        onePercentDepthAboveUsd: '400185',
-        onePercentDepthBelowUsd: '238645',
+        onePercentDepthAboveUsd: '364745',
+        onePercentDepthBelowUsd: '469126',
       },
     },
     {
@@ -32749,8 +33037,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 161,
       depth: {
-        onePercentDepthAboveUsd: '70247',
-        onePercentDepthBelowUsd: '72886',
+        onePercentDepthAboveUsd: '67302',
+        onePercentDepthBelowUsd: '81672',
       },
     },
     {
@@ -32767,8 +33055,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 162,
       depth: {
-        onePercentDepthAboveUsd: '28886',
-        onePercentDepthBelowUsd: '42406',
+        onePercentDepthAboveUsd: '38528',
+        onePercentDepthBelowUsd: '46007',
       },
     },
     {
@@ -32803,8 +33091,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 164,
       depth: {
-        onePercentDepthAboveUsd: '48395',
-        onePercentDepthBelowUsd: '50497',
+        onePercentDepthAboveUsd: '56551',
+        onePercentDepthBelowUsd: '79180',
       },
     },
     {
@@ -32821,8 +33109,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 165,
       depth: {
-        onePercentDepthAboveUsd: '98498',
-        onePercentDepthBelowUsd: '125761',
+        onePercentDepthAboveUsd: '76163',
+        onePercentDepthBelowUsd: '98174',
       },
     },
     {
@@ -32839,8 +33127,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 166,
       depth: {
-        onePercentDepthAboveUsd: '47485',
-        onePercentDepthBelowUsd: '74917',
+        onePercentDepthAboveUsd: '32711',
+        onePercentDepthBelowUsd: '78305',
       },
     },
     {
@@ -32857,8 +33145,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 167,
       depth: {
-        onePercentDepthAboveUsd: '44559',
-        onePercentDepthBelowUsd: '89225',
+        onePercentDepthAboveUsd: '41577',
+        onePercentDepthBelowUsd: '57573',
       },
     },
     {
@@ -32875,8 +33163,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 168,
       depth: {
-        onePercentDepthAboveUsd: '250744',
-        onePercentDepthBelowUsd: '248041',
+        onePercentDepthAboveUsd: '167976',
+        onePercentDepthBelowUsd: '302969',
       },
     },
     {
@@ -32893,8 +33181,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 169,
       depth: {
-        onePercentDepthAboveUsd: '50385',
-        onePercentDepthBelowUsd: '51281',
+        onePercentDepthAboveUsd: '52228',
+        onePercentDepthBelowUsd: '63320',
       },
     },
     {
@@ -32929,8 +33217,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 171,
       depth: {
-        onePercentDepthAboveUsd: '1020073',
-        onePercentDepthBelowUsd: '1214319',
+        onePercentDepthAboveUsd: '1094712',
+        onePercentDepthBelowUsd: '1073897',
       },
     },
     {
@@ -32947,8 +33235,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 172,
       depth: {
-        onePercentDepthAboveUsd: '141790',
-        onePercentDepthBelowUsd: '162378',
+        onePercentDepthAboveUsd: '133735',
+        onePercentDepthBelowUsd: '146603',
       },
     },
     {
@@ -32965,8 +33253,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 173,
       depth: {
-        onePercentDepthAboveUsd: '43546',
-        onePercentDepthBelowUsd: '64092',
+        onePercentDepthAboveUsd: '57963',
+        onePercentDepthBelowUsd: '60948',
       },
     },
     {
@@ -32983,8 +33271,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 174,
       depth: {
-        onePercentDepthAboveUsd: '59190',
-        onePercentDepthBelowUsd: '56969',
+        onePercentDepthAboveUsd: '62621',
+        onePercentDepthBelowUsd: '50015',
       },
     },
     {
@@ -33001,8 +33289,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 175,
       depth: {
-        onePercentDepthAboveUsd: '243591',
-        onePercentDepthBelowUsd: '183684',
+        onePercentDepthAboveUsd: '154662',
+        onePercentDepthBelowUsd: '330182',
       },
     },
     {
@@ -33019,8 +33307,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 176,
       depth: {
-        onePercentDepthAboveUsd: '75161',
-        onePercentDepthBelowUsd: '101239',
+        onePercentDepthAboveUsd: '100240',
+        onePercentDepthBelowUsd: '161455',
       },
     },
     {
@@ -33037,8 +33325,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 177,
       depth: {
-        onePercentDepthAboveUsd: '37299',
-        onePercentDepthBelowUsd: '42061',
+        onePercentDepthAboveUsd: '33962',
+        onePercentDepthBelowUsd: '35542',
       },
     },
     {
@@ -33055,8 +33343,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 178,
       depth: {
-        onePercentDepthAboveUsd: '33001',
-        onePercentDepthBelowUsd: '43904',
+        onePercentDepthAboveUsd: '63349',
+        onePercentDepthBelowUsd: '72747',
       },
     },
     {
@@ -33091,8 +33379,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 180,
       depth: {
-        onePercentDepthAboveUsd: '43924',
-        onePercentDepthBelowUsd: '59981',
+        onePercentDepthAboveUsd: '45795',
+        onePercentDepthBelowUsd: '67197',
       },
     },
     {
@@ -33109,8 +33397,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 181,
       depth: {
-        onePercentDepthAboveUsd: '48117',
-        onePercentDepthBelowUsd: '56033',
+        onePercentDepthAboveUsd: '62434',
+        onePercentDepthBelowUsd: '76374',
       },
     },
     {
@@ -33163,8 +33451,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 184,
       depth: {
-        onePercentDepthAboveUsd: '40720',
-        onePercentDepthBelowUsd: '66836',
+        onePercentDepthAboveUsd: '62908',
+        onePercentDepthBelowUsd: '47151',
       },
     },
     {
@@ -33181,8 +33469,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 185,
       depth: {
-        onePercentDepthAboveUsd: '40624',
-        onePercentDepthBelowUsd: '63204',
+        onePercentDepthAboveUsd: '9167',
+        onePercentDepthBelowUsd: '28524',
       },
     },
     {
@@ -33289,8 +33577,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 191,
       depth: {
-        onePercentDepthAboveUsd: '258394',
-        onePercentDepthBelowUsd: '314818',
+        onePercentDepthAboveUsd: '280104',
+        onePercentDepthBelowUsd: '253766',
       },
     },
     {
@@ -33307,8 +33595,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 192,
       depth: {
-        onePercentDepthAboveUsd: '55210',
-        onePercentDepthBelowUsd: '58077',
+        onePercentDepthAboveUsd: '56090',
+        onePercentDepthBelowUsd: '48043',
       },
     },
     {
@@ -33325,8 +33613,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 193,
       depth: {
-        onePercentDepthAboveUsd: '1213085',
-        onePercentDepthBelowUsd: '1497318',
+        onePercentDepthAboveUsd: '1445614',
+        onePercentDepthBelowUsd: '1240512',
       },
     },
     {
@@ -33343,8 +33631,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 194,
       depth: {
-        onePercentDepthAboveUsd: '262861',
-        onePercentDepthBelowUsd: '303112',
+        onePercentDepthAboveUsd: '242993',
+        onePercentDepthBelowUsd: '312293',
       },
     },
     {
@@ -33361,8 +33649,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 195,
       depth: {
-        onePercentDepthAboveUsd: '14020',
-        onePercentDepthBelowUsd: '23802',
+        onePercentDepthAboveUsd: '13558',
+        onePercentDepthBelowUsd: '13851',
       },
     },
     {
@@ -33379,8 +33667,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 196,
       depth: {
-        onePercentDepthAboveUsd: '79148',
-        onePercentDepthBelowUsd: '93112',
+        onePercentDepthAboveUsd: '84856',
+        onePercentDepthBelowUsd: '108854',
       },
     },
     {
@@ -33397,8 +33685,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 197,
       depth: {
-        onePercentDepthAboveUsd: '54332',
-        onePercentDepthBelowUsd: '62863',
+        onePercentDepthAboveUsd: '78066',
+        onePercentDepthBelowUsd: '96874',
       },
     },
     {
@@ -33415,8 +33703,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 198,
       depth: {
-        onePercentDepthAboveUsd: '74197',
-        onePercentDepthBelowUsd: '94490',
+        onePercentDepthAboveUsd: '72751',
+        onePercentDepthBelowUsd: '68317',
       },
     },
     {
@@ -33433,8 +33721,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 199,
       depth: {
-        onePercentDepthAboveUsd: '87978',
-        onePercentDepthBelowUsd: '84417',
+        onePercentDepthAboveUsd: '41740',
+        onePercentDepthBelowUsd: '53077',
       },
     },
     {
@@ -33451,8 +33739,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 200,
       depth: {
-        onePercentDepthAboveUsd: '144194',
-        onePercentDepthBelowUsd: '142544',
+        onePercentDepthAboveUsd: '112104',
+        onePercentDepthBelowUsd: '123105',
       },
     },
     {
@@ -33469,8 +33757,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 201,
       depth: {
-        onePercentDepthAboveUsd: '87232',
-        onePercentDepthBelowUsd: '41598',
+        onePercentDepthAboveUsd: '193266',
+        onePercentDepthBelowUsd: '164750',
       },
     },
     {
@@ -33487,8 +33775,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 202,
       depth: {
-        onePercentDepthAboveUsd: '34748',
-        onePercentDepthBelowUsd: '34082',
+        onePercentDepthAboveUsd: '26824',
+        onePercentDepthBelowUsd: '31202',
       },
     },
     {
@@ -33505,8 +33793,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 203,
       depth: {
-        onePercentDepthAboveUsd: '282414',
-        onePercentDepthBelowUsd: '350399',
+        onePercentDepthAboveUsd: '240034',
+        onePercentDepthBelowUsd: '291983',
       },
     },
     {
@@ -33523,8 +33811,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 204,
       depth: {
-        onePercentDepthAboveUsd: '27070',
-        onePercentDepthBelowUsd: '35636',
+        onePercentDepthAboveUsd: '12356',
+        onePercentDepthBelowUsd: '23675',
       },
     },
     {
@@ -33541,8 +33829,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 205,
       depth: {
-        onePercentDepthAboveUsd: '1235519',
-        onePercentDepthBelowUsd: '1295544',
+        onePercentDepthAboveUsd: '775238',
+        onePercentDepthBelowUsd: '1082188',
       },
     },
     {
@@ -33559,8 +33847,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 206,
       depth: {
-        onePercentDepthAboveUsd: '63040',
-        onePercentDepthBelowUsd: '64588',
+        onePercentDepthAboveUsd: '46748',
+        onePercentDepthBelowUsd: '34102',
       },
     },
     {
@@ -33577,8 +33865,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 207,
       depth: {
-        onePercentDepthAboveUsd: '163685',
-        onePercentDepthBelowUsd: '155226',
+        onePercentDepthAboveUsd: '179643',
+        onePercentDepthBelowUsd: '178631',
       },
     },
     {
@@ -33631,8 +33919,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 210,
       depth: {
-        onePercentDepthAboveUsd: '35378',
-        onePercentDepthBelowUsd: '45140',
+        onePercentDepthAboveUsd: '39003',
+        onePercentDepthBelowUsd: '47050',
       },
     },
     {
@@ -33649,8 +33937,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 211,
       depth: {
-        onePercentDepthAboveUsd: '146519',
-        onePercentDepthBelowUsd: '192059',
+        onePercentDepthAboveUsd: '111963',
+        onePercentDepthBelowUsd: '168371',
       },
     },
     {
@@ -33667,8 +33955,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 212,
       depth: {
-        onePercentDepthAboveUsd: '242437',
-        onePercentDepthBelowUsd: '303844',
+        onePercentDepthAboveUsd: '279499',
+        onePercentDepthBelowUsd: '241197',
       },
     },
     {
@@ -33685,8 +33973,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 213,
       depth: {
-        onePercentDepthAboveUsd: '41426',
-        onePercentDepthBelowUsd: '32796',
+        onePercentDepthAboveUsd: '51127',
+        onePercentDepthBelowUsd: '47512',
       },
     },
     {
@@ -33703,8 +33991,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 214,
       depth: {
-        onePercentDepthAboveUsd: '98043',
-        onePercentDepthBelowUsd: '101815',
+        onePercentDepthAboveUsd: '110515',
+        onePercentDepthBelowUsd: '119332',
       },
     },
     {
@@ -33721,8 +34009,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 215,
       depth: {
-        onePercentDepthAboveUsd: '210074',
-        onePercentDepthBelowUsd: '255731',
+        onePercentDepthAboveUsd: '191657',
+        onePercentDepthBelowUsd: '249332',
       },
     },
     {
@@ -33739,8 +34027,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 216,
       depth: {
-        onePercentDepthAboveUsd: '180421',
-        onePercentDepthBelowUsd: '43226',
+        onePercentDepthAboveUsd: '182292',
+        onePercentDepthBelowUsd: '188657',
       },
     },
     {
@@ -33757,8 +34045,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 217,
       depth: {
-        onePercentDepthAboveUsd: '112776',
-        onePercentDepthBelowUsd: '104981',
+        onePercentDepthAboveUsd: '99827',
+        onePercentDepthBelowUsd: '114944',
       },
     },
     {
@@ -33775,8 +34063,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 218,
       depth: {
-        onePercentDepthAboveUsd: '83843',
-        onePercentDepthBelowUsd: '112788',
+        onePercentDepthAboveUsd: '52483',
+        onePercentDepthBelowUsd: '85868',
       },
     },
     {
@@ -33793,8 +34081,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 219,
       depth: {
-        onePercentDepthAboveUsd: '1674919',
-        onePercentDepthBelowUsd: '1889159',
+        onePercentDepthAboveUsd: '1394291',
+        onePercentDepthBelowUsd: '1459164',
       },
     },
     {
@@ -33811,8 +34099,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 220,
       depth: {
-        onePercentDepthAboveUsd: '173840',
-        onePercentDepthBelowUsd: '216239',
+        onePercentDepthAboveUsd: '125039',
+        onePercentDepthBelowUsd: '165311',
       },
     },
     {
@@ -33829,8 +34117,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 221,
       depth: {
-        onePercentDepthAboveUsd: '9071',
-        onePercentDepthBelowUsd: '7108',
+        onePercentDepthAboveUsd: '9800',
+        onePercentDepthBelowUsd: '8724',
       },
     },
     {
@@ -33847,8 +34135,8 @@ export const pairConfigs: Record<number, ConfigPair[]> = {
       feeIndex: '0',
       pairIndex: 222,
       depth: {
-        onePercentDepthAboveUsd: '83054',
-        onePercentDepthBelowUsd: '85375',
+        onePercentDepthAboveUsd: '69317',
+        onePercentDepthBelowUsd: '28606',
       },
     },
   ],

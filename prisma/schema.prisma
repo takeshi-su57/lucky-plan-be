@@ -85,6 +85,16 @@ model Contract {
   @@unique([chainId, address, version, platform])
 }
 
+model JupPerpEventLog {
+  id        Int      @id @default(autoincrement())
+  jsonLog   String
+  slot      Int
+  signature String
+  date      DateTime
+
+  @@index([signature])
+}
+
 model EventLog {
   id         Int      @id @default(autoincrement())
   contractId Int

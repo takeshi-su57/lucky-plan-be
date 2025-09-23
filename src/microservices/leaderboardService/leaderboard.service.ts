@@ -23,7 +23,7 @@ import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParse
 import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/market-executed.parser';
 import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/limit-executed.parser';
 
-import { delay, getReadableError } from '../../utils';
+import { getReadableError } from '../../utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
