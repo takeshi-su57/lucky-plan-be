@@ -16,7 +16,6 @@ const JUP_PERP_LAST_SIGNATURE_KEY = 'jup_perp_last_signature';
 
 @Injectable()
 export class JupPerpEventLoggerService {
-  isReceivedKillProcess = false;
   status: ServiceStatus;
 
   constructor(
@@ -25,7 +24,6 @@ export class JupPerpEventLoggerService {
     private readonly logger: LogsService,
   ) {
     this.status = ServiceStatus.READY;
-    this.isReceivedKillProcess = false;
   }
 
   async pullEventsFromSolana() {
@@ -44,12 +42,11 @@ export class JupPerpEventLoggerService {
 
       let beforeSignature: string | undefined = undefined;
 
-      while (true) {
-        const solanaConnection =
-          await this.solanaChainsService.getAvailableConnection();
+      const successSignatures: string[] = [];
 
+      while (true) {
         const confirmedSignatureInfos =
-          await solanaConnection.connection.getSignaturesForAddress(
+          await this.solanaChainsService.getSignaturesForAddress(
             JUPITER_PERPETUALS_EVENT_AUTHORITY_PUBKEY,
             {
               before: beforeSignature,
@@ -64,21 +61,28 @@ export class JupPerpEventLoggerService {
         beforeSignature =
           confirmedSignatureInfos[confirmedSignatureInfos.length - 1].signature;
 
-        const successSignatures = confirmedSignatureInfos.filter(
-          ({ err }) => err === null,
+        successSignatures.push(
+          ...confirmedSignatureInfos
+            .filter(({ err }) => err === null)
+            .map(({ signature }) => signature),
         );
 
-        for (const signature of successSignatures.reverse()) {
-          const freeConnection =
-            await this.solanaChainsService.getAvailableConnection();
+        if (lastSignature === undefined) {
+          break;
+        }
+      }
 
-          const txs = await freeConnection.connection.getTransactions(
-            [signature.signature],
-            {
-              commitment: 'confirmed',
-              maxSupportedTransactionVersion: 0,
-            },
-          );
+      for (const signature of successSignatures.reverse()) {
+        const exists = await this.prismaService.jupPerpEventLog.findMany({
+          where: {
+            signature,
+          },
+        });
+
+        if (exists.length === 0) {
+          const txs = await this.solanaChainsService.getTransactions([
+            signature,
+          ]);
 
           const allEvents = txs
             .flatMap((tx) => {
@@ -105,30 +109,26 @@ export class JupPerpEventLoggerService {
 
           await this.prismaService.jupPerpEventLog.createMany({
             data: allEvents.map((event) => ({
-              signature: signature.signature,
+              signature,
               slot: event.slot ?? 0,
               date: new Date((event.blockTime ?? 0) * 1000),
               jsonLog: JSON.stringify(event.event ?? {}),
             })),
           });
-
-          await this.prismaService.metadata.upsert({
-            where: {
-              key: JUP_PERP_LAST_SIGNATURE_KEY,
-            },
-            update: {
-              value: signature.signature,
-            },
-            create: {
-              key: JUP_PERP_LAST_SIGNATURE_KEY,
-              value: signature.signature,
-            },
-          });
         }
 
-        if (lastSignature === undefined) {
-          break;
-        }
+        await this.prismaService.metadata.upsert({
+          where: {
+            key: JUP_PERP_LAST_SIGNATURE_KEY,
+          },
+          update: {
+            value: signature,
+          },
+          create: {
+            key: JUP_PERP_LAST_SIGNATURE_KEY,
+            value: signature,
+          },
+        });
       }
     } catch (err) {
       await this.logger.log({

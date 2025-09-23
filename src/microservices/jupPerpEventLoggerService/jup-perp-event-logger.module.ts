@@ -18,7 +18,6 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 
 import { JupPerpEventLoggerService } from './jup-perp-event-logger.service';
-
 import { JupPerpEventLoggerController } from './jup-perp-event-logger.controller';
 
 @Module({

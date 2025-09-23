@@ -6,11 +6,15 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { ServiceStatus } from 'src/types';
 import { JupPerpEventLoggerService } from './jup-perp-event-logger.service';
 import { LogsService } from 'src/global/logs.service';
+import { PrismaService } from 'src/global/prisma.service';
 
 @Controller()
 export class JupPerpEventLoggerController {
+  private isStaging = false;
+
   constructor(
     private readonly jupPerpEventLoggerService: JupPerpEventLoggerService,
+    private readonly prismaService: PrismaService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {
@@ -19,6 +23,16 @@ export class JupPerpEventLoggerController {
       pid: process.pid,
       status: ServiceStatus.READY,
     });
+  }
+
+  async init() {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        address: '0x104B4E127B9a6C82044c972cAfF88e75f41ae8Cc'.toLowerCase(),
+      },
+    });
+
+    this.isStaging = !!user;
   }
 
   @EventPattern(PATTERNS.AskProcessStatus)
@@ -61,6 +75,15 @@ export class JupPerpEventLoggerController {
     if (this.jupPerpEventLoggerService.status !== ServiceStatus.READY) {
       return;
     }
+
+    if (!this.isStaging) {
+      return;
+    }
+
+    console.log(
+      'executeCronForJupPerpEventLogger',
+      this.jupPerpEventLoggerService.status,
+    );
 
     await this.jupPerpEventLoggerService.pullEventsFromSolana();
   }

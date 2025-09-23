@@ -91,7 +91,7 @@ export const privateRPCProviders = {
     tokens: [
       'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_', // 'takeshisuz
       'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u',
+      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u', // brunopalma
       'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
       'wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ', // takeshisuz
       'qf9Xqi-AIXnz1_mNnbgbN', // wpope
