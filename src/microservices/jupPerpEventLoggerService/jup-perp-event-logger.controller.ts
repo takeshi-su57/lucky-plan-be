@@ -80,10 +80,11 @@ export class JupPerpEventLoggerController {
       return;
     }
 
-    console.log(
-      'executeCronForJupPerpEventLogger',
-      this.jupPerpEventLoggerService.status,
-    );
+    this.logger.log({
+      severity: 'Debug',
+      summary: 'jup-perp-event-logger>executeCronForJupPerpEventLogger',
+      details: this.jupPerpEventLoggerService.status,
+    });
 
     await this.jupPerpEventLoggerService.pullEventsFromSolana();
   }
