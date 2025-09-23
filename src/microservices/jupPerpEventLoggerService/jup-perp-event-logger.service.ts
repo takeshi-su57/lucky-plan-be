@@ -72,6 +72,12 @@ export class JupPerpEventLoggerService {
         }
       }
 
+      this.logger.log({
+        severity: 'Debug',
+        summary: 'jup-perp-event-logger>pullEventsFromSolana',
+        details: `${successSignatures.length} signatures found`,
+      });
+
       for (const signature of successSignatures.reverse()) {
         const exists = await this.prismaService.jupPerpEventLog.findMany({
           where: {
