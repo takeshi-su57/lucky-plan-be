@@ -8,7 +8,7 @@ import * as path from 'path';
 import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
-import { ChainsService } from 'src/web3/web3/chains.service';
+import { EvmChainsService } from 'src/web3/web3/evm-chains.service';
 import { LogsService } from 'src/global/logs.service';
 
 import {
@@ -38,7 +38,7 @@ import { Contract } from 'src/microservices/apiService/modules/contracts/entitie
 export class GnsService {
   constructor(
     private readonly contractsService: ContractsService,
-    private readonly chainsService: ChainsService,
+    private readonly chainsService: EvmChainsService,
     private readonly logger: LogsService,
   ) {
     // this.loadTradingVariablesFromContracts();

@@ -5,10 +5,7 @@ import { ContractStatus } from '@prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 
-import {
-  CreateContractInput,
-  ChangeContractStatusInput,
-} from './dto/contract.input';
+import { ChangeContractStatusInput } from './dto/contract.input';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 @Injectable()
@@ -17,15 +14,6 @@ export class ContractsService {
     private prismaService: PrismaService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
   ) {}
-
-  async create(input: CreateContractInput) {
-    return await this.prismaService.contract.create({
-      data: {
-        ...input,
-        address: input.address.toLowerCase(),
-      },
-    });
-  }
 
   async changeStatus(input: ChangeContractStatusInput) {
     return this.prismaService.contract.update({
