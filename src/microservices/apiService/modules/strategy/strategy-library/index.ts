@@ -124,6 +124,30 @@ export function getPositionDecreaseParams(
 
 const DEGEN_PAIRS = [300, 313, 314, 326, 327];
 
+export function getAdditionalParams(strParams: string): {
+  tpPercentage: number;
+  slPercentage: number;
+  selectedPairs: string[];
+} {
+  try {
+    const params = JSON.parse(strParams);
+
+    return {
+      tpPercentage: params.tpPercentage || 0,
+      slPercentage: params.slPercentage || 0,
+      selectedPairs: (params.selectedPairs || []).map((item: string) =>
+        item.toLowerCase(),
+      ),
+    };
+  } catch {
+    return {
+      tpPercentage: 0,
+      slPercentage: 0,
+      selectedPairs: [],
+    };
+  }
+}
+
 export function getOpenMissionParams(
   strategy: Strategy,
   args: {
@@ -131,14 +155,16 @@ export function getOpenMissionParams(
     collateralAmount: bigint;
     collateralPriceUsd: bigint;
     collateral: Collateral;
+    isLong: boolean;
+    openPrice: bigint;
+    usdcPrice: bigint;
+    pairIndex: number;
   },
   leaderCollateralBaseline: number,
-  usdcPrice: bigint,
-  pairIndex: number,
 ) {
   const collateralUSDCAmount = Math.floor(
     (Number(args.collateralAmount) / Number(args.collateral.precision)) *
-      (Number(args.collateralPriceUsd) / Number(usdcPrice)),
+      (Number(args.collateralPriceUsd) / Number(args.usdcPrice)),
   );
 
   let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
@@ -166,15 +192,40 @@ export function getOpenMissionParams(
   ratioAmount = ratioAmount < maxCollateral ? ratioAmount : maxCollateral;
   ratioAmount = ratioAmount > minCollateral ? ratioAmount : minCollateral;
 
-  const leverage = DEGEN_PAIRS.includes(pairIndex)
+  const leverage = DEGEN_PAIRS.includes(args.pairIndex)
     ? args.leverage
     : Math.max(
         strategy.minLeverage,
         Math.min(strategy.maxLeverage, args.leverage),
       );
 
+  const params = getAdditionalParams(strategy.params);
+
+  const tp =
+    params.tpPercentage > 0
+      ? BigInt(
+          Math.floor(
+            Number(args.openPrice) *
+              (1 + ((args.isLong ? 1 : -1) * params.tpPercentage) / 100),
+          ),
+        )
+      : 0n;
+  const sl =
+    params.slPercentage > 0
+      ? BigInt(
+          Math.floor(
+            Number(args.openPrice) *
+              (1 - ((args.isLong ? 1 : -1) * params.slPercentage) / 100),
+          ),
+        )
+      : 0n;
+
   return {
     leverage,
     collateralAmount: ratioAmount,
+    tp,
+    sl,
+    openPrice: args.openPrice,
+    long: args.isLong,
   };
 }
