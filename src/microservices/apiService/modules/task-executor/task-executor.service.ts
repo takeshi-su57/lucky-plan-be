@@ -468,6 +468,10 @@ export class TaskExecutorService {
                   ? {
                       collateralAmount: BigInt(t.collateralAmount),
                       leverage: t.leverage,
+                      long: t.long,
+                      openPrice: BigInt(t.openPrice),
+                      tp: 0n,
+                      sl: 0n,
                     }
                   : getOpenMissionParams(
                       strategy,
@@ -476,10 +480,12 @@ export class TaskExecutorService {
                         collateralAmount: BigInt(t.collateralAmount),
                         collateralPriceUsd: BigInt(collateralPriceUsd),
                         collateral,
+                        isLong: t.long,
+                        openPrice: BigInt(t.openPrice),
+                        usdcPrice: 100_000_000n,
+                        pairIndex: t.pairIndex,
                       },
                       bot.leaderCollateralBaseline,
-                      100_000_000n,
-                      t.pairIndex,
                     );
 
                 if (openMissionParams.collateralAmount > 0n) {
@@ -517,16 +523,12 @@ export class TaskExecutorService {
                       user: follower.address as Address,
                       index: 0,
                       pairIndex: t.pairIndex,
-                      long: t.long,
                       isOpen: true,
                       collateralIndex:
                         USDCCollateralIndex[
                           followerContract.chainId as keyof typeof USDCCollateralIndex
                         ],
                       tradeType: TradeType.TRADE,
-                      openPrice: BigInt(t.openPrice),
-                      tp: 0n,
-                      sl: 0n,
                       isCounterTrade: false,
                       positionSizeToken: 0n,
                       __placeholder: Number(t.__placeholder),
@@ -672,10 +674,12 @@ export class TaskExecutorService {
                     precisionDelta: 0n,
                     __placeholder: 0n,
                   },
+                  isLong: args.isLong,
+                  openPrice: executionPrice,
+                  usdcPrice: 100_000_000n,
+                  pairIndex: pairIndex,
                 },
                 bot.leaderCollateralBaseline,
-                100_000_000n,
-                pairIndex,
               );
 
               if (openMissionParams.collateralAmount > 0n) {
@@ -713,16 +717,12 @@ export class TaskExecutorService {
                     user: follower.address as Address,
                     index: 0,
                     pairIndex: pairIndex,
-                    long: args.isLong,
                     isOpen: true,
                     collateralIndex:
                       USDCCollateralIndex[
                         followerContract.chainId as keyof typeof USDCCollateralIndex
                       ],
                     tradeType: TradeType.TRADE,
-                    openPrice: executionPrice,
-                    tp: 0n,
-                    sl: 0n,
                     isCounterTrade: false,
                     positionSizeToken: 0n,
                     __placeholder: 0,
