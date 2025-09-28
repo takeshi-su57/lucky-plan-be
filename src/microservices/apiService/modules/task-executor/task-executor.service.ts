@@ -149,11 +149,11 @@ export class TaskExecutorService {
         });
 
         if (tx) {
-          await this.followerService.withdrawAllUSDC(
-            task.mission.bot.plan.userId,
-            follower.address,
-            followerContract.id,
-          );
+          // await this.followerService.withdrawAllUSDC(
+          //   task.mission.bot.plan.userId,
+          //   follower.address,
+          //   followerContract.id,
+          // );
 
           return {
             success: 'success',
@@ -408,11 +408,11 @@ export class TaskExecutorService {
             });
 
             if (tx) {
-              await this.followerService.withdrawAllUSDC(
-                task.mission.bot.plan.userId,
-                follower.address,
-                followerContract.id,
-              );
+              // await this.followerService.withdrawAllUSDC(
+              //   task.mission.bot.plan.userId,
+              //   follower.address,
+              //   followerContract.id,
+              // );
 
               return {
                 success: 'success',
@@ -561,11 +561,11 @@ export class TaskExecutorService {
                 });
 
                 if (tx) {
-                  await this.followerService.withdrawAllUSDC(
-                    task.mission.bot.plan.userId,
-                    follower.address,
-                    followerContract.id,
-                  );
+                  // await this.followerService.withdrawAllUSDC(
+                  //   task.mission.bot.plan.userId,
+                  //   follower.address,
+                  //   followerContract.id,
+                  // );
 
                   return {
                     success: 'success',
@@ -870,11 +870,11 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                await this.followerService.withdrawAllUSDC(
-                  task.mission.bot.plan.userId,
-                  follower.address,
-                  followerContract.id,
-                );
+                // await this.followerService.withdrawAllUSDC(
+                //   task.mission.bot.plan.userId,
+                //   follower.address,
+                //   followerContract.id,
+                // );
 
                 return {
                   success: 'success',
@@ -938,11 +938,11 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                await this.followerService.withdrawAllUSDC(
-                  task.mission.bot.plan.userId,
-                  follower.address,
-                  followerContract.id,
-                );
+                // await this.followerService.withdrawAllUSDC(
+                //   task.mission.bot.plan.userId,
+                //   follower.address,
+                //   followerContract.id,
+                // );
 
                 return {
                   success: 'success',
