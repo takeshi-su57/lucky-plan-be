@@ -1182,8 +1182,8 @@ export class TaskExecutorService {
       });
 
       const allTasksByBotMap = new Map<
-        number,
-        Map<number, TaskBackwardDetails[]>
+        string,
+        Map<number, Map<number, TaskBackwardDetails[]>>
       >();
       const awaitBotsMap = new Map<number, boolean>();
 
@@ -1192,7 +1192,19 @@ export class TaskExecutorService {
           awaitBotsMap.set(task.mission.botId, true);
         }
 
-        const tasksByMissionMap = allTasksByBotMap.get(task.mission.botId);
+        let botMap = allTasksByBotMap.get(
+          task.mission.bot.followerAddress.toLowerCase(),
+        );
+
+        if (!botMap) {
+          botMap = new Map<number, Map<number, TaskBackwardDetails[]>>();
+          allTasksByBotMap.set(
+            task.mission.bot.followerAddress.toLowerCase(),
+            botMap,
+          );
+        }
+
+        const tasksByMissionMap = botMap.get(task.mission.botId);
 
         if (tasksByMissionMap) {
           const arr = tasksByMissionMap.get(task.missionId);
@@ -1205,69 +1217,75 @@ export class TaskExecutorService {
         } else {
           const tempMap = new Map<number, TaskBackwardDetails[]>();
           tempMap.set(task.missionId, [task]);
-          allTasksByBotMap.set(task.mission.botId, tempMap);
+          botMap.set(task.mission.botId, tempMap);
         }
       });
 
       const taskUpdateInputs: TaskUpdateInput[] = [];
 
-      for (const [botId, tasksByMissionMap] of allTasksByBotMap.entries()) {
-        if (awaitBotsMap.get(botId)) {
-          continue;
-        }
-
-        let botTask: TaskBackwardDetails | null = null;
-
-        for (const tasks of tasksByMissionMap.values()) {
-          if (botTask) {
-            break;
-          }
-
-          if (tasks.length === 0) {
-            continue;
-          }
-
-          const sortedTasks = tasks.sort((a, b) => {
-            if (a.action.blockNumber !== b.action.blockNumber) {
-              return a.action.blockNumber - b.action.blockNumber;
+      const promises = Array.from(allTasksByBotMap.values()).map(
+        async (botMap) => {
+          for (const [botId, tasksByMissionMap] of botMap.entries()) {
+            if (awaitBotsMap.get(botId)) {
+              continue;
             }
 
-            return a.action.orderInBlock - b.action.orderInBlock;
-          });
+            let botTask: TaskBackwardDetails | null = null;
 
-          // find first create task and put it to queue
-          for (let i = 0; i < sortedTasks.length; i++) {
-            const task = sortedTasks[i];
+            for (const tasks of tasksByMissionMap.values()) {
+              if (botTask) {
+                break;
+              }
 
-            if (task.status === TaskStatus.Created) {
-              botTask = task;
+              if (tasks.length === 0) {
+                continue;
+              }
+
+              const sortedTasks = tasks.sort((a, b) => {
+                if (a.action.blockNumber !== b.action.blockNumber) {
+                  return a.action.blockNumber - b.action.blockNumber;
+                }
+
+                return a.action.orderInBlock - b.action.orderInBlock;
+              });
+
+              // find first create task and put it to queue
+              for (let i = 0; i < sortedTasks.length; i++) {
+                const task = sortedTasks[i];
+
+                if (task.status === TaskStatus.Created) {
+                  botTask = task;
+                }
+
+                break;
+              }
             }
 
-            break;
+            if (botTask) {
+              const { success, message } = await this.performTask(botTask);
+
+              taskUpdateInputs.push({
+                id: botTask.id,
+                status:
+                  success === 'success'
+                    ? TaskStatus.Await
+                    : success === 'skipped'
+                      ? TaskStatus.Stopped
+                      : TaskStatus.Failed,
+                logs: [
+                  ...botTask.logs,
+                  JSON.stringify({
+                    timestamp: Date.now(),
+                    message,
+                  }),
+                ],
+              });
+            }
           }
-        }
+        },
+      );
 
-        if (botTask) {
-          const { success, message } = await this.performTask(botTask);
-
-          taskUpdateInputs.push({
-            id: botTask.id,
-            status:
-              success === 'success'
-                ? TaskStatus.Await
-                : success === 'skipped'
-                  ? TaskStatus.Stopped
-                  : TaskStatus.Failed,
-            logs: [
-              ...botTask.logs,
-              JSON.stringify({
-                timestamp: Date.now(),
-                message,
-              }),
-            ],
-          });
-        }
-      }
+      await Promise.allSettled(promises);
 
       await this.tasksService.updateMany(taskUpdateInputs);
     } catch (err) {

@@ -67,26 +67,30 @@ export class BotUpdateInput {
 
 @InputType()
 export class CreateBotAndStrategyInput {
+  @Field(() => Int)
+  planId: number;
+
   @IsNotEmpty()
   @IsWalletAddress()
   @Field()
   leaderAddress: string;
 
-  @Field(() => CreateStrategyInput)
-  strategy: CreateStrategyInput;
-
-  @Field(() => Int)
-  planId: number;
-
   @IsNotEmpty()
   @Field(() => Int)
-  leaderCollateralBaseline: number;
+  leaderContractId: number;
+
+  @IsWalletAddress()
+  @Field(() => String, { nullable: true })
+  followerAddress?: string | null;
 
   @IsNotEmpty()
   @Field(() => Int)
   followerContractId: number;
 
+  @Field(() => CreateStrategyInput)
+  strategy: CreateStrategyInput;
+
   @IsNotEmpty()
   @Field(() => Int)
-  leaderContractId: number;
+  leaderCollateralBaseline: number;
 }
