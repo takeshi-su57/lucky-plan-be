@@ -133,7 +133,9 @@ export class BotsService {
         strategyId: strategy.id,
         planId: input.planId,
         leaderAddress: input.leaderAddress.toLowerCase(),
-        followerAddress: masterFollower.address.toLowerCase(),
+        followerAddress: input.followerAddress
+          ? input.followerAddress.toLowerCase()
+          : masterFollower.address.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
