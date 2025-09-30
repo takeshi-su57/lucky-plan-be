@@ -19,6 +19,7 @@ import {
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
+import { nanoid } from 'nanoid';
 
 import 'dotenv';
 
@@ -160,6 +161,15 @@ const publicRpcProviders = {
   ],
 };
 
+export type Web3Configuration = {
+  id: string;
+  connection: PublicClient;
+  isLocked: boolean;
+  lockedAt: number;
+  url: string;
+  used: number;
+};
+
 @Injectable()
 export class EvmChainsService {
   readonly availableChains: Chain[];
@@ -168,6 +178,10 @@ export class EvmChainsService {
   private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
+  private publicWalletClients: Record<
+    number,
+    Record<string, Web3Configuration>
+  > = {};
 
   constructor() {
     this.availableChains = [
@@ -224,6 +238,34 @@ export class EvmChainsService {
         [ChainPriority.LOW]: new Semaphore(1),
       };
       this.writeMutexs[chain.id] = {};
+
+      this.publicWalletClients[chain.id] = {};
+
+      [
+        ...publicRpcProviders[chain.id as keyof typeof publicRpcProviders],
+        ...drpcProvider.tokens.map((token) =>
+          drpcProvider.getUrl(
+            drpcProvider.networks[
+              chain.id as keyof typeof drpcProvider.networks
+            ],
+            token,
+          ),
+        ),
+      ].forEach((url) => {
+        const id = nanoid();
+
+        this.publicWalletClients[chain.id][id] = {
+          id,
+          connection: createPublicClient({
+            chain: chain,
+            transport: http(url, { batch: true }),
+          }),
+          isLocked: false,
+          lockedAt: 0,
+          url,
+          used: 0,
+        };
+      });
     });
   }
 
@@ -366,5 +408,41 @@ export class EvmChainsService {
     ].runExclusive(async () => {
       return await callback(this.walletClient(chainId, mnemonic, accountIndex));
     });
+  }
+
+  async getAvailableConnection(chainId: number): Promise<Web3Configuration> {
+    return new Promise<Web3Configuration>((resolve) => {
+      const interval = setInterval(() => {
+        const availableConnection = Object.values(
+          this.publicWalletClients[chainId],
+        )
+          .filter((pool) => !pool.isLocked)
+          .sort((a, b) => a.used - b.used);
+
+        if (availableConnection.length > 0) {
+          this.lockConnection(chainId, availableConnection[0].id);
+          resolve(availableConnection[0]);
+          clearInterval(interval);
+        }
+      }, 100);
+    });
+  }
+
+  lockConnection(chainId: number, id: string) {
+    this.publicWalletClients[chainId][id].isLocked = true;
+    this.publicWalletClients[chainId][id].lockedAt = Date.now();
+    this.publicWalletClients[chainId][id].used++;
+  }
+
+  unlockConnection(chainId: number, id: string, waitTime: number) {
+    const interval = setInterval(() => {
+      if (
+        this.publicWalletClients[chainId][id].lockedAt + waitTime <
+        Date.now()
+      ) {
+        this.publicWalletClients[chainId][id].isLocked = false;
+        clearInterval(interval);
+      }
+    }, 1000);
   }
 }

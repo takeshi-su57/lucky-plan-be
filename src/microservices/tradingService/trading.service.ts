@@ -1,28 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { Address, decodeEventLog } from 'viem';
-import { Contract, ContractStatus, Platform } from '@prisma/client';
+import { Contract, ContractStatus } from '@prisma/client';
 
 import { BotsService } from '../apiService/modules/bots/bots.service';
+import { PrismaService } from 'src/global/prisma.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
-import { ChainPriority, ServiceStatus } from 'src/types';
-import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
+import { ServiceStatus } from 'src/types';
 
 import { getWeb3Info } from 'src/web3/utils';
-import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
 
 @Injectable()
 export class TradingService {
   isReceivedKillProcess = false;
   status: ServiceStatus;
 
-  static BATCH_SIZE = 4000n;
-
   constructor(
-    private evmAdapterService: EvmAdapterService,
     private botsService: BotsService,
     private contractsService: ContractsService,
+    private prismaService: PrismaService,
     private readonly logger: LogsService,
   ) {
     this.status = ServiceStatus.READY;
@@ -45,94 +41,54 @@ export class TradingService {
 
   async checkContractForBots(contract: Contract) {
     try {
-      const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
-        chainId: contract.chainId,
-        priority: ChainPriority.HIGH,
-      });
+      const fromBlock = contract.lastBlockNumber + 1;
 
-      let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
-
-      while (fromBlock <= currentBlockNumber) {
-        if (this.isReceivedKillProcess) {
-          break;
-        }
-
-        const toBlock =
-          fromBlock + TradingService.BATCH_SIZE < currentBlockNumber
-            ? fromBlock + TradingService.BATCH_SIZE
-            : currentBlockNumber;
-
-        const actionItems = (
-          await this.evmAdapterService.getLogs({
-            chainId: contract.chainId,
-            priority: ChainPriority.HIGH,
-            address: contract.address as Address,
-            fromBlock,
-            toBlock,
-          })
-        )
-          .filter((log) => log.topics.length > 0)
-          .filter((log) => {
-            const info = getWeb3Info(contract.platform, contract.version);
-
-            return info.eventSignatures
-              ? info.eventSignatures[log.topics[0] as string]
-              : true;
-          })
-          .map((log) => {
-            const decoded: any = decodeEventLog({
-              abi: getWeb3Info(contract.platform, contract.version).abi,
-              data: log.data,
-              topics: log.topics,
-            });
-
-            let eventLog = decoded;
-
-            if (contract.platform === Platform.GMX) {
-              eventLog = parseEvent(
-                decoded.args.eventName,
-                decoded.args.eventData,
-              );
-            }
-
-            return {
-              eventLog,
-              blockNumber: Number(log.blockNumber),
-              logIndex: Number(log.logIndex),
-            };
-          })
-          .filter((log) =>
-            getWeb3Info(
-              contract.platform,
-              contract.version,
-            ).tradeEventNames.includes(log.eventLog.eventName),
-          )
-          .map((log) => ({
-            item: getWeb3Info(
-              contract.platform,
-              contract.version,
-            ).eventToActionParser(log.eventLog as any),
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex,
-          }));
-
-        if (actionItems.length > 0) {
-          await this.botsService.handleActionItems(contract, actionItems);
-        }
-
-        await this.contractsService.updateLastBlockNumber(
-          contract.id,
-          Number(toBlock),
-        );
-
-        await this.logger.log({
-          severity: 'Info',
-          summary: 'trading>contract-monitor>checkContractForBots',
-          details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+      const perpTradingEventLogs =
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            contractId: contract.id,
+            block: {
+              gte: fromBlock,
+            },
+          },
+          orderBy: [
+            {
+              block: 'asc',
+            },
+            {
+              logIndex: 'asc',
+            },
+            {
+              id: 'asc',
+            },
+          ],
         });
 
-        fromBlock = toBlock + 1n;
+      const actionItems = perpTradingEventLogs.map((log) => ({
+        item: getWeb3Info(
+          contract.platform,
+          contract.version,
+        ).eventToActionParser(log.jsonLog as any),
+        blockNumber: log.block,
+        logIndex: log.logIndex,
+      }));
+
+      if (actionItems.length > 0) {
+        await this.botsService.handleActionItems(contract, actionItems);
       }
+
+      const toBlock = Math.max(...perpTradingEventLogs.map((log) => log.block));
+
+      await this.contractsService.updateLastBlockNumber(
+        contract.id,
+        Number(toBlock),
+      );
+
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'trading>contract-monitor>checkContractForBots',
+        details: `chain:${contract.chainId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
+      });
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
