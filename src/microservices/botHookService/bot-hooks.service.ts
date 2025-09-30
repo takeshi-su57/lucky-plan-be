@@ -86,7 +86,7 @@ export class BotHooksService {
     this.unwatchs = {};
     this.round = {};
 
-    this.init();
+    // this.init();
   }
 
   async hasRisky() {

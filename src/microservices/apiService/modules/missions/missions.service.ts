@@ -28,7 +28,10 @@ import { PrismaService } from 'src/global/prisma.service';
 import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.service';
 import { LogsService } from 'src/global/logs.service';
 
-import { getOpenMissionParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
+import {
+  getAdditionalParams,
+  getOpenMissionParams,
+} from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { getReadableError } from 'src/utils';
 import { getWeb3Info } from 'src/web3/utils';
 
@@ -39,6 +42,7 @@ import {
   getCollateral,
   getPair,
   getPairIndex,
+  getPairName,
 } from 'src/web3/platform/gns/v10/configs';
 
 @Injectable()
@@ -410,18 +414,29 @@ export class MissionsService {
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
       .filter((item) => {
+        const additionalParams = getAdditionalParams(
+          item.context.bot.strategy.params,
+        );
+
         if (item.context.bot.leaderContract.platform === Platform.GNS) {
           const event = missionEventParsers
             .find((parser) => parser.eventName === item.action.name)!
             .actionParser(item.action);
           const { t, collateralPriceUsd } = event.args;
 
-          const pair = getPair(
+          const pairName = getPairName(
             item.context.bot.leaderContract.chainId,
             t.pairIndex,
           );
 
-          if (!pair) {
+          if (!pairName) {
+            return false;
+          }
+
+          if (
+            additionalParams.selectedPairs.length > 0 &&
+            !additionalParams.selectedPairs.includes(pairName)
+          ) {
             return false;
           }
 
@@ -441,10 +456,12 @@ export class MissionsService {
               collateralAmount: BigInt(t.collateralAmount),
               collateralPriceUsd: BigInt(collateralPriceUsd),
               collateral,
+              isLong: t.long,
+              openPrice: BigInt(t.openPrice),
+              usdcPrice: 100_000_000n,
+              pairIndex: t.pairIndex,
             },
             item.context.bot.leaderCollateralBaseline,
-            100_000_000n,
-            t.pairIndex,
           );
 
           // block leader action register if collateral is less than 25 USDC
@@ -475,6 +492,13 @@ export class MissionsService {
 
           const pairName =
             `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
+
+          if (
+            additionalParams.selectedPairs.length > 0 &&
+            !additionalParams.selectedPairs.includes(pairName)
+          ) {
+            return false;
+          }
 
           const pairIndex = getPairIndex(
             item.context.bot.followerContract.chainId,
@@ -521,10 +545,12 @@ export class MissionsService {
                 precisionDelta: 0n,
                 __placeholder: 0n,
               },
+              isLong: event.args.isLong,
+              openPrice: 0n,
+              usdcPrice: 100_000_000n,
+              pairIndex: pairIndex,
             },
             item.context.bot.leaderCollateralBaseline,
-            100_000_000n,
-            0,
           );
 
           // block leader action register if collateral is less than 25 USDC
