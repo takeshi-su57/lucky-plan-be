@@ -1,20 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Address,
-  decodeEventLog,
-  createPublicClient,
-  PublicClient,
-  webSocket,
-  WatchContractEventReturnType,
-  Log,
-} from 'viem';
-import {
-  Contract,
-  ContractStatus,
-  Follower,
-  Platform,
-  Version,
-} from '@prisma/client';
+import { Address } from 'viem';
+import { Contract, ContractStatus, Follower, Platform } from '@prisma/client';
 import {
   arbitrum,
   arbitrumSepolia,
@@ -26,37 +12,37 @@ import {
 } from 'viem/chains';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { delay, getReadableError } from 'src/utils';
+import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 
 import { getWeb3Info } from 'src/web3/utils';
 
-import { privateRPCProviders } from 'src/web3/web3/evm-chains.service';
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
 import {
   MarketExecutedEvent,
+  MarketExecutedEventArgs,
   marketExecutedEventParser,
 } from 'src/web3/platform/gns/v10/eventParsers/market-executed.parser';
 import {
   LimitExecutedEvent,
+  LimitExecutedEventArgs,
   limitExecutedEventParser,
 } from 'src/web3/platform/gns/v10/eventParsers/limit-executed.parser';
 import { getCollateral, getPair } from 'src/web3/platform/gns/v10/configs';
 import { FollowerService } from '../apiService/modules/follower/follower.service';
 import { TradeType, PendingOrderType } from 'src/web3/platform/gns/v10/types';
-import { ChainPriority } from 'src/types';
+import { ChainPriority, ServiceStatus, TradeEvent } from 'src/types';
 import { USDCCollateralIndex } from 'src/utils/constants';
-import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
+import { ActionItem } from '../apiService/modules/actions/entities/action.entity';
 
 const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
 
 @Injectable()
 export class BotHooksService {
   readonly availableChains: Chain[];
-  private unwatchs: Record<string, WatchContractEventReturnType> = {};
-  private lastBlockNumbers: Record<string, bigint> = {};
+  private lastBlockNumbers: Record<number, number> = {};
   private vaultConfigs: Record<
     number,
     { follower: Follower; positionIndex?: number }
@@ -64,7 +50,7 @@ export class BotHooksService {
   private mnemonic: string;
   private followerContract: Contract;
   public isRunning: boolean = false;
-  private round: Record<string, number> = {};
+  public status: ServiceStatus;
 
   constructor(
     private contractsService: ContractsService,
@@ -72,7 +58,6 @@ export class BotHooksService {
     private prismaService: PrismaService,
     private followerService: FollowerService,
     private readonly logger: LogsService,
-    private evmAdapterService: EvmAdapterService,
   ) {
     this.availableChains = [
       arbitrum,
@@ -83,10 +68,7 @@ export class BotHooksService {
       avalanche,
     ];
 
-    this.unwatchs = {};
-    this.round = {};
-
-    // this.init();
+    this.init();
   }
 
   async hasRisky() {
@@ -160,7 +142,8 @@ export class BotHooksService {
     try {
       const user = await this.prismaService.user.findUnique({
         where: {
-          address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
+          address: '0x104B4E127B9a6C82044c972cAfF88e75f41ae8Cc'.toLowerCase(),
+          // address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
         },
       });
 
@@ -177,27 +160,27 @@ export class BotHooksService {
           accountIndex: 2,
         },
       });
-      const polygonFollower = await this.prismaService.follower.findFirst({
-        where: {
-          accountIndex: 3,
-        },
-      });
-      const baseFollower = await this.prismaService.follower.findFirst({
-        where: {
-          accountIndex: 4,
-        },
-      });
-      const apeChainFollower = await this.prismaService.follower.findFirst({
-        where: {
-          accountIndex: 5,
-        },
-      });
+      // const polygonFollower = await this.prismaService.follower.findFirst({
+      //   where: {
+      //     accountIndex: 3,
+      //   },
+      // });
+      // const baseFollower = await this.prismaService.follower.findFirst({
+      //   where: {
+      //     accountIndex: 4,
+      //   },
+      // });
+      // const apeChainFollower = await this.prismaService.follower.findFirst({
+      //   where: {
+      //     accountIndex: 5,
+      //   },
+      // });
 
       if (
-        !arbFollower ||
-        !polygonFollower ||
-        !baseFollower ||
-        !apeChainFollower
+        !arbFollower
+        // !polygonFollower ||
+        // !baseFollower ||
+        // !apeChainFollower
       ) {
         throw new Error('Follower not found');
       }
@@ -206,43 +189,18 @@ export class BotHooksService {
         [arbitrum.id]: {
           follower: arbFollower,
         },
-        [polygon.id]: {
-          follower: polygonFollower,
-        },
-        [base.id]: {
-          follower: baseFollower,
-        },
-        [apeChain.id]: {
-          follower: apeChainFollower,
-        },
+        // [polygon.id]: {
+        //   follower: polygonFollower,
+        // },
+        // [base.id]: {
+        //   follower: baseFollower,
+        // },
+        // [apeChain.id]: {
+        //   follower: apeChainFollower,
+        // },
       };
 
-      const contracts = await this.contractsService.findAll();
-
-      this.followerContract = contracts.find(
-        (contract) =>
-          contract.platform === Platform.GNS &&
-          contract.version === Version.V10,
-      )!;
-
-      if (!this.followerContract) {
-        throw new Error('Follower contract not found');
-      }
-
-      const validContracts = contracts.filter(
-        (contract) =>
-          contract.status === ContractStatus.Live &&
-          contract.platform === Platform.GNS &&
-          !contract.isTestnet,
-      );
-
-      const promises = validContracts.map(async (contract) => {
-        await this.registerBotEventListeners(contract, 'MarketExecuted');
-        await this.registerBotEventListeners(contract, 'LimitExecuted');
-      });
-
-      await Promise.allSettled(promises);
-
+      this.status = ServiceStatus.READY;
       this.isRunning = true;
     } catch (err) {
       this.logger.log({
@@ -254,147 +212,96 @@ export class BotHooksService {
   }
 
   async stop() {
-    Object.values(this.unwatchs).forEach((unwatch) => unwatch());
-
     this.isRunning = false;
   }
 
-  createWsClient(chainId: number, eventName: string) {
-    const chain = this.availableChains.find((chain) => chain.id === chainId);
+  async checkContractsForBots() {
+    this.status = ServiceStatus.PROCESS;
 
-    if (!chain) {
-      throw new Error(`Unsupported chain id: ${chainId}`);
-    }
+    const contracts = await this.contractsService.findAll();
 
-    const alchemyProvider = privateRPCProviders.alchemy;
+    const promises = contracts
+      .filter((contract) => contract.status === ContractStatus.Live)
+      .map((contract) => this.checkContractForBots(contract));
 
-    const roundKey = `${chainId}-${eventName}`;
+    await Promise.allSettled(promises);
 
-    const token =
-      alchemyProvider.tokens[
-        (this.round[roundKey] || 0) % alchemyProvider.tokens.length
-      ];
-
-    this.round[roundKey] = (this.round[roundKey] || 0) + 1;
-
-    return createPublicClient({
-      chain: chain,
-      transport: webSocket(
-        alchemyProvider.getWebsocket(
-          alchemyProvider.networks[
-            chain.id as keyof typeof alchemyProvider.networks
-          ],
-          token,
-        ),
-        { reconnect: true },
-      ),
-    }) as unknown as PublicClient;
+    this.status = ServiceStatus.READY;
   }
 
-  async registerBotEventListeners(
-    contract: Contract,
-    eventName: 'MarketExecuted' | 'LimitExecuted',
-  ) {
-    const client = this.createWsClient(contract.chainId, eventName);
-
-    const key = `${contract.chainId}-${eventName}`;
-
-    const fromBlock = this.lastBlockNumbers[key];
-    let nextBlock: bigint | undefined;
-
-    if (fromBlock) {
-      // handle missing events cuz ws client doesn't have all events
-      const logs = await this.evmAdapterService.getLogs({
-        chainId: contract.chainId,
-        priority: ChainPriority.HIGH,
-        address: contract.address as Address,
-        fromBlock: fromBlock,
-      });
-
-      this.handleMissionEvent(contract, logs);
-
-      nextBlock =
-        logs.length > 0 ? logs[logs.length - 1].blockNumber : undefined;
-    }
-
+  async checkContractForBots(contract: Contract) {
     try {
-      this.unwatchs[key] = client.watchContractEvent({
-        address: contract.address as Address,
-        abi: gnsMultiCollatDiamondAbi,
-        eventName: eventName,
-        fromBlock: nextBlock,
-        onLogs: (logs) => {
-          if (logs.length === 0) {
-            return;
-          }
+      const fromBlock = this.lastBlockNumbers[contract.id] + 1;
 
-          const lastBlockNumber = logs[logs.length - 1].blockNumber;
-
-          if (lastBlockNumber > this.lastBlockNumbers[key]) {
-            this.lastBlockNumbers[key] = lastBlockNumber;
-          }
-
-          this.handleMissionEvent(contract, logs);
-        },
-        onError: async (err) => {
-          this.logger.log({
-            severity: 'Debug',
-            summary: 'trading>bot-hook>registerBotEventListeners',
-            details: `chainId:${contract.chainId} ${eventName} ${getReadableError(err)}`,
-          });
-
-          await delay(5_000);
-
-          this.unwatchs[key]?.();
-          this.registerBotEventListeners(contract, eventName);
-        },
-      });
-
-      console.log('setuped bot-hook service', contract.chainId);
-    } catch (err) {
-      this.logger.log({
-        severity: 'Debug',
-        summary: 'trading>bot-hook>registerBotEventListeners',
-        details: `chainId:${contract.chainId} ${eventName} ${getReadableError(err)}`,
-      });
-
-      await delay(5_000);
-
-      this.unwatchs[key]?.();
-      this.registerBotEventListeners(contract, eventName);
-    }
-  }
-
-  async handleMissionEvent(contract: Contract, logs: Log[]) {
-    const missionEvents = logs
-      .filter((log) => log.topics.length > 0)
-      .filter((log) => {
-        const info = getWeb3Info(contract.platform, contract.version);
-
-        return info.eventSignatures
-          ? info.eventSignatures[log.topics[0] as string]
-          : true;
-      })
-      .map((log) => {
-        const decoded: any = decodeEventLog({
-          abi: getWeb3Info(contract.platform, contract.version).abi,
-          data: log.data,
-          topics: log.topics,
+      const perpTradingEventLogs =
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            contractId: contract.id,
+            block: {
+              gte: fromBlock,
+            },
+          },
+          orderBy: [
+            {
+              block: 'asc',
+            },
+            {
+              logIndex: 'asc',
+            },
+            {
+              id: 'asc',
+            },
+          ],
         });
 
-        return decoded;
-      })
-      .filter(
-        (item) =>
-          item.eventName === marketExecutedEventParser.eventName ||
-          item.eventName === limitExecutedEventParser.eventName,
-      ) as (MarketExecutedEvent | LimitExecutedEvent)[];
+      if (perpTradingEventLogs.length === 0) {
+        return;
+      }
 
-    if (missionEvents.length === 0) {
-      return;
+      const missionActions = perpTradingEventLogs
+        .map((log) =>
+          getWeb3Info(contract.platform, contract.version).eventToActionParser(
+            JSON.parse(log.jsonLog) as any,
+          ),
+        )
+        .filter(
+          (item) =>
+            item.name === marketExecutedEventParser.eventName ||
+            item.name === limitExecutedEventParser.eventName,
+        );
+
+      if (missionActions.length > 0) {
+        await this.handleMissionActions(contract, missionActions);
+      }
+
+      const toBlock = Math.max(...perpTradingEventLogs.map((log) => log.block));
+
+      this.lastBlockNumbers[contract.id] = Number(toBlock);
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Emergency',
+        summary: 'bot-hook>checkContractForBots',
+        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+      });
     }
+  }
 
-    for (const event of missionEvents) {
+  async handleMissionActions(contract: Contract, missionActions: ActionItem[]) {
+    for (const action of missionActions) {
+      let event: TradeEvent<
+        MarketExecutedEventArgs | LimitExecutedEventArgs
+      > | null = null;
+
+      if (action.name === marketExecutedEventParser.eventName) {
+        event = marketExecutedEventParser.actionParser(action);
+      } else if (action.name === limitExecutedEventParser.eventName) {
+        event = limitExecutedEventParser.actionParser(action);
+      }
+
+      if (!event) {
+        continue;
+      }
+
       try {
         // it's not a bot event
         if (event.args.user.toLowerCase() !== botAddress.toLowerCase()) {
@@ -510,9 +417,35 @@ export class BotHooksService {
           });
 
           this.logger.log({
-            severity: 'Debug',
+            severity: 'Emergency',
             summary: 'trading>bot-hook>handleMissionEvent',
-            details: `chainId:${contract.chainId} open trade`,
+            details: `chainId:${contract.chainId} open trade ${JSON.stringify(
+              {
+                trade: {
+                  user: follower.address as Address,
+                  index: 0,
+                  pairIndex: t.pairIndex,
+                  long: t.long,
+                  isOpen: true,
+                  collateralIndex:
+                    USDCCollateralIndex[
+                      this.followerContract
+                        .chainId as keyof typeof USDCCollateralIndex
+                    ],
+                  collateralAmount: ratioAmount,
+                  leverage: t.leverage,
+                  tradeType: TradeType.TRADE,
+                  openPrice: BigInt(t.openPrice),
+                  tp: 0n,
+                  sl: 0n,
+                  isCounterTrade: false,
+                  positionSizeToken: 0n,
+                  __placeholder: Number(t.__placeholder),
+                },
+                maxSlippageP: 1000,
+              },
+              (_, v) => (typeof v === 'bigint' ? v.toString() : v),
+            )}`,
           });
         }
 
@@ -538,14 +471,17 @@ export class BotHooksService {
           }
 
           this.logger.log({
-            severity: 'Debug',
+            severity: 'Emergency',
             summary: 'trading>bot-hook>handleMissionEvent',
-            details: `chainId:${contract.chainId} close ${trades.length} trades successfully`,
+            details: `chainId:${contract.chainId} close ${trades.length} trades successfully ${JSON.stringify(
+              trades,
+              (_, v) => (typeof v === 'bigint' ? v.toString() : v),
+            )}`,
           });
         }
       } catch (err) {
         this.logger.log({
-          severity: 'Debug',
+          severity: 'Emergency',
           summary: 'trading>bot-hook>handleMissionEvent',
           details: `chainId:${contract.chainId} ${getReadableError(err)}`,
         });
