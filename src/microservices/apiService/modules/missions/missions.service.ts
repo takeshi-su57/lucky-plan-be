@@ -45,14 +45,44 @@ import {
   getPairName,
 } from 'src/web3/platform/gns/v10/configs';
 
+const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
+
 @Injectable()
 export class MissionsService {
+  private maxOpenMissions: number;
+
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private readonly logger: LogsService,
-  ) {}
+  ) {
+    this.init();
+  }
+
+  async init() {
+    const maxOpenMissions = await this.prismaService.metadata.findUnique({
+      where: {
+        key: MAX_OPEN_MISSIONS_KEY,
+      },
+    });
+
+    this.maxOpenMissions = maxOpenMissions?.value
+      ? Number(maxOpenMissions.value)
+      : 0;
+  }
+
+  async updateMaxOpenMissions(maxCount: number) {
+    this.maxOpenMissions = maxCount;
+    await this.prismaService.metadata.update({
+      where: { key: MAX_OPEN_MISSIONS_KEY },
+      data: { value: maxCount.toString() },
+    });
+  }
+
+  getMaxOpenMissions() {
+    return this.maxOpenMissions;
+  }
 
   private async getMissions(ids: number[]): Promise<MissionBackwardDetails[]> {
     return await this.prismaService.mission.findMany({
@@ -410,6 +440,12 @@ export class MissionsService {
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
   ) {
+    const missionCount = Object.values(missionsByBotMap).flat().length;
+
+    if (missionCount > this.maxOpenMissions) {
+      return;
+    }
+
     const openEvents = actions
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
@@ -564,15 +600,21 @@ export class MissionsService {
         return false;
       });
 
-    await this.createMany(
-      openEvents.map((item) => ({
-        botId: item.context.bot.id,
-        targetPositionKey: item.action.positionKey,
-        targetPositionBlockNumber: item.action.blockNumber,
-        targetPositionLogIndex: item.action.orderInBlock,
-      })),
-      missionsByBotMap,
-    );
+    const availableMissions = this.maxOpenMissions - missionCount;
+
+    const availableOpenEvents = openEvents.slice(0, availableMissions);
+
+    if (availableOpenEvents.length === 0) {
+      await this.createMany(
+        availableOpenEvents.map((item) => ({
+          botId: item.context.bot.id,
+          targetPositionKey: item.action.positionKey,
+          targetPositionBlockNumber: item.action.blockNumber,
+          targetPositionLogIndex: item.action.orderInBlock,
+        })),
+        missionsByBotMap,
+      );
+    }
   }
 
   private getLeaderMissionActions(

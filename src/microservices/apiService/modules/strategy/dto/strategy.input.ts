@@ -73,4 +73,9 @@ export class UpdateStrategyInput {
   @IsInt()
   @Field(() => Int)
   minLeverage: number;
+
+  @IsNotEmpty()
+  @IsJSON()
+  @Field()
+  params: string;
 }

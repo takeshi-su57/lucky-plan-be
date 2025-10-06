@@ -64,11 +64,21 @@ export class TradingService {
           ],
         });
 
+      if (perpTradingEventLogs.length === 0) {
+        await this.logger.log({
+          severity: 'Info',
+          summary: 'trading>contract-monitor>checkContractForBots',
+          details: `chain:${contract.chainId} block:${Number(fromBlock)} - latest, no logs`,
+        });
+
+        return;
+      }
+
       const actionItems = perpTradingEventLogs.map((log) => ({
         item: getWeb3Info(
           contract.platform,
           contract.version,
-        ).eventToActionParser(log.jsonLog as any),
+        ).eventToActionParser(JSON.parse(log.jsonLog) as any),
         blockNumber: log.block,
         logIndex: log.logIndex,
       }));
