@@ -49,39 +49,27 @@ const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
 
 @Injectable()
 export class MissionsService {
-  private maxOpenMissions: number;
-
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
     private readonly logger: LogsService,
-  ) {
-    this.init();
-  }
-
-  async init() {
-    const maxOpenMissions = await this.prismaService.metadata.findUnique({
-      where: {
-        key: MAX_OPEN_MISSIONS_KEY,
-      },
-    });
-
-    this.maxOpenMissions = maxOpenMissions?.value
-      ? Number(maxOpenMissions.value)
-      : 0;
-  }
+  ) {}
 
   async updateMaxOpenMissions(maxCount: number) {
-    this.maxOpenMissions = maxCount;
-    await this.prismaService.metadata.update({
+    await this.prismaService.metadata.upsert({
       where: { key: MAX_OPEN_MISSIONS_KEY },
-      data: { value: maxCount.toString() },
+      update: { value: maxCount.toString() },
+      create: { key: MAX_OPEN_MISSIONS_KEY, value: maxCount.toString() },
     });
   }
 
-  getMaxOpenMissions() {
-    return this.maxOpenMissions;
+  async getMaxOpenMissions() {
+    const maxOpenMissions = await this.prismaService.metadata.findUnique({
+      where: { key: MAX_OPEN_MISSIONS_KEY },
+    });
+
+    return maxOpenMissions?.value ? Number(maxOpenMissions.value) : 0;
   }
 
   private async getMissions(ids: number[]): Promise<MissionBackwardDetails[]> {
@@ -442,7 +430,9 @@ export class MissionsService {
   ) {
     const missionCount = Object.values(missionsByBotMap).flat().length;
 
-    if (missionCount > this.maxOpenMissions) {
+    const maxOpenMissions = await this.getMaxOpenMissions();
+
+    if (missionCount > maxOpenMissions) {
       return;
     }
 
@@ -600,7 +590,7 @@ export class MissionsService {
         return false;
       });
 
-    const availableMissions = this.maxOpenMissions - missionCount;
+    const availableMissions = maxOpenMissions - missionCount;
 
     const availableOpenEvents = openEvents.slice(0, availableMissions);
 
