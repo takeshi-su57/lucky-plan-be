@@ -57,6 +57,7 @@ export class BotHooksService {
     private gnsService: GnsService,
     private prismaService: PrismaService,
     private followerService: FollowerService,
+    private readonly evmAdapterService: EvmAdapterService,
     private readonly logger: LogsService,
   ) {
     this.availableChains = [
@@ -231,6 +232,15 @@ export class BotHooksService {
 
   async checkContractForBots(contract: Contract) {
     try {
+      if (!this.lastBlockNumbers[contract.id]) {
+        const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
+          chainId: contract.chainId,
+          priority: ChainPriority.HIGH,
+        });
+
+        this.lastBlockNumbers[contract.id] = Number(currentBlockNumber);
+      }
+
       const fromBlock = this.lastBlockNumbers[contract.id] + 1;
 
       const perpTradingEventLogs =
