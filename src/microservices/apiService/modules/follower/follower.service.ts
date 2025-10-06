@@ -1267,16 +1267,14 @@ export class FollowerService {
 
         pnlSnapshotsMap[entity.address] = pnlSnapshots;
 
-        const trades =
-          entity.accountIndex === 1
-            ? await this.getTrades(entity.address, contractId)
-            : [];
+        const trades = await this.getTrades(entity.address, contractId);
+
         tradesMap[entity.address] = trades;
 
-        const pendingOrders =
-          entity.accountIndex === 1
-            ? await this.getPendingOrders(entity.address, contractId)
-            : [];
+        const pendingOrders = await this.getPendingOrders(
+          entity.address,
+          contractId,
+        );
 
         pendingOrdersMap[entity.address] = pendingOrders;
       });

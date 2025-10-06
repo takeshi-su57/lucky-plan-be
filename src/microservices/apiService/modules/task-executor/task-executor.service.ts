@@ -205,30 +205,30 @@ export class TaskExecutorService {
                 ),
               );
 
-              if (collateralDelta > 0n) {
-                const result = await this.followerService.depositAsset(
-                  task.mission.bot.plan.userId,
-                  {
-                    address: follower.address,
-                    contract: followerContract,
-                    amount: collateralDelta + collateralDelta / 100n,
-                    kind: 'usdc',
-                  },
-                );
+              // if (collateralDelta > 0n) {
+              //   const result = await this.followerService.depositAsset(
+              //     task.mission.bot.plan.userId,
+              //     {
+              //       address: follower.address,
+              //       contract: followerContract,
+              //       amount: collateralDelta + collateralDelta / 100n,
+              //       kind: 'usdc',
+              //     },
+              //   );
 
-                if (!result) {
-                  await this.logger.log({
-                    severity: 'Error',
-                    summary: 'TaskExecutorService>performTask',
-                    details: `Failed at borrowing usdc from vault`,
-                  });
+              //   if (!result) {
+              //     await this.logger.log({
+              //       severity: 'Error',
+              //       summary: 'TaskExecutorService>performTask',
+              //       details: `Failed at borrowing usdc from vault`,
+              //     });
 
-                  return {
-                    success: 'failed',
-                    message: `Failed at borrowing usdc from vault`,
-                  };
-                }
-              }
+              //     return {
+              //       success: 'failed',
+              //       message: `Failed at borrowing usdc from vault`,
+              //     };
+              //   }
+              // }
             }
 
             tx = await this.gnsService.updateLeverage({
@@ -322,28 +322,28 @@ export class TaskExecutorService {
                 };
               }
 
-              const result = await this.followerService.depositAsset(
-                task.mission.bot.plan.userId,
-                {
-                  address: follower.address,
-                  contract: followerContract,
-                  amount: increaseParams.collateralDelta,
-                  kind: 'usdc',
-                },
-              );
+              // const result = await this.followerService.depositAsset(
+              //   task.mission.bot.plan.userId,
+              //   {
+              //     address: follower.address,
+              //     contract: followerContract,
+              //     amount: increaseParams.collateralDelta,
+              //     kind: 'usdc',
+              //   },
+              // );
 
-              if (!result) {
-                await this.logger.log({
-                  severity: 'Error',
-                  summary: 'TaskExecutorService>performTask',
-                  details: `Failed at borrowing usdc from vault`,
-                });
+              // if (!result) {
+              //   await this.logger.log({
+              //     severity: 'Error',
+              //     summary: 'TaskExecutorService>performTask',
+              //     details: `Failed at borrowing usdc from vault`,
+              //   });
 
-                return {
-                  success: 'failed',
-                  message: `Failed at borrowing usdc from vault`,
-                };
-              }
+              //   return {
+              //     success: 'failed',
+              //     message: `Failed at borrowing usdc from vault`,
+              //   };
+              // }
             }
 
             tx = await this.gnsService.increasePositionSize({
@@ -488,30 +488,30 @@ export class TaskExecutorService {
                       bot.leaderCollateralBaseline,
                     );
 
-                if (openMissionParams.collateralAmount > 0n) {
-                  const result = await this.followerService.depositAsset(
-                    task.mission.bot.plan.userId,
-                    {
-                      address: follower.address,
-                      contract: followerContract,
-                      amount: openMissionParams.collateralAmount,
-                      kind: 'usdc',
-                    },
-                  );
+                // if (openMissionParams.collateralAmount > 0n) {
+                //   const result = await this.followerService.depositAsset(
+                //     task.mission.bot.plan.userId,
+                //     {
+                //       address: follower.address,
+                //       contract: followerContract,
+                //       amount: openMissionParams.collateralAmount,
+                //       kind: 'usdc',
+                //     },
+                //   );
 
-                  if (!result) {
-                    await this.logger.log({
-                      severity: 'Error',
-                      summary: 'TaskExecutorService>performTask',
-                      details: 'Failed at borrowing usdc from vault',
-                    });
+                //   if (!result) {
+                //     await this.logger.log({
+                //       severity: 'Error',
+                //       summary: 'TaskExecutorService>performTask',
+                //       details: 'Failed at borrowing usdc from vault',
+                //     });
 
-                    return {
-                      success: 'failed',
-                      message: `Failed at borrowing usdc from vault`,
-                    };
-                  }
-                }
+                //     return {
+                //       success: 'failed',
+                //       message: `Failed at borrowing usdc from vault`,
+                //     };
+                //   }
+                // }
 
                 tx = await this.gnsService.openTrade({
                   mnemonic,
@@ -682,30 +682,30 @@ export class TaskExecutorService {
                 bot.leaderCollateralBaseline,
               );
 
-              if (openMissionParams.collateralAmount > 0n) {
-                const result = await this.followerService.depositAsset(
-                  task.mission.bot.plan.userId,
-                  {
-                    address: follower.address,
-                    contract: followerContract,
-                    amount: openMissionParams.collateralAmount,
-                    kind: 'usdc',
-                  },
-                );
+              // if (openMissionParams.collateralAmount > 0n) {
+              //   const result = await this.followerService.depositAsset(
+              //     task.mission.bot.plan.userId,
+              //     {
+              //       address: follower.address,
+              //       contract: followerContract,
+              //       amount: openMissionParams.collateralAmount,
+              //       kind: 'usdc',
+              //     },
+              //   );
 
-                if (!result) {
-                  await this.logger.log({
-                    severity: 'Error',
-                    summary: 'TaskExecutorService>performTask',
-                    details: 'Failed at borrowing usdc from vault',
-                  });
+              //   if (!result) {
+              //     await this.logger.log({
+              //       severity: 'Error',
+              //       summary: 'TaskExecutorService>performTask',
+              //       details: 'Failed at borrowing usdc from vault',
+              //     });
 
-                  return {
-                    success: 'failed',
-                    message: `Failed at borrowing usdc from vault`,
-                  };
-                }
-              }
+              //     return {
+              //       success: 'failed',
+              //       message: `Failed at borrowing usdc from vault`,
+              //     };
+              //   }
+              // }
 
               tx = await this.gnsService.openTrade({
                 mnemonic,
@@ -813,28 +813,28 @@ export class TaskExecutorService {
                   };
                 }
 
-                const result = await this.followerService.depositAsset(
-                  task.mission.bot.plan.userId,
-                  {
-                    address: follower.address,
-                    contract: followerContract,
-                    amount: increaseParams.collateralDelta,
-                    kind: 'usdc',
-                  },
-                );
+                // const result = await this.followerService.depositAsset(
+                //   task.mission.bot.plan.userId,
+                //   {
+                //     address: follower.address,
+                //     contract: followerContract,
+                //     amount: increaseParams.collateralDelta,
+                //     kind: 'usdc',
+                //   },
+                // );
 
-                if (!result) {
-                  await this.logger.log({
-                    severity: 'Error',
-                    summary: 'TaskExecutorService>performTask',
-                    details: `Failed at borrowing usdc from vault`,
-                  });
+                // if (!result) {
+                //   await this.logger.log({
+                //     severity: 'Error',
+                //     summary: 'TaskExecutorService>performTask',
+                //     details: `Failed at borrowing usdc from vault`,
+                //   });
 
-                  return {
-                    success: 'failed',
-                    message: `Failed at borrowing usdc from vault`,
-                  };
-                }
+                //   return {
+                //     success: 'failed',
+                //     message: `Failed at borrowing usdc from vault`,
+                //   };
+                // }
               }
 
               tx = await this.gnsService.increasePositionSize({
