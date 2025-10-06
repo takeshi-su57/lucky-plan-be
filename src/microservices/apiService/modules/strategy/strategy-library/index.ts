@@ -124,23 +124,55 @@ export function getPositionDecreaseParams(
 
 const DEGEN_PAIRS = [300, 313, 314, 326, 327];
 
+export function getPairKey(pair: string, isLong: boolean) {
+  return JSON.stringify({
+    pair: pair.toLowerCase(),
+    isLong,
+  });
+}
+
+export function parsePairKey(key: string) {
+  return JSON.parse(key) as { pair: string; isLong: boolean };
+}
+
 export function getAdditionalParams(strParams: string): {
+  maxOpenMissions: number;
   tpPercentage: number;
   slPercentage: number;
-  selectedPairs: string[];
+  selectedPairs: { pair: string; isLong: boolean }[];
 } {
   try {
     const params = JSON.parse(strParams);
 
     return {
+      maxOpenMissions: params.maxOpenMissions || 0,
       tpPercentage: params.tpPercentage || 0,
       slPercentage: params.slPercentage || 0,
-      selectedPairs: (params.selectedPairs || []).map((item: string) =>
-        item.toLowerCase(),
-      ),
+      selectedPairs: (params.selectedPairs || [])
+        .map((item: { pair: string; isLong: boolean } | string) =>
+          typeof item === 'string'
+            ? [
+                {
+                  pair: item.toLowerCase(),
+                  isLong: true,
+                },
+                {
+                  pair: item.toLowerCase(),
+                  isLong: false,
+                },
+              ]
+            : [
+                {
+                  pair: item.pair.toLowerCase(),
+                  isLong: item.isLong,
+                },
+              ],
+        )
+        .flat(),
     };
   } catch {
     return {
+      maxOpenMissions: 0,
       tpPercentage: 0,
       slPercentage: 0,
       selectedPairs: [],

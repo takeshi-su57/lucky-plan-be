@@ -31,6 +31,7 @@ import { LogsService } from 'src/global/logs.service';
 import {
   getAdditionalParams,
   getOpenMissionParams,
+  getPairKey,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { getReadableError } from 'src/utils';
 import { getWeb3Info } from 'src/web3/utils';
@@ -428,11 +429,11 @@ export class MissionsService {
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
   ) {
-    const missionCount = Object.values(missionsByBotMap).flat().length;
+    const totalMissionCount = Object.values(missionsByBotMap).flat().length;
 
-    const maxOpenMissions = await this.getMaxOpenMissions();
+    const totalMaxOpenMissions = await this.getMaxOpenMissions();
 
-    if (missionCount > maxOpenMissions) {
+    if (totalMissionCount > totalMaxOpenMissions) {
       return;
     }
 
@@ -443,6 +444,17 @@ export class MissionsService {
         const additionalParams = getAdditionalParams(
           item.context.bot.strategy.params,
         );
+
+        const selectedPairKeys = additionalParams.selectedPairs.map((item) =>
+          getPairKey(item.pair, item.isLong),
+        );
+
+        const missionCount =
+          missionsByBotMap.get(item.context.bot.id)?.length || 0;
+
+        if (missionCount > additionalParams.maxOpenMissions) {
+          return false;
+        }
 
         if (item.context.bot.leaderContract.platform === Platform.GNS) {
           const event = missionEventParsers
@@ -460,8 +472,8 @@ export class MissionsService {
           }
 
           if (
-            additionalParams.selectedPairs.length > 0 &&
-            !additionalParams.selectedPairs.includes(pairName)
+            selectedPairKeys.length > 0 &&
+            !selectedPairKeys.includes(getPairKey(pairName, Boolean(t.long)))
           ) {
             return false;
           }
@@ -520,8 +532,10 @@ export class MissionsService {
             `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
 
           if (
-            additionalParams.selectedPairs.length > 0 &&
-            !additionalParams.selectedPairs.includes(pairName)
+            selectedPairKeys.length > 0 &&
+            !selectedPairKeys.includes(
+              getPairKey(pairName, Boolean(event.args.isLong)),
+            )
           ) {
             return false;
           }
@@ -590,7 +604,7 @@ export class MissionsService {
         return false;
       });
 
-    const availableMissions = maxOpenMissions - missionCount;
+    const availableMissions = totalMaxOpenMissions - totalMissionCount;
 
     const availableOpenEvents = openEvents.slice(0, availableMissions);
 
