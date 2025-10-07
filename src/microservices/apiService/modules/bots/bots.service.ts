@@ -639,11 +639,11 @@ export class BotsService {
       throw new Error('Invalid bot status');
     }
 
-    await this.followersService.withdrawAllUSDC(
-      bot.plan.userId,
-      bot.followerAddress,
-      bot.followerContractId,
-    );
+    // await this.followersService.withdrawAllUSDC(
+    //   bot.plan.userId,
+    //   bot.followerAddress,
+    //   bot.followerContractId,
+    // );
 
     // await this.followersService.withdrawAllETH(
     //   bot.plan.userId,

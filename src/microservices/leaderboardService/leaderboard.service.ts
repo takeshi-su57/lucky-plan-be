@@ -136,13 +136,12 @@ export class LeaderboardService {
         }
 
         const logs = (
-          await this.evmAdapterService.getLogs({
-            chainId: contract.chainId,
-            priority: ChainPriority.HIGH,
-            address: contract.address as Address,
+          await this.evmAdapterService.getFrequentLogs(
+            contract.chainId,
+            contract.address as Address,
             fromBlock,
             toBlock,
-          })
+          )
         ).filter((log) => log.topics.length > 0);
 
         const block = await this.evmAdapterService.getValidBlock({

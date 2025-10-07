@@ -31,6 +31,7 @@ import { LogsService } from 'src/global/logs.service';
 import {
   getAdditionalParams,
   getOpenMissionParams,
+  getPairKey,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { getReadableError } from 'src/utils';
 import { getWeb3Info } from 'src/web3/utils';
@@ -45,6 +46,8 @@ import {
   getPairName,
 } from 'src/web3/platform/gns/v10/configs';
 
+const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
+
 @Injectable()
 export class MissionsService {
   constructor(
@@ -53,6 +56,22 @@ export class MissionsService {
     private tasksService: TasksService,
     private readonly logger: LogsService,
   ) {}
+
+  async updateMaxOpenMissions(maxCount: number) {
+    await this.prismaService.metadata.upsert({
+      where: { key: MAX_OPEN_MISSIONS_KEY },
+      update: { value: maxCount.toString() },
+      create: { key: MAX_OPEN_MISSIONS_KEY, value: maxCount.toString() },
+    });
+  }
+
+  async getMaxOpenMissions() {
+    const maxOpenMissions = await this.prismaService.metadata.findUnique({
+      where: { key: MAX_OPEN_MISSIONS_KEY },
+    });
+
+    return maxOpenMissions?.value ? Number(maxOpenMissions.value) : 0;
+  }
 
   private async getMissions(ids: number[]): Promise<MissionBackwardDetails[]> {
     return await this.prismaService.mission.findMany({
@@ -410,6 +429,15 @@ export class MissionsService {
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
   ) {
+    const totalMissionCount = Array.from(missionsByBotMap.values()).flat()
+      .length;
+
+    const totalMaxOpenMissions = await this.getMaxOpenMissions();
+
+    if (totalMissionCount > totalMaxOpenMissions) {
+      return;
+    }
+
     const openEvents = actions
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
@@ -417,6 +445,17 @@ export class MissionsService {
         const additionalParams = getAdditionalParams(
           item.context.bot.strategy.params,
         );
+
+        const selectedPairKeys = additionalParams.selectedPairs.map((item) =>
+          getPairKey(item.pair, item.isLong),
+        );
+
+        const missionCount =
+          missionsByBotMap.get(item.context.bot.id)?.length || 0;
+
+        if (missionCount > additionalParams.maxOpenMissions) {
+          return false;
+        }
 
         if (item.context.bot.leaderContract.platform === Platform.GNS) {
           const event = missionEventParsers
@@ -434,8 +473,8 @@ export class MissionsService {
           }
 
           if (
-            additionalParams.selectedPairs.length > 0 &&
-            !additionalParams.selectedPairs.includes(pairName)
+            selectedPairKeys.length > 0 &&
+            !selectedPairKeys.includes(getPairKey(pairName, Boolean(t.long)))
           ) {
             return false;
           }
@@ -494,8 +533,10 @@ export class MissionsService {
             `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
 
           if (
-            additionalParams.selectedPairs.length > 0 &&
-            !additionalParams.selectedPairs.includes(pairName)
+            selectedPairKeys.length > 0 &&
+            !selectedPairKeys.includes(
+              getPairKey(pairName, Boolean(event.args.isLong)),
+            )
           ) {
             return false;
           }
@@ -564,15 +605,21 @@ export class MissionsService {
         return false;
       });
 
-    await this.createMany(
-      openEvents.map((item) => ({
-        botId: item.context.bot.id,
-        targetPositionKey: item.action.positionKey,
-        targetPositionBlockNumber: item.action.blockNumber,
-        targetPositionLogIndex: item.action.orderInBlock,
-      })),
-      missionsByBotMap,
-    );
+    const availableMissions = totalMaxOpenMissions - totalMissionCount;
+
+    const availableOpenEvents = openEvents.slice(0, availableMissions);
+
+    if (availableOpenEvents.length > 0) {
+      await this.createMany(
+        availableOpenEvents.map((item) => ({
+          botId: item.context.bot.id,
+          targetPositionKey: item.action.positionKey,
+          targetPositionBlockNumber: item.action.blockNumber,
+          targetPositionLogIndex: item.action.orderInBlock,
+        })),
+        missionsByBotMap,
+      );
+    }
   }
 
   private getLeaderMissionActions(

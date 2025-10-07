@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Block, erc20Abi, GetBlockErrorType } from 'viem';
+import { Block, erc20Abi, GetBlockErrorType, GetLogsReturnType } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
+
+import { getReadableError } from 'src/utils';
+import { LogsService } from 'src/global/logs.service';
 
 import { EvmChainsService } from './evm-chains.service';
 import {
@@ -21,7 +24,10 @@ import { ChainPriority } from 'src/types';
 
 @Injectable()
 export class EvmAdapterService {
-  constructor(private readonly chainsService: EvmChainsService) {}
+  constructor(
+    private readonly chainsService: EvmChainsService,
+    private readonly logger: LogsService,
+  ) {}
 
   async erc20Transfer(payload: Erc20TransferPayload) {
     return await this.chainsService.writeWithMutex(
@@ -262,5 +268,38 @@ export class EvmAdapterService {
         });
       },
     );
+  }
+
+  async getFrequentLogs(
+    chainId: number,
+    address: `0x${string}`,
+    fromBlock: bigint,
+    toBlock: bigint,
+  ): Promise<
+    GetLogsReturnType<undefined, undefined, undefined, bigint, bigint>
+  > {
+    const connection = await this.chainsService.getAvailableConnection(chainId);
+
+    try {
+      const result = await connection.connection.getLogs({
+        fromBlock,
+        toBlock,
+        address,
+      });
+
+      this.chainsService.unlockConnection(chainId, connection.id, 5_000);
+
+      return result;
+    } catch (err) {
+      this.logger.log({
+        severity: 'Critical',
+        summary: 'Error getting signatures for address',
+        details: getReadableError(err),
+      });
+
+      this.chainsService.unlockConnection(chainId, connection.id, 120_000);
+
+      return await this.getFrequentLogs(chainId, address, fromBlock, toBlock);
+    }
   }
 }

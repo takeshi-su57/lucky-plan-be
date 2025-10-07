@@ -1,4 +1,11 @@
-import { Resolver, Args, Int, Mutation, Subscription } from '@nestjs/graphql';
+import {
+  Resolver,
+  Args,
+  Int,
+  Mutation,
+  Subscription,
+  Query,
+} from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { User, UserPermission } from '@prisma/client';
@@ -22,6 +29,21 @@ export class MissionsResolver {
     private readonly missionsService: MissionsService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
+
+  @Query(() => Int)
+  getMaxOpenMissions() {
+    return this.missionsService.getMaxOpenMissions();
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updateMaxOpenMissions(
+    @Args('maxCount', { type: () => Int }) maxCount: number,
+    @CurrentUser() _user: User,
+  ) {
+    return this.missionsService.updateMaxOpenMissions(maxCount);
+  }
 
   @Mutation(() => Boolean)
   @Roles(UserPermission.Trader)

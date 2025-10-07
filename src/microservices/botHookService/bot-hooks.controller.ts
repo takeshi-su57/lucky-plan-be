@@ -80,4 +80,16 @@ export class BotHooksController implements OnApplicationBootstrap {
       await this.botHookService.stop();
     }
   }
+
+  @Cron(CronExpression.EVERY_SECOND)
+  async executeCronForBotMonitor() {
+    if (
+      this.botHookService.isRunning ||
+      this.botHookService.status !== ServiceStatus.READY
+    ) {
+      return;
+    }
+
+    await this.botHookService.checkContractsForBots();
+  }
 }
