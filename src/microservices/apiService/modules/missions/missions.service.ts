@@ -429,7 +429,8 @@ export class MissionsService {
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
   ) {
-    const totalMissionCount = Object.values(missionsByBotMap).flat().length;
+    const totalMissionCount = Array.from(missionsByBotMap.values()).flat()
+      .length;
 
     const totalMaxOpenMissions = await this.getMaxOpenMissions();
 
@@ -608,7 +609,7 @@ export class MissionsService {
 
     const availableOpenEvents = openEvents.slice(0, availableMissions);
 
-    if (availableOpenEvents.length === 0) {
+    if (availableOpenEvents.length > 0) {
       await this.createMany(
         availableOpenEvents.map((item) => ({
           botId: item.context.bot.id,

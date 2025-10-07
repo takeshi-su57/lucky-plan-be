@@ -39,6 +39,11 @@ export function getPositionIncreaseParams(
   if (newLeverage > oldLeverage) {
     const leverageDelta = newLeverage - oldLeverage;
 
+    // no need to increase position
+    if (leverageDelta <= 0) {
+      return null;
+    }
+
     return {
       collateralDelta: 0n,
       leverageDelta,
