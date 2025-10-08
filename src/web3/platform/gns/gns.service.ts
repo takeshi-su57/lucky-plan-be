@@ -49,7 +49,9 @@ export class GnsService {
 
     const contracts = allContracts.filter(
       (contract) =>
-        contract.platform === Platform.GNS && contract.version === Version.V10,
+        contract.platform === Platform.GNS &&
+        contract.version === Version.V10 &&
+        contract.chainId !== 421614,
     );
 
     const variables: Record<number, TradingVariable> = {};
@@ -59,7 +61,7 @@ export class GnsService {
         (variables[contract.id] = await this.getTradingVariable(contract)),
     );
 
-    await Promise.allSettled(promises);
+    await Promise.all(promises);
 
     const collaterals: Record<number, Collateral[]> = {};
     const pairs: Record<number, (Pair | undefined)[]> = {};
