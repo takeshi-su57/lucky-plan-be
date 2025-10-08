@@ -10,6 +10,7 @@ import {
   Chain,
   avalanche,
 } from 'viem/chains';
+import 'dotenv';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
@@ -143,8 +144,7 @@ export class BotHooksService {
     try {
       const user = await this.prismaService.user.findUnique({
         where: {
-          address: '0x104B4E127B9a6C82044c972cAfF88e75f41ae8Cc'.toLowerCase(),
-          // address: '0x3E23a96D96A0E8D32063d3943d54a69D032e8B0d'.toLowerCase(),
+          address: process.env.BOT_HOOK_ADDRESS?.toLowerCase(),
         },
       });
 
