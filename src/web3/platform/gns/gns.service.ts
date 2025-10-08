@@ -41,7 +41,7 @@ export class GnsService {
     private readonly chainsService: EvmChainsService,
     private readonly logger: LogsService,
   ) {
-    this.loadTradingVariablesFromContracts();
+    // this.loadTradingVariablesFromContracts();
   }
 
   async loadTradingVariablesFromContracts() {
