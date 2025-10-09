@@ -18,7 +18,7 @@ import {
   avalanche,
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
-import { Mutex, Semaphore } from 'async-mutex';
+import { Mutex, Semaphore, withTimeout } from 'async-mutex';
 import { nanoid } from 'nanoid';
 
 import 'dotenv';
@@ -233,9 +233,15 @@ export class EvmChainsService {
       }) as unknown as PublicClient;
 
       this.readSemaphores[chain.id] = {
-        [ChainPriority.HIGH]: new Semaphore(30),
-        [ChainPriority.MEDIUM]: new Semaphore(5),
-        [ChainPriority.LOW]: new Semaphore(1),
+        [ChainPriority.HIGH]: withTimeout(
+          new Semaphore(30),
+          60000,
+        ) as Semaphore,
+        [ChainPriority.MEDIUM]: withTimeout(
+          new Semaphore(5),
+          60000,
+        ) as Semaphore,
+        [ChainPriority.LOW]: withTimeout(new Semaphore(1), 60000) as Semaphore,
       };
       this.writeMutexs[chain.id] = {};
 
@@ -400,7 +406,10 @@ export class EvmChainsService {
     });
 
     if (!this.writeMutexs[chainId][account.address.toLowerCase()]) {
-      this.writeMutexs[chainId][account.address.toLowerCase()] = new Mutex();
+      this.writeMutexs[chainId][account.address.toLowerCase()] = withTimeout(
+        new Mutex(),
+        60000,
+      ) as Mutex;
     }
 
     return await this.writeMutexs[chainId][
