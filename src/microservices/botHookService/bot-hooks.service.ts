@@ -123,7 +123,7 @@ export class BotHooksService {
       );
 
       this.logger.log({
-        severity: 'Debug',
+        severity: 'Emergency',
         summary: 'trading>bot-hook>hasRisky',
         details: `negativePnlHistories.length: ${negativePnlHistories.length}`,
       });
@@ -131,7 +131,7 @@ export class BotHooksService {
       return negativePnlHistories.length > 10;
     } catch (err) {
       this.logger.log({
-        severity: 'Error',
+        severity: 'Emergency',
         summary: 'trading>bot-hook>hasRisky',
         details: getReadableError(err),
       });
@@ -205,7 +205,7 @@ export class BotHooksService {
       this.isRunning = true;
     } catch (err) {
       this.logger.log({
-        severity: 'Error',
+        severity: 'Emergency',
         summary: 'trading>bot-hook>init',
         details: getReadableError(err),
       });
@@ -319,7 +319,7 @@ export class BotHooksService {
         }
 
         this.logger.log({
-          severity: 'Debug',
+          severity: 'Emergency',
           summary: 'trading>bot-hook>handleMissionEvent',
           details: `chainId:${contract.chainId} ${event.eventName}`,
         });
