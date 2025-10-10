@@ -173,7 +173,7 @@ export type Web3Configuration = {
 @Injectable()
 export class EvmChainsService {
   readonly availableChains: Chain[];
-  readonly freePublicClients: Record<number, PublicClient>;
+  // readonly freePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
   private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
@@ -192,24 +192,24 @@ export class EvmChainsService {
       apeChain,
       avalanche,
     ];
-    this.freePublicClients = {};
+    // this.freePublicClients = {};
     this.paidPublicClients = {};
     this.walletClients = {};
     this.readSemaphores = {};
     this.writeMutexs = {};
 
     this.availableChains.forEach((chain) => {
-      this.freePublicClients[chain.id] = createPublicClient({
-        chain: chain,
-        transport: fallback([
-          ...publicRpcProviders[
-            chain.id as keyof typeof publicRpcProviders
-          ].map((url) => http(url, { batch: true })),
-        ]),
-        batch: {
-          multicall: true,
-        },
-      }) as unknown as PublicClient;
+      // this.freePublicClients[chain.id] = createPublicClient({
+      //   chain: chain,
+      //   transport: fallback([
+      //     ...publicRpcProviders[
+      //       chain.id as keyof typeof publicRpcProviders
+      //     ].map((url) => http(url, { batch: true })),
+      //   ]),
+      //   batch: {
+      //     multicall: true,
+      //   },
+      // }) as unknown as PublicClient;
 
       const drpcProvider = privateRPCProviders.drpc;
 
@@ -291,43 +291,43 @@ export class EvmChainsService {
     return this.paidPublicClients[chainId];
   }
 
-  private freePublicClient(chainId: number): PublicClient {
-    if (!this.isValidChainId(chainId)) {
-      throw new Error('Invalid chainId');
-    }
+  // private freePublicClient(chainId: number): PublicClient {
+  //   if (!this.isValidChainId(chainId)) {
+  //     throw new Error('Invalid chainId');
+  //   }
 
-    return this.freePublicClients[chainId];
-  }
+  //   return this.freePublicClients[chainId];
+  // }
 
   private publicClient(chainId: number): PublicClient {
     if (!this.isValidChainId(chainId)) {
       throw new Error('Invalid chainId');
     }
 
-    const freeClient = this.freePublicClient(chainId);
-    const paidClient = this.paidPublicClient(chainId);
+    // const freeClient = this.freePublicClient(chainId);
+    return this.paidPublicClient(chainId);
 
-    return new Proxy(freeClient, {
-      get(target, prop, receiver) {
-        const origMethod = Reflect.get(target, prop, receiver);
+    // return new Proxy(freeClient, {
+    //   get(target, prop, receiver) {
+    //     const origMethod = Reflect.get(target, prop, receiver);
 
-        if (typeof origMethod !== 'function') {
-          return origMethod;
-        }
+    //     if (typeof origMethod !== 'function') {
+    //       return origMethod;
+    //     }
 
-        return async (...args: any[]) => {
-          try {
-            return await origMethod.apply(freeClient, args);
-          } catch (err: any) {
-            if (err && typeof err === 'object' && 'cause' in err) {
-              const paidMethod = Reflect.get(paidClient, prop, receiver);
-              return await paidMethod.apply(paidClient, args);
-            }
-            throw err;
-          }
-        };
-      },
-    });
+    //     return async (...args: any[]) => {
+    //       try {
+    //         return await origMethod.apply(freeClient, args);
+    //       } catch (err: any) {
+    //         if (err && typeof err === 'object' && 'cause' in err) {
+    //           const paidMethod = Reflect.get(paidClient, prop, receiver);
+    //           return await paidMethod.apply(paidClient, args);
+    //         }
+    //         throw err;
+    //       }
+    //     };
+    //   },
+    // });
   }
 
   private walletClient(
