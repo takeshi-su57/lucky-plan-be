@@ -50,7 +50,7 @@ export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 4000n;
+  static BATCH_SIZE = 1000n;
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
