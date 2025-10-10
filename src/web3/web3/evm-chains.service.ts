@@ -18,7 +18,7 @@ import {
   avalanche,
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
-import { Mutex, Semaphore, withTimeout } from 'async-mutex';
+import { Mutex, Semaphore } from 'async-mutex';
 import { nanoid } from 'nanoid';
 
 import 'dotenv';
@@ -211,20 +211,19 @@ export class EvmChainsService {
       //   },
       // }) as unknown as PublicClient;
 
-      const drpcProvider = privateRPCProviders.drpc;
-
       this.paidPublicClients[chain.id] = createPublicClient({
         chain: chain,
         transport: fallback([
-          ...drpcProvider.tokens
-            .map((token) =>
-              drpcProvider.getUrl(
-                drpcProvider.networks[
-                  chain.id as keyof typeof drpcProvider.networks
-                ],
-                token,
+          ...Object.values(privateRPCProviders)
+            .map((provider) =>
+              provider.tokens.map((token) =>
+                provider.getUrl(
+                  provider.networks[chain.id as keyof typeof provider.networks],
+                  token,
+                ),
               ),
             )
+            .flat()
             .map((url) => http(url, { batch: true })),
         ]),
         batch: {
@@ -233,19 +232,15 @@ export class EvmChainsService {
       }) as unknown as PublicClient;
 
       this.readSemaphores[chain.id] = {
-        [ChainPriority.HIGH]: withTimeout(
-          new Semaphore(30),
-          60000,
-        ) as Semaphore,
-        [ChainPriority.MEDIUM]: withTimeout(
-          new Semaphore(5),
-          60000,
-        ) as Semaphore,
-        [ChainPriority.LOW]: withTimeout(new Semaphore(1), 60000) as Semaphore,
+        [ChainPriority.HIGH]: new Semaphore(30),
+        [ChainPriority.MEDIUM]: new Semaphore(5),
+        [ChainPriority.LOW]: new Semaphore(1),
       };
       this.writeMutexs[chain.id] = {};
 
       this.publicWalletClients[chain.id] = {};
+
+      const drpcProvider = privateRPCProviders.drpc;
 
       [
         ...publicRpcProviders[chain.id as keyof typeof publicRpcProviders],
@@ -406,10 +401,7 @@ export class EvmChainsService {
     });
 
     if (!this.writeMutexs[chainId][account.address.toLowerCase()]) {
-      this.writeMutexs[chainId][account.address.toLowerCase()] = withTimeout(
-        new Mutex(),
-        60000,
-      ) as Mutex;
+      this.writeMutexs[chainId][account.address.toLowerCase()] = new Mutex();
     }
 
     return await this.writeMutexs[chainId][
