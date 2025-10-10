@@ -39,6 +39,13 @@ export const privateRPCProviders = {
       43114: 'avalanche',
     },
     tokens: [
+      'AkmD_pBAzEUQhav-6uRSvWSbAYNipbgR8IK2wg8TMB_n',
+      'AvGtIYYogklRrpaggqvjp1j3cgGGpbgR8IK3wg8TMB_n',
+      'Aqqat3QH4EpUqjjHnLw09yI7GzhxpbkR8IK4wg8TMB_n',
+      'AnMNymlffU-QrAcuMNQPOgSDHILEpbkR8IK5wg8TMB_n',
+      'ApwGtOqeUkKxkts19FtVyeTdvuiPpbkR8IK7wg8TMB_n',
+      'AmykbowjykM3m1WsAnVq9y0lYrc4pboR8IK8wg8TMB_n',
+      'AiI0N4My2EVzmMsk9McDToJuw7n_pboR8IK9wg8TMB_n',
       'AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
       'AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
       'AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
