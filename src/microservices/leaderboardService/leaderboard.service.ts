@@ -70,13 +70,11 @@ export class LeaderboardService {
   async checkContractsForLeaderboard() {
     const contracts = await this.contractsService.findAll();
 
-    const liveContracts = contracts.filter(
-      (contract) => contract.status === ContractStatus.Live,
-    );
+    const promises = contracts
+      .filter((contract) => contract.status === ContractStatus.Live)
+      .map(async (contract) => await this.startAdaption(contract.id, false));
 
-    for (const contract of liveContracts) {
-      await this.startAdaption(contract.id, false);
-    }
+    await Promise.allSettled(promises);
   }
 
   async startAdaption(contractId: number, shouldRestart: boolean) {
