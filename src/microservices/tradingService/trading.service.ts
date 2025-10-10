@@ -65,11 +65,11 @@ export class TradingService {
         });
 
       if (perpTradingEventLogs.length === 0) {
-        await this.logger.log({
-          severity: 'Info',
-          summary: 'trading>contract-monitor>checkContractForBots',
-          details: `chain:${contract.chainId} block:${Number(fromBlock)} - latest, no logs`,
-        });
+        // await this.logger.log({
+        //   severity: 'Info',
+        //   summary: 'trading>contract-monitor>checkContractForBots',
+        //   details: `chain:${contract.chainId} block:${Number(fromBlock)} - latest, no logs`,
+        // });
 
         return;
       }
