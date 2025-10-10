@@ -140,8 +140,8 @@ export class LeaderboardService {
             chainId: contract.chainId,
             priority: ChainPriority.HIGH,
             address: contract.address as Address,
-            fromBlock: fromBlock,
-            toBlock: toBlock,
+            fromBlock,
+            toBlock,
           })
         ).filter((log) => log.topics.length > 0);
 

@@ -65,7 +65,7 @@ export class TradingController implements OnApplicationBootstrap {
     }, 10_000);
   }
 
-  @Cron(CronExpression.EVERY_SECOND)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
     if (
       this.tradingService.isReceivedKillProcess ||
