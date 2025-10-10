@@ -211,19 +211,20 @@ export class EvmChainsService {
       //   },
       // }) as unknown as PublicClient;
 
+      const drpcProvider = privateRPCProviders.drpc;
+
       this.paidPublicClients[chain.id] = createPublicClient({
         chain: chain,
         transport: fallback([
-          ...Object.values(privateRPCProviders)
-            .map((provider) =>
-              provider.tokens.map((token) =>
-                provider.getUrl(
-                  provider.networks[chain.id as keyof typeof provider.networks],
-                  token,
-                ),
+          ...drpcProvider.tokens
+            .map((token) =>
+              drpcProvider.getUrl(
+                drpcProvider.networks[
+                  chain.id as keyof typeof drpcProvider.networks
+                ],
+                token,
               ),
             )
-            .flat()
             .map((url) => http(url, { batch: true })),
         ]),
         batch: {
@@ -239,8 +240,6 @@ export class EvmChainsService {
       this.writeMutexs[chain.id] = {};
 
       this.publicWalletClients[chain.id] = {};
-
-      const drpcProvider = privateRPCProviders.drpc;
 
       [
         ...publicRpcProviders[chain.id as keyof typeof publicRpcProviders],
