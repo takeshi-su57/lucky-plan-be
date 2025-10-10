@@ -70,11 +70,13 @@ export class LeaderboardService {
   async checkContractsForLeaderboard() {
     const contracts = await this.contractsService.findAll();
 
-    const promises = contracts
-      .filter((contract) => contract.status === ContractStatus.Live)
-      .map((contract) => this.startAdaption(contract.id, false));
+    const liveContracts = contracts.filter(
+      (contract) => contract.status === ContractStatus.Live,
+    );
 
-    await Promise.allSettled(promises);
+    for (const contract of liveContracts) {
+      await this.startAdaption(contract.id, false);
+    }
   }
 
   async startAdaption(contractId: number, shouldRestart: boolean) {
@@ -107,7 +109,7 @@ export class LeaderboardService {
         Number(endBlock),
       );
 
-      await this.logger.log({
+      this.logger.log({
         severity: 'Info',
         summary: 'leaderboard>startAdaption',
         details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(endBlock)}`,
@@ -119,14 +121,14 @@ export class LeaderboardService {
             ? fromBlock + LeaderboardService.BATCH_SIZE
             : endBlock;
 
-        await this.logger.log({
+        this.logger.log({
           severity: 'Info',
           summary: 'leaderboard>startAdaption',
           details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)}`,
         });
 
         if (this.isReceivedKillProcess) {
-          await this.logger.log({
+          this.logger.log({
             severity: 'Info',
             summary: 'leaderboard>startAdaption',
             details: `killed by gnsService stopped or kill process received`,
@@ -237,14 +239,14 @@ export class LeaderboardService {
         fromBlock = toBlock + 1n;
       }
     } catch (err) {
-      await this.logger.log({
+      this.logger.log({
         severity: 'Error',
         summary: 'leaderboard>startAdaption',
         details: `contractId:${contractId} ${getReadableError(err)}`,
       });
     }
 
-    await this.logger.log({
+    this.logger.log({
       severity: 'Info',
       summary: 'leaderboard>startAdaption',
       details: `finished contractId:${contractId}`,
