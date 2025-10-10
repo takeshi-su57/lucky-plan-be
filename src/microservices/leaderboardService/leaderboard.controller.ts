@@ -69,26 +69,6 @@ export class LeaderboardController implements OnApplicationBootstrap {
       details: 'received kill process event',
     });
 
-    while (true) {
-      await delay(1000);
-
-      await this.logger.nativeLog({
-        severity: 'Info',
-        summary: 'leaderboard service killProcess',
-        details: JSON.stringify(this.leaderboardService.status, null, 2),
-      });
-
-      const isBusy = Object.values(this.leaderboardService.status).some(
-        (status) => status === ServiceStatus.PROCESS,
-      );
-
-      if (isBusy) {
-        continue;
-      }
-
-      break;
-    }
-
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.LEADERBOARD_SERVICE,
       pid: process.pid,
