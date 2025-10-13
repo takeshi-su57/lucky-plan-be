@@ -434,7 +434,7 @@ export class MissionsService {
 
     const totalMaxOpenMissions = await this.getMaxOpenMissions();
 
-    if (totalMissionCount > totalMaxOpenMissions) {
+    if (totalMissionCount >= totalMaxOpenMissions) {
       return;
     }
 
@@ -453,7 +453,7 @@ export class MissionsService {
         const missionCount =
           missionsByBotMap.get(item.context.bot.id)?.length || 0;
 
-        if (missionCount > additionalParams.maxOpenMissions) {
+        if (missionCount >= additionalParams.maxOpenMissions) {
           return false;
         }
 
