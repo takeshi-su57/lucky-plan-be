@@ -24,6 +24,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { LogsModule } from './modules/loggers/logs.module';
 import { SecurityModule } from './modules/security/security.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
+import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -56,6 +57,7 @@ import { ApiController } from './api.controller';
     LogsModule,
     SecurityModule,
     GnsModule,
+    AvntModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],

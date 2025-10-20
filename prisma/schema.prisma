@@ -51,9 +51,11 @@ model Strategy {
 enum Platform {
   GNS
   GMX
+  AVNT
 }
 
 enum Version {
+  V1
   V2
   V9
   V10

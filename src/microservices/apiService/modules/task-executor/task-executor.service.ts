@@ -20,6 +20,7 @@ import { tradeMaxClosingSlippagePUpdatedEventParser } from 'src/web3/platform/gn
 import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
 import { positionSizeDecreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-decrease-executed.parser';
+import { marginUpdateExecutedEventParser as avntMarginUpdateExecutedV1EventParser } from 'src/web3/platform/avnt/v1/eventParsers/margin-update-executed.parser';
 
 import { positionIncreaseEventParser as gmxPositionIncreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
 import { positionDecreaseEventParser as gmxPositionDecreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-decrease.parser';
@@ -64,6 +65,12 @@ import {
   getPair,
   getPairIndex,
 } from 'src/web3/platform/gns/v10/configs';
+import { parseAvntPositionKey } from 'src/web3/platform/avnt/utils';
+import {
+  missionEventParsers as avntMissionEventParsers,
+  missionEventNames as avntMissionEventNames,
+} from 'src/web3/platform/avnt/v1/eventParsers';
+import { getPairName as getAvntPairName } from 'src/web3/platform/avnt/v1/configs';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -187,24 +194,22 @@ export class TaskExecutorService {
             const achievePosition = parseGnsPositionKey(achievePositionKey!);
 
             if (!args.isIncrease) {
-              const followerTradeData = await this.gnsService.getTrade({
-                contractId: followerContract.id,
-                priority: ChainPriority.HIGH,
-                args: {
-                  address: follower.address as Address,
-                  index: achievePosition!.index,
-                },
-              });
-
-              const collateralDelta = BigInt(
-                Math.floor(
-                  (Number(followerTradeData.collateralAmount) *
-                    Number(followerTradeData.leverage)) /
-                    Number(args.values.newLeverage) -
-                    Number(followerTradeData.collateralAmount),
-                ),
-              );
-
+              // const followerTradeData = await this.gnsService.getTrade({
+              //   contractId: followerContract.id,
+              //   priority: ChainPriority.HIGH,
+              //   args: {
+              //     address: follower.address as Address,
+              //     index: achievePosition!.index,
+              //   },
+              // });
+              // const collateralDelta = BigInt(
+              //   Math.floor(
+              //     (Number(followerTradeData.collateralAmount) *
+              //       Number(followerTradeData.leverage)) /
+              //       Number(args.values.newLeverage) -
+              //       Number(followerTradeData.collateralAmount),
+              //   ),
+              // );
               // if (collateralDelta > 0n) {
               //   const result = await this.followerService.depositAsset(
               //     task.mission.bot.plan.userId,
@@ -215,14 +220,12 @@ export class TaskExecutorService {
               //       kind: 'usdc',
               //     },
               //   );
-
               //   if (!result) {
               //     await this.logger.log({
               //       severity: 'Error',
               //       summary: 'TaskExecutorService>performTask',
               //       details: `Failed at borrowing usdc from vault`,
               //     });
-
               //     return {
               //       success: 'failed',
               //       message: `Failed at borrowing usdc from vault`,
@@ -537,7 +540,7 @@ export class TaskExecutorService {
                   },
                 });
 
-                await this.handleOpenTradeTransaction(task, tx);
+                await this.handleGNSOpenTradeTransaction(task, tx);
               }
 
               if (
@@ -731,7 +734,7 @@ export class TaskExecutorService {
                 },
               });
 
-              await this.handleOpenTradeTransaction(task, tx);
+              await this.handleGNSOpenTradeTransaction(task, tx);
             } else if (Number(args.sizeDeltaUsd) === 0) {
               // it's a leverage update event
               const achievePosition = parseGnsPositionKey(achievePositionKey!);
@@ -957,6 +960,189 @@ export class TaskExecutorService {
             break;
           }
         }
+      } else if (leaderContract.platform === Platform.AVNT) {
+        switch (action.name) {
+          case avntMarginUpdateExecutedV1EventParser.eventName: {
+            const { args } =
+              avntMarginUpdateExecutedV1EventParser.actionParser(action);
+
+            const achievePosition = parseAvntPositionKey(achievePositionKey!);
+
+            const leverage = Math.max(
+              strategy.minLeverage,
+              Math.min(
+                strategy.maxLeverage,
+                Number(args.newTrade.leverage) / 1e7,
+              ),
+            );
+
+            tx = await this.gnsService.updateLeverage({
+              mnemonic,
+              accountIndex: follower.accountIndex,
+              contractId: followerContract.id,
+              args: {
+                index: achievePosition!.index,
+                newLeverage: leverage,
+              },
+            });
+
+            break;
+          }
+          default: {
+            if (avntMissionEventNames.includes(action.name)) {
+              const event = avntMissionEventParsers
+                .find((parser) => parser.eventName === action.name)!
+                .actionParser(action);
+              const { t } = event.args;
+
+              const pairName = getAvntPairName(Number(t.pairIndex));
+
+              if (!pairName) {
+                await this.missionsService.closeMany(
+                  [{ id: mission.id }],
+                  new Map(),
+                );
+
+                throw new Error(
+                  `Follower contract doesn't support this pair name: ${pairName}`,
+                );
+              }
+
+              const pairIndex = getPairIndex(
+                followerContract.chainId,
+                pairName,
+              );
+
+              if (pairIndex === -1) {
+                await this.missionsService.closeMany(
+                  [{ id: mission.id }],
+                  new Map(),
+                );
+
+                throw new Error(
+                  `Follower contract doesn't support this pairIndex: ${pairIndex}`,
+                );
+              }
+
+              if (
+                getWeb3Info(
+                  leaderContract.platform,
+                  leaderContract.version,
+                ).isOpenMissionAction(action)
+              ) {
+                const openMissionParams = getOpenMissionParams(
+                  strategy,
+                  {
+                    leverage: Number(t.leverage) / 1e7,
+                    collateralAmount: BigInt(t.initialPosToken),
+                    collateralPriceUsd: 100_000_000n,
+                    collateral: {
+                      collateralIndex: 0,
+                      isActive: true,
+                      collateral:
+                        `0x0000000000000000000000000000000000000000` as `0x${string}`,
+                      precision: 1000_000n,
+                      precisionDelta: 0n,
+                      __placeholder: 0n,
+                    },
+                    isLong: t.buy,
+                    openPrice: BigInt(t.openPrice),
+                    usdcPrice: 100_000_000n,
+                    pairIndex,
+                  },
+                  bot.leaderCollateralBaseline,
+                );
+
+                // if (openMissionParams.collateralAmount > 0n) {
+                //   const result = await this.followerService.depositAsset(
+                //     task.mission.bot.plan.userId,
+                //     {
+                //       address: follower.address,
+                //       contract: followerContract,
+                //       amount: openMissionParams.collateralAmount,
+                //       kind: 'usdc',
+                //     },
+                //   );
+
+                //   if (!result) {
+                //     await this.logger.log({
+                //       severity: 'Error',
+                //       summary: 'TaskExecutorService>performTask',
+                //       details: 'Failed at borrowing usdc from vault',
+                //     });
+
+                //     return {
+                //       success: 'failed',
+                //       message: `Failed at borrowing usdc from vault`,
+                //     };
+                //   }
+                // }
+
+                tx = await this.gnsService.openTrade({
+                  mnemonic,
+                  accountIndex: follower.accountIndex,
+                  contractId: followerContract.id,
+                  args: {
+                    trade: {
+                      ...openMissionParams,
+                      user: follower.address as Address,
+                      index: 0,
+                      pairIndex,
+                      isOpen: true,
+                      collateralIndex:
+                        USDCCollateralIndex[
+                          followerContract.chainId as keyof typeof USDCCollateralIndex
+                        ],
+                      tradeType: TradeType.TRADE,
+                      isCounterTrade: false,
+                      positionSizeToken: 0n,
+                      __placeholder: 0,
+                    },
+                    maxSlippageP: 1000,
+                  },
+                });
+
+                await this.handleGNSOpenTradeTransaction(task, tx);
+              }
+
+              if (
+                getWeb3Info(
+                  leaderContract.platform,
+                  leaderContract.version,
+                ).isCloseMissionAction(action)
+              ) {
+                const achievePosition = parseAvntPositionKey(
+                  achievePositionKey!,
+                );
+
+                tx = await this.gnsService.closeTradeMarket({
+                  mnemonic,
+                  accountIndex: follower.accountIndex,
+                  contractId: followerContract.id,
+                  args: {
+                    index: achievePosition!.index,
+                    expectedPrice: BigInt(t.openPrice),
+                  },
+                });
+
+                if (tx) {
+                  // await this.followerService.withdrawAllUSDC(
+                  //   task.mission.bot.plan.userId,
+                  //   follower.address,
+                  //   followerContract.id,
+                  // );
+
+                  return {
+                    success: 'success',
+                    message: `Task achieved tx: ${tx}`,
+                  };
+                }
+              }
+            }
+
+            break;
+          }
+        }
       }
 
       if (tx) {
@@ -987,7 +1173,7 @@ export class TaskExecutorService {
     }
   }
 
-  private async handleOpenTradeTransaction(
+  private async handleGNSOpenTradeTransaction(
     task: TaskBackwardDetails,
     tx: `0x${string}`,
   ) {
@@ -1014,10 +1200,7 @@ export class TaskExecutorService {
       ) {
         const parsed = eventToActionParser(
           decodeEventLog({
-            abi: getWeb3Info(
-              bot.followerContract.platform,
-              bot.followerContract.version,
-            ).abi,
+            abi: gnsMultiCollatDiamondAbi,
             data: log.data,
             topics: log.topics,
           }) as any,

@@ -12,6 +12,13 @@ import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
 
+import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
+import {
+  avntMarginUpdatedAbi,
+  avntMarketExecutedAbi,
+  avntLimitExecutedAbi,
+} from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
+
 @Injectable()
 export class TradingService {
   isReceivedKillProcess = false;
@@ -62,16 +69,36 @@ export class TradingService {
             ? fromBlock + TradingService.BATCH_SIZE
             : currentBlockNumber;
 
-        const actionItems = (
+        const logs = (
           await this.evmAdapterService.getLogs({
             chainId: contract.chainId,
             priority: ChainPriority.HIGH,
+            events:
+              contract.platform === Platform.AVNT
+                ? ([avntMarketExecutedAbi, avntLimitExecutedAbi] as const)
+                : undefined,
             address: contract.address as Address,
             fromBlock,
             toBlock,
           })
-        )
-          .filter((log) => log.topics.length > 0)
+        ).filter((log) => log.topics.length > 0);
+
+        if (contract.platform === Platform.AVNT) {
+          const additionalLogs = (
+            await this.evmAdapterService.getLogs({
+              chainId: contract.chainId,
+              priority: ChainPriority.HIGH,
+              address: avntContractAddresses.Trading as `0x${string}`,
+              events: [avntMarginUpdatedAbi] as const,
+              fromBlock,
+              toBlock,
+            })
+          ).filter((log) => log.topics.length > 0);
+
+          logs.push(...additionalLogs);
+        }
+
+        const actionItems = logs
           .filter((log) => {
             const info = getWeb3Info(contract.platform, contract.version);
 
@@ -100,6 +127,13 @@ export class TradingService {
               blockNumber: Number(log.blockNumber),
               logIndex: Number(log.logIndex),
             };
+          })
+          .sort((a, b) => {
+            if (a.blockNumber === b.blockNumber) {
+              return a.logIndex - b.logIndex;
+            } else {
+              return a.blockNumber - b.blockNumber;
+            }
           })
           .filter((log) =>
             getWeb3Info(

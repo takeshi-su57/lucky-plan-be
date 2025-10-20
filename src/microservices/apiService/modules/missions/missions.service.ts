@@ -6,6 +6,7 @@ import {
   getOrderIdFromMissionAction,
   missionEventParsers,
 } from 'src/web3/platform/gns/v10/eventParsers';
+import { missionEventParsers as avntMissionEventParsers } from 'src/web3/platform/avnt/v1/eventParsers';
 
 import { ActionContext, BotContext, MissionContext } from 'src/types';
 import {
@@ -41,10 +42,10 @@ import { getGnsPositionKey } from 'src/web3/platform/gns/utils';
 import { getMarketInfo, getTokenInfo } from 'src/web3/platform/gmx/v2/configs';
 import {
   getCollateral,
-  getPair,
   getPairIndex,
   getPairName,
 } from 'src/web3/platform/gns/v10/configs';
+import { getPairName as getAvntPairName } from 'src/web3/platform/avnt/v1/configs';
 
 const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
 
@@ -590,6 +591,66 @@ export class MissionsService {
               openPrice: 0n,
               usdcPrice: 100_000_000n,
               pairIndex: pairIndex,
+            },
+            item.context.bot.leaderCollateralBaseline,
+          );
+
+          // block leader action register if collateral is less than 25 USDC
+          if (openMissionParams.collateralAmount < MIN_POSITION_SIZE) {
+            return false;
+          }
+
+          return true;
+        }
+
+        if (item.context.bot.leaderContract.platform === Platform.AVNT) {
+          const event = avntMissionEventParsers
+            .find((parser) => parser.eventName === item.action.name)!
+            .actionParser(item.action);
+
+          const pairName = getAvntPairName(Number(event.args.t.pairIndex));
+
+          if (!pairName) {
+            return false;
+          }
+
+          if (
+            selectedPairKeys.length > 0 &&
+            !selectedPairKeys.includes(
+              getPairKey(pairName, Boolean(event.args.t.buy)),
+            )
+          ) {
+            return false;
+          }
+
+          const pairIndex = getPairIndex(
+            item.context.bot.followerContract.chainId,
+            pairName,
+          );
+
+          if (pairIndex === -1) {
+            return false;
+          }
+
+          const openMissionParams = getOpenMissionParams(
+            item.context.bot.strategy,
+            {
+              leverage: Number(event.args.t.leverage) / 1e7,
+              collateralAmount: BigInt(event.args.positionSizeUSDC),
+              collateralPriceUsd: 100_000_000n,
+              collateral: {
+                collateralIndex: 0,
+                isActive: true,
+                collateral:
+                  `0x0000000000000000000000000000000000000000` as `0x${string}`,
+                precision: 1000_000n,
+                precisionDelta: 0n,
+                __placeholder: 0n,
+              },
+              isLong: event.args.t.buy,
+              openPrice: 0n,
+              usdcPrice: 100_000_000n,
+              pairIndex: Number(event.args.t.pairIndex),
             },
             item.context.bot.leaderCollateralBaseline,
           );
