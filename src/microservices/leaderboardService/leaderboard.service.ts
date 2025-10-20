@@ -777,12 +777,6 @@ export class LeaderboardService {
                       Number(args.positionSizeUSDC)) /
                     1e6;
 
-              usdPnl =
-                args.orderType === PendingOrderType.LIMIT_OPEN
-                  ? 0
-                  : (Number(args.usdcSentToTrader) -
-                      Number(args.positionSizeUSDC)) /
-                    1e6;
               break;
             }
             default: {
