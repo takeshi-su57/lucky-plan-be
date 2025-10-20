@@ -14,7 +14,7 @@ import { contractAddresses } from './v1/configs';
 @Injectable()
 export class AvntService {
   constructor(private readonly chainsService: EvmChainsService) {
-    this.loadPairData();
+    // this.loadPairData();
   }
 
   async loadPairData() {
@@ -31,45 +31,38 @@ export class AvntService {
       },
     );
 
-    const pairsData = await this.chainsService.readWithSemaphore(
-      base.id,
-      ChainPriority.LOW,
-      async (publicClient) => {
-        return await publicClient.multicall({
-          contracts: Array.from(Array(Number(pairsCount)).keys()).map(
-            (item) =>
-              ({
-                address: contractAddresses.PairStorage as Address,
-                abi: pairStorageAbi,
-                functionName: 'pairData',
-                args: [BigInt(item)],
-              }) as {
-                abi: typeof pairStorageAbi;
-                functionName: 'pairData';
-                args: [bigint];
-                address: Address;
-              },
-          ),
-        });
-      },
-    );
+    console.log('pairsCount', pairsCount);
 
-    const failedPair = pairsData.find((pair) => pair.status === 'failure');
+    const pairsData: {
+      pairIndex: number;
+      from: string;
+      to: string;
+      numTiers: bigint;
+    }[] = [];
 
-    if (failedPair) {
-      throw new Error('Failed at getting trading variable');
+    for (let i = 0; i < Number(pairsCount); i++) {
+      const pairData = await this.chainsService.readWithSemaphore(
+        base.id,
+        ChainPriority.LOW,
+        async (publicClient) => {
+          return await publicClient.readContract({
+            address: contractAddresses.PairStorage as Address,
+            abi: pairStorageAbi,
+            functionName: 'pairData',
+            args: [BigInt(i)],
+          });
+        },
+      );
+
+      pairsData.push({
+        pairIndex: i,
+        from: pairData[0],
+        to: pairData[1],
+        numTiers: pairData[2],
+      });
     }
 
-    const pairs = pairsData
-      .map((item) => item.result)
-      .filter((item) => item !== undefined)
-      .map((item, index) => ({
-        pairIndex: index,
-        from: item[0],
-        to: item[1],
-        numTiers: item[2],
-      }));
-
+    const pairs = pairsData;
     const pairsConfigPath = path.join(__dirname, 'pairs-config.json');
     // Ensure the directory exists before writing the file
     const ensureDirectoryExistence = (filePath: string) => {
