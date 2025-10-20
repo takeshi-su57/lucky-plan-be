@@ -11,6 +11,7 @@ import { LeaderboardService } from './leaderboard.service';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
+import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
 
 @Module({
   imports: [
@@ -19,8 +20,9 @@ import { Web3Module } from 'src/web3/web3/web3.module';
     ContractsModule,
     TradeHistoriesModule,
     PlansModule,
-    GnsModule,
     Web3Module,
+    GnsModule,
+    AvntModule,
   ],
   controllers: [LeaderboardController],
   providers: [LeaderboardService],

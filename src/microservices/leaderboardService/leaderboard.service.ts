@@ -23,6 +23,11 @@ import { leverageUpdateExecutedEventParser as leverageUpdateExecutedV9EventParse
 import { marketExecutedEventParser as marketExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/market-executed.parser';
 import { limitExecutedEventParser as limitExecutedV9EventParser } from 'src/web3/platform/gns/v9/eventParsers/limit-executed.parser';
 
+import { marketExecutedEventParser as avntMarketExecutedV1EventParser } from 'src/web3/platform/avnt/v1/eventParsers/market-executed.parser';
+import { limitExecutedEventParser as avntLimitExecutedV1EventParser } from 'src/web3/platform/avnt/v1/eventParsers/limit-executed.parser';
+import { marginUpdateExecutedEventParser as avntMarginUpdateExecutedV1EventParser } from 'src/web3/platform/avnt/v1/eventParsers/margin-update-executed.parser';
+import { eventToActionParser as eventToActionParserForAVNT } from 'src/web3/platform/avnt/v1/eventParsers';
+
 import { getReadableError } from '../../utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
 
@@ -37,6 +42,13 @@ import {
   CancelReason,
   PendingOrderType,
 } from '../../web3/platform/gns/v10/types';
+import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
+import {
+  avntMarginUpdatedAbi,
+  avntMarketExecutedAbi,
+  avntLimitExecutedAbi,
+} from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
+import { LimitOrder } from 'src/web3/platform/avnt/v1/types';
 
 import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
 
@@ -44,6 +56,7 @@ import { getWeb3Info } from 'src/web3/utils';
 import { parseGnsPositionKey } from 'src/web3/platform/gns/utils';
 import { getCollateral as getCollateralV9 } from 'src/web3/platform/gns/v9/configs';
 import { getCollateral as getCollateralV10 } from 'src/web3/platform/gns/v10/configs';
+import { parseAvntPositionKey } from 'src/web3/platform/avnt/utils';
 
 @Injectable()
 export class LeaderboardService {
@@ -139,11 +152,30 @@ export class LeaderboardService {
           await this.evmAdapterService.getLogs({
             chainId: contract.chainId,
             priority: ChainPriority.HIGH,
+            events:
+              contract.platform === Platform.AVNT
+                ? ([avntMarketExecutedAbi, avntLimitExecutedAbi] as const)
+                : undefined,
             address: contract.address as Address,
             fromBlock,
             toBlock,
           })
         ).filter((log) => log.topics.length > 0);
+
+        if (contract.platform === Platform.AVNT) {
+          const additionalLogs = (
+            await this.evmAdapterService.getLogs({
+              chainId: contract.chainId,
+              priority: ChainPriority.HIGH,
+              address: avntContractAddresses.Trading as `0x${string}`,
+              events: [avntMarginUpdatedAbi] as const,
+              fromBlock,
+              toBlock,
+            })
+          ).filter((log) => log.topics.length > 0);
+
+          logs.push(...additionalLogs);
+        }
 
         const block = await this.evmAdapterService.getValidBlock({
           chainId: contract.chainId,
@@ -180,6 +212,13 @@ export class LeaderboardService {
               blockNumber: Number(log.blockNumber),
               logIndex: Number(log.logIndex),
             };
+          })
+          .sort((a, b) => {
+            if (a.blockNumber === b.blockNumber) {
+              return a.logIndex - b.logIndex;
+            } else {
+              return a.blockNumber - b.blockNumber;
+            }
           });
 
         await this.eventLogsService.createManyEventLogs(
@@ -222,6 +261,16 @@ export class LeaderboardService {
         if (contract.platform === Platform.GMX) {
           if (contract.version === Version.V2) {
             await this.handleEventLogForGmxV2({
+              contract,
+              block,
+              perpTradeEventLogs,
+            });
+          }
+        }
+
+        if (contract.platform === Platform.AVNT) {
+          if (contract.version === Version.V1) {
+            await this.handleEventLogForAvntV1({
               contract,
               block,
               perpTradeEventLogs,
@@ -673,6 +722,93 @@ export class LeaderboardService {
         blockNumber: item.blockNumber,
         timestamp: new Date(Number(block.timestamp) * 1000),
       })),
+    );
+  }
+
+  private async handleEventLogForAvntV1({
+    contract,
+    block,
+    perpTradeEventLogs,
+  }: {
+    contract: Contract;
+    block: Block;
+    perpTradeEventLogs: {
+      eventLog: any;
+      blockNumber: number;
+      logIndex: number;
+    }[];
+  }) {
+    const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
+      perpTradeEventLogs
+        .map((log) => {
+          let usdPnl = 0;
+
+          const parsed = eventToActionParserForAVNT(log.eventLog as any);
+
+          switch (parsed.name) {
+            case avntMarginUpdateExecutedV1EventParser.eventName: {
+              const { args } =
+                avntMarginUpdateExecutedV1EventParser.actionParser(parsed);
+
+              usdPnl = Number(args.marginFees) / 1e6;
+
+              break;
+            }
+            case avntMarketExecutedV1EventParser.eventName: {
+              const { args } =
+                avntMarketExecutedV1EventParser.actionParser(parsed);
+
+              usdPnl = args.open
+                ? 0
+                : (Number(args.usdcSentToTrader) -
+                    Number(args.positionSizeUSDC)) /
+                  1e6;
+
+              break;
+            }
+            case avntLimitExecutedV1EventParser.eventName: {
+              const { args } =
+                avntLimitExecutedV1EventParser.actionParser(parsed);
+
+              usdPnl =
+                args.orderType === LimitOrder.OPEN
+                  ? 0
+                  : (Number(args.usdcSentToTrader) -
+                      Number(args.positionSizeUSDC)) /
+                    1e6;
+
+              usdPnl =
+                args.orderType === PendingOrderType.LIMIT_OPEN
+                  ? 0
+                  : (Number(args.usdcSentToTrader) -
+                      Number(args.positionSizeUSDC)) /
+                    1e6;
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+
+          const { address } = parseAvntPositionKey(parsed.positionKey);
+
+          return {
+            contractId: contract.id,
+            platform: contract.platform,
+            address: address.toLowerCase(),
+            jsonLog: JSON.stringify(log.eventLog, (_, v) =>
+              typeof v === 'bigint' ? v.toString() : v,
+            ),
+            usdPnl,
+            block: log.blockNumber,
+            logIndex: log.logIndex,
+            date: new Date(Number(block.timestamp) * 1000),
+          };
+        })
+        .filter((item) => item !== null);
+
+    await this.eventLogsService.createManyPerpTradingEventLogs(
+      perpTradingEventInputs,
     );
   }
 
