@@ -15,6 +15,7 @@ import { BacktestService } from './modules/trade-histories/backtest.service';
 
 import { LogsService } from 'src/global/logs.service';
 import { timeout } from 'rxjs';
+import { LimitOrder } from 'src/web3/platform/avnt/v1/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
