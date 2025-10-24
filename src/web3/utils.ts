@@ -24,6 +24,14 @@ import {
   eventToActionParser as eventToActionParserForGMX,
   eventToPerpTradeHistory as eventToPerpTradeHistoryForGMX,
 } from 'src/web3/platform/gmx/v2/eventParsers';
+import {
+  eventParsers as eventParsersForAVNT,
+  isOpenMissionAction as isOpenMissionActionForAVNT,
+  isCloseMissionAction as isCloseMissionActionForAVNT,
+  eventToActionParser as eventToActionParserForAVNT,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryForAVNT,
+} from 'src/web3/platform/avnt/v1/eventParsers';
+import { avntGeneralAbi } from './platform/avnt/v1/abi/AvntGeneral';
 
 const gnsV10EventSignatures: Record<string, string> = Object.fromEntries(
   gnsV10Abi
@@ -40,6 +48,9 @@ const gnsV9EventSignatures: Record<string, string> = Object.fromEntries(
 const gnsV9PerpTradeEventNames = eventParsersV9.map((item) => item.eventName);
 const gnsV10PerpTradeEventNames = eventParsersV10.map((item) => item.eventName);
 const gmxV2PerpTradeEventNames = eventParsersForGMX.map(
+  (item) => item.eventName,
+);
+const avntV1PerpTradeEventNames = eventParsersForAVNT.map(
   (item) => item.eventName,
 );
 
@@ -75,6 +86,17 @@ const info = {
       eventToPerpTradeHistory: eventToPerpTradeHistoryForGMX,
     },
   },
+  [Platform.AVNT]: {
+    [Version.V1]: {
+      tradeEventNames: avntV1PerpTradeEventNames,
+      eventSignatures: null,
+      eventToActionParser: eventToActionParserForAVNT,
+      isOpenMissionAction: isOpenMissionActionForAVNT,
+      isCloseMissionAction: isCloseMissionActionForAVNT,
+      abi: avntGeneralAbi,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryForAVNT,
+    },
+  },
 };
 
 export function getWeb3Info(platform: Platform, version: Version) {
@@ -89,6 +111,14 @@ export function getWeb3Info(platform: Platform, version: Version) {
   if (platform === Platform.GMX) {
     if (version === Version.V2) {
       return info[Platform.GMX][version];
+    } else {
+      throw new Error('Invalid version');
+    }
+  }
+
+  if (platform === Platform.AVNT) {
+    if (version === Version.V1) {
+      return info[Platform.AVNT][version];
     } else {
       throw new Error('Invalid version');
     }

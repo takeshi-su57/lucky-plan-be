@@ -12,7 +12,7 @@ import * as dayjs from 'dayjs';
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay, getReadableError } from 'src/utils';
+import { getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
 
@@ -210,6 +210,11 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
       await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
         Platform.GMX,
+        dayjs(new Date()).format('YYYY-MM-DD'),
+      );
+
+      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+        Platform.AVNT,
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 

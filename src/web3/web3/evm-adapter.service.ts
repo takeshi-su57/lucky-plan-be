@@ -265,6 +265,7 @@ export class EvmAdapterService {
           fromBlock: payload.fromBlock,
           toBlock: payload.toBlock,
           address: payload.address,
+          events: payload.events,
         });
       },
     );

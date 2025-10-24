@@ -1,4 +1,4 @@
-import { Address } from 'viem';
+import { AbiEvent, Address } from 'viem';
 import { ChainPriority } from 'src/types';
 
 export type Erc20TransferPayload = {
@@ -73,6 +73,7 @@ export type GetLogsPayload = {
   chainId: number;
   priority: ChainPriority;
   address: Address;
+  events?: readonly AbiEvent[] | readonly unknown[];
   fromBlock: bigint;
   toBlock?: bigint;
 };
