@@ -213,6 +213,11 @@ export class LeaderboardController implements OnApplicationBootstrap {
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 
+      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+        Platform.AVNT,
+        dayjs(new Date()).format('YYYY-MM-DD'),
+      );
+
       if (this.count % 3 === 0) {
         await this.autoPlansV2Service.createAutoPlans();
       }

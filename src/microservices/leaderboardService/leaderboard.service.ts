@@ -43,11 +43,6 @@ import {
   PendingOrderType,
 } from '../../web3/platform/gns/v10/types';
 import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
-import {
-  avntMarginUpdatedAbi,
-  avntMarketExecutedAbi,
-  avntLimitExecutedAbi,
-} from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
 import { LimitOrder } from 'src/web3/platform/avnt/v1/types';
 
 import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
@@ -57,13 +52,16 @@ import { parseGnsPositionKey } from 'src/web3/platform/gns/utils';
 import { getCollateral as getCollateralV9 } from 'src/web3/platform/gns/v9/configs';
 import { getCollateral as getCollateralV10 } from 'src/web3/platform/gns/v10/configs';
 import { parseAvntPositionKey } from 'src/web3/platform/avnt/utils';
+import { delay } from 'src/utils';
+
+import { avntGeneralAbi } from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
 
 @Injectable()
 export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 1000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
@@ -148,34 +146,18 @@ export class LeaderboardService {
           break;
         }
 
-        const logs = (
-          await this.evmAdapterService.getLogs({
-            chainId: contract.chainId,
-            priority: ChainPriority.HIGH,
-            events:
-              contract.platform === Platform.AVNT
-                ? ([avntMarketExecutedAbi, avntLimitExecutedAbi] as const)
-                : undefined,
-            address: contract.address as Address,
-            fromBlock,
-            toBlock,
-          })
-        ).filter((log) => log.topics.length > 0);
-
-        if (contract.platform === Platform.AVNT) {
-          const additionalLogs = (
-            await this.evmAdapterService.getLogs({
-              chainId: contract.chainId,
-              priority: ChainPriority.HIGH,
-              address: avntContractAddresses.Trading as `0x${string}`,
-              events: [avntMarginUpdatedAbi] as const,
-              fromBlock,
-              toBlock,
-            })
-          ).filter((log) => log.topics.length > 0);
-
-          logs.push(...additionalLogs);
-        }
+        const logs =
+          contract.platform === Platform.AVNT
+            ? []
+            : (
+                await this.evmAdapterService.getLogs({
+                  chainId: contract.chainId,
+                  priority: ChainPriority.HIGH,
+                  address: contract.address as Address,
+                  fromBlock,
+                  toBlock,
+                })
+              ).filter((log) => log.topics.length > 0);
 
         const block = await this.evmAdapterService.getValidBlock({
           chainId: contract.chainId,
@@ -183,7 +165,7 @@ export class LeaderboardService {
           blockNumber: fromBlock,
         });
 
-        const eventLogs = logs
+        let eventLogs = logs
           .filter((log) => {
             const info = getWeb3Info(contract.platform, contract.version);
 
@@ -212,14 +194,70 @@ export class LeaderboardService {
               blockNumber: Number(log.blockNumber),
               logIndex: Number(log.logIndex),
             };
-          })
-          .sort((a, b) => {
+          });
+
+        if (contract.platform === Platform.AVNT) {
+          const additionalLogs1 = (
+            await this.evmAdapterService.getLogs({
+              chainId: contract.chainId,
+              priority: ChainPriority.HIGH,
+              address: avntContractAddresses.TradingCallback as `0x${string}`,
+              fromBlock,
+              toBlock,
+            })
+          ).filter((log) => log.topics.length > 0);
+
+          await delay(1_000);
+
+          const additionalLogs2 = (
+            await this.evmAdapterService.getLogs({
+              chainId: contract.chainId,
+              priority: ChainPriority.HIGH,
+              address: avntContractAddresses.Trading as `0x${string}`,
+              fromBlock,
+              toBlock,
+            })
+          ).filter((log) => log.topics.length > 0);
+
+          const additionalEventLogs = [...additionalLogs1, ...additionalLogs2]
+            .map((log) => {
+              try {
+                return {
+                  eventLog: decodeEventLog({
+                    abi: avntGeneralAbi,
+                    data: log.data,
+                    topics: log.topics,
+                  }),
+                  blockNumber: Number(log.blockNumber),
+                  logIndex: Number(log.logIndex),
+                };
+              } catch {
+                return null;
+              }
+            })
+            .filter((item) => !!item);
+
+          eventLogs = [...eventLogs, ...additionalEventLogs].sort((a, b) => {
             if (a.blockNumber === b.blockNumber) {
               return a.logIndex - b.logIndex;
             } else {
               return a.blockNumber - b.blockNumber;
             }
           });
+        }
+
+        const eventNamesMap: Record<string, number> = {};
+
+        eventLogs.forEach((log) => {
+          eventNamesMap[log.eventLog.eventName] =
+            (eventNamesMap[log.eventLog.eventName] || 0) + 1;
+        });
+
+        this.logger.log({
+          severity: 'Info',
+          summary: 'leaderboard>startAdaption',
+          details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)} - ${JSON.stringify(eventNamesMap, null, 2)}`,
+        });
 
         await this.eventLogsService.createManyEventLogs(
           eventLogs.map((log) => ({

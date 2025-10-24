@@ -13,11 +13,7 @@ import { getWeb3Info } from 'src/web3/utils';
 import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
 
 import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
-import {
-  avntMarginUpdatedAbi,
-  avntMarketExecutedAbi,
-  avntLimitExecutedAbi,
-} from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
+import { delay } from 'src/utils';
 
 @Injectable()
 export class TradingService {
@@ -73,10 +69,6 @@ export class TradingService {
           await this.evmAdapterService.getLogs({
             chainId: contract.chainId,
             priority: ChainPriority.HIGH,
-            events:
-              contract.platform === Platform.AVNT
-                ? ([avntMarketExecutedAbi, avntLimitExecutedAbi] as const)
-                : undefined,
             address: contract.address as Address,
             fromBlock,
             toBlock,
@@ -84,12 +76,12 @@ export class TradingService {
         ).filter((log) => log.topics.length > 0);
 
         if (contract.platform === Platform.AVNT) {
+          delay(1_000);
           const additionalLogs = (
             await this.evmAdapterService.getLogs({
               chainId: contract.chainId,
               priority: ChainPriority.HIGH,
               address: avntContractAddresses.Trading as `0x${string}`,
-              events: [avntMarginUpdatedAbi] as const,
               fromBlock,
               toBlock,
             })
@@ -107,27 +99,32 @@ export class TradingService {
               : true;
           })
           .map((log) => {
-            const decoded: any = decodeEventLog({
-              abi: getWeb3Info(contract.platform, contract.version).abi,
-              data: log.data,
-              topics: log.topics,
-            });
+            try {
+              const decoded: any = decodeEventLog({
+                abi: getWeb3Info(contract.platform, contract.version).abi,
+                data: log.data,
+                topics: log.topics,
+              });
 
-            let eventLog = decoded;
+              let eventLog = decoded;
 
-            if (contract.platform === Platform.GMX) {
-              eventLog = parseEvent(
-                decoded.args.eventName,
-                decoded.args.eventData,
-              );
+              if (contract.platform === Platform.GMX) {
+                eventLog = parseEvent(
+                  decoded.args.eventName,
+                  decoded.args.eventData,
+                );
+              }
+
+              return {
+                eventLog,
+                blockNumber: Number(log.blockNumber),
+                logIndex: Number(log.logIndex),
+              };
+            } catch {
+              return null;
             }
-
-            return {
-              eventLog,
-              blockNumber: Number(log.blockNumber),
-              logIndex: Number(log.logIndex),
-            };
           })
+          .filter((item) => !!item)
           .sort((a, b) => {
             if (a.blockNumber === b.blockNumber) {
               return a.logIndex - b.logIndex;
