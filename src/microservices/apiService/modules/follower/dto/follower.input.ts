@@ -25,6 +25,49 @@ export class WithdrawAllInput {
 }
 
 @InputType()
+export class OpenTradeInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  pairIndex: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  leverage: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Boolean)
+  long: boolean;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  collateralAmount: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  tp: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => String)
+  sl: string;
+}
+
+@InputType()
 export class CloseTradeInput {
   @IsNotEmpty()
   @IsWalletAddress()
@@ -63,6 +106,90 @@ export class CancelOrderAfterTimeoutInput {
   @IsNumber()
   @Field(() => Int)
   index: number;
+}
+
+@InputType()
+export class UpdateLeverageInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  newLeverage: number;
+}
+
+@InputType()
+export class IncreasePositionSizeInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  pairIndex: number;
+
+  @IsNotEmpty()
+  @Field(() => String)
+  collateralDelta: string;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  leverageDelta: number;
+}
+
+@InputType()
+export class DecreasePositionSizeInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  index: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  pairIndex: number;
+
+  @IsNotEmpty()
+  @Field(() => String)
+  collateralDelta: string;
+
+  @IsNotEmpty()
+  @Field(() => Int)
+  leverageDelta: number;
 }
 
 @InputType()

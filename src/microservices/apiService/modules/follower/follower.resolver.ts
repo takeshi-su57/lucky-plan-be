@@ -15,6 +15,10 @@ import {
   UpdateSlInput,
   UpdateTpInput,
   WithdrawPositivePnlInput,
+  OpenTradeInput,
+  UpdateLeverageInput,
+  IncreasePositionSizeInput,
+  DecreasePositionSizeInput,
 } from './dto/follower.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
@@ -94,6 +98,46 @@ export class FollowerResolver {
       amount,
       contractId,
     );
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  openTradeMarket(
+    @Args('input') input: OpenTradeInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.openTradeMarket(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updateLeverage(
+    @Args('input') input: UpdateLeverageInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.updateLeverage(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  increasePositionSize(
+    @Args('input') input: IncreasePositionSizeInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.increasePositionSize(user.address, input);
+  }
+
+  @Mutation(() => ContractExecutionResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  decreasePositionSize(
+    @Args('input') input: DecreasePositionSizeInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.decreasePositionSize(user.address, input);
   }
 
   @Mutation(() => ContractExecutionResult)

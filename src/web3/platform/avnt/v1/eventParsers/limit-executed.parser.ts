@@ -1,5 +1,5 @@
 import { DecodeEventLogReturnType, getAbiItem } from 'viem';
-import { tradingCallbackAbi } from '../abi/ICallback';
+import { tradingCallbackAbi } from '../abi/TradingCallback';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getAvntPositionKey } from '../../utils';
 import {
