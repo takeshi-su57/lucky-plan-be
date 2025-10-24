@@ -208,6 +208,20 @@ async function main() {
       status: ContractStatus.Dead,
       isTestnet: false,
     },
+    {
+      platform: Platform.AVNT,
+      version: Version.V1,
+      chainId: 8453,
+      address: '0x0c16ff40065cc3ab4bc55b60e447504afb9c7970',
+      description: 'Avnt V1 TradingCallback on Base',
+      fromBlock: 26677638,
+      toBlock: 0,
+      lastBlockNumber: 26677638,
+      lastLeaderboardBlockNumber: 26677638,
+      backendUrl: '',
+      status: ContractStatus.Dead,
+      isTestnet: false,
+    },
   ];
 
   for (const data of contractData) {

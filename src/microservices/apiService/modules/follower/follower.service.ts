@@ -18,10 +18,14 @@ import {
 import { PnlSnapshot } from 'src/microservices/apiService/modules/trade-histories/entities/trade-history.entity';
 import {
   CancelOrderAfterTimeoutInput,
+  OpenTradeInput,
   CloseTradeInput,
+  UpdateLeverageInput,
   UpdateSlInput,
   UpdateTpInput,
   WithdrawPositivePnlInput,
+  IncreasePositionSizeInput,
+  DecreasePositionSizeInput,
 } from './dto/follower.input';
 import { getReadableError } from 'src/utils';
 import { ChainPriority, EncryptedData } from 'src/types';
@@ -38,6 +42,7 @@ import {
   parseGnsPositionKey,
 } from 'src/web3/platform/gns/utils';
 import { getCollateral } from 'src/web3/platform/gns/v10/configs';
+import { TradeType } from 'src/web3/platform/gns/v10/types';
 
 @Injectable()
 export class FollowerService {
@@ -742,6 +747,349 @@ export class FollowerService {
     }
 
     return [];
+  }
+
+  async openTradeMarket(
+    userId: string,
+    input: OpenTradeInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      const currentPrice = await this.gnsService.getPairPrice(input.pairIndex);
+
+      tx = await this.gnsService.openTrade({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          trade: {
+            user: input.address as Address,
+            pairIndex: input.pairIndex,
+            leverage: input.leverage,
+            long: input.long,
+            collateralAmount: BigInt(input.collateralAmount),
+            tp: BigInt(input.tp),
+            sl: BigInt(input.sl),
+            openPrice: currentPrice,
+            collateralIndex: 3,
+            tradeType: TradeType.TRADE,
+            index: 0,
+            isOpen: true,
+            isCounterTrade: false,
+            positionSizeToken: 0n,
+            __placeholder: 0,
+          },
+          maxSlippageP: 1000,
+        },
+      });
+
+      if (tx) {
+        return {
+          success: true,
+          message: `Trade opened`,
+          index: 0,
+          address: input.address,
+          contractId: input.contractId,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: 0,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>openTradeMarket tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: 0,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async updateLeverage(
+    userId: string,
+    input: UpdateLeverageInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      tx = await this.gnsService.updateLeverage({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          newLeverage: input.newLeverage,
+        },
+      });
+
+      if (tx) {
+        return {
+          success: true,
+          message: `Trade leverage updated`,
+          address: input.address,
+          index: input.index,
+          contractId: input.contractId,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>updateLeverage tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async increasePositionSize(
+    userId: string,
+    input: IncreasePositionSizeInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      const currentPrice = await this.gnsService.getPairPrice(input.pairIndex);
+
+      tx = await this.gnsService.increasePositionSize({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          collateralDelta: BigInt(input.collateralDelta),
+          leverageDelta: input.leverageDelta,
+          expectedPrice: currentPrice,
+          maxSlippageP: 1000,
+        },
+      });
+
+      if (tx) {
+        return {
+          success: true,
+          message: `Position Size Increased`,
+          index: input.index,
+          address: input.address,
+          contractId: input.contractId,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>positionSizeIncrease tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
+  }
+
+  async decreasePositionSize(
+    userId: string,
+    input: DecreasePositionSizeInput,
+  ): Promise<ContractExecutionResult> {
+    let tx: string = 'no tx';
+
+    try {
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: input.address.toLowerCase(),
+        },
+      });
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      if (follower.userId !== userId) {
+        throw new Error('Unauthorized User');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      const currentPrice = await this.gnsService.getPairPrice(input.pairIndex);
+
+      tx = await this.gnsService.decreasePositionSize({
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        contractId: input.contractId,
+        args: {
+          index: input.index,
+          collateralDelta: BigInt(input.collateralDelta),
+          leverageDelta: input.leverageDelta,
+          expectedPrice: currentPrice,
+        },
+      });
+
+      if (tx) {
+        return {
+          success: true,
+          message: `Position Size Decreased`,
+          index: input.index,
+          address: input.address,
+          contractId: input.contractId,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Transaction not found tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>positionSizeDecrease tx: ${tx}`,
+        details: getReadableError(err),
+      });
+
+      return {
+        success: false,
+        message: `${JSON.stringify(err, (_, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        )} tx: ${tx}`,
+        address: input.address,
+        index: input.index,
+        contractId: input.contractId,
+      };
+    }
   }
 
   async closeTradeMarket(

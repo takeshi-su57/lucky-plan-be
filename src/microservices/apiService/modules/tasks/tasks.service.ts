@@ -46,6 +46,7 @@ import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { positionIncreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
 import { positionDecreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-decrease.parser';
+import { bigIntSafeJsonStringify } from 'src/utils';
 
 @Injectable()
 export class TasksService {
@@ -265,11 +266,11 @@ export class TasksService {
       openEvent.args.t.pairIndex,
     );
 
-    const newArgs = JSON.stringify({
+    const newArgs = bigIntSafeJsonStringify({
       ...openEvent.args,
       t: {
         ...openEvent.args.t,
-        openPrice: currentPrice.toString(),
+        openPrice: BigInt(currentPrice.toString()),
         ...(manualParams
           ? {
               collateralAmount: manualParams.collateralAmount,

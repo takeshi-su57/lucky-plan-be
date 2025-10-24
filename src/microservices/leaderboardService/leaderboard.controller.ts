@@ -12,7 +12,7 @@ import * as dayjs from 'dayjs';
 import { ServiceStatus } from 'src/types';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { delay, getReadableError } from 'src/utils';
+import { getReadableError } from 'src/utils';
 
 import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
 
@@ -68,26 +68,6 @@ export class LeaderboardController implements OnApplicationBootstrap {
       summary: 'leaderboard service killProcess',
       details: 'received kill process event',
     });
-
-    while (true) {
-      await delay(1000);
-
-      await this.logger.nativeLog({
-        severity: 'Info',
-        summary: 'leaderboard service killProcess',
-        details: JSON.stringify(this.leaderboardService.status, null, 2),
-      });
-
-      const isBusy = Object.values(this.leaderboardService.status).some(
-        (status) => status === ServiceStatus.PROCESS,
-      );
-
-      if (isBusy) {
-        continue;
-      }
-
-      break;
-    }
 
     await this.client.emit(PATTERNS.ProcessStatus, {
       service: SERVICE_NAMES.LEADERBOARD_SERVICE,
@@ -196,7 +176,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
     return true;
   }
 
-  @Cron(CronExpression.EVERY_SECOND)
+  @Cron(CronExpression.EVERY_MINUTE)
   async checkContractsForLeaderboard() {
     const isLeaderboardBusy = Object.values(
       this.leaderboardService.status,
@@ -230,6 +210,11 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
       await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
         Platform.GMX,
+        dayjs(new Date()).format('YYYY-MM-DD'),
+      );
+
+      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+        Platform.AVNT,
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 
