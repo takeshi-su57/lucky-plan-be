@@ -527,6 +527,8 @@ type Mutation {
   openTradeMarket(input: OpenTradeInput!): ContractExecutionResult!
   pauseSystem: Boolean!
   performTask(id: Int!): Boolean!
+  registerTradingSignalLog(address: String!, platform: Platform!): TradingSignalLog!
+  removeEventLogsFromTradingSignalLog(eventLogIds: [Int!]!, signalId: Int!): TradingSignalLog!
   removeFromBlacklist(address: String!): Boolean!
   removeFromWhitelist(address: String!): Boolean!
   removeTagFromWalletAccount(input: ChangeUserTagInput!): WalletAccount!
@@ -536,6 +538,7 @@ type Mutation {
   startSubService(service: String!): Boolean!
   stopBot(id: Int!): Boolean!
   stopTask(id: Int!): Boolean!
+  unregisterTradingSignalLog(signalId: Int!): TradingSignalLog!
   updateLeverage(input: UpdateLeverageInput!): ContractExecutionResult!
   updateMaxOpenMissions(maxCount: Int!): Boolean!
   updatePlan(updatePlanInput: UpdatePlanInput!): Plan!
@@ -794,6 +797,7 @@ type Query {
   getTestingReport(after: Int, first: Int!): TestingReportConnection!
   getTradeHistories(address: String!, contractId: Int!): [TradeHistory!]!
   getTradeTransactionCounts(addresses: [String!]!, contractIds: [Int!]!): TradeTransactionCount!
+  getTradingSignalLogs: [TradingSignalLog!]!
   getUserTransactionCounts(inputs: [GetUserTransactionCountsInput!]!): [TradeTransactionCount!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
   getWhitelist: [String!]
@@ -1017,6 +1021,13 @@ type TradeTransactionCount {
   daily: Int!
   monthly: Int!
   weekly: Int!
+}
+
+type TradingSignalLog {
+  address: String!
+  eventLogs: [PerpTradingEventLog!]!
+  id: Int!
+  platform: String!
 }
 
 input UpdateLeverageInput {

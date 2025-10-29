@@ -15,7 +15,6 @@ import { BacktestService } from './modules/trade-histories/backtest.service';
 
 import { LogsService } from 'src/global/logs.service';
 import { timeout } from 'rxjs';
-import { LimitOrder } from 'src/web3/platform/avnt/v1/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -23,6 +22,7 @@ dayjs.extend(timezone);
 const microservices = [
   SERVICE_NAMES.LEADERBOARD_SERVICE,
   SERVICE_NAMES.TRADING_SERVICE,
+  SERVICE_NAMES.SNAPSHOT_SERVICE,
   // SERVICE_NAMES.BOT_HOOKS_SERVICE,
   // SERVICE_NAMES.JUP_PERP_EVENT_LOGGER_SERVICE,
 ];
