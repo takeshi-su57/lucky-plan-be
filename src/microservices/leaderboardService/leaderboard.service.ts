@@ -55,6 +55,7 @@ import { parseAvntPositionKey } from 'src/web3/platform/avnt/utils';
 import { delay } from 'src/utils';
 
 import { avntGeneralAbi } from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
+import { TradingSignalLogsService } from '../apiService/modules/trading-signal-logs/trading-signal-logs.service';
 
 @Injectable()
 export class LeaderboardService {
@@ -70,6 +71,7 @@ export class LeaderboardService {
     private readonly eventLogsService: EventLogsService,
     private readonly logger: LogsService,
     private readonly prismaService: PrismaService,
+    private readonly tradingSignalLogsService: TradingSignalLogsService,
   ) {
     this.isReceivedKillProcess = false;
   }
@@ -278,43 +280,58 @@ export class LeaderboardService {
           ).tradeEventNames.includes(log.eventLog.eventName),
         );
 
+        const perpEntities = [];
+
         if (contract.platform === Platform.GNS) {
           if (contract.version === Version.V9) {
-            await this.handleEventLogForGnsV9({
-              contract,
-              block,
-              perpTradeEventLogs,
-            });
+            perpEntities.push(
+              ...(await this.handleEventLogForGnsV9({
+                contract,
+                block,
+                perpTradeEventLogs,
+              })),
+            );
           }
 
           if (contract.version === Version.V10) {
-            await this.handleEventLogForGnsV10({
-              contract,
-              block,
-              perpTradeEventLogs,
-            });
+            perpEntities.push(
+              ...(await this.handleEventLogForGnsV10({
+                contract,
+                block,
+                perpTradeEventLogs,
+              })),
+            );
           }
         }
 
         if (contract.platform === Platform.GMX) {
           if (contract.version === Version.V2) {
-            await this.handleEventLogForGmxV2({
-              contract,
-              block,
-              perpTradeEventLogs,
-            });
+            perpEntities.push(
+              ...(await this.handleEventLogForGmxV2({
+                contract,
+                block,
+                perpTradeEventLogs,
+              })),
+            );
           }
         }
 
         if (contract.platform === Platform.AVNT) {
           if (contract.version === Version.V1) {
-            await this.handleEventLogForAvntV1({
-              contract,
-              block,
-              perpTradeEventLogs,
-            });
+            perpEntities.push(
+              ...(await this.handleEventLogForAvntV1({
+                contract,
+                block,
+                perpTradeEventLogs,
+              })),
+            );
           }
         }
+
+        await this.tradingSignalLogsService.handlePerpTradingEventLogs(
+          contract.platform,
+          perpEntities,
+        );
 
         await this.contractsService.updateLastLeaderboardBlockNumber(
           contract.id,
@@ -538,10 +555,6 @@ export class LeaderboardService {
         };
       });
 
-    await this.eventLogsService.createManyPerpTradingEventLogs(
-      perpTradingEventInputs,
-    );
-
     await this.tradeHistoriesService.handleActionItemsV9(
       contract,
       actionItems.map((item) => ({
@@ -549,6 +562,10 @@ export class LeaderboardService {
         blockNumber: item.blockNumber,
         timestamp: new Date(Number(block.timestamp) * 1000),
       })),
+    );
+
+    return await this.eventLogsService.createManyPerpTradingEventLogs(
+      perpTradingEventInputs,
     );
   }
 
@@ -749,10 +766,6 @@ export class LeaderboardService {
         })
         .filter((item) => item !== null);
 
-    await this.eventLogsService.createManyPerpTradingEventLogs(
-      perpTradingEventInputs,
-    );
-
     await this.tradeHistoriesService.handleActionItems(
       contract,
       actionItems.map((item) => ({
@@ -760,6 +773,10 @@ export class LeaderboardService {
         blockNumber: item.blockNumber,
         timestamp: new Date(Number(block.timestamp) * 1000),
       })),
+    );
+
+    return await this.eventLogsService.createManyPerpTradingEventLogs(
+      perpTradingEventInputs,
     );
   }
 
@@ -839,7 +856,7 @@ export class LeaderboardService {
         })
         .filter((item) => item !== null);
 
-    await this.eventLogsService.createManyPerpTradingEventLogs(
+    return await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
     );
   }
@@ -901,7 +918,7 @@ export class LeaderboardService {
         };
       });
 
-    await this.eventLogsService.createManyPerpTradingEventLogs(
+    return await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
     );
   }
