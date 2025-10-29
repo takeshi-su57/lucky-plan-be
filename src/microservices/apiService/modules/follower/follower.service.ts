@@ -1584,53 +1584,45 @@ export class FollowerService {
     const tradesMap: Record<string, FollowerTrade[]> = {};
     const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
 
-    const BATCH_SIZE = 10;
+    const firstEntity = followerEntities[0];
 
-    for (let i = 0; i < followerEntities.length; i += BATCH_SIZE) {
-      const batch = followerEntities.slice(i, i + BATCH_SIZE);
+    const usdcBalance = await this.evmAdapterService.erc20Balance({
+      chainId: contract.chainId,
+      priority: ChainPriority.LOW,
+      erc20ContractAddress: collateralInfo.collateral,
+      address: firstEntity.address as Address,
+    });
 
-      const promises = batch.map(async (entity) => {
-        const usdcBalance = await this.evmAdapterService.erc20Balance({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          erc20ContractAddress: collateralInfo.collateral,
-          address: entity.address as Address,
-        });
+    usdcMap[firstEntity.address] = usdcBalance;
 
-        usdcMap[entity.address] = usdcBalance;
+    const ethBalance = await this.evmAdapterService.nativeBalance({
+      chainId: contract.chainId,
+      priority: ChainPriority.LOW,
+      address: firstEntity.address as Address,
+    });
 
-        const ethBalance = await this.evmAdapterService.nativeBalance({
-          chainId: contract.chainId,
-          priority: ChainPriority.LOW,
-          address: entity.address as Address,
-        });
+    ethMap[firstEntity.address] = ethBalance;
 
-        ethMap[entity.address] = ethBalance;
+    const pnlSnapshots =
+      await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+        dayjs(new Date()).format('YYYY-MM-DD'),
+        firstEntity.address,
+      );
 
-        const pnlSnapshots =
-          await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
-            dayjs(new Date()).format('YYYY-MM-DD'),
-            entity.address,
-          );
+    pnlSnapshotsMap[firstEntity.address] = pnlSnapshots;
 
-        pnlSnapshotsMap[entity.address] = pnlSnapshots;
+    const trades = await this.getTrades(firstEntity.address, contractId);
 
-        const trades = await this.getTrades(entity.address, contractId);
+    tradesMap[firstEntity.address] = trades;
 
-        tradesMap[entity.address] = trades;
+    const pendingOrders = await this.getPendingOrders(
+      firstEntity.address,
+      contractId,
+    );
 
-        const pendingOrders = await this.getPendingOrders(
-          entity.address,
-          contractId,
-        );
+    pendingOrdersMap[firstEntity.address] = pendingOrders;
 
-        pendingOrdersMap[entity.address] = pendingOrders;
-      });
-
-      await Promise.allSettled(promises);
-    }
-
-    const edges: FollowerEdge[] = followerEntities.map((entity) => ({
+    const edges: FollowerEdge[] = [firstEntity].map((entity) => ({
       cursor: entity.accountIndex,
       node: {
         ...entity,
