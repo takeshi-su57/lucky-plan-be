@@ -1,18 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
-import { LeaderboardController } from './leaderboard.controller';
+import { SnapshotController } from './snapshot.controller';
 
 import { GlobalModule } from '../../global/global.module';
 import { ContractsModule } from '../apiService/modules/contracts/contracts.module';
 import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trade-histories.module';
 
-import { LeaderboardService } from './leaderboard.service';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
-import { TradingSignalLogsModule } from '../apiService/modules/trading-signal-logs/trading-signal-logs.module';
 
 @Module({
   imports: [
@@ -24,9 +22,7 @@ import { TradingSignalLogsModule } from '../apiService/modules/trading-signal-lo
     Web3Module,
     GnsModule,
     AvntModule,
-    TradingSignalLogsModule,
   ],
-  controllers: [LeaderboardController],
-  providers: [LeaderboardService],
+  controllers: [SnapshotController],
 })
-export class LeaderboardModule {}
+export class SnapshotModule {}

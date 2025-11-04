@@ -4,6 +4,7 @@ import {
   Int,
   registerEnumType,
   Float,
+  OmitType,
 } from '@nestjs/graphql';
 import { PlanStatus } from '@prisma/client';
 
@@ -125,9 +126,14 @@ export class ExpertPnlSnapshotV2 extends PnlSnapshotV2 {
 }
 
 @ObjectType()
+export class ExpertPnlSnapshotV2Node extends OmitType(ExpertPnlSnapshotV2, [
+  'histories',
+]) {}
+
+@ObjectType()
 export class ExpertPnlSnapshotV2Edge {
   @Field(() => Int) cursor: number;
-  @Field(() => ExpertPnlSnapshotV2) node: ExpertPnlSnapshotV2;
+  @Field(() => ExpertPnlSnapshotV2Node) node: ExpertPnlSnapshotV2Node;
 }
 
 @ObjectType()

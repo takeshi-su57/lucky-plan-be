@@ -9,6 +9,7 @@ import { LeaderboardModule } from './microservices/leaderboardService/leaderboar
 import { TradingModule } from './microservices/tradingService/trading.module';
 import { BotHooksModule } from './microservices/botHookService/bot-hooks.module';
 import { JupPerpEventLoggerModule } from './microservices/jupPerpEventLoggerService/jup-perp-event-logger.module';
+import { SnapshotModule } from './microservices/snapshotService/snapshot.module';
 
 import 'dotenv';
 
@@ -17,6 +18,23 @@ async function bootstrap() {
     case SERVICE_NAMES.LEADERBOARD_SERVICE: {
       const app = await NestFactory.createMicroservice<MicroserviceOptions>(
         LeaderboardModule,
+        {
+          transport: Transport.REDIS,
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+            retryAttempts: Number.MAX_SAFE_INTEGER,
+            retryDelay: 1000,
+          },
+        },
+      );
+
+      await app.listen();
+      break;
+    }
+    case SERVICE_NAMES.SNAPSHOT_SERVICE: {
+      const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+        SnapshotModule,
         {
           transport: Transport.REDIS,
           options: {
