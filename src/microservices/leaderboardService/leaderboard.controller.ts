@@ -82,7 +82,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
     return true;
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async checkContractsForLeaderboard() {
     const isLeaderboardBusy = Object.values(
       this.leaderboardService.status,
