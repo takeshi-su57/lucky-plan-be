@@ -251,22 +251,6 @@ type ExpertPnlSnapshot {
   score: Float!
 }
 
-type ExpertPnlSnapshotV2 {
-  accUSDPnl: Float!
-  address: String!
-  avgDuration: Float!
-  avgPnlRatio: Float!
-  dateStr: String!
-  histories: [PerpTradingEventLog!]!
-  id: Int!
-  kind: PnlSnapshotKind!
-  maxSize: Float!
-  openedPositions: Int!
-  platform: Platform!
-  ratio: Float!
-  score: Float!
-}
-
 type ExpertPnlSnapshotV2Connection {
   edges: [ExpertPnlSnapshotV2Edge!]!
   pageInfo: ExpertPnlSnapshotV2PageInfo!
@@ -274,7 +258,22 @@ type ExpertPnlSnapshotV2Connection {
 
 type ExpertPnlSnapshotV2Edge {
   cursor: Int!
-  node: ExpertPnlSnapshotV2!
+  node: ExpertPnlSnapshotV2Node!
+}
+
+type ExpertPnlSnapshotV2Node {
+  accUSDPnl: Float!
+  address: String!
+  avgDuration: Float!
+  avgPnlRatio: Float!
+  dateStr: String!
+  id: Int!
+  kind: PnlSnapshotKind!
+  maxSize: Float!
+  openedPositions: Int!
+  platform: Platform!
+  ratio: Float!
+  score: Float!
 }
 
 type ExpertPnlSnapshotV2PageInfo {
@@ -783,7 +782,7 @@ type Query {
   getLogsSeverityCounts: [SeverityCount!]!
   getMaxOpenMissions: Int!
   getMicroserviceStatus: [MicroserviceStatus!]!
-  getPerpEventLogs(addresses: [String!]!, platform: Platform!): [[PerpTradingEventLog!]!]!
+  getPerpEventLogs(addresses: [String!]!, limit: Int, platform: Platform!): [[PerpTradingEventLog!]!]!
   getPlanById(id: Int!): PlanForwardDetails
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
   getPnlSnapshotInitializedFlag: [PnlSnapshotInitializedFlag!]!
@@ -857,6 +856,7 @@ type Subscription {
   planUpdated(userId: String!): Plan!
   taskCreated(userId: String!): [TaskBackwardDetails!]!
   taskUpdated(userId: String!): [TaskBackwardDetails!]!
+  tradingSignalLogUpdated: [TradingSignalLog!]!
 }
 
 type Tag {
