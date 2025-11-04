@@ -18,6 +18,7 @@ export const SUBSCRIPTION_TOKEN = {
   taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',
   newLog: 'newLog',
+  tradingSignalLogUpdated: 'tradingSignalLogUpdated',
 };
 
 export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
@@ -58,6 +59,9 @@ export const PATTERNS = {
   Tasks: {
     TaskCreated: 'TASK_CREATED',
     TaskUpdated: 'TASK_UPDATED',
+  },
+  TradingSignalLogs: {
+    TradingSignalLogUpdated: 'TRADING_SIGNAL_LOG_UPDATED',
   },
   Leaderboard: {
     GetAdaptionStatus: 'GET_ADAPTION_STATUS',

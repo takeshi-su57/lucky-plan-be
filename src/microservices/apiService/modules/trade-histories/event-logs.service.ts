@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Platform } from '@prisma/client';
 
 import {
   CreateEventLogInput,
@@ -6,7 +7,6 @@ import {
 } from './dto/event-logs.input';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { Platform } from '@prisma/client';
 import { PerpTradingEventLog } from './entities/event-logs.entity';
 
 @Injectable()
@@ -42,6 +42,7 @@ export class EventLogsService {
   async getPerpEventLogs(
     addresses: string[],
     platform: Platform,
+    limit: number | null,
   ): Promise<PerpTradingEventLog[][]> {
     const result: PerpTradingEventLog[][] = [];
 
@@ -75,7 +76,11 @@ export class EventLogsService {
         ],
       });
 
-      result.push(records);
+      result.push(
+        limit
+          ? records.slice(Math.max(0, records.length - limit), records.length)
+          : records,
+      );
     }
 
     return result;

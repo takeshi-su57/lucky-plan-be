@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import {
   PerpTradingEventLog,
   TradingSignalLog as PrismaTradingSignalLog,
@@ -17,10 +18,12 @@ import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
 } from '../trade-histories/entities/event-logs.entity';
+import { SERVICE_NAMES, PATTERNS } from 'src/utils/constants';
 
 @Injectable()
 export class TradingSignalLogsService {
   constructor(
+    @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly logger: LogsService,
   ) {}
@@ -34,10 +37,14 @@ export class TradingSignalLogsService {
         address: address.toLowerCase(),
         platform,
       },
-      orderBy: {
-        date: 'asc',
-        id: 'asc',
-      },
+      orderBy: [
+        {
+          date: 'asc',
+        },
+        {
+          id: 'asc',
+        },
+      ],
     });
 
     const contracts = await this.prismaService.contract.findMany();
@@ -260,6 +267,7 @@ export class TradingSignalLogsService {
     });
 
     const signalMap: Record<string, PrismaTradingSignalLog> = {};
+    const updatedSignalsMap: Record<string, TradingSignalLog> = {};
 
     signals.forEach((signal) => {
       signalMap[`${signal.platform}-${signal.address.toLowerCase()}`] = signal;
@@ -272,6 +280,18 @@ export class TradingSignalLogsService {
         return;
       }
 
+      const updatedSignal =
+        updatedSignalsMap[`${log.platform}-${log.address.toLowerCase()}`];
+
+      if (updatedSignal) {
+        updatedSignal.eventLogs.push(log);
+      } else {
+        updatedSignalsMap[`${log.platform}-${log.address.toLowerCase()}`] = {
+          ...entity,
+          eventLogs: [log],
+        };
+      }
+
       entity.eventLogIds.push(log.id);
     });
 
@@ -279,6 +299,11 @@ export class TradingSignalLogsService {
       id: signal.id,
       eventLogIds: signal.eventLogIds,
     }));
+
+    this.redisClient.emit(
+      PATTERNS.TradingSignalLogs.TradingSignalLogUpdated,
+      Object.values(updatedSignalsMap),
+    );
 
     await this.prismaService.$transaction(
       signalInputs.map((input) => {
