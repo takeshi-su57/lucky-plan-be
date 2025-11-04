@@ -97,8 +97,9 @@ export class EventLogsResolver {
   getPerpEventLogs(
     @Args('addresses', { type: () => [String] }) addresses: string[],
     @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('limit', { type: () => Int, nullable: true }) limit: number | null,
   ) {
-    return this.eventLogsService.getPerpEventLogs(addresses, platform);
+    return this.eventLogsService.getPerpEventLogs(addresses, platform, limit);
   }
 
   @Query(() => PnlSnapshotV2DetailsConnection)

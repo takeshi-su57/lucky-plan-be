@@ -18,6 +18,7 @@ export const SUBSCRIPTION_TOKEN = {
   taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',
   newLog: 'newLog',
+  tradingSignalLogUpdated: 'tradingSignalLogUpdated',
 };
 
 export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
@@ -59,9 +60,14 @@ export const PATTERNS = {
     TaskCreated: 'TASK_CREATED',
     TaskUpdated: 'TASK_UPDATED',
   },
+  TradingSignalLogs: {
+    TradingSignalLogUpdated: 'TRADING_SIGNAL_LOG_UPDATED',
+  },
   Leaderboard: {
     GetAdaptionStatus: 'GET_ADAPTION_STATUS',
     StartAdaption: 'START_ADAPTION',
+  },
+  Snapshot: {
     BuildPnlSnapshotV2: 'BUILD_PNL_SNAPSHOT_V2',
     DynamicSnapshotV2Build: 'DYNAMIC_SNAPSHOT_V2_BUILD',
     InitializePnlSnapshotV2: 'INITIALIZE_PNL_SNAPSHOT_V2',
@@ -75,6 +81,7 @@ export const SERVICE_NAMES = {
   REDIS_SERVICE: 'REDIS_SERVICE',
   API_SERVICE: 'API_SERVICE',
   LEADERBOARD_SERVICE: 'LEADERBOARD_SERVICE',
+  SNAPSHOT_SERVICE: 'SNAPSHOT_SERVICE',
   TRADING_SERVICE: 'TRADING_SERVICE',
   BOT_HOOKS_SERVICE: 'BOT_HOOKS_SERVICE',
   JUP_PERP_EVENT_LOGGER_SERVICE: 'JUP_PERP_EVENT_LOGGER_SERVICE',

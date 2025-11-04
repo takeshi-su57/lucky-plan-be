@@ -123,6 +123,15 @@ model PerpTradingEventLog {
   @@index([platform, contractId, date(sort: Asc), block(sort: Asc), id(sort: Asc)])
 }
 
+model TradingSignalLog {
+  id          Int      @id @default(autoincrement())
+  platform    Platform
+  address     String
+  eventLogIds Int[]
+
+  @@unique([platform, address])
+}
+
 enum PnlSnapshotKind {
   DAY
   WEEK
