@@ -300,24 +300,30 @@ export class TradingSignalLogsService {
       eventLogIds: signal.eventLogIds,
     }));
 
-    this.redisClient.emit(
-      PATTERNS.TradingSignalLogs.TradingSignalLogUpdated,
-      Object.values(updatedSignalsMap),
-    );
+    const updatedSignals = Object.values(updatedSignalsMap);
 
-    await this.prismaService.$transaction(
-      signalInputs.map((input) => {
-        return this.prismaService.tradingSignalLog.update({
-          where: {
-            id: input.id,
-          },
-          data: {
-            eventLogIds: {
-              set: input.eventLogIds,
+    if (updatedSignals.length > 0) {
+      this.redisClient.emit(
+        PATTERNS.TradingSignalLogs.TradingSignalLogUpdated,
+        Object.values(updatedSignalsMap),
+      );
+    }
+
+    if (signalInputs.length > 0) {
+      await this.prismaService.$transaction(
+        signalInputs.map((input) => {
+          return this.prismaService.tradingSignalLog.update({
+            where: {
+              id: input.id,
             },
-          },
-        });
-      }),
-    );
+            data: {
+              eventLogIds: {
+                set: input.eventLogIds,
+              },
+            },
+          });
+        }),
+      );
+    }
   }
 }
