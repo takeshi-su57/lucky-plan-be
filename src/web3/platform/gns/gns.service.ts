@@ -49,9 +49,7 @@ export class GnsService {
 
     const contracts = allContracts.filter(
       (contract) =>
-        contract.platform === Platform.GNS &&
-        contract.version === Version.V10 &&
-        contract.chainId !== 421614,
+        contract.platform === Platform.GNS && contract.version === Version.V10,
     );
 
     const variables: Record<number, TradingVariable> = {};
@@ -603,23 +601,6 @@ export class GnsService {
       },
     );
 
-    const depthData = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.LOW,
-      async (publicClient) => {
-        return await publicClient.readContract({
-          address: contract.address as Address,
-          abi: gnsMultiCollatDiamondAbi,
-          functionName: 'getPairDepths',
-          args: [
-            Array.from(Array(Number(refData[0].result)).keys()).map((item) =>
-              BigInt(item),
-            ),
-          ],
-        });
-      },
-    );
-
     const failedPair = pairsData.find((pair) => pair.status === 'failure');
 
     if (failedPair) {
@@ -639,7 +620,6 @@ export class GnsService {
         .map((item, index) => ({
           ...item,
           pairIndex: index,
-          depth: depthData[index],
         })),
       collaterals: refData[1].result.map((item, index) => ({
         ...item,

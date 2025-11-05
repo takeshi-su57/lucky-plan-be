@@ -52,17 +52,14 @@ export class OpenTradeInput {
   long: boolean;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
   collateralAmount: string;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
   tp: string;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => String)
   sl: string;
 }

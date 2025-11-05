@@ -638,14 +638,7 @@ export class AutoPlansService {
               item.pair,
             );
 
-            if (!pair) {
-              return false;
-            }
-
-            return (
-              pair.depth.onePercentDepthAboveUsd > 0n &&
-              pair.depth.onePercentDepthBelowUsd > 0n
-            );
+            return !!pair;
           })
           .reverse()
           .slice(0, 512);
@@ -1006,14 +999,7 @@ export class AutoPlansService {
               item.pair,
             );
 
-            if (!pair) {
-              return false;
-            }
-
-            return (
-              pair.depth.onePercentDepthAboveUsd > 0n &&
-              pair.depth.onePercentDepthBelowUsd > 0n
-            );
+            return !!pair;
           })
           .reverse()
           .slice(0, expert.lastCount || 512);
