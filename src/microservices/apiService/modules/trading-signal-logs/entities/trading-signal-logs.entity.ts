@@ -17,3 +17,12 @@ export class TradingSignalLog {
   @Field(() => [PerpTradingEventLog])
   eventLogs: PerpTradingEventLog[];
 }
+
+@ObjectType()
+export class TradingSignalLogUpdated {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => [PerpTradingEventLog])
+  eventLogs: PerpTradingEventLog[];
+}
