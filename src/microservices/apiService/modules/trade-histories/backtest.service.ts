@@ -239,14 +239,7 @@ export class BacktestService {
       .filter((item) => {
         const pair = pairMap[`${item.contractId}-${item.pair}`.toLowerCase()];
 
-        if (!pair) {
-          return false;
-        }
-
-        return (
-          pair.depth.onePercentDepthAboveUsd !== '0' &&
-          pair.depth.onePercentDepthBelowUsd !== '0'
-        );
+        return !!pair;
       })
       .reverse()
       .slice(0, 512);
