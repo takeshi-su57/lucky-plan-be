@@ -10,7 +10,10 @@ import { Inject, UseGuards } from '@nestjs/common';
 import { Platform, User, UserPermission } from '@prisma/client';
 
 import { TradingSignalLogsService } from './trading-signal-logs.service';
-import { TradingSignalLog } from './entities/trading-signal-logs.entity';
+import {
+  TradingSignalLog,
+  TradingSignalLogUpdated,
+} from './entities/trading-signal-logs.entity';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
@@ -66,7 +69,7 @@ export class TradingSignalLogsResolver {
     return this.tradingSignalLogsService.removeEventLogs(signalId, eventLogIds);
   }
 
-  @Subscription(() => [TradingSignalLog], {
+  @Subscription(() => [TradingSignalLogUpdated], {
     name: SUBSCRIPTION_TOKEN.tradingSignalLogUpdated,
   })
   subscribeToTradingSignalLogUpdated() {

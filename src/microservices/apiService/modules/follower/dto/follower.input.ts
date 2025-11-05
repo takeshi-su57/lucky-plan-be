@@ -47,7 +47,6 @@ export class OpenTradeInput {
   leverage: number;
 
   @IsNotEmpty()
-  @IsNumber()
   @Field(() => Boolean)
   long: boolean;
 
