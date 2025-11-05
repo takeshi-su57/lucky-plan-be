@@ -768,6 +768,8 @@ export class FollowerService {
         },
       });
 
+      const contract = await this.contractService.findOne(input.contractId);
+
       if (!user) {
         throw new Error('User not found');
       }
@@ -798,7 +800,10 @@ export class FollowerService {
             tp: BigInt(input.tp),
             sl: BigInt(input.sl),
             openPrice: currentPrice,
-            collateralIndex: 3,
+            collateralIndex:
+              USDCCollateralIndex[
+                contract.chainId as keyof typeof USDCCollateralIndex
+              ],
             tradeType: TradeType.TRADE,
             index: 0,
             isOpen: true,

@@ -1,7 +1,7 @@
 import { Controller, Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { TradingSignalLog } from './entities/trading-signal-logs.entity';
+import { TradingSignalLogUpdated } from './entities/trading-signal-logs.entity';
 import { PUB_SUB } from 'src/global/global.module';
 import { PATTERNS, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
@@ -11,10 +11,10 @@ export class TradingSignalLogsController {
 
   @EventPattern(PATTERNS.TradingSignalLogs.TradingSignalLogUpdated)
   async handleTradingSignalLogUpdated(
-    @Payload() tradingSignalLogs: TradingSignalLog[],
+    @Payload() updatedSignals: TradingSignalLogUpdated[],   
   ) {
     await this.pubSub.publish(SUBSCRIPTION_TOKEN.tradingSignalLogUpdated, {
-      [SUBSCRIPTION_TOKEN.tradingSignalLogUpdated]: tradingSignalLogs,
+      [SUBSCRIPTION_TOKEN.tradingSignalLogUpdated]: updatedSignals,
     });
   }
 }
