@@ -9,7 +9,10 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 
-import { TradingSignalLog } from './entities/trading-signal-logs.entity';
+import {
+  TradingSignalLog,
+  TradingSignalLogUpdated,
+} from './entities/trading-signal-logs.entity';
 
 import { LogsService } from 'src/global/logs.service';
 import { getReadableError } from 'src/utils';
@@ -267,7 +270,7 @@ export class TradingSignalLogsService {
     });
 
     const signalMap: Record<string, PrismaTradingSignalLog> = {};
-    const updatedSignalsMap: Record<string, TradingSignalLog> = {};
+    const updatedSignalsMap: Record<string, TradingSignalLogUpdated> = {};
 
     signals.forEach((signal) => {
       signalMap[`${signal.platform}-${signal.address.toLowerCase()}`] = signal;
@@ -287,7 +290,7 @@ export class TradingSignalLogsService {
         updatedSignal.eventLogs.push(log);
       } else {
         updatedSignalsMap[`${log.platform}-${log.address.toLowerCase()}`] = {
-          ...entity,
+          id: entity.id,
           eventLogs: [log],
         };
       }
