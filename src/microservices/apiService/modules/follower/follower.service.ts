@@ -15,7 +15,7 @@ import {
   FollowerPendingOrder,
   FollowerTrade,
 } from './entities/follower.entity';
-import { PnlSnapshot } from 'src/microservices/apiService/modules/trade-histories/entities/trade-history.entity';
+import { PnlSnapshotV2 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import {
   CancelOrderAfterTimeoutInput,
   OpenTradeInput,
@@ -31,7 +31,6 @@ import { getReadableError } from 'src/utils';
 import { ChainPriority, EncryptedData } from 'src/types';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
 import { LogsService } from 'src/global/logs.service';
 import { SecurityService } from 'src/global/security.service';
 import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
@@ -43,6 +42,7 @@ import {
 } from 'src/web3/platform/gns/utils';
 import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 import { TradeType } from 'src/web3/platform/gns/v10/types';
+import { PnlSnapshotsService } from '../trade-histories/pnlsnapshot.service';
 
 @Injectable()
 export class FollowerService {
@@ -50,8 +50,8 @@ export class FollowerService {
     private prismaService: PrismaService,
     private contractService: ContractsService,
     private evmAdapterService: EvmAdapterService,
-    private gnsService: GnsService,
     private pnlSnapshotsService: PnlSnapshotsService,
+    private gnsService: GnsService,
     private logger: LogsService,
     private securityService: SecurityService,
   ) {}
@@ -1585,7 +1585,7 @@ export class FollowerService {
 
     const ethMap: Record<string, bigint> = {};
     const usdcMap: Record<string, bigint> = {};
-    const pnlSnapshotsMap: Record<string, PnlSnapshot[]> = {};
+    const pnlSnapshotsMap: Record<string, PnlSnapshotV2[]> = {};
     const tradesMap: Record<string, FollowerTrade[]> = {};
     const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
 
@@ -1610,6 +1610,7 @@ export class FollowerService {
 
     const pnlSnapshots =
       await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
+        contract.platform,
         dayjs(new Date()).format('YYYY-MM-DD'),
         firstEntity.address,
       );

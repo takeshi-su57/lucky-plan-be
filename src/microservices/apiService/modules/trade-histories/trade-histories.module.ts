@@ -5,7 +5,6 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { TradeHistoriesService } from './trade-histories.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { EventLogsService } from './event-logs.service';
-import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
 
 import { TradeHistoriesResolver } from './trade-histories.resolver';
 import { EventLogsResolver } from './event-logs.resolver';
@@ -19,14 +18,14 @@ import { BacktestService } from './backtest.service';
     EventLogsResolver,
     EventLogsService,
     PnlSnapshotsService,
-    PnlSnapshotsV2Service,
+    PnlSnapshotsService,
     BacktestService,
   ],
   exports: [
     TradeHistoriesService,
     EventLogsService,
     PnlSnapshotsService,
-    PnlSnapshotsV2Service,
+    PnlSnapshotsService,
     BacktestService,
   ],
 })
