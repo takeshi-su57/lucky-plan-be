@@ -14,17 +14,17 @@ import {
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
-import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
-import { ExportFilter } from './dto/trade-history.input';
+import { PnlSnapshotsService } from './pnlsnapshot.service';
+import { ExportFilter } from './dto/event-logs.input';
 import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
-import { BacktestV2Service } from './backtest-v2.service';
+import { BacktestService } from './backtest.service';
 
 @Resolver(() => PerpTradingEventLog)
 export class EventLogsResolver {
   constructor(
     private readonly eventLogsService: EventLogsService,
-    private readonly pnlSnapshotsV2Service: PnlSnapshotsV2Service,
-    private readonly backtestService: BacktestV2Service,
+    private readonly pnlSnapshotsService: PnlSnapshotsService,
+    private readonly backtestService: BacktestService,
   ) {}
 
   @Mutation(() => Boolean)
@@ -35,7 +35,7 @@ export class EventLogsResolver {
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    this.pnlSnapshotsV2Service.buildSnapshots(platform, dateStr, isForceBuild);
+    this.pnlSnapshotsService.buildSnapshots(platform, dateStr, isForceBuild);
 
     return true;
   }
@@ -47,7 +47,7 @@ export class EventLogsResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    this.pnlSnapshotsV2Service.dynamicSnapshotBuild(
+    this.pnlSnapshotsService.dynamicSnapshotBuild(
       platform,
       dateStr,
       // payload.isForceBuild,
@@ -64,7 +64,7 @@ export class EventLogsResolver {
     @Args('beginingDate', { type: () => Date }) beginingDate: Date,
     @Args('isForceBuild', { type: () => Boolean }) isForceBuild: boolean,
   ) {
-    this.pnlSnapshotsV2Service.initializePnlSnapshot(
+    this.pnlSnapshotsService.initializePnlSnapshot(
       platform,
       beginingDate,
       isForceBuild,
@@ -78,19 +78,14 @@ export class EventLogsResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    return this.pnlSnapshotsV2Service.isPnlSnapshotInitialized(
-      platform,
-      dateStr,
-    );
+    return this.pnlSnapshotsService.isPnlSnapshotInitialized(platform, dateStr);
   }
 
   @Query(() => [PnlSnapshotV2InitializedFlag])
   getPnlSnapshotV2InitializedFlag(
     @Args('platform', { type: () => Platform }) platform: Platform,
   ) {
-    return this.pnlSnapshotsV2Service.getAllPnlSnapshotInitializedFlag(
-      platform,
-    );
+    return this.pnlSnapshotsService.getAllPnlSnapshotInitializedFlag(platform);
   }
 
   @Query(() => [[PerpTradingEventLog]])
@@ -110,7 +105,7 @@ export class EventLogsResolver {
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
-    return this.pnlSnapshotsV2Service.getPnlSnapshots(
+    return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
       platform,
       kind,
@@ -127,7 +122,7 @@ export class EventLogsResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
   ) {
-    return this.pnlSnapshotsV2Service.getPnlSnapshotsByPagination(
+    return this.pnlSnapshotsService.getPnlSnapshotsByPagination(
       dateStr,
       platform,
       kind,

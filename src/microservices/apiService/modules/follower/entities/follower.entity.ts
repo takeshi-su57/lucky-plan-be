@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { MissionForwardDetails } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
-import { PnlSnapshot } from 'src/microservices/apiService/modules/trade-histories/entities/trade-history.entity';
+import { PnlSnapshotV2 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 @ObjectType()
 export class Follower {
@@ -61,8 +61,8 @@ export class FollowerDetail extends Follower {
   @Field(() => [FollowerPendingOrder])
   pendingOrders: FollowerPendingOrder[];
 
-  @Field(() => [PnlSnapshot])
-  pnlSnapshots: PnlSnapshot[];
+  @Field(() => [PnlSnapshotV2])
+  pnlSnapshots: PnlSnapshotV2[];
 }
 
 @ObjectType()

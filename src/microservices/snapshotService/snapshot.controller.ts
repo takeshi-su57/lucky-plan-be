@@ -14,11 +14,9 @@ import { ServiceStatus } from 'src/types';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { getReadableError } from 'src/utils';
 
-import { PnlSnapshotsService } from 'src/microservices/apiService/modules/trade-histories/pnlsnapshot.service';
-
 import { LogsService } from 'src/global/logs.service';
-import { PnlSnapshotsV2Service } from '../apiService/modules/trade-histories/pnlsnapshotV2.service';
-import { AutoPlansV2Service } from '../apiService/modules/plans/autoplansV2.service';
+import { PnlSnapshotsService } from '../apiService/modules/trade-histories/pnlsnapshot.service';
+import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
 
 @Controller()
 export class SnapshotController implements OnApplicationBootstrap {
@@ -26,8 +24,7 @@ export class SnapshotController implements OnApplicationBootstrap {
 
   constructor(
     private pnlSnapshotService: PnlSnapshotsService,
-    private pnlSnapshotV2Service: PnlSnapshotsV2Service,
-    private autoPlansV2Service: AutoPlansV2Service,
+    private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {}
@@ -74,7 +71,7 @@ export class SnapshotController implements OnApplicationBootstrap {
     dateStr: string;
     isForceBuild: boolean;
   }) {
-    this.pnlSnapshotV2Service.buildSnapshots(
+    this.pnlSnapshotService.buildSnapshots(
       payload.platform,
       payload.dateStr,
       payload.isForceBuild,
@@ -95,7 +92,7 @@ export class SnapshotController implements OnApplicationBootstrap {
       details: JSON.stringify(payload, null, 2),
     });
 
-    this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+    this.pnlSnapshotService.dynamicSnapshotBuild(
       payload.platform,
       payload.dateStr,
       // payload.isForceBuild,
@@ -110,38 +107,8 @@ export class SnapshotController implements OnApplicationBootstrap {
     beginingDate: Date;
     isForceBuild: boolean;
   }) {
-    this.pnlSnapshotV2Service.initializePnlSnapshot(
-      payload.platform,
-      payload.beginingDate,
-      payload.isForceBuild,
-    );
-
-    return true;
-  }
-
-  @MessagePattern(PATTERNS.Snapshot.BuildPnlSnapshot)
-  async buildPnlSnapshot(payload: { dateStr: string; isForceBuild: boolean }) {
-    this.pnlSnapshotService.buildSnapshots(
-      payload.dateStr,
-      payload.isForceBuild,
-    );
-
-    return true;
-  }
-
-  @MessagePattern(PATTERNS.Snapshot.DynamicSnapshotBuild)
-  async dynamicSnapshotBuild(payload: { dateStr: string }) {
-    this.pnlSnapshotService.dynamicSnapshotBuild(payload.dateStr);
-
-    return true;
-  }
-
-  @MessagePattern(PATTERNS.Snapshot.InitializePnlSnapshot)
-  async initializePnlSnapshot(payload: {
-    beginingDate: Date;
-    isForceBuild: boolean;
-  }) {
     this.pnlSnapshotService.initializePnlSnapshot(
+      payload.platform,
       payload.beginingDate,
       payload.isForceBuild,
     );
@@ -151,35 +118,28 @@ export class SnapshotController implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_HOUR)
   async executeCronForSnapshot() {
-    if (
-      this.pnlSnapshotService.status !== ServiceStatus.READY ||
-      this.pnlSnapshotV2Service.status !== ServiceStatus.READY
-    ) {
+    if (this.pnlSnapshotService.status !== ServiceStatus.READY) {
       return;
     }
 
     try {
       await this.pnlSnapshotService.dynamicSnapshotBuild(
-        dayjs(new Date()).format('YYYY-MM-DD'),
-      );
-
-      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
         Platform.GNS,
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 
-      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+      await this.pnlSnapshotService.dynamicSnapshotBuild(
         Platform.GMX,
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 
-      await this.pnlSnapshotV2Service.dynamicSnapshotBuild(
+      await this.pnlSnapshotService.dynamicSnapshotBuild(
         Platform.AVNT,
         dayjs(new Date()).format('YYYY-MM-DD'),
       );
 
       if (this.count % 3 === 0) {
-        await this.autoPlansV2Service.createAutoPlans();
+        await this.autoPlansService.createAutoPlans();
       }
 
       this.count++;

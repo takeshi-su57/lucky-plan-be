@@ -10,10 +10,6 @@ import { PlanStatus } from '@prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 import {
-  PnlSnapshot,
-  TradeHistory,
-} from 'src/microservices/apiService/modules/trade-histories/entities/trade-history.entity';
-import {
   PerpTradingEventLog,
   PnlSnapshotV2,
 } from '../../trade-histories/entities/event-logs.entity';
@@ -75,30 +71,6 @@ export class PlanConnection {
   @Field(() => [PlanEdge])
   edges: PlanEdge[];
   @Field(() => PlanPageInfo) pageInfo: PlanPageInfo;
-}
-
-@ObjectType()
-export class ExpertPnlSnapshot extends PnlSnapshot {
-  @Field(() => Float)
-  score: number;
-
-  @Field(() => Float)
-  maxSize: number;
-
-  @Field(() => Float)
-  ratio: number;
-
-  @Field(() => [TradeHistory])
-  histories: TradeHistory[];
-
-  @Field(() => Float)
-  avgDuration: number;
-
-  @Field(() => Float)
-  avgPnlRatio: number;
-
-  @Field(() => Int)
-  openedPositions: number;
 }
 
 @ObjectType()

@@ -5,7 +5,20 @@ import {
   registerEnumType,
   Float,
 } from '@nestjs/graphql';
-import { Platform, PnlSnapshotKind, Version } from '@prisma/client';
+import {
+  Platform,
+  PnlSnapshotKind,
+  TradeActionType,
+  Version,
+} from '@prisma/client';
+
+registerEnumType(TradeActionType, {
+  name: 'TradeActionType',
+});
+
+registerEnumType(PnlSnapshotKind, {
+  name: 'PnlSnapshotKind',
+});
 
 export enum PerpTradeHistoryOperation {
   OPEN = 'open',
