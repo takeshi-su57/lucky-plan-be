@@ -17,14 +17,14 @@ import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
 import { ExportFilter } from './dto/trade-history.input';
 import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
-import { BacktestV2Service } from './backtest-v2.service';
+import { BacktestService } from './backtest.service';
 
 @Resolver(() => PerpTradingEventLog)
 export class EventLogsResolver {
   constructor(
     private readonly eventLogsService: EventLogsService,
     private readonly pnlSnapshotsV2Service: PnlSnapshotsV2Service,
-    private readonly backtestService: BacktestV2Service,
+    private readonly backtestService: BacktestService,
   ) {}
 
   @Mutation(() => Boolean)

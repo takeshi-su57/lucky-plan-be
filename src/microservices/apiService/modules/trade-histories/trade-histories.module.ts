@@ -4,13 +4,12 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 
 import { TradeHistoriesService } from './trade-histories.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
-import { BacktestService } from './backtest.service';
 import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsV2Service } from './pnlsnapshotV2.service';
 
 import { TradeHistoriesResolver } from './trade-histories.resolver';
 import { EventLogsResolver } from './event-logs.resolver';
-import { BacktestV2Service } from './backtest-v2.service';
+import { BacktestService } from './backtest.service';
 
 @Module({
   imports: [GnsModule],
@@ -22,7 +21,6 @@ import { BacktestV2Service } from './backtest-v2.service';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
-    BacktestV2Service,
   ],
   exports: [
     TradeHistoriesService,
@@ -30,7 +28,6 @@ import { BacktestV2Service } from './backtest-v2.service';
     PnlSnapshotsService,
     PnlSnapshotsV2Service,
     BacktestService,
-    BacktestV2Service,
   ],
 })
 export class TradeHistoriesModule {}

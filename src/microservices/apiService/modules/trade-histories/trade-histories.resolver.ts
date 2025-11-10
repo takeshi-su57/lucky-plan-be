@@ -24,14 +24,12 @@ import {
 
 import { TradeHistoriesService } from './trade-histories.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
-import { BacktestService } from './backtest.service';
 
 @Resolver(() => TradeHistory)
 export class TradeHistoriesResolver {
   constructor(
     private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
-    private readonly backtestService: BacktestService,
   ) {}
 
   @Mutation(() => Boolean)
@@ -133,68 +131,5 @@ export class TradeHistoriesResolver {
       first,
       after,
     );
-  }
-
-  @Query(() => [PnlSnapshotDevDetails])
-  getDevPnlSnapshots(
-    @Args('dateStr', { type: () => String }) dateStr: string,
-    @Args('filterParams', { type: () => [ExportFilter] })
-    filterParams: ExportFilter[],
-  ) {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.getDevPnlSnapshots(dateStr, filterParams);
-  }
-
-  @Query(() => WholeCompressedHistories)
-  getWholeCompressedHistories(
-    @Args('startDate', { type: () => String }) startDate: string,
-    @Args('isTestnet', { type: () => Boolean }) isTestnet: boolean,
-    @Args('filterParams', { type: () => [ExportFilter] })
-    filterParams: ExportFilter[],
-  ) {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.getWholeCompressedHistories(
-      startDate,
-      filterParams,
-      isTestnet,
-    );
-  }
-
-  @Query(() => TestingReportConnection)
-  getTestingReport(
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
-  ) {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.getTestingReport(first, after);
-  }
-
-  @Query(() => [StatisticData])
-  getStatisticData() {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.getStatisticData();
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  autoTesting() {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.autoTesting();
   }
 }

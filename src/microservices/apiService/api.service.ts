@@ -11,7 +11,6 @@ import { ServiceStatus } from 'src/types';
 import { delay } from '../../utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
-import { BacktestService } from './modules/trade-histories/backtest.service';
 
 import { LogsService } from 'src/global/logs.service';
 import { timeout } from 'rxjs';
@@ -35,7 +34,6 @@ export class ApiService {
   constructor(
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
-    private backtestService: BacktestService,
     private logger: LogsService,
   ) {
     this.isPaused = true;
@@ -72,7 +70,6 @@ export class ApiService {
   }
 
   async init() {
-    await this.backtestService.init();
     // await this.tradeHistoriesService.regenerateTradeHistoriesFromPerpEventLog();
   }
 
