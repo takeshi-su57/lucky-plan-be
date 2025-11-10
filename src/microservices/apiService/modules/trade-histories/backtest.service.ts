@@ -17,7 +17,7 @@ import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
 } from './entities/event-logs.entity';
-import { ExportFilter } from './dto/trade-history.input';
+import { ExportFilter } from './dto/event-logs.input';
 import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
 
 import { getStartOfDay } from 'src/utils';

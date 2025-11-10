@@ -69,9 +69,7 @@ export class ApiService {
     }
   }
 
-  async init() {
-    // await this.tradeHistoriesService.regenerateTradeHistoriesFromPerpEventLog();
-  }
+  async init() {}
 
   async pauseSystem() {
     await this.client.emit(PATTERNS.killProcessEvent, {});

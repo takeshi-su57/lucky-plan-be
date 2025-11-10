@@ -9,13 +9,13 @@ import {
 } from '@nestjs/graphql';
 import { PlanStatus, User, UserPermission, Platform } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
+import * as dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 import { PlansService } from './plans.service';
 import {
-  ExpertPnlSnapshot,
   Plan,
   PlanConnection,
   PlanForwardDetails,
@@ -27,15 +27,12 @@ import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.deco
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
 import { AutoPlansService } from './autoplans.service';
-import { AutoPlansV2Service } from './autoplansV2.service';
-import * as dayjs from 'dayjs';
 
 @Resolver()
 export class PlansResolver {
   constructor(
     private readonly plansService: PlansService,
     private readonly autoplanService: AutoPlansService,
-    private readonly autoplanServiceV2: AutoPlansV2Service,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
@@ -53,7 +50,7 @@ export class PlansResolver {
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   createAutoPlan(@CurrentUser() user: User) {
-    return this.autoplanServiceV2.createAutoPlansForUser(user.address);
+    return this.autoplanService.createAutoPlansForUser(user.address);
   }
 
   @Mutation(() => Int)
@@ -148,13 +145,6 @@ export class PlansResolver {
     return this.plansService.getPlanById(user.address, id);
   }
 
-  @Query(() => [ExpertPnlSnapshot])
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getExpertPnlSnapshots(@CurrentUser() _user: User) {
-    return this.autoplanService.filterExperts(dayjs().format('YYYY-MM-DD'));
-  }
-
   @Query(() => ExpertPnlSnapshotV2Connection)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -163,7 +153,7 @@ export class PlansResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
   ) {
-    return this.autoplanServiceV2.filterExperts(
+    return this.autoplanService.filterExperts(
       platform,
       dayjs().format('YYYY-MM-DD'),
       after,

@@ -16,7 +16,7 @@ import { getReadableError } from 'src/utils';
 
 import { LogsService } from 'src/global/logs.service';
 import { PnlSnapshotsService } from '../apiService/modules/trade-histories/pnlsnapshot.service';
-import { AutoPlansV2Service } from '../apiService/modules/plans/autoplansV2.service';
+import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
 
 @Controller()
 export class SnapshotController implements OnApplicationBootstrap {
@@ -24,7 +24,7 @@ export class SnapshotController implements OnApplicationBootstrap {
 
   constructor(
     private pnlSnapshotService: PnlSnapshotsService,
-    private autoPlansV2Service: AutoPlansV2Service,
+    private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {}
@@ -139,7 +139,7 @@ export class SnapshotController implements OnApplicationBootstrap {
       );
 
       if (this.count % 3 === 0) {
-        await this.autoPlansV2Service.createAutoPlans();
+        await this.autoPlansService.createAutoPlans();
       }
 
       this.count++;

@@ -15,7 +15,7 @@ import {
 
 import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
-import { ExportFilter } from './dto/trade-history.input';
+import { ExportFilter } from './dto/event-logs.input';
 import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
 import { BacktestService } from './backtest.service';
 
