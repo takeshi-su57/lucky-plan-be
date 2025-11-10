@@ -32,7 +32,6 @@ import { getReadableError } from '../../utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
 
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { TradeHistoriesService } from '../apiService/modules/trade-histories/trade-histories.service';
 import { LogsService } from '../../global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { EventLogsService } from '../apiService/modules/trade-histories/event-logs.service';
@@ -67,7 +66,6 @@ export class LeaderboardService {
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
     private readonly contractsService: ContractsService,
-    private readonly tradeHistoriesService: TradeHistoriesService,
     private readonly eventLogsService: EventLogsService,
     private readonly logger: LogsService,
     private readonly prismaService: PrismaService,
@@ -555,15 +553,6 @@ export class LeaderboardService {
         };
       });
 
-    await this.tradeHistoriesService.handleActionItemsV9(
-      contract,
-      actionItems.map((item) => ({
-        item: item.item,
-        blockNumber: item.blockNumber,
-        timestamp: new Date(Number(block.timestamp) * 1000),
-      })),
-    );
-
     return await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
     );
@@ -765,15 +754,6 @@ export class LeaderboardService {
           };
         })
         .filter((item) => item !== null);
-
-    await this.tradeHistoriesService.handleActionItems(
-      contract,
-      actionItems.map((item) => ({
-        item: item.item,
-        blockNumber: item.blockNumber,
-        timestamp: new Date(Number(block.timestamp) * 1000),
-      })),
-    );
 
     return await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
