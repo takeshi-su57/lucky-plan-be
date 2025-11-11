@@ -17,7 +17,7 @@ import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
 import { Action } from 'src/microservices/apiService/modules/actions/entities/action.entity';
-
+import { getAdditionalParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { CreateFollowerActionInput } from 'src/microservices/apiService/modules/follower-actions/dto/follower-action.input';
 
 import {
@@ -548,17 +548,26 @@ export class TasksService {
     );
 
     await this.createMany(
-      [...noneCloseActions, ...normalClosedActions].map((item) => ({
-        missionId: item.context.mission.id,
-        actionId: item.action.id,
-        status: TaskStatus.Created,
-        logs: [
-          JSON.stringify({
-            timestamp: Date.now(),
-            message: `Task created`,
-          }),
-        ],
-      })),
+      [...noneCloseActions, ...normalClosedActions].map((item) => {
+        const additionalParams = getAdditionalParams(
+          item.context.bot.strategy.params,
+        );
+
+        return {
+          missionId: item.context.mission.id,
+          actionId: item.action.id,
+          status:
+            additionalParams.mode === 'signal'
+              ? TaskStatus.Stopped
+              : TaskStatus.Created,
+          logs: [
+            JSON.stringify({
+              timestamp: Date.now(),
+              message: `Task created`,
+            }),
+          ],
+        };
+      }),
     );
 
     await this.createMany(
@@ -716,7 +725,8 @@ export class TasksService {
         )
         .filter((task) => filter(task.action));
 
-      const task = missionTasks.length === 1 ? missionTasks[0] : null;
+      const task =
+        missionTasks.length > 0 ? missionTasks[missionTasks.length - 1] : null;
 
       if (!task) {
         if (
@@ -764,8 +774,9 @@ export class TasksService {
           await this.logger.log({
             severity: 'Warning',
             summary: 'TasksService>handleFollowerActions',
-            details:
-              'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
+            details: `Unexpected app error: There are two open mission tasks for one mission, or no open mission missionTasks: ==> ${JSON.stringify(
+              missionTasks,
+            )}`,
           });
         }
 
