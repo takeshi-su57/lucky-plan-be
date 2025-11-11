@@ -716,7 +716,8 @@ export class TasksService {
         )
         .filter((task) => filter(task.action));
 
-      const task = missionTasks.length === 1 ? missionTasks[0] : null;
+      const task =
+        missionTasks.length > 0 ? missionTasks[missionTasks.length - 1] : null;
 
       if (!task) {
         if (
@@ -764,8 +765,9 @@ export class TasksService {
           await this.logger.log({
             severity: 'Warning',
             summary: 'TasksService>handleFollowerActions',
-            details:
-              'Unexpected app error: There are two open mission tasks for one mission, or no open mission',
+            details: `Unexpected app error: There are two open mission tasks for one mission, or no open mission missionTasks: ==> ${JSON.stringify(
+              missionTasks,
+            )}`,
           });
         }
 

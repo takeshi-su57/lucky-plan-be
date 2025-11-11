@@ -44,7 +44,7 @@ export function eventToPerpTradeHistory(
     : PerpTradeHistoryOperation.CLOSE;
 
   const usdPnl =
-    operation === 'open'
+    operation === PerpTradeHistoryOperation.OPEN
       ? 0
       : Number(
           (Number(event.args.usdcSentToTrader) -
@@ -54,12 +54,14 @@ export function eventToPerpTradeHistory(
 
   const collateralUsd = Number(Number(event.args.t.initialPosToken) / 1e6);
 
-  const collateralInUsd = operation === 'open' ? collateralUsd : 0;
+  const collateralInUsd =
+    operation === PerpTradeHistoryOperation.OPEN ? collateralUsd : 0;
   const leverage = Number(event.args.t.leverage) / 1e10;
 
   const sizeInUsd = collateralInUsd * leverage;
 
-  const collateralDeltaUsd = operation === 'open' ? 0 : collateralUsd;
+  const collateralDeltaUsd =
+    operation === PerpTradeHistoryOperation.OPEN ? 0 : collateralUsd;
   const leverageDelta = Number(event.args.t.leverage) / 1e10;
   const sizeDeltaUsd = collateralDeltaUsd * leverageDelta;
 
