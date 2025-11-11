@@ -6,6 +6,7 @@ import {
   UserPermission,
   Platform,
 } from '@prisma/client';
+import * as dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { MissionsService } from 'src/microservices/apiService/modules/missions/missions.service';
@@ -968,11 +969,13 @@ export class TaskExecutorService {
 
             const achievePosition = parseAvntPositionKey(achievePositionKey!);
 
-            const leverage = Math.max(
-              strategy.minLeverage,
-              Math.min(
-                strategy.maxLeverage,
-                Number(args.newTrade.leverage) / 1e7,
+            const leverage = Math.floor(
+              Math.max(
+                strategy.minLeverage,
+                Math.min(
+                  strategy.maxLeverage,
+                  Number(args.newTrade.leverage) / 1e7,
+                ),
               ),
             );
 
@@ -1033,7 +1036,7 @@ export class TaskExecutorService {
                 const openMissionParams = getOpenMissionParams(
                   strategy,
                   {
-                    leverage: Number(t.leverage) / 1e7,
+                    leverage: Math.floor(Number(t.leverage) / 1e7),
                     collateralAmount: BigInt(t.initialPosToken),
                     collateralPriceUsd: 100_000_000n,
                     collateral: {
@@ -1524,15 +1527,113 @@ export class TaskExecutorService {
             task.mission.bot.followerContract.version,
           ).isCloseMissionAction(task.action)
         ) {
+          // if task is created in the last 10 minutes, skip it
+          if (dayjs().diff(dayjs(task.createdAt), 'minutes') < 10) {
+            continue;
+          }
+
+          try {
+            await this.tasksService.updateMany([
+              {
+                id: task.id,
+                status: TaskStatus.Stopped,
+                logs: [
+                  ...task.logs,
+                  JSON.stringify({
+                    timestamp: Date.now(),
+                    message: `Task stopped because it is awaiting for too long`,
+                  }),
+                ],
+              },
+            ]);
+          } catch (err) {
+            await this.logger.log({
+              severity: 'Error',
+              summary: `TaskExecutorService>handleFailedTasks>taskId: ${task.id}`,
+              details: getReadableError(err),
+            });
+          }
+        } else {
+          try {
+            await this.tasksService.closeMissionTasks(task.mission, false);
+          } catch (err) {
+            await this.logger.log({
+              severity: 'Error',
+              summary: `TaskExecutorService>handleFailedTasks>taskId: ${task.id}`,
+              details: getReadableError(err),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'TaskExecutorService>handleFailedTasks',
+        details: getReadableError(err),
+      });
+    }
+  }
+
+  async handleAwaitTasks() {
+    try {
+      await this.logger.log({
+        severity: 'Info',
+        summary: 'TaskExecutorService>handleAwaitTasks',
+      });
+
+      const allAwaitTasks = await this.prismaService.task.findMany({
+        where: {
+          status: TaskStatus.Await,
+          mission: {
+            status: {
+              notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+          },
+        },
+        include: {
+          action: true,
+          followerActions: {
+            include: {
+              action: true,
+            },
+          },
+          mission: {
+            include: {
+              bot: {
+                include: {
+                  followerContract: true,
+                  leaderContract: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      for (const task of allAwaitTasks) {
+        // if task is created in the last 10 minutes, skip it
+        if (dayjs().diff(dayjs(task.createdAt), 'minutes') < 10) {
           continue;
         }
 
         try {
-          await this.tasksService.closeMissionTasks(task.mission, false);
+          await this.tasksService.updateMany([
+            {
+              id: task.id,
+              status: TaskStatus.Stopped,
+              logs: [
+                ...task.logs,
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  message: `Task stopped because it is awaiting for too long`,
+                }),
+              ],
+            },
+          ]);
         } catch (err) {
           await this.logger.log({
             severity: 'Error',
-            summary: `TaskExecutorService>handleFailedTasks>taskId: ${task.id}`,
+            summary: `TaskExecutorService>handleAwaitTasks>taskId: ${task.id}`,
             details: getReadableError(err),
           });
         }
@@ -1540,7 +1641,7 @@ export class TaskExecutorService {
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: 'TaskExecutorService>handleFailedTasks',
+        summary: 'TaskExecutorService>handleAwaitTasks',
         details: getReadableError(err),
       });
     }
