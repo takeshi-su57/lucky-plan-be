@@ -969,11 +969,13 @@ export class TaskExecutorService {
 
             const achievePosition = parseAvntPositionKey(achievePositionKey!);
 
-            const leverage = Math.max(
-              strategy.minLeverage,
-              Math.min(
-                strategy.maxLeverage,
-                Number(args.newTrade.leverage) / 1e7,
+            const leverage = Math.floor(
+              Math.max(
+                strategy.minLeverage,
+                Math.min(
+                  strategy.maxLeverage,
+                  Number(args.newTrade.leverage) / 1e7,
+                ),
               ),
             );
 
@@ -1034,7 +1036,7 @@ export class TaskExecutorService {
                 const openMissionParams = getOpenMissionParams(
                   strategy,
                   {
-                    leverage: Number(t.leverage) / 1e7,
+                    leverage: Math.floor(Number(t.leverage) / 1e7),
                     collateralAmount: BigInt(t.initialPosToken),
                     collateralPriceUsd: 100_000_000n,
                     collateral: {
