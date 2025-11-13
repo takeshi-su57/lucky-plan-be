@@ -124,10 +124,12 @@ export class TaskExecutorService {
       }
 
       if (
-        !getWeb3Info(
-          leaderContract.platform,
-          leaderContract.version,
-        ).isOpenMissionAction(action) &&
+        !(
+          getWeb3Info(
+            leaderContract.platform,
+            leaderContract.version,
+          ).isOpenMissionAction(action) || action.name === OpenMissionAction
+        ) &&
         !achievePositionKey
       ) {
         throw new Error(
