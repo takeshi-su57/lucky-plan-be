@@ -40,12 +40,20 @@ import {
   getPositionDecreaseParams,
   getPositionIncreaseParams,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
-import { ChainPriority, CloseMissionActionArgs } from 'src/types';
+import {
+  ChainPriority,
+  CloseMissionActionArgs,
+  OpenMissionActionArgs,
+} from 'src/types';
 import { TradeType } from 'src/web3/platform/gns/v10/types';
 
 import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/entities/task.entity';
 
-import { CloseMissionAction, USDCCollateralIndex } from 'src/utils/constants';
+import {
+  CloseMissionAction,
+  OpenMissionAction,
+  USDCCollateralIndex,
+} from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
 
@@ -155,19 +163,39 @@ export class TaskExecutorService {
             expectedPrice: BigInt(args.expectedPrice),
           },
         });
+      } else if (action.name === OpenMissionAction) {
+        const args = JSON.parse(action.args) as OpenMissionActionArgs;
 
-        if (tx) {
-          // await this.followerService.withdrawAllUSDC(
-          //   task.mission.bot.plan.userId,
-          //   follower.address,
-          //   followerContract.id,
-          // );
+        tx = await this.gnsService.openTrade({
+          mnemonic,
+          accountIndex: follower.accountIndex,
+          contractId: followerContract.id,
+          args: {
+            trade: {
+              collateralAmount: BigInt(args.collateralAmountUSDC),
+              leverage: args.leverage,
+              long: args.long,
+              openPrice: BigInt(args.openPrice),
+              tp: BigInt(args.tp),
+              sl: BigInt(args.sl),
+              user: follower.address as Address,
+              index: 0,
+              pairIndex: args.pairIndex,
+              isOpen: true,
+              collateralIndex:
+                USDCCollateralIndex[
+                  followerContract.chainId as keyof typeof USDCCollateralIndex
+                ],
+              tradeType: TradeType.TRADE,
+              isCounterTrade: false,
+              positionSizeToken: 0n,
+              __placeholder: 0,
+            },
+            maxSlippageP: 1000,
+          },
+        });
 
-          return {
-            success: 'success',
-            message: `Task achieved tx: ${tx}`,
-          };
-        }
+        await this.handleGNSOpenTradeTransaction(task, tx);
       } else if (leaderContract.platform === Platform.GNS) {
         switch (action.name) {
           case tradeMaxClosingSlippagePUpdatedEventParser.eventName: {
