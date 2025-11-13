@@ -7,6 +7,7 @@ export const USDCCollateralIndex = {
   421614: 3,
 };
 export const CloseMissionAction = 'CloseMissionAction';
+export const OpenMissionAction = 'OpenMissionAction';
 
 export const SUBSCRIPTION_TOKEN = {
   planCreated: 'planCreated',

@@ -6,9 +6,18 @@ import {
   getOrderIdFromMissionAction,
   missionEventParsers,
 } from 'src/web3/platform/gns/v10/eventParsers';
-import { missionEventParsers as avntMissionEventParsers } from 'src/web3/platform/avnt/v1/eventParsers';
+import {
+  missionEventParsers as avntMissionEventParsers,
+  missionEventNames as avntMissionEventNames,
+} from 'src/web3/platform/avnt/v1/eventParsers';
+import { eventParsers as gmxEventParsers } from 'src/web3/platform/gmx/v2/eventParsers';
 
-import { ActionContext, BotContext, MissionContext } from 'src/types';
+import {
+  ActionContext,
+  BotContext,
+  MissionContext,
+  OpenMissionActionArgs,
+} from 'src/types';
 import {
   Mission,
   MissionBackwardDetails,
@@ -44,8 +53,10 @@ import {
   getCollateral,
   getPairIndex,
   getPairName,
+  getPair,
 } from 'src/web3/platform/gns/v10/configs';
 import { getPairName as getAvntPairName } from 'src/web3/platform/avnt/v1/configs';
+import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
 
@@ -55,6 +66,7 @@ export class MissionsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private prismaService: PrismaService,
     private tasksService: TasksService,
+    private gnsService: GnsService,
     private readonly logger: LogsService,
   ) {}
 
@@ -304,6 +316,259 @@ export class MissionsService {
         throw new Error('Cannot clone because of missing open task!');
       }
 
+      const bot = await this.prismaService.bot.findUnique({
+        where: {
+          id: mission.botId,
+        },
+        include: {
+          leaderContract: true,
+          followerContract: true,
+          strategy: true,
+        },
+      });
+
+      if (!bot) {
+        throw new Error('Cannot clone mission by internal error!');
+      }
+
+      let openArgs: OpenMissionActionArgs | null = null;
+
+      switch (bot.leaderContract.platform) {
+        case Platform.GNS: {
+          const openEvent = missionEventParsers
+            .find((parser) => parser.eventName === openTask.action.name)!
+            .actionParser(openTask.action);
+          const { t, collateralPriceUsd } = openEvent.args;
+
+          const currentPrice = await this.gnsService.getPairPrice(t.pairIndex);
+
+          const collateral = getCollateral(
+            bot.leaderContract.chainId,
+            t.collateralIndex,
+          );
+
+          if (!collateral) {
+            throw new Error(
+              `follower contract doesn't support this collateral index: ${t.collateralIndex}`,
+            );
+          }
+
+          const openMissionParams = manualParams
+            ? {
+                collateralAmount: manualParams.collateralAmount,
+                leverage: manualParams.leverage,
+                long: manualParams.long,
+                openPrice: currentPrice.toString(),
+                sl: 0n.toString(),
+                tp: 0n.toString(),
+              }
+            : {
+                ...getOpenMissionParams(
+                  bot.strategy,
+                  {
+                    leverage: t.leverage,
+                    collateralAmount: BigInt(t.collateralAmount),
+                    collateralPriceUsd: BigInt(collateralPriceUsd),
+                    collateral,
+                    isLong: t.long,
+                    openPrice: currentPrice,
+                    usdcPrice: 100_000_000n,
+                    pairIndex: t.pairIndex,
+                  },
+                  bot.leaderCollateralBaseline,
+                ),
+              };
+
+          openArgs = {
+            pairIndex: t.pairIndex,
+            collateralAmountUSDC: openMissionParams.collateralAmount.toString(),
+            leverage: openMissionParams.leverage,
+            long: openMissionParams.long,
+            openPrice: openMissionParams.openPrice.toString(),
+            tp: openMissionParams.tp.toString(),
+            sl: openMissionParams.sl.toString(),
+          };
+
+          break;
+        }
+        case Platform.GMX: {
+          const gmxEvent = gmxEventParsers
+            .find((parser) => parser.eventName === openTask.action.name)!
+            .actionParser(openTask.action);
+
+          const marketInfo = getMarketInfo(
+            bot.leaderContract.chainId,
+            gmxEvent.args.market,
+          );
+
+          const collateral = getTokenInfo(
+            bot.leaderContract.chainId,
+            gmxEvent.args.collateralToken,
+          );
+
+          if (!marketInfo || !collateral) {
+            throw new Error(
+              `Current gmx configuration doesn't support this market: ${gmxEvent.args.market} on chain ${bot.leaderContract.chainId}`,
+            );
+          }
+
+          const pairName =
+            `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase();
+
+          const pairIndex = getPairIndex(
+            bot.followerContract.chainId,
+            pairName,
+          );
+
+          if (pairIndex === -1) {
+            throw new Error(
+              `follower contract doesn't support this pairName: ${pairName}`,
+            );
+          }
+
+          const pair = getPair(bot.followerContract.chainId, pairIndex);
+
+          if (!pair) {
+            throw new Error(
+              `follower contract doesn't support this pairName: ${pairName}`,
+            );
+          }
+
+          const currentPrice = await this.gnsService.getPairPrice(pairIndex);
+
+          const sizeInUsd = Number(gmxEvent.args.sizeInUsd) / 1e30;
+          const collateralInUsd =
+            (Number(gmxEvent.args.collateralAmount) *
+              Number(gmxEvent.args['collateralTokenPrice.max'])) /
+            1e30;
+
+          const leverage = Math.floor((sizeInUsd / collateralInUsd) * 1e3);
+
+          const openMissionParams = manualParams
+            ? {
+                collateralAmount: manualParams.collateralAmount,
+                leverage: manualParams.leverage,
+                long: manualParams.long,
+                openPrice: currentPrice.toString(),
+                sl: 0n.toString(),
+                tp: 0n.toString(),
+              }
+            : getOpenMissionParams(
+                bot.strategy,
+                {
+                  leverage,
+                  collateralAmount: BigInt(gmxEvent.args.collateralAmount),
+                  collateralPriceUsd: BigInt(
+                    Math.floor(
+                      Number(gmxEvent.args['collateralTokenPrice.max']) /
+                        Math.pow(10, 30 - collateral.decimals - 8),
+                    ),
+                  ),
+                  collateral: {
+                    collateralIndex: 0,
+                    isActive: true,
+                    collateral: collateral.address as `0x${string}`,
+                    precision: BigInt(Math.pow(10, collateral.decimals)),
+                    precisionDelta: 0n,
+                    __placeholder: 0n,
+                  },
+                  isLong: gmxEvent.args.isLong,
+                  openPrice: currentPrice,
+                  usdcPrice: 100_000_000n,
+                  pairIndex: pairIndex,
+                },
+                bot.leaderCollateralBaseline,
+              );
+
+          openArgs = {
+            pairIndex,
+            collateralAmountUSDC: openMissionParams.collateralAmount.toString(),
+            leverage: openMissionParams.leverage,
+            long: openMissionParams.long,
+            openPrice: openMissionParams.openPrice.toString(),
+            tp: openMissionParams.tp.toString(),
+            sl: openMissionParams.sl.toString(),
+          };
+
+          break;
+        }
+        case Platform.AVNT: {
+          const event = avntMissionEventParsers
+            .find((parser) => parser.eventName === openTask.action.name)!
+            .actionParser(openTask.action);
+          const { t } = event.args;
+
+          const pairName = getAvntPairName(Number(t.pairIndex));
+
+          if (!pairName) {
+            throw new Error(
+              `Follower contract doesn't support this pair name: ${pairName}`,
+            );
+          }
+
+          const pairIndex = getPairIndex(
+            bot.followerContract.chainId,
+            pairName,
+          );
+
+          if (pairIndex === -1) {
+            throw new Error(
+              `Follower contract doesn't support this pairIndex: ${pairIndex}`,
+            );
+          }
+
+          const currentPrice = await this.gnsService.getPairPrice(pairIndex);
+
+          const openMissionParams = manualParams
+            ? {
+                collateralAmount: manualParams.collateralAmount,
+                leverage: manualParams.leverage,
+                long: manualParams.long,
+                openPrice: currentPrice.toString(),
+                sl: 0n.toString(),
+                tp: 0n.toString(),
+              }
+            : getOpenMissionParams(
+                bot.strategy,
+                {
+                  leverage: Math.floor(Number(t.leverage) / 1e7),
+                  collateralAmount: BigInt(t.initialPosToken),
+                  collateralPriceUsd: 100_000_000n,
+                  collateral: {
+                    collateralIndex: 0,
+                    isActive: true,
+                    collateral:
+                      `0x0000000000000000000000000000000000000000` as `0x${string}`,
+                    precision: 1000_000n,
+                    precisionDelta: 0n,
+                    __placeholder: 0n,
+                  },
+                  isLong: t.buy,
+                  openPrice: currentPrice,
+                  usdcPrice: 100_000_000n,
+                  pairIndex,
+                },
+                bot.leaderCollateralBaseline,
+              );
+
+          openArgs = {
+            pairIndex,
+            collateralAmountUSDC: openMissionParams.collateralAmount.toString(),
+            leverage: openMissionParams.leverage,
+            long: openMissionParams.long,
+            openPrice: openMissionParams.openPrice.toString(),
+            tp: openMissionParams.tp.toString(),
+            sl: openMissionParams.sl.toString(),
+          };
+
+          break;
+        }
+      }
+
+      if (!openArgs) {
+        throw new Error('Cannot clone mission by internal error!');
+      }
+
       const clonedMission = await this.createMany(
         [
           {
@@ -323,7 +588,7 @@ export class MissionsService {
       await this.tasksService.cloneOpenTask(
         openTask,
         clonedMission[0].id,
-        manualParams,
+        openArgs,
       );
 
       return true;
@@ -363,16 +628,6 @@ export class MissionsService {
 
     if (!mission) {
       throw new Error('Invalid mission id!');
-    }
-
-    if (mission.bot.leaderContract.platform !== Platform.GNS) {
-      this.logger.log({
-        severity: 'Error',
-        summary: 'Clone Failed',
-        details: 'Cloning missions are allowed for gns trading signals only',
-      });
-
-      throw new Error('Clone Mission is Failed');
     }
 
     return await this._cloneMission(mission, new Map(), manualParams);

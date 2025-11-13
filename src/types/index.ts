@@ -35,6 +35,16 @@ export type CloseMissionActionArgs = {
   expectedPrice: string;
 };
 
+export type OpenMissionActionArgs = {
+  pairIndex: number;
+  collateralAmountUSDC: string;
+  leverage: number;
+  long: boolean;
+  openPrice: string;
+  tp: string;
+  sl: string;
+};
+
 export enum ServiceStatus {
   READY = 'ready',
   PROCESS = 'process',
