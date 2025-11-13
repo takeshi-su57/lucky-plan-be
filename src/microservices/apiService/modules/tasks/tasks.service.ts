@@ -10,7 +10,11 @@ import {
   isSameUpdateAction,
   missionEventParsers,
 } from 'src/web3/platform/gns/v10/eventParsers';
-import { ActionContext, MissionContext } from 'src/types';
+import {
+  ActionContext,
+  MissionContext,
+  OpenMissionActionArgs,
+} from 'src/types';
 import { CancelReason } from 'src/web3/platform/gns/v10/types';
 
 import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
@@ -22,14 +26,12 @@ import { CreateFollowerActionInput } from 'src/microservices/apiService/modules/
 
 import {
   CloseMissionAction,
+  OpenMissionAction,
   PATTERNS,
   SERVICE_NAMES,
 } from 'src/utils/constants';
 
-import {
-  ManualParams,
-  Mission,
-} from 'src/microservices/apiService/modules/missions/entities/mission.entity';
+import { Mission } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 
 import { leverageUpdateExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/leverage-update-executed.parser';
 import { positionSizeIncreaseExecutedEventParser } from 'src/web3/platform/gns/v10/eventParsers/position-size-increase-executed.parser';
@@ -245,7 +247,12 @@ export class TasksService {
     for (let i = 0; i < sortedMissionTasks.length; i++) {
       const task = sortedMissionTasks[i];
 
-      if (isOpenMissionAction(task.action)) {
+      if (
+        getWeb3Info(
+          task.mission.bot.leaderContract.platform,
+          task.mission.bot.leaderContract.version,
+        ).isOpenMissionAction(task.action)
+      ) {
         openTask = task;
       }
     }
@@ -256,46 +263,15 @@ export class TasksService {
   async cloneOpenTask(
     task: TaskDetails,
     clonedMissionId: number,
-    manualParams?: ManualParams,
+    args: OpenMissionActionArgs,
   ) {
-    const openEvent = missionEventParsers
-      .find((parser) => parser.eventName === task.action.name)!
-      .actionParser(task.action);
-
-    const currentPrice = await this.gnsService.getPairPrice(
-      openEvent.args.t.pairIndex,
+    const clonedAction = await this.actionsService.createOpenMissionAction(
+      task.action.address.toLowerCase(),
+      task.action.positionKey,
+      args,
+      task.action.blockNumber,
+      task.action.orderInBlock,
     );
-
-    const newArgs = bigIntSafeJsonStringify({
-      ...openEvent.args,
-      t: {
-        ...openEvent.args.t,
-        openPrice: BigInt(currentPrice.toString()),
-        ...(manualParams
-          ? {
-              collateralAmount: manualParams.collateralAmount,
-              leverage: manualParams.leverage,
-              long: manualParams.long,
-            }
-          : {
-              collateralAmount: openEvent.args.t.collateralAmount,
-              leverage: openEvent.args.t.leverage,
-              long: openEvent.args.t.long,
-            }),
-      },
-      isManualOpen: manualParams ? true : false,
-    });
-
-    const clonedAction = await this.prismaService.action.create({
-      data: {
-        name: task.action.name,
-        positionKey: task.action.positionKey,
-        address: task.action.address.toLowerCase(),
-        args: newArgs,
-        blockNumber: task.action.blockNumber,
-        orderInBlock: task.action.orderInBlock,
-      },
-    });
 
     await this.createMany([
       {
@@ -620,10 +596,12 @@ export class TasksService {
       let filter: (action: Action) => boolean = () => false;
 
       if (action.name === marketOpenCanceledEventParser.eventName) {
-        filter = getWeb3Info(
-          context.bot.leaderContract.platform,
-          context.bot.leaderContract.version,
-        ).isOpenMissionAction;
+        filter = (_action: Action) =>
+          _action.name === OpenMissionAction ||
+          getWeb3Info(
+            context.bot.leaderContract.platform,
+            context.bot.leaderContract.version,
+          ).isOpenMissionAction(_action);
         status = TaskStatus.Failed;
 
         const event = marketOpenCanceledEventParser.actionParser(action);
@@ -636,12 +614,12 @@ export class TasksService {
       }
 
       if (action.name === marketCloseCanceledEventParser.eventName) {
-        filter = (action: Action) =>
-          action.name === CloseMissionAction ||
+        filter = (_action: Action) =>
+          _action.name === CloseMissionAction ||
           getWeb3Info(
             context.bot.leaderContract.platform,
             context.bot.leaderContract.version,
-          ).isCloseMissionAction(action);
+          ).isCloseMissionAction(_action);
         status = TaskStatus.Failed;
 
         const event = marketCloseCanceledEventParser.actionParser(action);
@@ -658,32 +636,36 @@ export class TasksService {
         const event = marketOrderInitiatedEventParser.actionParser(action);
 
         filter = event.args.open
-          ? getWeb3Info(
-              context.bot.leaderContract.platform,
-              context.bot.leaderContract.version,
-            ).isOpenMissionAction
-          : (action: Action) =>
-              action.name === CloseMissionAction ||
+          ? (_action: Action) =>
+              _action.name === OpenMissionAction ||
               getWeb3Info(
                 context.bot.leaderContract.platform,
                 context.bot.leaderContract.version,
-              ).isCloseMissionAction(action);
+              ).isOpenMissionAction(_action)
+          : (_action: Action) =>
+              _action.name === CloseMissionAction ||
+              getWeb3Info(
+                context.bot.leaderContract.platform,
+                context.bot.leaderContract.version,
+              ).isCloseMissionAction(_action);
 
         status = TaskStatus.Initiated;
       }
 
       if (missionEventNames.includes(action.name)) {
         filter = isOpenMissionAction(action)
-          ? getWeb3Info(
-              context.bot.leaderContract.platform,
-              context.bot.leaderContract.version,
-            ).isOpenMissionAction
-          : (action: Action) =>
-              action.name === CloseMissionAction ||
+          ? (_action: Action) =>
+              _action.name === OpenMissionAction ||
               getWeb3Info(
                 context.bot.leaderContract.platform,
                 context.bot.leaderContract.version,
-              ).isCloseMissionAction(action);
+              ).isOpenMissionAction(_action)
+          : (_action: Action) =>
+              _action.name === CloseMissionAction ||
+              getWeb3Info(
+                context.bot.leaderContract.platform,
+                context.bot.leaderContract.version,
+              ).isCloseMissionAction(_action);
 
         status = TaskStatus.Completed;
       }
