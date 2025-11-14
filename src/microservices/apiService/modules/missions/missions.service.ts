@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BotStatus, MissionStatus, Platform } from '@prisma/client';
+import {
+  BotStatus,
+  MissionMode,
+  MissionStatus,
+  Platform,
+} from '@prisma/client';
 
 import {
   getOrderIdFromMissionAction,
@@ -576,6 +581,7 @@ export class MissionsService {
             targetPositionKey: mission.targetPositionKey,
             targetPositionBlockNumber: mission.targetPositionBlockNumber,
             targetPositionLogIndex: mission.targetPositionLogIndex,
+            mode: MissionMode.Default,
           },
         ],
         missionsByBotMap,
@@ -927,12 +933,22 @@ export class MissionsService {
 
     if (availableOpenEvents.length > 0) {
       await this.createMany(
-        availableOpenEvents.map((item) => ({
-          botId: item.context.bot.id,
-          targetPositionKey: item.action.positionKey,
-          targetPositionBlockNumber: item.action.blockNumber,
-          targetPositionLogIndex: item.action.orderInBlock,
-        })),
+        availableOpenEvents.map((item) => {
+          const additionalParams = getAdditionalParams(
+            item.context.bot.strategy.params,
+          );
+
+          return {
+            botId: item.context.bot.id,
+            targetPositionKey: item.action.positionKey,
+            targetPositionBlockNumber: item.action.blockNumber,
+            targetPositionLogIndex: item.action.orderInBlock,
+            mode:
+              additionalParams.mode === 'signal'
+                ? MissionMode.Signal
+                : MissionMode.Default,
+          };
+        }),
         missionsByBotMap,
       );
     }
