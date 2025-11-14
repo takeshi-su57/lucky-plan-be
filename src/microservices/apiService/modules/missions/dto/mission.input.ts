@@ -1,4 +1,4 @@
-import { MissionStatus } from '@prisma/client';
+import { MissionMode, MissionStatus } from '@prisma/client';
 import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class MissionCreateInput {
@@ -17,6 +17,9 @@ export class MissionCreateInput {
   @IsNotEmpty()
   @IsNumber()
   targetPositionLogIndex: number;
+
+  @IsNotEmpty()
+  mode: MissionMode;
 }
 
 export class MissionUpdateInput {
