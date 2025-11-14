@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MissionStatus, Platform, TaskStatus } from '@prisma/client';
+import {
+  MissionMode,
+  MissionStatus,
+  Platform,
+  TaskStatus,
+} from '@prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import {
@@ -21,7 +26,6 @@ import { TaskDetails, TaskBackwardDetails } from './entities/task.entity';
 import { TaskCreateInput, TaskUpdateInput } from './dto/task.input';
 
 import { Action } from 'src/microservices/apiService/modules/actions/entities/action.entity';
-import { getAdditionalParams } from 'src/microservices/apiService/modules/strategy/strategy-library';
 import { CreateFollowerActionInput } from 'src/microservices/apiService/modules/follower-actions/dto/follower-action.input';
 
 import {
@@ -525,21 +529,17 @@ export class TasksService {
 
     await this.createMany(
       [...noneCloseActions, ...normalClosedActions].map((item) => {
-        const additionalParams = getAdditionalParams(
-          item.context.bot.strategy.params,
-        );
-
         return {
           missionId: item.context.mission.id,
           actionId: item.action.id,
           status:
-            additionalParams.mode === 'signal'
+            item.context.mission.mode === MissionMode.Signal
               ? TaskStatus.Stopped
               : TaskStatus.Created,
           logs: [
             JSON.stringify({
               timestamp: Date.now(),
-              message: `Task created`,
+              message: `Task ${item.context.mission.mode === MissionMode.Signal ? 'stopped' : 'created'}`,
             }),
           ],
         };

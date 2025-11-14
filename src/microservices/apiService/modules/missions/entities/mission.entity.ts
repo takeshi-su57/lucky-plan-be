@@ -5,7 +5,7 @@ import {
   registerEnumType,
   InputType,
 } from '@nestjs/graphql';
-import { MissionStatus } from '@prisma/client';
+import { MissionMode, MissionStatus } from '@prisma/client';
 import { IsNotEmpty } from 'class-validator';
 import {
   BotBackwardDetails,
@@ -16,6 +16,10 @@ import { TaskForwardDetails } from 'src/microservices/apiService/modules/tasks/e
 
 registerEnumType(MissionStatus, {
   name: 'MissionStatus',
+});
+
+registerEnumType(MissionMode, {
+  name: 'MissionMode',
 });
 
 @ObjectType()
@@ -43,6 +47,9 @@ export class Mission {
 
   @Field(() => Int, { nullable: true })
   achievePositionLogIndex: number | null;
+
+  @Field(() => MissionMode)
+  mode: MissionMode;
 
   @Field(() => Date)
   createdAt: Date;

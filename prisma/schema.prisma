@@ -402,6 +402,11 @@ enum MissionStatus {
   Ignored
 }
 
+enum MissionMode {
+  Default
+  Signal
+}
+
 model Mission {
   id                         Int           @id @default(autoincrement())
   botId                      Int
@@ -414,6 +419,7 @@ model Mission {
   createdAt                  DateTime      @default(now())
   updatedAt                  DateTime      @updatedAt
   status                     MissionStatus
+  mode                       MissionMode   @default(Default)
 
   bot   Bot    @relation(fields: [botId], references: [id])
   tasks Task[]
