@@ -100,6 +100,40 @@ export class FollowerResolver {
     );
   }
 
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  decreaseAllowanceToZero(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('followerAddress', { type: () => String }) followerAddress: string,
+    @Args('password', { type: () => String }) password: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.decreaseAllowanceToZero(
+      user.address,
+      password,
+      contractId,
+      followerAddress,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  increaseAllowanceToMax(
+    @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('followerAddress', { type: () => String }) followerAddress: string,
+    @Args('password', { type: () => String }) password: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.followerService.increaseAllowanceToMax(
+      user.address,
+      password,
+      contractId,
+      followerAddress,
+    );
+  }
+
   @Mutation(() => ContractExecutionResult)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
