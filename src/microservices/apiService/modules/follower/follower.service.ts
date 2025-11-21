@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
-import { isAddress } from 'viem';
+import { isAddress, maxInt256 } from 'viem';
 import * as dayjs from 'dayjs';
 import { BotStatus, MissionStatus } from '@prisma/client';
 
@@ -576,6 +576,150 @@ export class FollowerService {
       await this.logger.log({
         severity: 'Error',
         summary: `FollowerService>withdrawETHToUser`,
+        details: getReadableError(err),
+      });
+    }
+
+    return false;
+  }
+
+  async decreaseAllowanceToZero(
+    userId: string,
+    password: string,
+    contractId: number,
+    followerAddress: string,
+  ): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      if (!(await this.securityService.isValidPassword(password))) {
+        throw new Error('Password is incorrect');
+      }
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: followerAddress.toLowerCase(),
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      const collateralInfo = getCollateral(
+        contract.chainId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      const allowance = await this.evmAdapterService.erc20Allowance({
+        chainId: contract.chainId,
+        priority: ChainPriority.LOW,
+        erc20ContractAddress: collateralInfo.collateral,
+        address: follower.address as Address,
+        spender: contract.address as Address,
+      });
+
+      if (allowance > 0n) {
+        await this.evmAdapterService.erc20Approve({
+          chainId: contract.chainId,
+          mnemonic,
+          accountIndex: follower.accountIndex,
+          erc20ContractAddress: collateralInfo.collateral,
+          spender: contract.address as Address,
+          amount: 0n,
+        });
+      }
+
+      return true;
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>decreaseAllowanceToZero`,
+        details: getReadableError(err),
+      });
+    }
+
+    return false;
+  }
+
+  async increaseAllowanceToMax(
+    userId: string,
+    password: string,
+    contractId: number,
+    followerAddress: string,
+  ): Promise<boolean> {
+    try {
+      const contract = await this.contractService.findOne(contractId);
+
+      if (!(await this.securityService.isValidPassword(password))) {
+        throw new Error('Password is incorrect');
+      }
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          address: userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const follower = await this.prismaService.follower.findUnique({
+        where: {
+          address: followerAddress.toLowerCase(),
+        },
+      });
+
+      if (!follower) {
+        throw new Error('Follower not found');
+      }
+
+      const collateralInfo = getCollateral(
+        contract.chainId,
+        USDCCollateralIndex[
+          contract.chainId as keyof typeof USDCCollateralIndex
+        ],
+      );
+
+      if (!collateralInfo) {
+        throw new Error('Invalid collateral index');
+      }
+
+      const mnemonic = await this.getMnemonic(user.mnemonic || '');
+
+      await this.evmAdapterService.erc20Approve({
+        chainId: contract.chainId,
+        mnemonic,
+        accountIndex: follower.accountIndex,
+        erc20ContractAddress: collateralInfo.collateral,
+        spender: contract.address as Address,
+        amount: maxInt256,
+      });
+
+      return true;
+    } catch (err) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: `FollowerService>increaseAllowanceToMax`,
         details: getReadableError(err),
       });
     }
@@ -1585,6 +1729,7 @@ export class FollowerService {
 
     const ethMap: Record<string, bigint> = {};
     const usdcMap: Record<string, bigint> = {};
+    const usdcAllowanceMap: Record<string, bigint> = {};
     const pnlSnapshotsMap: Record<string, PnlSnapshotV2[]> = {};
     const tradesMap: Record<string, FollowerTrade[]> = {};
     const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
@@ -1606,7 +1751,16 @@ export class FollowerService {
       address: firstEntity.address as Address,
     });
 
+    const usdcAllowance = await this.evmAdapterService.erc20Allowance({
+      chainId: contract.chainId,
+      priority: ChainPriority.LOW,
+      erc20ContractAddress: collateralInfo.collateral,
+      address: firstEntity.address as Address,
+      spender: contract.address as Address,
+    });
+
     ethMap[firstEntity.address] = ethBalance;
+    usdcAllowanceMap[firstEntity.address] = usdcAllowance;
 
     const pnlSnapshots =
       await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
@@ -1635,6 +1789,7 @@ export class FollowerService {
         contractId,
         ethBalance: ethMap[entity.address]?.toString() || null,
         usdcBalance: usdcMap[entity.address]?.toString() || null,
+        usdcAllowance: usdcAllowanceMap[entity.address]?.toString() || null,
         pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
         trades: tradesMap[entity.address] || [],
         pendingOrders: pendingOrdersMap[entity.address] || [],
