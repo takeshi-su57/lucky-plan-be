@@ -4,7 +4,7 @@ import { getAddress, recoverMessageAddress } from 'viem';
 import { generateMnemonic, english } from 'viem/accounts';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 import { User } from './entities/auth.entity';
 import { SecurityService } from 'src/global/security.service';
 

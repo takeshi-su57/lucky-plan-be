@@ -6,7 +6,7 @@ import {
   User,
   UserPermission,
   ContractStatus,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import { isAddress } from 'viem';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';

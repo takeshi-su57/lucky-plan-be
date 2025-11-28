@@ -8,7 +8,7 @@ import {
 } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { BotStatus, User, UserPermission } from '@prisma/client';
+import { BotStatus, User, UserPermission } from 'generated/prisma/client';
 
 import { BotsService } from './bots.service';
 import {

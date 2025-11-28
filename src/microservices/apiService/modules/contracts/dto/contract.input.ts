@@ -1,5 +1,5 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
-import { ContractStatus } from '@prisma/client';
+import { ContractStatus } from 'generated/prisma/client';
 import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';

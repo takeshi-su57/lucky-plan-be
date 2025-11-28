@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { TaskStatus } from '@prisma/client';
+import { TaskStatus } from 'generated/prisma/client';
 import { Action } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 import { FollowerActionDetails } from 'src/microservices/apiService/modules/follower-actions/entities/follower-action.entity';
 import {

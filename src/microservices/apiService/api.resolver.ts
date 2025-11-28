@@ -7,7 +7,7 @@ import {
   Args,
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 
 import { ApiService } from './api.service';
 import { GqlAuthGuard } from './modules/auth/gql-auth.guard';

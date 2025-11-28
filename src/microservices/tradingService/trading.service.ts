@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address, decodeEventLog } from 'viem';
-import { Contract, ContractStatus, Platform } from '@prisma/client';
+import { Contract, ContractStatus, Platform } from 'generated/prisma/client';
 
 import { BotsService } from '../apiService/modules/bots/bots.service';
 import { ContractsService } from '../apiService/modules/contracts/contracts.service';

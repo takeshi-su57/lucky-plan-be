@@ -5,12 +5,12 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // system level models
@@ -81,8 +81,9 @@ model Contract {
   backendUrl                 String?
   status                     ContractStatus @default(Live)
 
-  leaderBots   Bot[] @relation("leaderBots")
-  followerBots Bot[] @relation("followerBots")
+  leaderBots   Bot[]         @relation("leaderBots")
+  followerBots Bot[]         @relation("followerBots")
+  sltprequests SLTPRequest[]
 
   @@unique([chainId, address, version, platform])
 }
@@ -472,4 +473,32 @@ model FollowerAction {
   task   Task   @relation(fields: [taskId], references: [id])
 
   @@unique([actionId, taskId])
+}
+
+enum SLTPRequestStatus {
+  Live
+  Dead
+}
+
+model SLTPRequest {
+  id          Int               @id @default(autoincrement())
+  address     String
+  contractId  Int
+  positionKey String
+  condition   String
+  status      SLTPRequestStatus @default(Dead)
+  createdAt   DateTime          @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([address, contractId, positionKey])
+}
+
+model GnsPricingRecord {
+  id    Int      @id @default(autoincrement())
+  pair  String
+  price Float    @default(0)
+  date  DateTime
+
+  @@index([pair, date(sort: Asc)])
 }

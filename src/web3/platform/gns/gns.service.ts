@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Address, zeroAddress } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
-import { Platform, Version } from '@prisma/client';
+import { Platform, Version } from 'generated/prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 

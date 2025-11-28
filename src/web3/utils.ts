@@ -1,4 +1,4 @@
-import { Platform, Version } from '@prisma/client';
+import { Platform, Version } from 'generated/prisma/client';
 
 import { gnsMultiCollatDiamondAbi as gnsV10Abi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import { gnsMultiCollatDiamondAbi as gnsV9Abi } from 'src/web3/platform/gns/v9/abi/GNSMultiCollatDiamond';

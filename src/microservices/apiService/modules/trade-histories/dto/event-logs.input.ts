@@ -1,5 +1,5 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { Platform } from '@prisma/client';
+import { Platform } from 'generated/prisma/client';
 
 export type CreateEventLogInput = {
   contractId: number;

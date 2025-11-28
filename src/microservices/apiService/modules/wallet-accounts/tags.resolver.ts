@@ -9,7 +9,7 @@ import { UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
 import { User } from 'src/microservices/apiService/modules/auth/entities/auth.entity';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 
 @Resolver(() => Tag)
 export class TagsResolver {

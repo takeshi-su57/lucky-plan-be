@@ -3,10 +3,13 @@ import {
   Platform,
   PrismaClient,
   Version,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import 'dotenv';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ url: process.env.DATABASE_URL }),
+});
 
 async function main() {
   const strategyMetadata = [

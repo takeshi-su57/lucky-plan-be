@@ -4,7 +4,7 @@ import {
   Platform,
   PnlSnapshotKind,
   PnlSnapshotV2,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import * as dayjs from 'dayjs';
 import { LogsService } from 'src/global/logs.service';
 

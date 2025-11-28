@@ -1,4 +1,4 @@
-import { MissionMode, MissionStatus } from '@prisma/client';
+import { MissionMode, MissionStatus } from 'generated/prisma/client';
 import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class MissionCreateInput {

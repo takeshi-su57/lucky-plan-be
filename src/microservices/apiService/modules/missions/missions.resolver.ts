@@ -8,7 +8,7 @@ import {
 } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { User, UserPermission } from '@prisma/client';
+import { User, UserPermission } from 'generated/prisma/client';
 
 import { MissionsService } from './missions.service';
 import {

@@ -1,4 +1,4 @@
-import { TaskStatus } from '@prisma/client';
+import { TaskStatus } from 'generated/prisma/client';
 import { IsArray, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class TaskCreateInput {

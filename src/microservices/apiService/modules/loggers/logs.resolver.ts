@@ -7,7 +7,7 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { LogSeverity } from '@prisma/client';
+import { LogSeverity } from 'generated/prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import { LogsService } from './logs.service';

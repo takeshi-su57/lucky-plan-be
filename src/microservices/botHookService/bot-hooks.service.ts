@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Address } from 'viem';
-import { Contract, ContractStatus, Follower, Platform } from '@prisma/client';
+import {
+  Contract,
+  ContractStatus,
+  Follower,
+  Platform,
+} from 'generated/prisma/client';
 import {
   arbitrum,
   arbitrumSepolia,

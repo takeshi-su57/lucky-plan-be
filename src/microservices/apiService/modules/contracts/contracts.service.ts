@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { timeout } from 'rxjs';
-import { ContractStatus } from '@prisma/client';
+import { ContractStatus } from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 

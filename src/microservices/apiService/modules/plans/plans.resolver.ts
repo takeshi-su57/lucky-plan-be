@@ -7,7 +7,12 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import { PlanStatus, User, UserPermission, Platform } from '@prisma/client';
+import {
+  PlanStatus,
+  User,
+  UserPermission,
+  Platform,
+} from 'generated/prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 import * as dayjs from 'dayjs';
 
