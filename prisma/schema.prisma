@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,8 +6,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
-// system level models
 
 model Metadata {
   id        Int      @id @default(autoincrement())
@@ -24,66 +16,44 @@ model Metadata {
 }
 
 model StrategyMetadata {
-  key         String @id @db.VarChar(255)
-  title       String @db.VarChar(255)
+  key         String     @id @db.VarChar(255)
+  title       String     @db.VarChar(255)
   description String
-
-  strategies Strategy[]
+  strategies  Strategy[]
 }
 
 model Strategy {
-  id                 Int    @id @default(autoincrement())
+  id                 Int              @id @default(autoincrement())
   strategyKey        String
-  ratio              Float  @default(1)
-  lifeTime           Int // unit is min
-  minCollateral      Int // usdc
-  maxCollateral      Int // usdc
-  collateralBaseline Int // usdc
-  maxLeverage        Int    @default(200000)
-  minLeverage        Int    @default(1100)
   params             String
-
-  strategyMetadata StrategyMetadata @relation(fields: [strategyKey], references: [key])
-
-  bots Bot[]
-}
-
-enum Platform {
-  GNS
-  GMX
-  AVNT
-}
-
-enum Version {
-  V1
-  V2
-  V9
-  V10
-}
-
-enum ContractStatus {
-  Live
-  Dead
+  maxLeverage        Int              @default(200000)
+  minLeverage        Int              @default(1100)
+  ratio              Float            @default(1)
+  maxCollateral      Int
+  minCollateral      Int
+  lifeTime           Int
+  collateralBaseline Int
+  bots               Bot[]
+  strategyMetadata   StrategyMetadata @relation(fields: [strategyKey], references: [key])
 }
 
 model Contract {
   id                         Int            @id @default(autoincrement())
-  platform                   Platform       @default(GNS)
-  version                    Version        @default(V9)
   chainId                    Int
   address                    String
   description                String
-  isTestnet                  Boolean        @default(false)
-  fromBlock                  Int            @default(0)
-  toBlock                    Int?
   lastBlockNumber            Int
+  status                     ContractStatus @default(Live)
   lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
-  status                     ContractStatus @default(Live)
-
-  leaderBots   Bot[]         @relation("leaderBots")
-  followerBots Bot[]         @relation("followerBots")
-  sltprequests SLTPRequest[]
+  isTestnet                  Boolean        @default(false)
+  fromBlock                  Int            @default(0)
+  platform                   Platform       @default(GNS)
+  toBlock                    Int?
+  version                    Version        @default(V9)
+  followerBots               Bot[]          @relation("followerBots")
+  leaderBots                 Bot[]          @relation("leaderBots")
+  sltprequests               SLTPRequest[]
 
   @@unique([chainId, address, version, platform])
 }
@@ -112,16 +82,16 @@ model EventLog {
 model PerpTradingEventLog {
   id         Int      @id @default(autoincrement())
   contractId Int
-  platform   Platform
-  address    String
   jsonLog    String
   usdPnl     Float
   block      Int
   logIndex   Int
   date       DateTime
+  address    String
+  platform   Platform
 
   @@unique([address, contractId, block, logIndex])
-  @@index([platform, contractId, date(sort: Asc), block(sort: Asc), id(sort: Asc)])
+  @@index([platform, contractId, date, block, id])
 }
 
 model TradingSignalLog {
@@ -133,19 +103,11 @@ model TradingSignalLog {
   @@unique([platform, address])
 }
 
-enum PnlSnapshotKind {
-  DAY
-  WEEK
-  MONTH
-  THREE_MONTH
-  ALL_TIME
-}
-
 model PnlSnapshotV2 {
   id        Int             @id @default(autoincrement())
   platform  Platform
   address   String
-  dateStr   String // YYYY-MM-DD
+  dateStr   String
   kind      PnlSnapshotKind
   accUSDPnl Float
 
@@ -157,11 +119,291 @@ model PnlSnapshotV2 {
 
 model PnlSnapshotV2InitializedFlag {
   id       Int      @id @default(autoincrement())
-  platform Platform
-  dateStr  String // YYYY-MM-DD
+  dateStr  String
   isInit   Boolean  @default(false)
+  platform Platform
 
   @@unique([platform, dateStr])
+}
+
+model TradeHistory {
+  id                 Int             @id @default(autoincrement())
+  address            String
+  contractId         Int
+  pnl                String
+  action             TradeActionType
+  block              Int
+  collateralDelta    String?
+  collateralIndex    Int
+  collateralPriceUsd String
+  date               DateTime
+  leverage           Int
+  long               Int
+  marketPrice        String?
+  pair               String
+  price              String
+  size               String
+  tradeId            String?
+  tradeIndex         Int
+  leverageDelta      Int?
+  isCounterTrade     Boolean?        @default(false)
+  meta               String?
+
+  @@index([address, contractId, block])
+}
+
+model PnlSnapshot {
+  id         Int             @id @default(autoincrement())
+  address    String
+  kind       PnlSnapshotKind
+  accUSDPnl  Float
+  dateStr    String
+  contractId Int
+
+  @@unique([address, contractId, dateStr, kind])
+  @@index([accUSDPnl(sort: Desc)])
+}
+
+model TestingReport {
+  id                 Int     @id @default(autoincrement())
+  minR2              Float
+  investedUSD        Float
+  totalUSDPnl        Float
+  totalTasks         Int
+  totalPositions     Int
+  totalTraders       Int
+  totalUniqueTraders Int
+  calculatedR2       Float
+  calculatedSlope    Float
+  maxLoss            Float
+  avgLoss            Float
+  maxProfit          Float
+  avgProfit          Float
+  peakAccProfit      Float
+  bottomAccProfit    Float
+  usdPnls            Float[]
+  lossCount          Int
+  profitCount        Int
+  allTimeWeight      Int
+  m                  Int
+  maxAvgSize         Int
+  maxCount           Int
+  minAvgSize         Int
+  minCount           Int
+  minScore           Float
+  monthWeight        Int
+  n                  Int
+  threeMonthWeight   Int
+  weekWeight         Int
+  window             Int
+}
+
+model PnlSnapshotInitializedFlag {
+  id      Int     @id @default(autoincrement())
+  dateStr String  @unique
+  isInit  Boolean @default(false)
+}
+
+model Log {
+  id        Int         @id @default(autoincrement())
+  severity  LogSeverity
+  timestamp DateTime    @default(now())
+  summary   String
+  details   String?
+  checked   Boolean     @default(false)
+
+  @@index([severity, timestamp(sort: Desc)])
+}
+
+model User {
+  address            String         @unique
+  mnemonic           String
+  permission         UserPermission
+  allowAuto          Boolean        @default(false)
+  budget             Float          @default(0)
+  ratio              Float          @default(1)
+  followerContractId Int            @default(0)
+}
+
+model TagCategory {
+  id          Int    @id @default(autoincrement())
+  category    String
+  description String
+  userId      String
+  Tag         Tag[]
+
+  @@unique([userId, category])
+}
+
+model Tag {
+  tag         String
+  color       String
+  description String
+  categoryId  Int?
+  id          Int             @id @default(autoincrement())
+  userId      String
+  category    TagCategory?    @relation(fields: [categoryId], references: [id])
+  wallets     WalletAccount[] @relation("TagToWalletAccount")
+
+  @@unique([userId, tag])
+}
+
+model WalletAccount {
+  address String
+  id      Int    @id @default(autoincrement())
+  userId  String
+  tags    Tag[]  @relation("TagToWalletAccount")
+
+  @@unique([userId, address])
+}
+
+model Follower {
+  address      String @id @db.VarChar(255)
+  publicKey    String @unique
+  accountIndex Int
+  userId       String @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
+  bots         Bot[]
+
+  @@unique([userId, accountIndex])
+}
+
+model Plan {
+  id             Int        @id @default(autoincrement())
+  title          String
+  description    String
+  startedAt      DateTime?
+  endedAt        DateTime?
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  status         PlanStatus
+  userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
+  bots           Bot[]
+}
+
+model Bot {
+  id                       Int       @id @default(autoincrement())
+  leaderAddress            String    @db.VarChar(255)
+  followerAddress          String    @db.VarChar(255)
+  strategyId               Int
+  status                   BotStatus @default(Created)
+  leaderContractId         Int
+  followerContractId       Int
+  followerEndedBlock       Int?
+  followerStartedBlock     Int?
+  leaderEndedBlock         Int?
+  leaderStartedBlock       Int?
+  endedAt                  DateTime?
+  startedAt                DateTime?
+  leaderCollateralBaseline Int
+  planId                   Int       @default(0)
+  follower                 Follower  @relation(fields: [followerAddress], references: [address])
+  followerContract         Contract  @relation("followerBots", fields: [followerContractId], references: [id])
+  leaderContract           Contract  @relation("leaderBots", fields: [leaderContractId], references: [id])
+  plan                     Plan      @relation(fields: [planId], references: [id])
+  strategy                 Strategy  @relation(fields: [strategyId], references: [id])
+  missions                 Mission[]
+}
+
+model Mission {
+  id                         Int           @id @default(autoincrement())
+  botId                      Int
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  status                     MissionStatus
+  achievePositionKey         String?
+  targetPositionKey          String
+  achievePositionBlockNumber Int?
+  achievePositionLogIndex    Int?
+  targetPositionBlockNumber  Int
+  targetPositionLogIndex     Int
+  mode                       MissionMode   @default(Default)
+  bot                        Bot           @relation(fields: [botId], references: [id])
+  tasks                      Task[]
+}
+
+model Task {
+  id              Int              @id @default(autoincrement())
+  missionId       Int
+  actionId        Int
+  status          TaskStatus
+  logs            String[]
+  createdAt       DateTime         @default(now())
+  followerActions FollowerAction[]
+  action          Action           @relation(fields: [actionId], references: [id])
+  mission         Mission          @relation(fields: [missionId], references: [id])
+
+  @@unique([missionId, actionId])
+}
+
+model Action {
+  id              Int              @id @default(autoincrement())
+  name            String
+  args            String
+  blockNumber     Int
+  orderInBlock    Int
+  createdAt       DateTime         @default(now())
+  positionKey     String
+  address         String
+  followerActions FollowerAction[]
+  tasks           Task[]
+}
+
+model FollowerAction {
+  id       Int    @id @default(autoincrement())
+  actionId Int
+  taskId   Int
+  action   Action @relation(fields: [actionId], references: [id])
+  task     Task   @relation(fields: [taskId], references: [id])
+
+  @@unique([actionId, taskId])
+}
+
+model SLTPRequest {
+  id          Int               @id @default(autoincrement())
+  address     String
+  contractId  Int
+  positionKey String
+  condition   String
+  status      SLTPRequestStatus @default(Dead)
+  createdAt   DateTime          @default(now())
+  contract    Contract          @relation(fields: [contractId], references: [id])
+
+  @@unique([address, contractId, positionKey])
+}
+
+model GnsPricingRecord {
+  id    Int      @id @default(autoincrement())
+  pair  String
+  price Float    @default(0)
+  date  DateTime
+
+  @@index([pair, date])
+}
+
+enum Platform {
+  GNS
+  GMX
+  AVNT
+}
+
+enum Version {
+  V9
+  V10
+  V2
+  V1
+}
+
+enum ContractStatus {
+  Live
+  Dead
+}
+
+enum PnlSnapshotKind {
+  DAY
+  WEEK
+  MONTH
+  THREE_MONTH
+  ALL_TIME
 }
 
 enum TradeActionType {
@@ -177,84 +419,6 @@ enum TradeActionType {
   TradePosPnlRealized
 }
 
-model TradeHistory {
-  id                 Int             @id @default(autoincrement())
-  address            String
-  action             TradeActionType
-  contractId         Int
-  pair               String
-  price              String
-  collateralPriceUsd String
-  long               Int
-  size               String
-  leverage           Int
-  pnl                String
-  collateralIndex    Int
-  tradeIndex         Int
-  collateralDelta    String?
-  leverageDelta      Int?
-  marketPrice        String?
-  tradeId            String?
-  block              Int
-  date               DateTime
-  isCounterTrade     Boolean?        @default(false)
-  meta               String?
-
-  @@index([address, contractId, block(sort: Asc)])
-}
-
-model PnlSnapshot {
-  id         Int             @id @default(autoincrement())
-  address    String
-  contractId Int
-  dateStr    String // YYYY-MM-DD
-  kind       PnlSnapshotKind
-  accUSDPnl  Float
-
-  @@unique([address, contractId, dateStr, kind])
-  @@index([accUSDPnl(sort: Desc)])
-}
-
-model TestingReport {
-  id                 Int     @id @default(autoincrement())
-  window             Int
-  minR2              Float
-  n                  Int
-  m                  Int
-  minAvgSize         Int
-  maxAvgSize         Int
-  minCount           Int
-  maxCount           Int
-  weekWeight         Int
-  monthWeight        Int
-  threeMonthWeight   Int
-  allTimeWeight      Int
-  minScore           Float
-  investedUSD        Float
-  totalUSDPnl        Float
-  totalTasks         Int
-  totalPositions     Int
-  totalTraders       Int
-  totalUniqueTraders Int
-  usdPnls            Float[]
-  calculatedR2       Float
-  calculatedSlope    Float
-  maxLoss            Float
-  lossCount          Int
-  avgLoss            Float
-  maxProfit          Float
-  profitCount        Int
-  avgProfit          Float
-  peakAccProfit      Float
-  bottomAccProfit    Float
-}
-
-model PnlSnapshotInitializedFlag {
-  id      Int     @id @default(autoincrement())
-  dateStr String  @unique // YYYY-MM-DD
-  isInit  Boolean @default(false)
-}
-
 enum LogSeverity {
   Emergency
   Alert
@@ -267,33 +431,10 @@ enum LogSeverity {
   Default
 }
 
-model Log {
-  id        Int         @id @default(autoincrement())
-  severity  LogSeverity
-  timestamp DateTime    @default(now())
-  summary   String
-  details   String?
-  checked   Boolean     @default(false)
-
-  @@index([severity, timestamp(sort: Desc)])
-}
-
-// bot level models
-
 enum UserPermission {
   Admin
   Trader
   Trial
-}
-
-model User {
-  address            String         @unique
-  mnemonic           String
-  permission         UserPermission
-  allowAuto          Boolean        @default(false)
-  budget             Float          @default(0)
-  ratio              Float          @default(1)
-  followerContractId Int            @default(0)
 }
 
 enum BotStatus {
@@ -303,51 +444,6 @@ enum BotStatus {
   Dead
 }
 
-model TagCategory {
-  id          Int    @id @default(autoincrement())
-  category    String
-  userId      String
-  description String
-
-  Tag Tag[]
-
-  @@unique([userId, category])
-}
-
-model Tag {
-  id          Int    @id @default(autoincrement())
-  tag         String
-  userId      String
-  description String
-  color       String
-  categoryId  Int?
-
-  category TagCategory?    @relation(fields: [categoryId], references: [id])
-  wallets  WalletAccount[]
-
-  @@unique([userId, tag])
-}
-
-model WalletAccount {
-  id      Int    @id @default(autoincrement())
-  userId  String
-  address String
-  tags    Tag[]
-
-  @@unique([userId, address])
-}
-
-model Follower {
-  address      String @id @db.VarChar(255)
-  userId       String @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
-  publicKey    String @unique
-  accountIndex Int // this is master follower
-
-  bots Bot[]
-
-  @@unique([userId, accountIndex])
-}
-
 enum PlanStatus {
   Created
   Started
@@ -355,51 +451,12 @@ enum PlanStatus {
   Finished
 }
 
-model Plan {
-  id             Int        @id @default(autoincrement())
-  userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
-  title          String
-  description    String
-  startedAt      DateTime?
-  endedAt        DateTime?
-  scheduledStart DateTime
-  scheduledEnd   DateTime
-  status         PlanStatus
-  bots           Bot[]
-}
-
-model Bot {
-  id                       Int       @id @default(autoincrement())
-  leaderAddress            String    @db.VarChar(255)
-  followerAddress          String    @db.VarChar(255)
-  planId                   Int       @default(0)
-  strategyId               Int
-  leaderContractId         Int
-  leaderCollateralBaseline Int
-  leaderStartedBlock       Int?
-  leaderEndedBlock         Int?
-  followerContractId       Int
-  followerStartedBlock     Int?
-  followerEndedBlock       Int?
-  startedAt                DateTime?
-  endedAt                  DateTime?
-  status                   BotStatus @default(Created)
-
-  plan             Plan     @relation(fields: [planId], references: [id])
-  follower         Follower @relation(fields: [followerAddress], references: [address])
-  strategy         Strategy @relation(fields: [strategyId], references: [id])
-  leaderContract   Contract @relation("leaderBots", fields: [leaderContractId], references: [id])
-  followerContract Contract @relation("followerBots", fields: [followerContractId], references: [id])
-
-  missions Mission[]
-}
-
 enum MissionStatus {
+  Opened
+  Closed
   Created
   Opening
-  Opened
   Closing
-  Closed
   Ignored
 }
 
@@ -408,97 +465,16 @@ enum MissionMode {
   Signal
 }
 
-model Mission {
-  id                         Int           @id @default(autoincrement())
-  botId                      Int
-  targetPositionKey          String
-  targetPositionBlockNumber  Int
-  targetPositionLogIndex     Int
-  achievePositionKey         String?
-  achievePositionBlockNumber Int?
-  achievePositionLogIndex    Int?
-  createdAt                  DateTime      @default(now())
-  updatedAt                  DateTime      @updatedAt
-  status                     MissionStatus
-  mode                       MissionMode   @default(Default)
-
-  bot   Bot    @relation(fields: [botId], references: [id])
-  tasks Task[]
-}
-
 enum TaskStatus {
   Created
   Await
   Initiated
   Failed
-  Stopped
   Completed
-}
-
-model Task {
-  id        Int        @id @default(autoincrement())
-  missionId Int
-  actionId  Int
-  status    TaskStatus
-  logs      String[]
-  createdAt DateTime   @default(now())
-
-  action          Action           @relation(fields: [actionId], references: [id])
-  mission         Mission          @relation(fields: [missionId], references: [id])
-  followerActions FollowerAction[]
-
-  @@unique([missionId, actionId])
-}
-
-model Action {
-  id           Int      @id @default(autoincrement())
-  address      String
-  name         String
-  positionKey  String
-  args         String
-  blockNumber  Int
-  orderInBlock Int
-  createdAt    DateTime @default(now())
-
-  tasks           Task[]
-  followerActions FollowerAction[]
-}
-
-model FollowerAction {
-  id       Int @id @default(autoincrement())
-  actionId Int
-  taskId   Int
-
-  action Action @relation(fields: [actionId], references: [id])
-  task   Task   @relation(fields: [taskId], references: [id])
-
-  @@unique([actionId, taskId])
+  Stopped
 }
 
 enum SLTPRequestStatus {
   Live
   Dead
-}
-
-model SLTPRequest {
-  id          Int               @id @default(autoincrement())
-  address     String
-  contractId  Int
-  positionKey String
-  condition   String
-  status      SLTPRequestStatus @default(Dead)
-  createdAt   DateTime          @default(now())
-
-  contract Contract @relation(fields: [contractId], references: [id])
-
-  @@unique([address, contractId, positionKey])
-}
-
-model GnsPricingRecord {
-  id    Int      @id @default(autoincrement())
-  pair  String
-  price Float    @default(0)
-  date  DateTime
-
-  @@index([pair, date(sort: Asc)])
 }
