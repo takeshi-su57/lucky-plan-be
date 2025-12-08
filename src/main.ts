@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { SERVICE_NAMES } from './utils/constants';
 
@@ -101,7 +102,7 @@ async function bootstrap() {
       break;
     }
     case SERVICE_NAMES.API_SERVICE: {
-      const app = await NestFactory.create(ApiModule);
+      const app = await NestFactory.create<NestExpressApplication>(ApiModule);
 
       app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.REDIS,
@@ -112,6 +113,8 @@ async function bootstrap() {
           retryDelay: 1000,
         },
       });
+
+      app.set('query parser', 'extended');
 
       app.useGlobalPipes(new ValidationPipe());
       app.enableCors();
