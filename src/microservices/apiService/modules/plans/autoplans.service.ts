@@ -431,7 +431,7 @@ export class AutoPlansService {
     >();
 
     let currentCursor = after;
-    const limit = 100;
+    const limit = 50;
 
     while (true) {
       const pnlRecords: PnlSnapshotV2[] = currentCursor
@@ -629,7 +629,7 @@ export class AutoPlansService {
       const keys = Array.from(expertMap.keys());
 
       // chunk by 30 for ux
-      if (keys.length >= 30) {
+      if (keys.length >= 10) {
         break;
       }
     }
