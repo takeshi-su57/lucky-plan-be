@@ -19,6 +19,7 @@ import {
   UpdateLeverageInput,
   IncreasePositionSizeInput,
   DecreasePositionSizeInput,
+  AssetInput,
 } from './dto/follower.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
@@ -36,6 +37,30 @@ export class FollowerResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   generateNewFollower(@CurrentUser() user: User) {
     return this.followerService.generateNewFollower(user.address);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  depositAsset(@Args('input') input: AssetInput, @CurrentUser() user: User) {
+    return this.followerService.depositAsset(user.address, {
+      address: input.address,
+      contractId: input.contractId,
+      amount: BigInt(input.amount),
+      kind: input.kind as 'usdc' | 'eth',
+    });
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  withdrawAsset(@Args('input') input: AssetInput, @CurrentUser() user: User) {
+    return this.followerService.withdrawAsset(user.address, {
+      address: input.address,
+      contractId: input.contractId,
+      amount: BigInt(input.amount),
+      kind: input.kind as 'usdc' | 'eth',
+    });
   }
 
   @Mutation(() => Boolean)

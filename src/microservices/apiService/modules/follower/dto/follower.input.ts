@@ -1,5 +1,5 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsIn } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 
@@ -22,6 +22,29 @@ export class WithdrawAllInput {
   @IsNumber()
   @Field(() => Int)
   contractId: number;
+}
+
+@InputType()
+export class AssetInput {
+  @IsNotEmpty()
+  @IsWalletAddress()
+  @Field()
+  address: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Field(() => String)
+  amount: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  contractId: number;
+
+  @IsNotEmpty()
+  @IsIn(['usdc', 'eth'])
+  @Field(() => String)
+  kind: 'usdc' | 'eth';
 }
 
 @InputType()

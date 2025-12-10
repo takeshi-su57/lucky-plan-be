@@ -76,12 +76,12 @@ export class FollowerService {
     userId: string,
     {
       address,
-      contract,
+      contractId,
       amount,
       kind,
     }: {
       address: string;
-      contract: Contract;
+      contractId: number;
       amount: bigint;
       kind: 'usdc' | 'eth';
     },
@@ -89,6 +89,12 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
+      const contract = await this.contractService.findOne(contractId);
+
+      if (!contract) {
+        throw new Error('Contract not found');
+      }
+
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
           userId_accountIndex: {
@@ -192,12 +198,12 @@ export class FollowerService {
     userId: string,
     {
       address,
-      contract,
+      contractId,
       amount,
       kind,
     }: {
       address: string;
-      contract: Contract;
+      contractId: number;
       amount: bigint;
       kind: 'usdc' | 'eth';
     },
@@ -210,6 +216,12 @@ export class FollowerService {
     let tx: string = 'no tx';
 
     try {
+      const contract = await this.contractService.findOne(contractId);
+
+      if (!contract) {
+        throw new Error('Contract not found');
+      }
+
       const masterFollower = await this.prismaService.follower.findUnique({
         where: {
           userId_accountIndex: {
@@ -357,7 +369,7 @@ export class FollowerService {
       if (usdcBalance > 1000000n) {
         await this.withdrawAsset(userId, {
           address,
-          contract: contract,
+          contractId: contractId,
           amount: usdcBalance,
           kind: 'usdc',
         });
@@ -391,7 +403,7 @@ export class FollowerService {
 
       await this.withdrawAsset(userId, {
         address,
-        contract: contract,
+        contractId: contractId,
         amount: ethBalance,
         kind: 'eth',
       });
