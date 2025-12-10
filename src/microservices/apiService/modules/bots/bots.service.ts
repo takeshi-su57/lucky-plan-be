@@ -220,7 +220,7 @@ export class BotsService {
       if (ethBalance < MIN_GAS) {
         await this.followersService.depositAsset(userId, {
           address: follower.address,
-          contract: followerContract,
+          contractId: followerContract.id,
           amount: MAX_GAS - ethBalance,
           kind: 'eth',
         });
