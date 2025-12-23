@@ -44,8 +44,8 @@ import { getReadableError } from 'src/utils';
 import { StrategyService } from 'src/microservices/apiService/modules/strategy/strategy.service';
 import { LogsService } from 'src/global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { getCollateral } from 'src/web3/platform/gns/v10/configs';
+import { getAdditionalParams } from '../strategy/strategy-library';
 
 @Injectable()
 export class BotsService {
@@ -55,7 +55,6 @@ export class BotsService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly evmAdapterService: EvmAdapterService,
-    private readonly gnsService: GnsService,
     private readonly missionsService: MissionsService,
     private readonly followersService: FollowerService,
     private readonly actionsService: ActionsService,
@@ -805,8 +804,9 @@ export class BotsService {
   async handleActionItems(
     contract: Contract,
     actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
+    shouldHandleHook: boolean,
   ) {
-    const bots = await this.prismaService.bot.findMany({
+    const allBots = await this.prismaService.bot.findMany({
       where: {
         status: {
           notIn: [BotStatus.Created, BotStatus.Dead],
@@ -824,6 +824,12 @@ export class BotsService {
         plan: true,
         missions: true,
       },
+    });
+
+    const bots = allBots.filter((bot) => {
+      const additionalParams = getAdditionalParams(bot.strategy.params);
+
+      return !shouldHandleHook || additionalParams.mode === 'hook';
     });
 
     const filteredActionItems = this.filterBotActions(
@@ -854,6 +860,10 @@ export class BotsService {
       actions,
     );
 
-    await this.missionsService.handleActions(followerActions, leaderActions);
+    await this.missionsService.handleActions(
+      followerActions,
+      leaderActions,
+      shouldHandleHook,
+    );
   }
 }

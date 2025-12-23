@@ -5,6 +5,7 @@ import {
   WalletClient,
   PublicClient,
   http,
+  webSocket,
   fallback,
 } from 'viem';
 import { english, mnemonicToAccount } from 'viem/accounts';
@@ -29,6 +30,8 @@ export const privateRPCProviders = {
     provider: 'drpc',
     getUrl: (network: string, token: string) =>
       `https://lb.drpc.live/${network}/${token}`,
+    getWebsocket: (network: string, token: string) =>
+      `wss://lb.drpc.live/${network}/${token}`,
     networks: {
       137: 'polygon',
       8453: 'base',
@@ -183,6 +186,7 @@ export class EvmChainsService {
   readonly freePublicClients: Record<number, PublicClient>;
   readonly privatePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
+  readonly paidPublicWSClients: Record<number, PublicClient>;
   private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
@@ -199,6 +203,7 @@ export class EvmChainsService {
     this.freePublicClients = {};
     this.privatePublicClients = {};
     this.paidPublicClients = {};
+    this.paidPublicWSClients = {};
     this.walletClients = {};
     this.readSemaphores = {};
     this.writeMutexs = {};
@@ -254,6 +259,24 @@ export class EvmChainsService {
         batch: {
           multicall: true,
         },
+      }) as unknown as PublicClient;
+
+      this.paidPublicWSClients[chain.id] = createPublicClient({
+        chain: chain,
+        transport: webSocket(
+          drpcProvider.getWebsocket(
+            drpcProvider.networks[
+              chain.id as keyof typeof drpcProvider.networks
+            ],
+            drpcProvider.paidTokens[0],
+          ),
+          {
+            keepAlive: { interval: 1_000 },
+            reconnect: {
+              attempts: Infinity,
+            },
+          },
+        ),
       }) as unknown as PublicClient;
 
       this.readSemaphores[chain.id] = {
@@ -331,6 +354,14 @@ export class EvmChainsService {
         };
       },
     });
+  }
+
+  paidPublicWSClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.paidPublicWSClients[chainId];
   }
 
   private walletClient(

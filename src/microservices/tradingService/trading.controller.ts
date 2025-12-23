@@ -76,7 +76,7 @@ export class TradingController implements OnApplicationBootstrap {
     }
 
     await this.tradingService.checkContractsForBots();
-    await this.taskExecutorService.performAvailableTasks();
+    await this.taskExecutorService.performAvailableTasks(false);
     await this.taskExecutorService.handleFailedTasks();
     await this.taskExecutorService.handleAwaitTasks();
   }
