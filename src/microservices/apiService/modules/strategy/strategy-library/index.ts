@@ -130,7 +130,7 @@ export function getAdditionalParams(strParams: string): {
   tpPercentage: number;
   slPercentage: number;
   selectedPairs: { pair: string; isLong: boolean }[];
-  mode?: 'signal';
+  mode?: 'signal' | 'hook';
 } {
   try {
     const params = JSON.parse(strParams);

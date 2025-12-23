@@ -11,10 +11,7 @@ import {
   getOrderIdFromMissionAction,
   missionEventParsers,
 } from 'src/web3/platform/gns/v10/eventParsers';
-import {
-  missionEventParsers as avntMissionEventParsers,
-  missionEventNames as avntMissionEventNames,
-} from 'src/web3/platform/avnt/v1/eventParsers';
+import { missionEventParsers as avntMissionEventParsers } from 'src/web3/platform/avnt/v1/eventParsers';
 import { eventParsers as gmxEventParsers } from 'src/web3/platform/gmx/v2/eventParsers';
 
 import {
@@ -690,6 +687,7 @@ export class MissionsService {
   private async handleMissionLeaderActions(
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
+    shouldHandleHook: boolean,
   ) {
     const totalMissionCount = Array.from(missionsByBotMap.values()).flat()
       .length;
@@ -707,6 +705,10 @@ export class MissionsService {
         const additionalParams = getAdditionalParams(
           item.context.bot.strategy.params,
         );
+
+        if (shouldHandleHook && additionalParams.mode !== 'hook') {
+          return false;
+        }
 
         const selectedPairKeys = additionalParams.selectedPairs.map((item) =>
           getPairKey(item.pair, item.isLong),
@@ -938,15 +940,19 @@ export class MissionsService {
             item.context.bot.strategy.params,
           );
 
+          const mode =
+            additionalParams.mode === 'hook'
+              ? MissionMode.Hook
+              : additionalParams.mode === 'signal'
+                ? MissionMode.Signal
+                : MissionMode.Default;
+
           return {
             botId: item.context.bot.id,
             targetPositionKey: item.action.positionKey,
             targetPositionBlockNumber: item.action.blockNumber,
             targetPositionLogIndex: item.action.orderInBlock,
-            mode:
-              additionalParams.mode === 'signal'
-                ? MissionMode.Signal
-                : MissionMode.Default,
+            mode,
           };
         }),
         missionsByBotMap,
@@ -1113,6 +1119,7 @@ export class MissionsService {
   private async handleLeaderActions(
     missionsByBotMap: Map<number, Mission[]>,
     leaderActions: ActionContext<BotContext>[],
+    shouldHandleHook: boolean,
   ) {
     await this.handleMissionLeaderActions(
       leaderActions.filter((item) =>
@@ -1122,6 +1129,7 @@ export class MissionsService {
         ).isOpenMissionAction(item.action),
       ),
       missionsByBotMap,
+      shouldHandleHook,
     );
 
     const missionActions = this.getLeaderMissionActions(
@@ -1153,6 +1161,7 @@ export class MissionsService {
   async handleActions(
     followerActions: ActionContext<BotContext>[],
     leaderActions: ActionContext<BotContext>[],
+    shouldHandleHook: boolean,
   ) {
     const missionsByBotMap = await this.loadMissions();
 
@@ -1161,7 +1170,11 @@ export class MissionsService {
     }
 
     if (leaderActions.length > 0) {
-      await this.handleLeaderActions(missionsByBotMap, leaderActions);
+      await this.handleLeaderActions(
+        missionsByBotMap,
+        leaderActions,
+        shouldHandleHook,
+      );
     }
   }
 }
