@@ -1,501 +1,269 @@
 import { Injectable } from '@nestjs/common';
-import { Address } from 'viem';
-import { Contract, ContractStatus, Follower, Platform } from '@prisma/client';
 import {
-  arbitrum,
-  arbitrumSepolia,
-  base,
-  polygon,
-  apeChain,
-  Chain,
-  avalanche,
-} from 'viem/chains';
+  Address,
+  decodeEventLog,
+  Log,
+  parseAbiItem,
+  WatchEventReturnType,
+} from 'viem';
+import { Contract, Platform, BotStatus } from '@prisma/client';
+
 import 'dotenv';
 
-import { ContractsService } from '../apiService/modules/contracts/contracts.service';
 import { getReadableError } from 'src/utils';
 import { LogsService } from 'src/global/logs.service';
 
 import { getWeb3Info } from 'src/web3/utils';
 
-import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { PrismaService } from 'src/global/prisma.service';
-import {
-  MarketExecutedEvent,
-  MarketExecutedEventArgs,
-  marketExecutedEventParser,
-} from 'src/web3/platform/gns/v10/eventParsers/market-executed.parser';
-import {
-  LimitExecutedEvent,
-  LimitExecutedEventArgs,
-  limitExecutedEventParser,
-} from 'src/web3/platform/gns/v10/eventParsers/limit-executed.parser';
-import { getCollateral, getPair } from 'src/web3/platform/gns/v10/configs';
-import { FollowerService } from '../apiService/modules/follower/follower.service';
-import { TradeType, PendingOrderType } from 'src/web3/platform/gns/v10/types';
-import { ChainPriority, ServiceStatus, TradeEvent } from 'src/types';
-import { USDCCollateralIndex } from 'src/utils/constants';
-import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
-import { ActionItem } from '../apiService/modules/actions/entities/action.entity';
 
-const botAddress = '0xda227b42ffde9d3e4b209ee0e789a374f075e782';
+import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
+
+import { getAdditionalParams } from '../apiService/modules/strategy/strategy-library';
+import { EvmChainsService } from 'src/web3/web3/evm-chains.service';
+import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
+import { abiItem as marketExecutedEventAbi } from 'src/web3/platform/gns/v10/eventParsers/market-executed.parser';
+import { abiItem as limitExecutedEventAbi } from 'src/web3/platform/gns/v10/eventParsers/limit-executed.parser';
+import { BotsService } from '../apiService/modules/bots/bots.service';
+import { ChainPriority } from 'src/types';
 
 @Injectable()
 export class BotHooksService {
-  readonly availableChains: Chain[];
-  private lastBlockNumbers: Record<number, number> = {};
-  private vaultConfigs: Record<
-    number,
-    { follower: Follower; positionIndex?: number }
-  > = {};
-  private mnemonic: string;
-  private followerContract: Contract;
-  public isRunning: boolean = false;
-  public status: ServiceStatus;
+  private unwatches: Record<number, WatchEventReturnType[]>;
 
   constructor(
-    private contractsService: ContractsService,
-    private gnsService: GnsService,
-    private prismaService: PrismaService,
-    private followerService: FollowerService,
-    private readonly evmAdapterService: EvmAdapterService,
+    private readonly evmChainsService: EvmChainsService,
+    private readonly prismaService: PrismaService,
+    private readonly botsService: BotsService,
     private readonly logger: LogsService,
   ) {
-    this.availableChains = [
-      arbitrum,
-      polygon,
-      base,
-      arbitrumSepolia,
-      apeChain,
-      avalanche,
-    ];
-
-    this.init();
+    this.unwatches = {};
   }
 
-  async hasRisky() {
+  destroyUnwatch() {
+    Object.values(this.unwatches)
+      .flat()
+      .forEach((unwatch) => {
+        unwatch();
+      });
+
+    this.unwatches = {};
+  }
+
+  async setupHookHandlers() {
     try {
-      const testContracts = await this.prismaService.contract.findMany();
+      const allBots = await this.prismaService.bot.findMany({
+        where: {
+          status: {
+            notIn: [BotStatus.Stop, BotStatus.Dead],
+          },
+        },
+        include: {
+          follower: true,
+          strategy: true,
+          leaderContract: true,
+          followerContract: true,
+          plan: true,
+          missions: true,
+        },
+      });
 
-      const testContractIds: number[] = [];
+      const existsFlag: Record<number, boolean> = {};
 
-      const contractsMap = new Map<number, Contract>();
+      for (const bot of allBots) {
+        const additionalParams = getAdditionalParams(bot.strategy.params);
 
-      for (const contract of testContracts) {
-        if (contract.isTestnet) {
-          testContractIds.push(contract.id);
-        } else {
-          contractsMap.set(contract.id, contract);
+        if (additionalParams.mode !== 'hook') {
+          continue;
         }
-      }
 
-      const perpLogs = await this.prismaService.perpTradingEventLog.findMany({
-        where: {
-          address: botAddress.toLowerCase(),
-          platform: Platform.GNS,
-          contractId: {
-            notIn: testContractIds,
-          },
-        },
-      });
+        existsFlag[bot.id] = true;
 
-      const perpHistories = perpLogs
-        .map((item) => {
-          const contract = contractsMap.get(item.contractId);
+        if (this.unwatches[bot.id] && this.unwatches[bot.id].length > 0) {
+          continue;
+        }
 
-          if (!contract) {
-            return null;
-          }
+        // does not support gmx yet
+        if (bot.leaderContract.platform === Platform.GMX) {
+          continue;
+        }
 
-          const web3Info = getWeb3Info(contract.platform, contract.version);
+        if (bot.leaderContract.platform === Platform.AVNT) {
+          const unwatch1 = this.evmChainsService
+            .paidPublicWSClient(bot.leaderContract.chainId)
+            .watchEvent({
+              address: avntContractAddresses.VaultManager as `0x${string}`,
+              event: parseAbiItem(
+                'event USDCReceivedFromTrader(address indexed trader, uint256 amount)',
+              ),
+              args: {
+                trader: bot.leaderAddress.toLowerCase() as `0x${string}`,
+              },
+              onLogs: (logs) => this.handleAvntLogs(bot.leaderContract, logs),
+            });
 
-          const history = web3Info.eventToPerpTradeHistory(
-            contract.chainId,
-            JSON.parse(item.jsonLog) as any,
-          );
+          const unwatch2 = this.evmChainsService
+            .paidPublicWSClient(bot.leaderContract.chainId)
+            .watchEvent({
+              address: avntContractAddresses.VaultManager as `0x${string}`,
+              event: parseAbiItem(
+                'event USDCSentToTrader(address indexed trader, uint256 amount)',
+              ),
+              args: {
+                trader: bot.leaderAddress.toLowerCase() as `0x${string}`,
+              },
+              onLogs: (logs) => this.handleAvntLogs(bot.leaderContract, logs),
+            });
 
-          return history;
-        })
-        .filter((item) => item !== null);
+          this.unwatches[bot.id] = [unwatch1, unwatch2];
+        }
 
-      const negativePnlHistories = perpHistories.filter(
-        (item) => item.usdPnl < -10,
-      );
+        if (bot.followerContract.platform === Platform.GNS) {
+          const unwatch1 = this.evmChainsService
+            .paidPublicWSClient(bot.followerContract.chainId)
+            .watchEvent({
+              address: bot.followerContract.address as Address,
+              event: marketExecutedEventAbi,
+              args: {
+                user: bot.followerAddress.toLowerCase() as `0x${string}`,
+              },
+              onLogs: (logs) => this.handleLogs(bot.followerContract, logs),
+            });
 
-      this.logger.log({
-        severity: 'Emergency',
-        summary: 'trading>bot-hook>hasRisky',
-        details: `negativePnlHistories.length: ${negativePnlHistories.length}`,
-      });
+          const unwatch2 = this.evmChainsService
+            .paidPublicWSClient(bot.followerContract.chainId)
+            .watchEvent({
+              address: bot.followerContract.address as Address,
+              event: limitExecutedEventAbi,
+              args: {
+                user: bot.followerAddress.toLowerCase() as `0x${string}`,
+              },
+              onLogs: (logs) => this.handleLogs(bot.followerContract, logs),
+            });
 
-      return negativePnlHistories.length > 10;
-    } catch (err) {
-      this.logger.log({
-        severity: 'Emergency',
-        summary: 'trading>bot-hook>hasRisky',
-        details: getReadableError(err),
-      });
-    }
+          this.unwatches[bot.id] = [unwatch1, unwatch2];
+        }
 
-    return true;
-  }
-
-  async init() {
-    try {
-      const user = await this.prismaService.user.findUnique({
-        where: {
-          address: process.env.BOT_HOOK_ADDRESS?.toLowerCase(),
-        },
-      });
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      this.mnemonic = await this.followerService.getMnemonic(
-        user.mnemonic || '',
-      );
-
-      const arbFollower = await this.prismaService.follower.findFirst({
-        where: {
-          accountIndex: 2,
-        },
-      });
-      // const polygonFollower = await this.prismaService.follower.findFirst({
-      //   where: {
-      //     accountIndex: 3,
-      //   },
-      // });
-      // const baseFollower = await this.prismaService.follower.findFirst({
-      //   where: {
-      //     accountIndex: 4,
-      //   },
-      // });
-      // const apeChainFollower = await this.prismaService.follower.findFirst({
-      //   where: {
-      //     accountIndex: 5,
-      //   },
-      // });
-
-      if (
-        !arbFollower
-        // !polygonFollower ||
-        // !baseFollower ||
-        // !apeChainFollower
-      ) {
-        throw new Error('Follower not found');
-      }
-
-      this.vaultConfigs = {
-        [arbitrum.id]: {
-          follower: arbFollower,
-        },
-        // [polygon.id]: {
-        //   follower: polygonFollower,
-        // },
-        // [base.id]: {
-        //   follower: baseFollower,
-        // },
-        // [apeChain.id]: {
-        //   follower: apeChainFollower,
-        // },
-      };
-
-      this.status = ServiceStatus.READY;
-      this.isRunning = true;
-    } catch (err) {
-      this.logger.log({
-        severity: 'Emergency',
-        summary: 'trading>bot-hook>init',
-        details: getReadableError(err),
-      });
-    }
-  }
-
-  async stop() {
-    this.isRunning = false;
-  }
-
-  async checkContractsForBots() {
-    this.status = ServiceStatus.PROCESS;
-
-    const contracts = await this.contractsService.findAll();
-
-    const promises = contracts
-      .filter((contract) => contract.status === ContractStatus.Live)
-      .map((contract) => this.checkContractForBots(contract));
-
-    await Promise.allSettled(promises);
-
-    this.status = ServiceStatus.READY;
-  }
-
-  async checkContractForBots(contract: Contract) {
-    try {
-      if (!this.lastBlockNumbers[contract.id]) {
-        const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
-          chainId: contract.chainId,
-          priority: ChainPriority.HIGH,
+        this.logger.log({
+          severity: 'Emergency',
+          summary: 'bot-hook>setupHookHandlers',
+          details: `setup hook handler for bot ${bot.id}`,
         });
-
-        this.lastBlockNumbers[contract.id] = Number(currentBlockNumber);
       }
 
-      const fromBlock = this.lastBlockNumbers[contract.id] + 1;
+      // remove unwatches that are not in the existsFlag
+      Object.keys(existsFlag).forEach((botId) => {
+        if (!existsFlag[Number(botId)]) {
+          this.unwatches[Number(botId)].forEach((unwatch) => {
+            unwatch();
+          });
 
-      const perpTradingEventLogs =
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            contractId: contract.id,
-            block: {
-              gte: fromBlock,
-            },
-          },
-          orderBy: [
-            {
-              block: 'asc',
-            },
-            {
-              logIndex: 'asc',
-            },
-            {
-              id: 'asc',
-            },
-          ],
-        });
-
-      if (perpTradingEventLogs.length === 0) {
-        return;
-      }
-
-      const missionActions = perpTradingEventLogs
-        .map((log) =>
-          getWeb3Info(contract.platform, contract.version).eventToActionParser(
-            JSON.parse(log.jsonLog) as any,
-          ),
-        )
-        .filter(
-          (item) =>
-            item.name === marketExecutedEventParser.eventName ||
-            item.name === limitExecutedEventParser.eventName,
-        );
-
-      if (missionActions.length > 0) {
-        await this.handleMissionActions(contract, missionActions);
-      }
-
-      const toBlock = Math.max(...perpTradingEventLogs.map((log) => log.block));
-
-      this.lastBlockNumbers[contract.id] = Number(toBlock);
+          delete this.unwatches[Number(botId)];
+        }
+      });
     } catch (err) {
       await this.logger.log({
-        severity: 'Emergency',
-        summary: 'bot-hook>checkContractForBots',
-        details: `chainId:${contract.chainId} ${getReadableError(err)}`,
+        severity: 'Error',
+        summary: 'BotHooksService>setupHookHandlers',
+        details: getReadableError(err),
       });
     }
   }
 
-  async handleMissionActions(contract: Contract, missionActions: ActionItem[]) {
-    for (const action of missionActions) {
-      let event: TradeEvent<
-        MarketExecutedEventArgs | LimitExecutedEventArgs
-      > | null = null;
+  private async handleAvntLogs(contract: Contract, logs: Log[]) {
+    const perpLogs = await Promise.allSettled(
+      logs
+        .filter((log) => log.transactionHash !== null)
+        .map(async (log) => {
+          return this.evmChainsService.readWithSemaphore(
+            contract.chainId,
+            ChainPriority.HIGH,
+            async (publicClient) => {
+              const transaction = await publicClient.getTransactionReceipt({
+                hash: log.transactionHash!,
+              });
 
-      if (action.name === marketExecutedEventParser.eventName) {
-        event = marketExecutedEventParser.actionParser(action);
-      } else if (action.name === limitExecutedEventParser.eventName) {
-        event = limitExecutedEventParser.actionParser(action);
-      }
+              if (!transaction) {
+                return [];
+              }
 
-      if (!event) {
-        continue;
-      }
-
-      try {
-        // it's not a bot event
-        if (event.args.user.toLowerCase() !== botAddress.toLowerCase()) {
-          continue;
-        }
-
-        this.logger.log({
-          severity: 'Emergency',
-          summary: 'trading>bot-hook>handleMissionEvent',
-          details: `chainId:${contract.chainId} ${event.eventName}`,
-        });
-
-        const follower = this.vaultConfigs[contract.chainId].follower;
-
-        const { t, collateralPriceUsd } = event.args;
-
-        const pair = getPair(arbitrum.id, t.pairIndex);
-
-        if (!pair) {
-          throw new Error(
-            `follower contract doesn't support this pairIndex: ${t.pairIndex}`,
-          );
-        }
-
-        const collateral = getCollateral(arbitrum.id, t.collateralIndex);
-
-        if (!collateral) {
-          throw new Error(
-            `follower contract doesn't support this collateral index: ${t.collateralIndex}`,
-          );
-        }
-
-        let kind: 'open' | 'close' | null = null;
-
-        if (event.eventName === marketExecutedEventParser.eventName) {
-          if ((event as MarketExecutedEvent).args.open) {
-            kind = 'open';
-          } else {
-            kind = 'close';
-          }
-        }
-
-        if (event.eventName === limitExecutedEventParser.eventName) {
-          if (
-            [PendingOrderType.LIMIT_OPEN, PendingOrderType.STOP_OPEN].includes(
-              (event as LimitExecutedEvent).args.orderType,
-            )
-          ) {
-            kind = 'open';
-          }
-
-          if (
-            [
-              PendingOrderType.LIQ_CLOSE,
-              PendingOrderType.SL_CLOSE,
-              PendingOrderType.TP_CLOSE,
-            ].includes((event as LimitExecutedEvent).args.orderType)
-          ) {
-            kind = 'close';
-          }
-        }
-
-        if (kind === null) {
-          continue;
-        }
-
-        if (kind === 'open') {
-          const collateralUSDCAmount = Math.floor(
-            (Number(t.collateralAmount) / Number(collateral.precision)) *
-              (Number(collateralPriceUsd) / 100_000_000),
-          );
-
-          let ratioAmount = BigInt(
-            Math.floor(collateralUSDCAmount * 0.1 * 1e6),
-          );
-
-          const maxCollateral = BigInt(70 * 1e6);
-          const minCollateral = BigInt(5 * 1e6);
-
-          ratioAmount =
-            ratioAmount < maxCollateral ? ratioAmount : maxCollateral;
-          ratioAmount =
-            ratioAmount > minCollateral ? ratioAmount : minCollateral;
-
-          await this.gnsService.openTrade({
-            mnemonic: this.mnemonic,
-            accountIndex: follower.accountIndex,
-            contractId: this.followerContract.id,
-            args: {
-              trade: {
-                user: follower.address as Address,
-                index: 0,
-                pairIndex: t.pairIndex,
-                long: t.long,
-                isOpen: true,
-                collateralIndex:
-                  USDCCollateralIndex[
-                    this.followerContract
-                      .chainId as keyof typeof USDCCollateralIndex
-                  ],
-                collateralAmount: ratioAmount,
-                leverage: t.leverage,
-                tradeType: TradeType.TRADE,
-                openPrice: BigInt(t.openPrice),
-                tp: 0n,
-                sl: 0n,
-                isCounterTrade: false,
-                positionSizeToken: 0n,
-                __placeholder: Number(t.__placeholder),
-              },
-              maxSlippageP: 1000,
+              return transaction.logs.filter(
+                (item) =>
+                  item.address.toLowerCase() === contract.address.toLowerCase(),
+              );
             },
+          );
+        }),
+    );
+
+    await this.handleLogs(
+      contract,
+      perpLogs
+        .filter((item) => item.status === 'fulfilled')
+        .flatMap((item) => item.value || []),
+    );
+  }
+
+  private async handleLogs(contract: Contract, logs: Log[]) {
+    const info = getWeb3Info(contract.platform, contract.version);
+
+    const actionItems = logs
+      .filter((log) =>
+        info.eventSignatures
+          ? info.eventSignatures[log.topics[0] as string]
+          : true,
+      )
+      .map((log) => {
+        try {
+          const decoded: any = decodeEventLog({
+            abi: info.abi,
+            data: log.data,
+            topics: log.topics,
           });
 
-          this.logger.log({
-            severity: 'Emergency',
-            summary: 'trading>bot-hook>handleMissionEvent',
-            details: `chainId:${contract.chainId} open trade ${JSON.stringify(
-              {
-                trade: {
-                  user: follower.address as Address,
-                  index: 0,
-                  pairIndex: t.pairIndex,
-                  long: t.long,
-                  isOpen: true,
-                  collateralIndex:
-                    USDCCollateralIndex[
-                      this.followerContract
-                        .chainId as keyof typeof USDCCollateralIndex
-                    ],
-                  collateralAmount: ratioAmount,
-                  leverage: t.leverage,
-                  tradeType: TradeType.TRADE,
-                  openPrice: BigInt(t.openPrice),
-                  tp: 0n,
-                  sl: 0n,
-                  isCounterTrade: false,
-                  positionSizeToken: 0n,
-                  __placeholder: Number(t.__placeholder),
-                },
-                maxSlippageP: 1000,
-              },
-              (_, v) => (typeof v === 'bigint' ? v.toString() : v),
-            )}`,
-          });
-        }
+          let eventLog = decoded;
 
-        if (kind === 'close') {
-          const trades = await this.gnsService.getTrades({
-            contractId: this.followerContract.id,
-            priority: ChainPriority.HIGH,
-            args: {
-              address: follower.address as Address,
-            },
-          });
-
-          for (const trade of trades) {
-            await this.gnsService.closeTradeMarket({
-              mnemonic: this.mnemonic,
-              accountIndex: follower.accountIndex,
-              contractId: this.followerContract.id,
-              args: {
-                index: trade.index,
-                expectedPrice: BigInt(t.openPrice),
-              },
-            });
+          if (contract.platform === Platform.GMX) {
+            eventLog = parseEvent(
+              decoded.args.eventName,
+              decoded.args.eventData,
+            );
           }
 
-          this.logger.log({
-            severity: 'Emergency',
-            summary: 'trading>bot-hook>handleMissionEvent',
-            details: `chainId:${contract.chainId} close ${trades.length} trades successfully ${JSON.stringify(
-              trades,
-              (_, v) => (typeof v === 'bigint' ? v.toString() : v),
-            )}`,
-          });
+          return {
+            eventLog,
+            blockNumber: Number(log.blockNumber),
+            logIndex: Number(log.logIndex),
+          };
+        } catch {
+          return null;
         }
-      } catch (err) {
-        this.logger.log({
-          severity: 'Emergency',
-          summary: 'trading>bot-hook>handleMissionEvent',
-          details: `chainId:${contract.chainId} ${getReadableError(err)}`,
-        });
-      }
+      })
+      .filter((item) => !!item)
+      .sort((a, b) => {
+        if (a.blockNumber === b.blockNumber) {
+          return a.logIndex - b.logIndex;
+        } else {
+          return a.blockNumber - b.blockNumber;
+        }
+      })
+      .filter((log) =>
+        getWeb3Info(
+          contract.platform,
+          contract.version,
+        ).tradeEventNames.includes(log.eventLog.eventName),
+      )
+      .map((log) => ({
+        item: getWeb3Info(
+          contract.platform,
+          contract.version,
+        ).eventToActionParser(log.eventLog as any),
+        blockNumber: log.blockNumber,
+        logIndex: log.logIndex,
+      }));
+
+    if (actionItems.length > 0) {
+      await this.botsService.handleActionItems(contract, actionItems, true);
     }
   }
 }
