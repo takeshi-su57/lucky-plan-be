@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { LogSeverity } from '@prisma/client';
+import { LogSeverity } from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsConnection, SeverityCount } from './entities/log.entity';

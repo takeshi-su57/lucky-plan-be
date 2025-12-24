@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { LogSeverity } from '@prisma/client';
+import { LogSeverity } from 'generated/prisma/client';
 
 registerEnumType(LogSeverity, {
   name: 'LogSeverity',

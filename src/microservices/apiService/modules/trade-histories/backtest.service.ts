@@ -4,7 +4,7 @@ import {
   Platform,
   PnlSnapshotV2,
   Contract,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import * as dayjs from 'dayjs';
 import { SimpleLinearRegression } from 'ml-regression-simple-linear';
 

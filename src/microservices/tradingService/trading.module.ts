@@ -16,6 +16,8 @@ import { TaskExecutorModule } from '../apiService/modules/task-executor/task-exe
 import { PlansModule } from '../apiService/modules/plans/plans.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
+import { PricesModule } from '../apiService/modules/prices/prices.module';
+import { SLTPModule } from '../apiService/modules/sltp/sltp.module';
 
 import { TradingService } from './trading.service';
 
@@ -39,6 +41,8 @@ import { TradingController } from './trading.controller';
     PlansModule,
     GnsModule,
     Web3Module,
+    SLTPModule,
+    PricesModule,
   ],
   controllers: [TradingController],
   providers: [TradingService],

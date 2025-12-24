@@ -6,7 +6,7 @@ import {
   Platform,
   TradeActionType,
   Version,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 
 import { eventToActionParser as eventToActionParserV10 } from 'src/web3/platform/gns/v10/eventParsers';
 import { eventToActionParser as eventToActionParserV9 } from 'src/web3/platform/gns/v9/eventParsers';

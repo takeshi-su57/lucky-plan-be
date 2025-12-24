@@ -4,7 +4,7 @@ import {
   MissionStatus,
   Platform,
   TaskStatus,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import {

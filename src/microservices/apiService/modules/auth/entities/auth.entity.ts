@@ -5,7 +5,7 @@ import {
   Float,
   Int,
 } from '@nestjs/graphql';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 
 registerEnumType(UserPermission, {
   name: 'UserPermission',

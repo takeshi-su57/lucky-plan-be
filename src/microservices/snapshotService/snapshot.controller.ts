@@ -6,7 +6,7 @@ import {
   Payload,
 } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Platform } from '@prisma/client';
+import { Platform } from 'generated/prisma/client';
 import * as dayjs from 'dayjs';
 
 import { ServiceStatus } from 'src/types';

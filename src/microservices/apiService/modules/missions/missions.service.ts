@@ -5,7 +5,7 @@ import {
   MissionMode,
   MissionStatus,
   Platform,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 
 import {
   getOrderIdFromMissionAction,

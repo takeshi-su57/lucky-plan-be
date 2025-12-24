@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
-import { Platform } from '@prisma/client';
+import { Platform } from 'generated/prisma/client';
 import { PnlSnapshotV2, PerpTradeHistory } from './event-logs.entity';
 
 @ObjectType()

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Contract, BotStatus, Platform } from 'generated/prisma/client';
 import {
   Address,
   decodeEventLog,
@@ -6,7 +7,6 @@ import {
   parseAbiItem,
   WatchEventReturnType,
 } from 'viem';
-import { Contract, Platform, BotStatus } from '@prisma/client';
 
 import 'dotenv';
 

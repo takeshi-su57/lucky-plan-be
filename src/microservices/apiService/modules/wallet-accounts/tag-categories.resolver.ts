@@ -4,7 +4,7 @@ import { TagCategoriesService } from './tag-categories.service';
 import { TagCategory } from './entities/tag-category.entity';
 import { TagCategoryInput } from './dto/tag-category.input';
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';

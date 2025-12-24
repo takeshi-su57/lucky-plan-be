@@ -1,6 +1,10 @@
 import { UseGuards } from '@nestjs/common';
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
-import { PnlSnapshotKind, Platform, UserPermission } from '@prisma/client';
+import {
+  PnlSnapshotKind,
+  Platform,
+  UserPermission,
+} from 'generated/prisma/client';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
