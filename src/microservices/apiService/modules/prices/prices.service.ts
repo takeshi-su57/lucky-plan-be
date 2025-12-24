@@ -22,27 +22,27 @@ export class PricesService {
     });
   }
 
-  async getGnsPrices(pairName: string, limit: number, date?: Date) {
-    return this.prismaService.gnsPricingRecord.findMany({
-      take: limit,
-      where: {
-        pair: pairName,
-        date: {
-          ...(date ? { lt: date } : {}),
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
-  }
-
   async getLastPrices(pairName: string, lastDate: Date) {
     return this.prismaService.gnsPricingRecord.findMany({
       where: {
         pair: pairName,
         date: {
           gte: lastDate,
+        },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+  }
+
+  async getGnsPrices(pairName: string, fromDate: Date, toDate: Date) {
+    return this.prismaService.gnsPricingRecord.findMany({
+      where: {
+        pair: pairName,
+        date: {
+          gte: fromDate,
+          lte: toDate,
         },
       },
       orderBy: {
