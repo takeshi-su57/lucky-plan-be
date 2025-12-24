@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BotStatus, Contract, MissionStatus } from '@prisma/client';
+import { BotStatus, Contract, MissionStatus } from 'generated/prisma/client';
 import { Address, isAddressEqual, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';

@@ -19,7 +19,7 @@ import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.deco
 
 import { User } from 'src/microservices/apiService/modules/auth/entities/auth.entity';
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
 
 @Resolver()

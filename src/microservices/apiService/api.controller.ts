@@ -7,13 +7,17 @@ import { PATTERNS } from 'src/utils/constants';
 
 import { LogsService } from 'src/global/logs.service';
 import { ApiService } from './api.service';
+import { PricesService } from './modules/prices/prices.service';
 
 @Controller()
 export class ApiController {
   constructor(
     private readonly apiService: ApiService,
     private readonly logger: LogsService,
-  ) {}
+    private readonly pricesService: PricesService,
+  ) {
+    this.pricesService.connectToGnsPriceWsServer();
+  }
 
   @EventPattern(PATTERNS.ProcessStatus)
   updateProcessStatus(data: {

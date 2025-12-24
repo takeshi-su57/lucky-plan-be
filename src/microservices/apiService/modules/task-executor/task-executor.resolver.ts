@@ -3,7 +3,7 @@ import { TaskExecutorService } from './task-executor.service';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
-import { User, UserPermission } from '@prisma/client';
+import { User, UserPermission } from 'generated/prisma/client';
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
 

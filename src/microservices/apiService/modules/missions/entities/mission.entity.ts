@@ -5,7 +5,7 @@ import {
   registerEnumType,
   InputType,
 } from '@nestjs/graphql';
-import { MissionMode, MissionStatus } from '@prisma/client';
+import { MissionMode, MissionStatus } from 'generated/prisma/client';
 import { IsNotEmpty } from 'class-validator';
 import {
   BotBackwardDetails,

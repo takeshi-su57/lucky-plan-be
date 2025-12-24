@@ -1,5 +1,5 @@
 import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
-import { PlanStatus } from '@prisma/client';
+import { PlanStatus } from 'generated/prisma/client';
 import { IsDate, IsNotEmpty, IsString } from 'class-validator';
 
 @InputType()

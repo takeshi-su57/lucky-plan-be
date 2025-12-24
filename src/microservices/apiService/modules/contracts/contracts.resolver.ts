@@ -1,6 +1,6 @@
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 
 import { ContractsService } from './contracts.service';
 import { Contract } from './entities/contract.entity';

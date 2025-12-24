@@ -10,7 +10,7 @@ import {
   PnlSnapshotKind,
   TradeActionType,
   Version,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 
 registerEnumType(TradeActionType, {
   name: 'TradeActionType',

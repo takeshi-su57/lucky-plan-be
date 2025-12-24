@@ -486,11 +486,13 @@ type Mutation {
   createAutoPlan: Boolean!
   createBot(input: CreateBotInput!): BotBackwardDetails!
   createPlan(createPlanInput: CreatePlanInput!): Plan!
+  createSLTP(input: SLTPRequestInput!): SLTPRequest!
   decreaseAllowanceToZero(contractId: Int!, followerAddress: String!, password: String!): Boolean!
   decreasePositionSize(input: DecreasePositionSizeInput!): ContractExecutionResult!
   deleteBot(id: Int!): BotBackwardDetails!
   deleteCategory(id: Int!): TagCategory!
   deletePlan(id: Int!): Int!
+  deleteSLTP(id: Int!): SLTPRequest!
   deleteTag(tag: String!): Tag!
   depositAsset(input: AssetInput!): Boolean!
   disableContract(contractId: Int!): Contract!
@@ -704,6 +706,7 @@ type Query {
   findContract(id: Int!): Contract!
   findStrategy(id: Int!): Strategy
   findStrategyMetadata(key: String!): StrategyMetadata!
+  getALLSLTPs: [SLTPRequest!]!
   getActiveBots: [BotForwardDetails!]!
   getAdaptionStatus: String!
   getAlertTasks: [TaskBackwardDetails!]!
@@ -736,6 +739,22 @@ type Query {
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   systemStatus: Boolean!
+}
+
+type SLTPRequest {
+  address: String!
+  condition: String!
+  contractId: Int!
+  createdAt: Date!
+  id: Int!
+  positionKey: String!
+}
+
+input SLTPRequestInput {
+  address: String!
+  condition: String!
+  contractId: Int!
+  positionKey: String!
 }
 
 type ServerTime {

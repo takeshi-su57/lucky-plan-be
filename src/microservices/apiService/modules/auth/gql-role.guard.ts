@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { UserPermission } from '@prisma/client';
+import { UserPermission } from 'generated/prisma/client';
 import { ROLES_KEY } from './roles.decorator';
 import { LogsService } from 'src/global/logs.service';
 

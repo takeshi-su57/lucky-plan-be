@@ -3,7 +3,7 @@ import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { isAddress, maxInt256 } from 'viem';
 import * as dayjs from 'dayjs';
-import { BotStatus, MissionStatus } from '@prisma/client';
+import { BotStatus, MissionStatus } from 'generated/prisma/client';
 
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 import { USDCCollateralIndex } from 'src/utils/constants';

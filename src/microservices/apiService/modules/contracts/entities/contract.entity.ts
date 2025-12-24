@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { ContractStatus, Platform, Version } from '@prisma/client';
+import { ContractStatus, Platform, Version } from 'generated/prisma/client';
 
 registerEnumType(ContractStatus, {
   name: 'ContractStatus',

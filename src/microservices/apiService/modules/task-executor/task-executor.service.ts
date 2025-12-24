@@ -6,7 +6,7 @@ import {
   UserPermission,
   Platform,
   MissionMode,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import * as dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';

@@ -7,7 +7,7 @@ import {
   Subscription,
 } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
-import { Platform, User, UserPermission } from '@prisma/client';
+import { Platform, User, UserPermission } from 'generated/prisma/client';
 
 import { TradingSignalLogsService } from './trading-signal-logs.service';
 import {

@@ -6,7 +6,7 @@ import {
   Float,
   OmitType,
 } from '@nestjs/graphql';
-import { PlanStatus } from '@prisma/client';
+import { PlanStatus } from 'generated/prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 import {

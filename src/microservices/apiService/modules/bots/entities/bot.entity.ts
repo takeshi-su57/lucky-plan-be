@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { BotStatus } from '@prisma/client';
+import { BotStatus } from 'generated/prisma/client';
 
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 import { Follower } from 'src/microservices/apiService/modules/follower/entities/follower.entity';

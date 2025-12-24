@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BotStatus, PlanStatus } from '@prisma/client';
+import { BotStatus, PlanStatus } from 'generated/prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';

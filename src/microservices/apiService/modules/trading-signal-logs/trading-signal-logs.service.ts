@@ -5,7 +5,7 @@ import {
   TradingSignalLog as PrismaTradingSignalLog,
   Platform,
   Contract,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 

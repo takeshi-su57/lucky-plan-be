@@ -4,7 +4,7 @@ import {
   Platform,
   PnlSnapshotKind,
   PnlSnapshotV2,
-} from '@prisma/client';
+} from 'generated/prisma/client';
 import * as dayjs from 'dayjs';
 import { LogsService } from 'src/global/logs.service';
 
@@ -120,55 +120,46 @@ export class PnlSnapshotsService {
     );
     const endDate = new Date(dateStr);
 
-    const historyRecords =
-      await this.prismaService.perpTradingEventLog.findMany({
-        where: {
-          OR: [
-            ...pnlRecords.map((item) => ({
-              address: item.address,
-              platform,
-              contractId: {
-                notIn: testContractIds,
-              },
-              date: {
-                gt: startDate,
-                lte: endDate,
-              },
-            })),
+    const edges: PnlSnapshotV2DetailsEdge[] = [];
+
+    for (const pnlRecord of pnlRecords) {
+      const historyRecords =
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            address: pnlRecord.address.toLowerCase(),
+            platform,
+            contractId: {
+              notIn: testContractIds,
+            },
+            date: {
+              gt: startDate,
+              lte: endDate,
+            },
+          },
+          orderBy: [
+            {
+              date: 'asc',
+            },
+            {
+              block: 'asc',
+            },
+            {
+              id: 'asc',
+            },
           ],
+        });
+
+      edges.push({
+        cursor: pnlRecord.id,
+        node: {
+          ...pnlRecord,
+          perpTradingEventLogs: historyRecords.slice(
+            Math.max(0, historyRecords.length - 2500),
+            historyRecords.length,
+          ),
         },
-        orderBy: [
-          {
-            date: 'asc',
-          },
-          {
-            block: 'asc',
-          },
-          {
-            id: 'asc',
-          },
-        ],
       });
-
-    const historyRecordsMap = new Map<string, PerpTradingEventLog[]>();
-
-    historyRecords.forEach((record) => {
-      const arr = historyRecordsMap.get(record.address);
-
-      if (arr) {
-        arr.push(record);
-      } else {
-        historyRecordsMap.set(record.address, [record]);
-      }
-    });
-
-    const edges: PnlSnapshotV2DetailsEdge[] = pnlRecords.map((record) => ({
-      cursor: record.id,
-      node: {
-        ...record,
-        perpTradingEventLogs: historyRecordsMap.get(record.address) || [],
-      },
-    }));
+    }
 
     return {
       edges,

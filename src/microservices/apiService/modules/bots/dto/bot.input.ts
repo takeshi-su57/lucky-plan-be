@@ -2,7 +2,7 @@ import { InputType, Int, Field } from '@nestjs/graphql';
 
 import { IsDate, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
-import { BotStatus } from '@prisma/client';
+import { BotStatus } from 'generated/prisma/client';
 import { CreateStrategyInput } from 'src/microservices/apiService/modules/strategy/dto/strategy.input';
 
 @InputType()

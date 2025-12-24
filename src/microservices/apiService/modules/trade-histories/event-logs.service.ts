@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Platform } from '@prisma/client';
+import { Platform } from 'generated/prisma/client';
 
 import {
   CreateEventLogInput,

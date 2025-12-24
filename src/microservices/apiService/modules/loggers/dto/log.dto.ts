@@ -1,4 +1,4 @@
-import { LogSeverity } from '@prisma/client';
+import { LogSeverity } from 'generated/prisma/client';
 
 export class CreateLogInput {
   severity: LogSeverity;

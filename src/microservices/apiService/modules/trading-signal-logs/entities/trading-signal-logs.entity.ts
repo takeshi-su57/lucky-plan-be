@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { Platform } from '@prisma/client';
+import { Platform } from 'generated/prisma/client';
 
 import { PerpTradingEventLog } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
