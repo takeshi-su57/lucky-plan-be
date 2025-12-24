@@ -29,7 +29,7 @@ export function parseMarketOrderInitiatedEvent(
 }
 
 export function eventToPerpTradeHistory(
-  event: MarketOrderInitiatedEvent,
+  _event: MarketOrderInitiatedEvent,
 ): PerpTradeHistory | null {
   return null;
 }
