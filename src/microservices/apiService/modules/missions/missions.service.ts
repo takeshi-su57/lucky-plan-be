@@ -706,7 +706,8 @@ export class MissionsService {
           item.context.bot.strategy.params,
         );
 
-        if (shouldHandleHook && additionalParams.mode !== 'hook') {
+        // hook missions can be created on only hook handler
+        if (!(shouldHandleHook === (additionalParams.mode === 'hook'))) {
           return false;
         }
 
@@ -1139,12 +1140,28 @@ export class MissionsService {
 
     if (missionActions.length > 0) {
       await this.tasksService.handleLeaderActions(
-        missionActions.filter(
-          (item) =>
-            item.context.mission.status !== MissionStatus.Closing &&
-            item.context.mission.status !== MissionStatus.Closed &&
-            item.context.mission.status !== MissionStatus.Ignored,
-        ),
+        missionActions
+          .filter(
+            (item) =>
+              item.context.mission.status !== MissionStatus.Closing &&
+              item.context.mission.status !== MissionStatus.Closed &&
+              item.context.mission.status !== MissionStatus.Ignored,
+          )
+          .filter((item) => {
+            const isOpenAction = getWeb3Info(
+              item.context.bot.leaderContract.platform,
+              item.context.bot.leaderContract.version,
+            ).isOpenMissionAction(item.action);
+
+            if (
+              isOpenAction &&
+              item.context.mission.mode === MissionMode.Hook
+            ) {
+              return shouldHandleHook;
+            } else {
+              return true;
+            }
+          }),
         async (missionIds) => {
           // handle close mission follower actions
           await this.closeMany(
