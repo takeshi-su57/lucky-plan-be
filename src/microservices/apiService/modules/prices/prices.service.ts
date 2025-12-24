@@ -37,6 +37,20 @@ export class PricesService {
     });
   }
 
+  async getLastPrices(pairName: string, lastDate: Date) {
+    return this.prismaService.gnsPricingRecord.findMany({
+      where: {
+        pair: pairName,
+        date: {
+          gte: lastDate,
+        },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+  }
+
   connectToGnsPriceWsServer() {
     const websocket = new WebSocket('wss://backend-pricing.eu.gains.trade/v3', {
       perMessageDeflate: false,

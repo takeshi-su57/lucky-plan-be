@@ -11,6 +11,7 @@ import { TradingService } from './trading.service';
 import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from '../apiService/modules/plans/plans.service';
+import { SLTPService } from '../apiService/modules/sltp/sltp.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
@@ -20,6 +21,7 @@ export class TradingController implements OnApplicationBootstrap {
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
     private readonly taskExecutorService: TaskExecutorService,
+    private readonly sltpService: SLTPService,
     private readonly logger: LogsService,
   ) {}
 
@@ -94,5 +96,10 @@ export class TradingController implements OnApplicationBootstrap {
     if (this.plansService.status === ServiceStatus.READY) {
       await this.plansService.checkAndUpdateAllPlans();
     }
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  async checkAndUpdateAllSLTPs() {
+    await this.sltpService.checkAllSLTPs();
   }
 }

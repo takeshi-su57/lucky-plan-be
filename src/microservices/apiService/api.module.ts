@@ -27,6 +27,7 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
 import { TradingSignalLogsModule } from './modules/trading-signal-logs/trading-signal-logs.module';
 import { PricesModule } from './modules/prices/prices.module';
+import { SLTPModule } from './modules/sltp/sltp.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -62,6 +63,7 @@ import { ApiController } from './api.controller';
     GnsModule,
     AvntModule,
     PricesModule,
+    SLTPModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],
