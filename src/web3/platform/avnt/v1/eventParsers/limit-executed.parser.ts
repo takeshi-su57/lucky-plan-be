@@ -25,7 +25,7 @@ export type LimitExecutedEventArgs = LimitExecutedEvent['args'];
 export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
   return eventToAction(
     event.eventName,
-    getAvntPositionKey(event.args.t.trader, Number(event.args.orderId)),
+    getAvntPositionKey(event.args.t.trader, Number(event.args.t.index)),
     event.args.t.trader,
     event.args,
   );
