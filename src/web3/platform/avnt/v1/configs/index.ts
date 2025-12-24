@@ -40,4 +40,5 @@ export const contractAddresses = {
   Trading: '0x44914408af82bC9983bbb330e3578E1105e11d4e',
   Multicall: '0x7A829c5C97A2Bf8BeFB4b01d96A282E4763848d8',
   Referral: '0x1A110bBA13A1f16cCa4b79758BD39290f29De82D',
+  VaultManager: '0xe9fB8C70aF1b99F2Baaa07Aa926FCf3d237348DD',
 };

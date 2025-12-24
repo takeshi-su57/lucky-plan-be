@@ -462,6 +462,7 @@ enum MissionStatus {
 enum MissionMode {
   Default
   Signal
+  Hook
 }
 
 enum TaskStatus {

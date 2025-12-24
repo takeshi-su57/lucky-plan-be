@@ -142,10 +142,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -179,10 +181,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -216,10 +220,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -253,10 +259,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -290,10 +298,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -327,10 +337,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -364,10 +376,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -407,10 +421,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -449,10 +465,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 
@@ -486,10 +504,12 @@ export class GnsService {
               confirmations: 6,
             });
           },
+          true,
         );
 
         return txHash;
       },
+      true,
     );
   }
 

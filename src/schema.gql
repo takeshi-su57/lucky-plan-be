@@ -31,6 +31,13 @@ input AddUserInput {
   address: String!
 }
 
+input AssetInput {
+  address: String!
+  amount: String!
+  contractId: Int!
+  kind: String!
+}
+
 type BotBackwardDetails {
   endedAt: Date
   follower: Follower!
@@ -432,6 +439,7 @@ type MissionForwardDetails {
 
 enum MissionMode {
   Default
+  Hook
   Signal
 }
 
@@ -486,6 +494,7 @@ type Mutation {
   deletePlan(id: Int!): Int!
   deleteSLTP(id: Int!): SLTPRequest!
   deleteTag(tag: String!): Tag!
+  depositAsset(input: AssetInput!): Boolean!
   disableContract(contractId: Int!): Contract!
   dynamicSnapshotBuildV2(dateStr: String!, platform: Platform!): Boolean!
   endPlan(id: Int!): Boolean!
@@ -524,6 +533,7 @@ type Mutation {
   upsertTag(input: TagInput!): Tag!
   withdrawAllETH(input: WithdrawAllInput!): Boolean!
   withdrawAllUSDC(input: WithdrawAllInput!): Boolean!
+  withdrawAsset(input: AssetInput!): Boolean!
   withdrawETHToUser(amount: Float!, contractId: Int!, password: String!): Boolean!
   withdrawPositivePnl(input: WithdrawPositivePnlInput!): ContractExecutionResult!
   withdrawUSDCToUser(amount: Float!, contractId: Int!, password: String!): Boolean!
@@ -726,7 +736,6 @@ type Query {
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!
   getWhitelist: [String!]
   getWholeCompressedHistoriesV2(filterParams: [ExportFilter!]!, platform: Platform!, startDate: String!): WholeCompressedHistoriesV2!
-  isBotHookRunning: Boolean!
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   systemStatus: Boolean!

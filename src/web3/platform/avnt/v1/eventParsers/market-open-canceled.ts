@@ -27,7 +27,7 @@ export function parseMarketOpenCanceledEvent(event: MarketOpenCanceledEvent) {
 }
 
 export function eventToPerpTradeHistory(
-  event: MarketOpenCanceledEvent,
+  _event: MarketOpenCanceledEvent,
 ): PerpTradeHistory | null {
   return null;
 }

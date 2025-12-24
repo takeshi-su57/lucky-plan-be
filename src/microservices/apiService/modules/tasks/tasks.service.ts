@@ -52,7 +52,6 @@ import { GnsService } from 'src/web3/platform/gns/gns.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { positionIncreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-increase.parser';
 import { positionDecreaseEventParser } from 'src/web3/platform/gmx/v2/eventParsers/position-decrease.parser';
-import { bigIntSafeJsonStringify } from 'src/utils';
 
 @Injectable()
 export class TasksService {
@@ -494,17 +493,19 @@ export class TasksService {
         }
       });
 
-      const openTask = sortedTasks.find((task) =>
-        getWeb3Info(
-          action.context.bot.leaderContract.platform,
-          action.context.bot.leaderContract.version,
-        ).isOpenMissionAction(task.action),
+      const openTask = sortedTasks.find(
+        (task) =>
+          task.action.name === OpenMissionAction ||
+          getWeb3Info(
+            action.context.bot.leaderContract.platform,
+            action.context.bot.leaderContract.version,
+          ).isOpenMissionAction(task.action),
       );
 
       if (
         openTask &&
         (TaskStatus.Completed === openTask.status ||
-          TaskStatus.Await == openTask.status ||
+          TaskStatus.Await === openTask.status ||
           TaskStatus.Initiated === openTask.status)
       ) {
         normalClosedActions.push(action);

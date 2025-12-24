@@ -5,6 +5,7 @@ import {
   WalletClient,
   PublicClient,
   http,
+  webSocket,
   fallback,
 } from 'viem';
 import { english, mnemonicToAccount } from 'viem/accounts';
@@ -19,7 +20,6 @@ import {
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
-import { nanoid } from 'nanoid';
 
 import 'dotenv';
 
@@ -29,7 +29,9 @@ export const privateRPCProviders = {
   drpc: {
     provider: 'drpc',
     getUrl: (network: string, token: string) =>
-      `https://lb.drpc.org/ogrpc?network=${network}&dkey=${token}`,
+      `https://lb.drpc.live/${network}/${token}`,
+    getWebsocket: (network: string, token: string) =>
+      `wss://lb.drpc.live/${network}/${token}`,
     networks: {
       137: 'polygon',
       8453: 'base',
@@ -46,7 +48,6 @@ export const privateRPCProviders = {
       'ApwGtOqeUkKxkts19FtVyeTdvuiPpbkR8IK7wg8TMB_n',
       'AmykbowjykM3m1WsAnVq9y0lYrc4pboR8IK8wg8TMB_n',
       'AiI0N4My2EVzmMsk9McDToJuw7n_pboR8IK9wg8TMB_n',
-      'AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ',
       'AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
       'AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
       'Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
@@ -81,6 +82,7 @@ export const privateRPCProviders = {
       'AuKd0G6EF01oioIfRzuafMhxJ6dmkxAR8I47zltYSRe_',
       'AqtKk9PeCEZBqKUvQww9n2trk0TvkxER8I48zltYSRe_',
     ],
+    paidTokens: ['AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ'],
   },
   alchemy: {
     provider: 'alchemy',
@@ -104,6 +106,7 @@ export const privateRPCProviders = {
       'wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ', // takeshisuz
       'qf9Xqi-AIXnz1_mNnbgbN', // wpope
     ],
+    paidTokens: [],
   },
 };
 
@@ -181,14 +184,12 @@ export type Web3Configuration = {
 export class EvmChainsService {
   readonly availableChains: Chain[];
   readonly freePublicClients: Record<number, PublicClient>;
+  readonly privatePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
+  readonly paidPublicWSClients: Record<number, PublicClient>;
   private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
-  private publicWalletClients: Record<
-    number,
-    Record<string, Web3Configuration>
-  > = {};
 
   constructor() {
     this.availableChains = [
@@ -200,7 +201,9 @@ export class EvmChainsService {
       avalanche,
     ];
     this.freePublicClients = {};
+    this.privatePublicClients = {};
     this.paidPublicClients = {};
+    this.paidPublicWSClients = {};
     this.walletClients = {};
     this.readSemaphores = {};
     this.writeMutexs = {};
@@ -220,7 +223,7 @@ export class EvmChainsService {
 
       const drpcProvider = privateRPCProviders.drpc;
 
-      this.paidPublicClients[chain.id] = createPublicClient({
+      this.privatePublicClients[chain.id] = createPublicClient({
         chain: chain,
         transport: fallback([
           ...drpcProvider.tokens
@@ -239,40 +242,49 @@ export class EvmChainsService {
         },
       }) as unknown as PublicClient;
 
+      this.paidPublicClients[chain.id] = createPublicClient({
+        chain: chain,
+        transport: fallback([
+          ...drpcProvider.paidTokens
+            .map((token) =>
+              drpcProvider.getUrl(
+                drpcProvider.networks[
+                  chain.id as keyof typeof drpcProvider.networks
+                ],
+                token,
+              ),
+            )
+            .map((url) => http(url, { batch: true })),
+        ]),
+        batch: {
+          multicall: true,
+        },
+      }) as unknown as PublicClient;
+
+      this.paidPublicWSClients[chain.id] = createPublicClient({
+        chain: chain,
+        transport: webSocket(
+          drpcProvider.getWebsocket(
+            drpcProvider.networks[
+              chain.id as keyof typeof drpcProvider.networks
+            ],
+            drpcProvider.paidTokens[0],
+          ),
+          {
+            keepAlive: { interval: 1_000 },
+            reconnect: {
+              attempts: Infinity,
+            },
+          },
+        ),
+      }) as unknown as PublicClient;
+
       this.readSemaphores[chain.id] = {
         [ChainPriority.HIGH]: new Semaphore(30),
         [ChainPriority.MEDIUM]: new Semaphore(5),
         [ChainPriority.LOW]: new Semaphore(1),
       };
       this.writeMutexs[chain.id] = {};
-
-      this.publicWalletClients[chain.id] = {};
-
-      [
-        ...publicRpcProviders[chain.id as keyof typeof publicRpcProviders],
-        ...drpcProvider.tokens.map((token) =>
-          drpcProvider.getUrl(
-            drpcProvider.networks[
-              chain.id as keyof typeof drpcProvider.networks
-            ],
-            token,
-          ),
-        ),
-      ].forEach((url) => {
-        const id = nanoid();
-
-        this.publicWalletClients[chain.id][id] = {
-          id,
-          connection: createPublicClient({
-            chain: chain,
-            transport: http(url, { batch: true }),
-          }),
-          isLocked: false,
-          lockedAt: 0,
-          url,
-          used: 0,
-        };
-      });
     });
   }
 
@@ -292,6 +304,14 @@ export class EvmChainsService {
     return this.paidPublicClients[chainId];
   }
 
+  private privatePublicClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.privatePublicClients[chainId];
+  }
+
   private freePublicClient(chainId: number): PublicClient {
     if (!this.isValidChainId(chainId)) {
       throw new Error('Invalid chainId');
@@ -300,13 +320,18 @@ export class EvmChainsService {
     return this.freePublicClients[chainId];
   }
 
-  private publicClient(chainId: number): PublicClient {
+  private publicClient(chainId: number, usePaid = false): PublicClient {
     if (!this.isValidChainId(chainId)) {
       throw new Error('Invalid chainId');
     }
 
     const freeClient = this.freePublicClient(chainId);
+    const privateClient = this.privatePublicClient(chainId);
     const paidClient = this.paidPublicClient(chainId);
+
+    if (usePaid) {
+      return paidClient;
+    }
 
     return new Proxy(freeClient, {
       get(target, prop, receiver) {
@@ -321,8 +346,8 @@ export class EvmChainsService {
             return await origMethod.apply(freeClient, args);
           } catch (err: any) {
             if (err && typeof err === 'object' && 'cause' in err) {
-              const paidMethod = Reflect.get(paidClient, prop, receiver);
-              return await paidMethod.apply(paidClient, args);
+              const privateMethod = Reflect.get(privateClient, prop, receiver);
+              return await privateMethod.apply(privateClient, args);
             }
             throw err;
           }
@@ -331,10 +356,19 @@ export class EvmChainsService {
     });
   }
 
+  paidPublicWSClient(chainId: number): PublicClient {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.paidPublicWSClients[chainId];
+  }
+
   private walletClient(
     chainId: number,
     mnemonic: string,
     accountIndex: number,
+    usePaid = false,
   ): WalletClient {
     const chain = this.getChainByChainId(chainId);
 
@@ -356,11 +390,13 @@ export class EvmChainsService {
 
     const drpcProvider = privateRPCProviders.drpc;
 
+    const tokens = usePaid ? drpcProvider.paidTokens : drpcProvider.tokens;
+
     const client = createWalletClient({
       account,
       chain: chain,
       transport: fallback([
-        ...drpcProvider.tokens
+        ...tokens
           .map((token) =>
             drpcProvider.getUrl(
               drpcProvider.networks[
@@ -388,10 +424,11 @@ export class EvmChainsService {
     chainId: number,
     priority: ChainPriority,
     callback: (c: PublicClient) => Promise<T>,
+    usePaid = false,
   ): Promise<T> {
     return await this.readSemaphores[chainId][priority].runExclusive(
       async () => {
-        return await callback(this.publicClient(chainId));
+        return await callback(this.publicClient(chainId, usePaid));
       },
     );
   }
@@ -401,6 +438,7 @@ export class EvmChainsService {
     mnemonic: string,
     accountIndex: number,
     callback: (c: WalletClient) => Promise<T>,
+    usePaid = false,
   ): Promise<T> {
     const account = mnemonicToAccount(mnemonic, {
       accountIndex,
@@ -413,43 +451,9 @@ export class EvmChainsService {
     return await this.writeMutexs[chainId][
       account.address.toLowerCase()
     ].runExclusive(async () => {
-      return await callback(this.walletClient(chainId, mnemonic, accountIndex));
+      return await callback(
+        this.walletClient(chainId, mnemonic, accountIndex, usePaid),
+      );
     });
-  }
-
-  async getAvailableConnection(chainId: number): Promise<Web3Configuration> {
-    return new Promise<Web3Configuration>((resolve) => {
-      const interval = setInterval(() => {
-        const availableConnection = Object.values(
-          this.publicWalletClients[chainId],
-        )
-          .filter((pool) => !pool.isLocked)
-          .sort((a, b) => a.used - b.used);
-
-        if (availableConnection.length > 0) {
-          this.lockConnection(chainId, availableConnection[0].id);
-          resolve(availableConnection[0]);
-          clearInterval(interval);
-        }
-      }, 100);
-    });
-  }
-
-  lockConnection(chainId: number, id: string) {
-    this.publicWalletClients[chainId][id].isLocked = true;
-    this.publicWalletClients[chainId][id].lockedAt = Date.now();
-    this.publicWalletClients[chainId][id].used++;
-  }
-
-  unlockConnection(chainId: number, id: string, waitTime: number) {
-    const interval = setInterval(() => {
-      if (
-        this.publicWalletClients[chainId][id].lockedAt + waitTime <
-        Date.now()
-      ) {
-        this.publicWalletClients[chainId][id].isLocked = false;
-        clearInterval(interval);
-      }
-    }, 1000);
   }
 }

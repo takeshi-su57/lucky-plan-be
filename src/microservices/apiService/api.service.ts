@@ -13,7 +13,6 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
 
 import { LogsService } from 'src/global/logs.service';
-import { timeout } from 'rxjs';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -22,7 +21,7 @@ const microservices = [
   SERVICE_NAMES.LEADERBOARD_SERVICE,
   SERVICE_NAMES.TRADING_SERVICE,
   SERVICE_NAMES.SNAPSHOT_SERVICE,
-  // SERVICE_NAMES.BOT_HOOKS_SERVICE,
+  SERVICE_NAMES.BOT_HOOKS_SERVICE,
   // SERVICE_NAMES.JUP_PERP_EVENT_LOGGER_SERVICE,
 ];
 
@@ -90,18 +89,6 @@ export class ApiService {
     this.isPaused = true;
 
     return true;
-  }
-
-  async isBotHookRunning() {
-    return await new Promise<boolean>((resolve, reject) => {
-      this.client
-        .send(PATTERNS.BotHook.IsRunning, {})
-        .pipe(timeout(60_000))
-        .subscribe({
-          next: (data) => resolve(data),
-          error: (err) => reject(err),
-        });
-    });
   }
 
   startSubService(serviceName: string) {
