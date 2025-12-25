@@ -366,8 +366,6 @@ model SLTPRequest {
   condition   String
   createdAt   DateTime @default(now())
   contract    Contract @relation(fields: [contractId], references: [id])
-
-  @@unique([address, contractId, positionKey])
 }
 
 model GnsPricingRecord {
