@@ -17,7 +17,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "backtest": "ts-node src/backtest/run-backtest.ts",
+    "backtest:optimize": "ts-node src/backtest/optimizer.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.2.0",
@@ -44,6 +46,8 @@
     "async-mutex": "^0.5.0",
     "bcryptjs": "^2.4.3",
     "cache-manager": "^7.1.1",
+    "chart.js": "^4.5.1",
+    "chartjs-node-canvas": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "csv-parser": "^3.2.0",
