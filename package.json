@@ -18,8 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "backtest": "ts-node src/backtest/run-backtest.ts",
-    "backtest:optimize": "ts-node src/backtest/optimizer.ts"
+    "backtest": "ts-node src/backtest/run-composable-backtest.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.2.0",
