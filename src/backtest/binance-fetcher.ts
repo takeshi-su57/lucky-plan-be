@@ -298,16 +298,18 @@ export type StreamProgress = {
 /**
  * Stream price data as an async generator - yields candles one at a time
  * Memory efficient: only one month's data in memory at a time
+ * Only yields candles within the specified date range
  */
 export async function* streamPriceData(
   symbol: string,
   interval: string = '1m',
-  years: number = 4,
+  fromDate: Date,
+  toDate: Date,
   onProgress?: (progress: StreamProgress) => void,
 ): AsyncGenerator<Candle, void, unknown> {
-  // Calculate time range
-  const endTime = Date.now();
-  const startTime = endTime - years * 365 * 24 * 60 * 60 * 1000;
+  // Convert dates to timestamps
+  const startTime = fromDate.getTime();
+  const endTime = toDate.getTime();
 
   // Get all months to fetch
   const months = getMonthsBetween(startTime, endTime);
@@ -325,18 +327,22 @@ export async function* streamPriceData(
     const hasCachedData = cached && cached.length > 0;
 
     if (hasCachedData && !isCurrentMonth) {
-      // Use cached data - yield each candle
+      // Use cached data - yield each candle within range
+      const filteredCandles = cached.filter(
+        (c) => c.openTime >= startTime && c.openTime <= endTime,
+      );
+
       if (onProgress) {
         onProgress({
           currentMonth: monthStr,
           monthIndex: i,
           totalMonths: months.length,
-          candlesInMonth: cached.length,
+          candlesInMonth: filteredCandles.length,
           status: 'cached',
         });
       }
 
-      for (const candle of cached) {
+      for (const candle of filteredCandles) {
         yield candle;
       }
     } else {
@@ -361,18 +367,23 @@ export async function* streamPriceData(
         isCurrentMonth,
       );
 
+      // Filter candles to only include those within the date range
+      const filteredCandles = candles.filter(
+        (c) => c.openTime >= startTime && c.openTime <= endTime,
+      );
+
       if (onProgress) {
         onProgress({
           currentMonth: monthStr,
           monthIndex: i,
           totalMonths: months.length,
-          candlesInMonth: candles.length,
+          candlesInMonth: filteredCandles.length,
           status: 'done',
         });
       }
 
       // Yield each candle one at a time
-      for (const candle of candles) {
+      for (const candle of filteredCandles) {
         yield candle;
       }
     }
@@ -385,7 +396,8 @@ export async function* streamPriceData(
 export function getDataInfo(
   symbol: string,
   interval: string,
-  years: number,
+  fromDate: Date,
+  toDate: Date,
 ): {
   totalMonths: number;
   cachedMonths: number;
@@ -396,8 +408,8 @@ export function getDataInfo(
     candles: number;
   }>;
 } {
-  const endTime = Date.now();
-  const startTime = endTime - years * 365 * 24 * 60 * 60 * 1000;
+  const startTime = fromDate.getTime();
+  const endTime = toDate.getTime();
   const months = getMonthsBetween(startTime, endTime);
 
   const monthsInfo = months.map(({ year, month }) => {

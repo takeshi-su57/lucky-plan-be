@@ -28,26 +28,10 @@ export interface BacktestResult {
   winningTrades: number;
   losingTrades: number;
   winRate: number;
-  positionSizeUsdt: number; // Fixed position size per trade
+  positionSizeUsdt: number; // Average position size per trade
   totalPnlUsdt: number; // Total PnL in USDT
   totalPnlPercent: number; // Total PnL as percentage
   maxDrawdownUsdt: number; // Max drawdown in USDT
   maxDrawdownPercent: number; // Max drawdown as percentage
   trades: Trade[];
-}
-
-export interface StrategySignal {
-  action: 'BUY' | 'SELL' | 'HOLD';
-  price: number;
-  time: number;
-}
-
-export interface StrategyConfig {
-  shortPeriod: number;
-  longPeriod: number;
-  // ADX filter settings
-  useAdxFilter: boolean;
-  adxPeriod: number;
-  adxThreshold: number;
-  adxTimeframeMinutes: number; // e.g., 60 for 1h
 }

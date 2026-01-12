@@ -471,3 +471,83 @@ enum TaskStatus {
   Completed
   Stopped
 }
+
+// ============================================
+// BACKTEST OPTIMIZATION MODELS
+// ============================================
+
+enum BacktestTaskStatus {
+  AWAIT
+  PROCESSING
+  DONE
+  FAILED
+  CANCELLED
+}
+
+model BacktestTask {
+  id                 String              @id @default(uuid())
+  name               String              // User-friendly name
+  symbol             String              // e.g., "BTCUSDT"
+
+  // Optimization parameters (JSON)
+  optimizationParams Json                // { fastEma: {min,max,step}, slowEma: {min,max,step}, ... }
+
+  // Date range for backtest
+  startDate          DateTime
+  endDate            DateTime
+  interval           String              @default("1m") // candle interval
+
+  // Progress tracking
+  status             BacktestTaskStatus  @default(AWAIT)
+  totalConfigs       Int                 @default(0)
+  processedConfigs   Int                 @default(0)
+  currentConfig      String?             // Current processing config UUID
+
+  // Timestamps
+  createdAt          DateTime            @default(now())
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  // Error tracking
+  errorMessage       String?
+
+  // Relations
+  results            BacktestResult[]
+
+  @@index([status, createdAt])
+  @@index([symbol])
+}
+
+model BacktestResult {
+  id                 String         @id @default(uuid())
+  taskId             String
+  task               BacktestTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Result identification
+  configId           String         // UUID for this specific config run
+  runDate            String         // yyyy-mm-dd format
+
+  // Strategy config used
+  strategyConfig     Json           // The full composable strategy config
+
+  // Performance metrics
+  totalTrades        Int
+  winningTrades      Int
+  losingTrades       Int
+  winRate            Float
+  totalPnlUsdt       Float
+  totalPnlPercent    Float
+  maxDrawdownUsdt    Float
+  maxDrawdownPercent Float
+  sharpeRatio        Float?
+  profitFactor       Float?
+
+  // File paths (relative to result folder)
+  resultFolder       String         // result/[taskId]/[date]/[configId]
+
+  createdAt          DateTime       @default(now())
+
+  @@index([taskId, runDate])
+  @@index([taskId, totalPnlUsdt])
+  @@index([taskId, winRate])
+}

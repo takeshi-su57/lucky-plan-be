@@ -1,0 +1,123 @@
+import { Candle } from '../../types';
+import { SignalGenerator, Signal, StrategyState } from '../../core/interfaces';
+import { SMAIndicator } from '../../indicators';
+import { ComponentMeta } from '../../core/registry';
+
+export interface SMACrossoverParams {
+  fastPeriod: number;
+  slowPeriod: number;
+}
+
+/**
+ * Component metadata for SMA Crossover signal
+ */
+export const smaCrossoverMeta: ComponentMeta = {
+  name: 'SMA Crossover',
+  description: 'Generates signals on SMA crossovers (golden/death cross)',
+  params: [
+    {
+      name: 'fastPeriod',
+      type: 'number',
+      required: true,
+      min: 5,
+      max: 100,
+      description: 'Fast SMA period',
+    },
+    {
+      name: 'slowPeriod',
+      type: 'number',
+      required: true,
+      min: 20,
+      max: 500,
+      description: 'Slow SMA period',
+    },
+  ],
+};
+
+/**
+ * SMA Crossover Signal Generator
+ *
+ * Generates entry signals based on SMA crossovers:
+ * - Golden cross (fast crosses above slow): LONG signal
+ * - Death cross (fast crosses below slow): SHORT signal
+ *
+ * SMA is less responsive than EMA but produces fewer false signals.
+ * Signal only indicates direction - composer handles position management.
+ */
+export class SMACrossoverSignal implements SignalGenerator {
+  readonly name = 'smaCrossover';
+
+  private fastSMA: SMAIndicator;
+  private slowSMA: SMAIndicator;
+  private prevFast: number | null = null;
+  private prevSlow: number | null = null;
+
+  constructor(params: SMACrossoverParams) {
+    this.fastSMA = new SMAIndicator(params.fastPeriod);
+    this.slowSMA = new SMAIndicator(params.slowPeriod);
+  }
+
+  processCandle(candle: Candle, _state: StrategyState): Signal | null {
+    // Store previous values for crossover detection
+    this.prevFast = this.fastSMA.getSMA();
+    this.prevSlow = this.slowSMA.getSMA();
+
+    // Calculate new SMAs
+    const fast = this.fastSMA.processCandle(candle);
+    const slow = this.slowSMA.processCandle(candle);
+
+    // Need both SMAs and previous values to detect crossover
+    if (
+      fast === null ||
+      slow === null ||
+      this.prevFast === null ||
+      this.prevSlow === null
+    ) {
+      return null;
+    }
+
+    // Detect crossovers
+    const wasBelow = this.prevFast < this.prevSlow;
+    const wasAbove = this.prevFast > this.prevSlow;
+    const isAbove = fast > slow;
+    const isBelow = fast < slow;
+
+    // Golden cross: Fast SMA crosses above Slow SMA → LONG
+    if (wasBelow && isAbove) {
+      return {
+        direction: 'LONG',
+        source: this.name,
+        price: candle.close,
+        timestamp: candle.closeTime,
+      };
+    }
+
+    // Death cross: Fast SMA crosses below Slow SMA → SHORT
+    if (wasAbove && isBelow) {
+      return {
+        direction: 'SHORT',
+        source: this.name,
+        price: candle.close,
+        timestamp: candle.closeTime,
+      };
+    }
+
+    return null;
+  }
+
+  reset(): void {
+    this.fastSMA.reset();
+    this.slowSMA.reset();
+    this.prevFast = null;
+    this.prevSlow = null;
+  }
+
+  // Utility getters for debugging/inspection
+  getFastSMA(): number | null {
+    return this.fastSMA.getSMA();
+  }
+
+  getSlowSMA(): number | null {
+    return this.slowSMA.getSMA();
+  }
+}

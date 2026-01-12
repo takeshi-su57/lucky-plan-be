@@ -1,0 +1,52 @@
+{
+  "symbol": "ETHUSDT",
+  "name": "ETH Trend Following",
+  "description": "EMA crossover with ADX filter, ATR-based sizing and trailing stop",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": 20,
+      "slowPeriod": 50
+    }
+  },
+  "filters": [
+    {
+      "type": "adxTrend",
+      "params": {
+        "period": 14,
+        "threshold": 25,
+        "timeframe": 60
+      }
+    }
+  ],
+  "risk": {
+    "type": "atrBased",
+    "params": {
+      "atrPeriod": 14,
+      "atrMultiplier": 2.5,
+      "riskPercent": 2,
+      "capitalBase": 10000,
+      "maxPositionPercent": 20
+    }
+  },
+  "exits": [
+    {
+      "type": "stopLoss",
+      "params": {
+        "atrMultiplier": 2.5,
+        "atrPeriod": 14
+      }
+    },
+    {
+      "type": "trailingStop",
+      "params": {
+        "atrMultiplier": 2.0,
+        "activateAfterPercent": 1.0
+      }
+    }
+  ],
+  "settings": {
+    "timeframe": "1m",
+    "capitalBase": 10000
+  }
+}
