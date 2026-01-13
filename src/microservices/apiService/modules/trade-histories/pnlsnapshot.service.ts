@@ -59,20 +59,44 @@ export class PnlSnapshotsService {
     first: number,
     after: number | null,
   ): Promise<PnlSnapshotV2DetailsConnection> {
-    const pnlRecords: PnlSnapshotV2[] = after
-      ? await this.prismaService.pnlSnapshotV2.findMany({
-          skip: after ? 1 : undefined,
-          take: first,
-          cursor: {
+    const lastPnlRecord = after
+      ? await this.prismaService.pnlSnapshotV2.findFirst({
+          where: {
             id: after,
           },
+        })
+      : null;
+
+    const currentCursor = lastPnlRecord
+      ? {
+          id: lastPnlRecord.id,
+          accUSDPnl: lastPnlRecord.accUSDPnl,
+        }
+      : null;
+
+    const pnlRecords: PnlSnapshotV2[] = currentCursor
+      ? await this.prismaService.pnlSnapshotV2.findMany({
+          take: first,
           where: {
             dateStr,
             kind,
             platform,
             accUSDPnl: {
-              not: 0,
+              gt: 100,
             },
+            OR: [
+              {
+                accUSDPnl: {
+                  gt: currentCursor.accUSDPnl,
+                },
+              },
+              {
+                accUSDPnl: currentCursor.accUSDPnl,
+                id: {
+                  gt: currentCursor.id,
+                },
+              },
+            ],
           },
           orderBy: [
             {
@@ -123,14 +147,11 @@ export class PnlSnapshotsService {
     const edges: PnlSnapshotV2DetailsEdge[] = [];
 
     for (const pnlRecord of pnlRecords) {
-      const historyRecords =
+      const historyRecords = (
         await this.prismaService.perpTradingEventLog.findMany({
           where: {
             address: pnlRecord.address.toLowerCase(),
             platform,
-            contractId: {
-              notIn: testContractIds,
-            },
             date: {
               gt: startDate,
               lte: endDate,
@@ -143,11 +164,9 @@ export class PnlSnapshotsService {
             {
               block: 'asc',
             },
-            {
-              id: 'asc',
-            },
           ],
-        });
+        })
+      ).filter((item) => !testContractIds.includes(item.contractId));
 
       edges.push({
         cursor: pnlRecord.id,
@@ -188,7 +207,7 @@ export class PnlSnapshotsService {
           kind,
           platform,
           accUSDPnl: {
-            not: 0,
+            gt: 100,
           },
         },
         orderBy: [
@@ -209,7 +228,7 @@ export class PnlSnapshotsService {
         kind,
         platform,
         accUSDPnl: {
-          not: 0,
+          not: 100,
         },
       },
     });
@@ -231,35 +250,35 @@ export class PnlSnapshotsService {
     );
     const endDate = new Date(dateStr);
 
-    const historyRecords =
-      await this.prismaService.perpTradingEventLog.findMany({
-        where: {
-          OR: [
-            ...pnlRecords.map((item) => ({
-              address: item.address,
-              platform,
-              contractId: {
-                notIn: testContractIds,
-              },
-              date: {
-                gt: startDate,
-                lte: endDate,
-              },
-            })),
+    const historyRecords: PerpTradingEventLog[] = [];
+
+    for (const pnlRecord of pnlRecords) {
+      const records = (
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            address: pnlRecord.address.toLowerCase(),
+            platform,
+            date: {
+              gt: startDate,
+              lte: endDate,
+            },
+          },
+          orderBy: [
+            {
+              date: 'asc',
+            },
+            {
+              block: 'asc',
+            },
+            {
+              id: 'asc',
+            },
           ],
-        },
-        orderBy: [
-          {
-            date: 'asc',
-          },
-          {
-            block: 'asc',
-          },
-          {
-            id: 'asc',
-          },
-        ],
-      });
+        })
+      ).filter((item) => !testContractIds.includes(item.contractId));
+
+      historyRecords.push(...records);
+    }
 
     const historyRecordsMap = new Map<string, PerpTradingEventLog[]>();
 
@@ -432,59 +451,55 @@ export class PnlSnapshotsService {
             details: `substract pnl by outdated pnl snapshot ${cursorId}`,
           });
 
-          const records: PerpTradingEventLog[] = cursorId
-            ? await this.prismaService.perpTradingEventLog.findMany({
-                skip: 1,
-                take: BATCH_SIZE,
-                cursor: {
-                  id: cursorId,
-                },
-                where: {
-                  platform,
-                  date: {
-                    gte: new Date(pastLowerBound),
-                    lte: new Date(pastUpperBound),
+          const records: PerpTradingEventLog[] = (
+            cursorId
+              ? await this.prismaService.perpTradingEventLog.findMany({
+                  skip: 1,
+                  take: BATCH_SIZE,
+                  cursor: {
+                    id: cursorId,
                   },
-                  contractId: {
-                    notIn: testContractIds,
+                  where: {
+                    platform,
+                    date: {
+                      gte: new Date(pastLowerBound),
+                      lte: new Date(pastUpperBound),
+                    },
                   },
-                },
-                orderBy: [
-                  {
-                    date: 'asc',
+                  orderBy: [
+                    {
+                      date: 'asc',
+                    },
+                    {
+                      block: 'asc',
+                    },
+                    {
+                      id: 'asc',
+                    },
+                  ],
+                })
+              : await this.prismaService.perpTradingEventLog.findMany({
+                  take: BATCH_SIZE,
+                  where: {
+                    date: {
+                      gte: new Date(pastLowerBound),
+                      lte: new Date(pastUpperBound),
+                    },
+                    platform,
                   },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              })
-            : await this.prismaService.perpTradingEventLog.findMany({
-                take: BATCH_SIZE,
-                where: {
-                  date: {
-                    gte: new Date(pastLowerBound),
-                    lte: new Date(pastUpperBound),
-                  },
-                  platform,
-                  contractId: {
-                    notIn: testContractIds,
-                  },
-                },
-                orderBy: [
-                  {
-                    date: 'asc',
-                  },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              });
+                  orderBy: [
+                    {
+                      date: 'asc',
+                    },
+                    {
+                      block: 'asc',
+                    },
+                    {
+                      id: 'asc',
+                    },
+                  ],
+                })
+          ).filter((item) => !testContractIds.includes(item.contractId));
 
           if (records.length === 0) {
             break;
@@ -534,59 +549,55 @@ export class PnlSnapshotsService {
           details: `add pnl by perp trading event logs ${currentCursorId}`,
         });
 
-        const records: PerpTradingEventLog[] = currentCursorId
-          ? await this.prismaService.perpTradingEventLog.findMany({
-              skip: 1,
-              take: BATCH_SIZE,
-              cursor: {
-                id: currentCursorId,
-              },
-              where: {
-                platform,
-                date: {
-                  gte: new Date(lowerBound),
-                  lte: new Date(upperBound),
+        const records: PerpTradingEventLog[] = (
+          currentCursorId
+            ? await this.prismaService.perpTradingEventLog.findMany({
+                skip: 1,
+                take: BATCH_SIZE,
+                cursor: {
+                  id: currentCursorId,
                 },
-                contractId: {
-                  notIn: testContractIds,
+                where: {
+                  platform,
+                  date: {
+                    gte: new Date(lowerBound),
+                    lte: new Date(upperBound),
+                  },
                 },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                  {
+                    id: 'asc',
+                  },
+                ],
+              })
+            : await this.prismaService.perpTradingEventLog.findMany({
+                take: BATCH_SIZE,
+                where: {
+                  platform,
+                  date: {
+                    gte: new Date(lowerBound),
+                    lte: new Date(upperBound),
+                  },
                 },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            })
-          : await this.prismaService.perpTradingEventLog.findMany({
-              take: BATCH_SIZE,
-              where: {
-                platform,
-                date: {
-                  gte: new Date(lowerBound),
-                  lte: new Date(upperBound),
-                },
-                contractId: {
-                  notIn: testContractIds,
-                },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            });
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                  {
+                    id: 'asc',
+                  },
+                ],
+              })
+        ).filter((item) => !testContractIds.includes(item.contractId));
 
         if (records.length === 0) {
           break;
@@ -820,57 +831,53 @@ export class PnlSnapshotsService {
           details: `find many perp trading event logs ${cursorId}`,
         });
 
-        const records: PerpTradingEventLog[] = cursorId
-          ? await this.prismaService.perpTradingEventLog.findMany({
-              skip: 1,
-              take: BATCH_SIZE,
-              cursor: {
-                id: cursorId,
-              },
-              where: {
-                platform,
-                date: {
-                  lte: upperBound,
+        const records: PerpTradingEventLog[] = (
+          cursorId
+            ? await this.prismaService.perpTradingEventLog.findMany({
+                skip: 1,
+                take: BATCH_SIZE,
+                cursor: {
+                  id: cursorId,
                 },
-                contractId: {
-                  notIn: testContractIds,
+                where: {
+                  platform,
+                  date: {
+                    lte: upperBound,
+                  },
                 },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                  {
+                    id: 'asc',
+                  },
+                ],
+              })
+            : await this.prismaService.perpTradingEventLog.findMany({
+                take: BATCH_SIZE,
+                where: {
+                  platform,
+                  date: {
+                    lte: upperBound,
+                  },
                 },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            })
-          : await this.prismaService.perpTradingEventLog.findMany({
-              take: BATCH_SIZE,
-              where: {
-                platform,
-                date: {
-                  lte: upperBound,
-                },
-                contractId: {
-                  notIn: testContractIds,
-                },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            });
+                orderBy: [
+                  {
+                    date: 'asc',
+                  },
+                  {
+                    block: 'asc',
+                  },
+                  {
+                    id: 'asc',
+                  },
+                ],
+              })
+        ).filter((item) => !testContractIds.includes(item.contractId));
 
         if (records.length === 0) {
           break;
