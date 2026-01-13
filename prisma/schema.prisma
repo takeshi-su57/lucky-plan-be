@@ -91,7 +91,8 @@ model PerpTradingEventLog {
   platform   Platform
 
   @@unique([address, contractId, block, logIndex])
-  @@index([platform, contractId, date, block, id])
+  @@index([platform, address, date, block, id])
+  @@index([platform, date, block, id])
 }
 
 model TradingSignalLog {
@@ -112,9 +113,10 @@ model PnlSnapshotV2 {
   accUSDPnl Float
 
   @@unique([address, platform, dateStr, kind])
-  @@index([accUSDPnl(sort: Desc)])
+  @@index([dateStr, platform, kind, accUSDPnl(sort: Desc), id(sort: Asc)])
+  @@index([platform, kind, accUSDPnl(sort: Desc), id(sort: Asc)])
   @@index([dateStr, platform, id])
-  @@index([platform])
+  @@index([dateStr, platform])
 }
 
 model PnlSnapshotV2InitializedFlag {
@@ -485,50 +487,50 @@ enum BacktestTaskStatus {
 }
 
 model BacktestTask {
-  id                 String              @id @default(uuid())
-  name               String              // User-friendly name
-  symbol             String              // e.g., "BTCUSDT"
+  id     String @id @default(uuid())
+  name   String // User-friendly name
+  symbol String // e.g., "BTCUSDT"
 
   // Optimization parameters (JSON)
-  optimizationParams Json                // { fastEma: {min,max,step}, slowEma: {min,max,step}, ... }
+  optimizationParams Json // { fastEma: {min,max,step}, slowEma: {min,max,step}, ... }
 
   // Date range for backtest
-  startDate          DateTime
-  endDate            DateTime
-  interval           String              @default("1m") // candle interval
+  startDate DateTime
+  endDate   DateTime
+  interval  String   @default("1m") // candle interval
 
   // Progress tracking
-  status             BacktestTaskStatus  @default(AWAIT)
-  totalConfigs       Int                 @default(0)
-  processedConfigs   Int                 @default(0)
-  currentConfig      String?             // Current processing config UUID
+  status           BacktestTaskStatus @default(AWAIT)
+  totalConfigs     Int                @default(0)
+  processedConfigs Int                @default(0)
+  currentConfig    String? // Current processing config UUID
 
   // Timestamps
-  createdAt          DateTime            @default(now())
-  startedAt          DateTime?
-  completedAt        DateTime?
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
 
   // Error tracking
-  errorMessage       String?
+  errorMessage String?
 
   // Relations
-  results            BacktestResult[]
+  results BacktestResult[]
 
   @@index([status, createdAt])
   @@index([symbol])
 }
 
 model BacktestResult {
-  id                 String         @id @default(uuid())
-  taskId             String
-  task               BacktestTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id     String       @id @default(uuid())
+  taskId String
+  task   BacktestTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   // Result identification
-  configId           String         // UUID for this specific config run
-  runDate            String         // yyyy-mm-dd format
+  configId String // UUID for this specific config run
+  runDate  String // yyyy-mm-dd format
 
   // Strategy config used
-  strategyConfig     Json           // The full composable strategy config
+  strategyConfig Json // The full composable strategy config
 
   // Performance metrics
   totalTrades        Int
@@ -543,9 +545,9 @@ model BacktestResult {
   profitFactor       Float?
 
   // File paths (relative to result folder)
-  resultFolder       String         // result/[taskId]/[date]/[configId]
+  resultFolder String // result/[taskId]/[date]/[configId]
 
-  createdAt          DateTime       @default(now())
+  createdAt DateTime @default(now())
 
   @@index([taskId, runDate])
   @@index([taskId, totalPnlUsdt])
