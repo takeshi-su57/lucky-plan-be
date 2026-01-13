@@ -9,6 +9,8 @@ import { ComponentMeta } from '../../core/registry';
 
 export interface FixedSizeParams {
   positionSizeUsdt: number; // Fixed position size in USDT
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -24,6 +26,20 @@ export const fixedSizeMeta: ComponentMeta = {
       required: true,
       min: 100,
       description: 'Fixed position size in USDT',
+    },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes (for API consistency)',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles (for API consistency)',
     },
   ],
 };

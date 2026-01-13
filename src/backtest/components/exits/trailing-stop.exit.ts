@@ -6,12 +6,15 @@ import {
   StrategyState,
 } from '../../core/interfaces';
 import { ATRIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface TrailingStopParams {
   atrPeriod: number;
   atrMultiplier: number;
   activateAfterPercent: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -47,6 +50,20 @@ export const trailingStopMeta: ComponentMeta = {
       description:
         'Profit percentage required to activate trailing (0 for immediate)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for ATR calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -66,6 +83,8 @@ export class TrailingStopExit implements ExitCondition {
   readonly name = 'trailingStop';
 
   private atr: ATRIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
   private multiplier: number;
   private activateAfter: number;
 
@@ -79,10 +98,26 @@ export class TrailingStopExit implements ExitCondition {
     this.atr = new ATRIndicator(params.atrPeriod);
     this.multiplier = params.atrMultiplier;
     this.activateAfter = params.activateAfterPercent;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle): void {
-    this.atr.processCandle(candle);
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        this.atr.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.atr.processCandle(current);
+        }
+      }
+    } else {
+      this.atr.processCandle(candle);
+    }
 
     // Only update trailing prices if trailing is activated
     if (this.trailingActivated) {
@@ -178,6 +213,7 @@ export class TrailingStopExit implements ExitCondition {
 
   reset(): void {
     this.atr.reset();
+    this.aggregator?.reset();
     this.highestPrice = 0;
     this.lowestPrice = Infinity;
     this.trailingActivated = false;

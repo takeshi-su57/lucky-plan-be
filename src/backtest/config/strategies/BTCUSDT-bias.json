@@ -1,25 +1,33 @@
 {
-  "symbol": "ETHUSDT",
-  "name": "ETH Trend Following",
-  "description": "EMA crossover with ADX filter, ATR-based sizing and trailing stop",
+  "symbol": "BTCUSDT",
+  "name": "BTC Trend with HTF Bias",
+  "description": "EMA crossover with HTF EMA bias filter (5m timeframe)",
   "signal": {
     "type": "emaCrossover",
     "params": {
-      "fastPeriod": 20,
-      "slowPeriod": 50,
+      "fastPeriod": 9,
+      "slowPeriod": 21,
       "timeframe": 1,
       "useCurrentCandle": false
     }
   },
   "filters": [
     {
-      "type": "adxTrend",
+      "type": "htfEmaBias",
       "params": {
-        "period": 14,
-        "threshold": 25,
-        "timeframe": 60,
-        "useCurrentCandle": false,
-        "inverse": false
+        "timeframe": 5,
+        "period": 50,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "emaSlope",
+      "params": {
+        "period": 50,
+        "slopePeriod": 10,
+        "minSlope": 0.0001,
+        "timeframe": 1,
+        "useCurrentCandle": false
       }
     }
   ],
@@ -27,8 +35,8 @@
     "type": "atrBased",
     "params": {
       "atrPeriod": 14,
-      "atrMultiplier": 2.5,
-      "riskPercent": 2,
+      "riskPercent": 1,
+      "atrMultiplier": 2,
       "capitalBase": 10000,
       "useEquity": false,
       "maxPositionPercent": 20,
@@ -41,8 +49,8 @@
       "type": "stopLoss",
       "params": {
         "percent": 0,
-        "atrMultiplier": 2.5,
         "atrPeriod": 14,
+        "atrMultiplier": 2,
         "timeframe": 1,
         "useCurrentCandle": false
       }
@@ -51,15 +59,14 @@
       "type": "trailingStop",
       "params": {
         "atrPeriod": 14,
-        "atrMultiplier": 2.0,
-        "activateAfterPercent": 1.0,
+        "atrMultiplier": 3,
+        "activateAfterPercent": 1.5,
         "timeframe": 1,
         "useCurrentCandle": false
       }
     }
   ],
   "settings": {
-    "timeframe": "1m",
     "capitalBase": 10000
   }
 }

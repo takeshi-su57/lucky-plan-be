@@ -6,12 +6,15 @@ import {
   StrategyState,
 } from '../../core/interfaces';
 import { ATRIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface StopLossParams {
   percent: number;
   atrMultiplier: number;
   atrPeriod: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -47,6 +50,20 @@ export const stopLossMeta: ComponentMeta = {
       max: 50,
       description: 'ATR calculation period',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for ATR calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -69,11 +86,16 @@ export class StopLossExit implements ExitCondition {
   private stopPercent: number | null;
   private atrMultiplier: number | null;
   private atr: ATRIndicator | null;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
 
   constructor(params: StopLossParams) {
     // Use value if > 0, otherwise null (disabled)
     this.stopPercent = params.percent > 0 ? params.percent : null;
     this.atrMultiplier = params.atrMultiplier > 0 ? params.atrMultiplier : null;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
 
     // Only create ATR indicator if ATR-based stop is enabled
     if (this.atrMultiplier !== null) {
@@ -92,7 +114,20 @@ export class StopLossExit implements ExitCondition {
 
   processCandle(candle: Candle): void {
     if (this.atr) {
-      this.atr.processCandle(candle);
+      if (this.aggregator) {
+        const htfCandle = this.aggregator.processCandle(candle);
+        if (htfCandle) {
+          this.atr.processCandle(htfCandle);
+        }
+        if (this.useCurrentCandle) {
+          const current = this.aggregator.getCurrentCandle();
+          if (current) {
+            this.atr.processCandle(current);
+          }
+        }
+      } else {
+        this.atr.processCandle(candle);
+      }
     }
   }
 
@@ -149,5 +184,6 @@ export class StopLossExit implements ExitCondition {
     if (this.atr) {
       this.atr.reset();
     }
+    this.aggregator?.reset();
   }
 }

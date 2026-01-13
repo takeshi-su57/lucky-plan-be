@@ -1,12 +1,15 @@
 import { Candle } from '../../types';
 import { Filter, Signal, StrategyState } from '../../core/interfaces';
 import { RSIIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface RSIExtremeParams {
   period: number;
   overbought: number;
   oversold: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -40,6 +43,20 @@ export const rsiExtremeMeta: ComponentMeta = {
       max: 40,
       description: 'Oversold level (blocks SHORT below this)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for RSI calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -56,17 +73,35 @@ export class RSIExtremeFilter implements Filter {
   readonly name = 'rsiExtreme';
 
   private rsi: RSIIndicator;
+  private aggregator: CandleAggregator | null;
   private overbought: number;
   private oversold: number;
+  private useCurrentCandle: boolean;
 
   constructor(params: RSIExtremeParams) {
     this.rsi = new RSIIndicator(params.period);
     this.overbought = params.overbought;
     this.oversold = params.oversold;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle): void {
-    this.rsi.processCandle(candle);
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        this.rsi.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.rsi.processCandle(current);
+        }
+      }
+    } else {
+      this.rsi.processCandle(candle);
+    }
   }
 
   shouldAllow(signal: Signal, _candle: Candle, _state: StrategyState): boolean {
@@ -90,6 +125,7 @@ export class RSIExtremeFilter implements Filter {
 
   reset(): void {
     this.rsi.reset();
+    this.aggregator?.reset();
   }
 
   // Utility getter for debugging/inspection

@@ -1,7 +1,7 @@
 {
-  "symbol": "ETHUSDT",
-  "name": "ETH Trend Following",
-  "description": "EMA crossover with ADX filter, ATR-based sizing and trailing stop",
+  "symbol": "BTCUSDT",
+  "name": "BTC EMA Slope Bias",
+  "description": "EMA crossover with EMA slope bias filter",
   "signal": {
     "type": "emaCrossover",
     "params": {
@@ -13,13 +13,13 @@
   },
   "filters": [
     {
-      "type": "adxTrend",
+      "type": "emaSlope",
       "params": {
-        "period": 14,
-        "threshold": 25,
-        "timeframe": 60,
-        "useCurrentCandle": false,
-        "inverse": false
+        "period": 50,
+        "slopePeriod": 10,
+        "minSlope": 0.001,
+        "timeframe": 1,
+        "useCurrentCandle": false
       }
     }
   ],
@@ -59,7 +59,6 @@
     }
   ],
   "settings": {
-    "timeframe": "1m",
     "capitalBase": 10000
   }
 }

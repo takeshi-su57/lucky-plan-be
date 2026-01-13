@@ -20,6 +20,28 @@ import {
   stochasticFilterMeta,
 } from './stochastic.filter';
 
+// Bias filters
+import {
+  MAPositionFilter,
+  MAPositionParams,
+  maPositionMeta,
+} from './ma-position.filter';
+import {
+  EMASlopeFilter,
+  EMASlopeParams,
+  emaSlopeMeta,
+} from './ema-slope.filter';
+import {
+  EMAStackFilter,
+  EMAStackParams,
+  emaStackMeta,
+} from './ema-stack.filter';
+import {
+  HTFEMABiasFilter,
+  HTFEMABiasParams,
+  htfEmaBiasMeta,
+} from './htf-ema-bias.filter';
+
 // Export interfaces and types
 export * from './filter.interface';
 
@@ -45,6 +67,28 @@ export {
   stochasticFilterMeta,
 } from './stochastic.filter';
 
+// Export bias filters
+export {
+  MAPositionFilter,
+  MAPositionParams,
+  maPositionMeta,
+} from './ma-position.filter';
+export {
+  EMASlopeFilter,
+  EMASlopeParams,
+  emaSlopeMeta,
+} from './ema-slope.filter';
+export {
+  EMAStackFilter,
+  EMAStackParams,
+  emaStackMeta,
+} from './ema-stack.filter';
+export {
+  HTFEMABiasFilter,
+  HTFEMABiasParams,
+  htfEmaBiasMeta,
+} from './htf-ema-bias.filter';
+
 // Register filters with the global registry
 registerFilter(
   'adxTrend',
@@ -69,4 +113,29 @@ registerFilter(
   'stochastic',
   (params) => new StochasticFilter(params as StochasticFilterParams),
   stochasticFilterMeta,
+);
+
+// Register bias filters
+registerFilter(
+  'maPosition',
+  (params) => new MAPositionFilter(params as MAPositionParams),
+  maPositionMeta,
+);
+
+registerFilter(
+  'emaSlope',
+  (params) => new EMASlopeFilter(params as EMASlopeParams),
+  emaSlopeMeta,
+);
+
+registerFilter(
+  'emaStack',
+  (params) => new EMAStackFilter(params as EMAStackParams),
+  emaStackMeta,
+);
+
+registerFilter(
+  'htfEmaBias',
+  (params) => new HTFEMABiasFilter(params as HTFEMABiasParams),
+  htfEmaBiasMeta,
 );

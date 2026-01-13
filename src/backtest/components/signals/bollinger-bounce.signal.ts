@@ -1,11 +1,14 @@
 import { Candle } from '../../types';
 import { SignalGenerator, Signal, StrategyState } from '../../core/interfaces';
 import { BollingerIndicator, BollingerResult } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface BollingerBounceParams {
   period: number;
   stdDev: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -32,6 +35,20 @@ export const bollingerBounceMeta: ComponentMeta = {
       max: 3,
       description: 'Standard deviation multiplier for bands',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for Bollinger calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -49,14 +66,38 @@ export class BollingerBounceSignal implements SignalGenerator {
   readonly name = 'bollingerBounce';
 
   private bollinger: BollingerIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
 
   constructor(params: BollingerBounceParams) {
     this.bollinger = new BollingerIndicator(params.period, params.stdDev);
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle, _state: StrategyState): Signal | null {
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        const signal = this.checkBounce(htfCandle, candle);
+        if (signal) return signal;
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          return this.checkBounce(current, candle);
+        }
+      }
+      return null;
+    } else {
+      return this.checkBounce(candle, candle);
+    }
+  }
+
+  private checkBounce(htfCandle: Candle, originalCandle: Candle): Signal | null {
     // Calculate new Bollinger Bands
-    const current = this.bollinger.processCandle(candle);
+    const current = this.bollinger.processCandle(htfCandle);
 
     // Need current values
     if (current === null) {
@@ -64,22 +105,22 @@ export class BollingerBounceSignal implements SignalGenerator {
     }
 
     // Price closes below lower band → LONG (mean reversion)
-    if (candle.close < current.lower) {
+    if (htfCandle.close < current.lower) {
       return {
         direction: 'LONG',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
     // Price closes above upper band → SHORT (mean reversion)
-    if (candle.close > current.upper) {
+    if (htfCandle.close > current.upper) {
       return {
         direction: 'SHORT',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -88,6 +129,7 @@ export class BollingerBounceSignal implements SignalGenerator {
 
   reset(): void {
     this.bollinger.reset();
+    this.aggregator?.reset();
   }
 
   // Utility getter for debugging/inspection

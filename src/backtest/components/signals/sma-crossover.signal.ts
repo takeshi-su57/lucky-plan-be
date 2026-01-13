@@ -1,11 +1,14 @@
 import { Candle } from '../../types';
 import { SignalGenerator, Signal, StrategyState } from '../../core/interfaces';
 import { SMAIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface SMACrossoverParams {
   fastPeriod: number;
   slowPeriod: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -31,6 +34,20 @@ export const smaCrossoverMeta: ComponentMeta = {
       max: 500,
       description: 'Slow SMA period',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for SMA calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -49,22 +66,46 @@ export class SMACrossoverSignal implements SignalGenerator {
 
   private fastSMA: SMAIndicator;
   private slowSMA: SMAIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
   private prevFast: number | null = null;
   private prevSlow: number | null = null;
 
   constructor(params: SMACrossoverParams) {
     this.fastSMA = new SMAIndicator(params.fastPeriod);
     this.slowSMA = new SMAIndicator(params.slowPeriod);
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle, _state: StrategyState): Signal | null {
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        const signal = this.checkCrossover(htfCandle, candle);
+        if (signal) return signal;
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          return this.checkCrossover(current, candle);
+        }
+      }
+      return null;
+    } else {
+      return this.checkCrossover(candle, candle);
+    }
+  }
+
+  private checkCrossover(htfCandle: Candle, originalCandle: Candle): Signal | null {
     // Store previous values for crossover detection
     this.prevFast = this.fastSMA.getSMA();
     this.prevSlow = this.slowSMA.getSMA();
 
     // Calculate new SMAs
-    const fast = this.fastSMA.processCandle(candle);
-    const slow = this.slowSMA.processCandle(candle);
+    const fast = this.fastSMA.processCandle(htfCandle);
+    const slow = this.slowSMA.processCandle(htfCandle);
 
     // Need both SMAs and previous values to detect crossover
     if (
@@ -87,8 +128,8 @@ export class SMACrossoverSignal implements SignalGenerator {
       return {
         direction: 'LONG',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -97,8 +138,8 @@ export class SMACrossoverSignal implements SignalGenerator {
       return {
         direction: 'SHORT',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -108,6 +149,7 @@ export class SMACrossoverSignal implements SignalGenerator {
   reset(): void {
     this.fastSMA.reset();
     this.slowSMA.reset();
+    this.aggregator?.reset();
     this.prevFast = null;
     this.prevSlow = null;
   }

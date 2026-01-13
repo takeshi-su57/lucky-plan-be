@@ -9,6 +9,8 @@ import { ComponentMeta } from '../../core/registry';
 
 export interface TimeBasedExitParams {
   maxHoldingCandles: number; // Maximum number of candles to hold position
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -25,6 +27,20 @@ export const timeBasedMeta: ComponentMeta = {
       min: 1,
       max: 500,
       description: 'Maximum number of candles to hold a position',
+    },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes (for API consistency)',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles (for API consistency)',
     },
   ],
 };

@@ -1,6 +1,7 @@
 import { Candle } from '../../types';
 import { Filter, Signal, StrategyState } from '../../core/interfaces';
 import { BollingerIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface BollingerVolatilityParams {
@@ -8,6 +9,8 @@ export interface BollingerVolatilityParams {
   stdDev: number;
   minBandwidth: number;
   maxBandwidth: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -49,6 +52,20 @@ export const bollingerVolatilityMeta: ComponentMeta = {
       max: 0.5,
       description: 'Maximum bandwidth (blocks signals in extreme volatility)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for Bollinger calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -67,17 +84,35 @@ export class BollingerVolatilityFilter implements Filter {
   readonly name = 'bollingerVolatility';
 
   private bollinger: BollingerIndicator;
+  private aggregator: CandleAggregator | null;
   private minBandwidth: number;
   private maxBandwidth: number;
+  private useCurrentCandle: boolean;
 
   constructor(params: BollingerVolatilityParams) {
     this.bollinger = new BollingerIndicator(params.period, params.stdDev);
     this.minBandwidth = params.minBandwidth;
     this.maxBandwidth = params.maxBandwidth;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle): void {
-    this.bollinger.processCandle(candle);
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        this.bollinger.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.bollinger.processCandle(current);
+        }
+      }
+    } else {
+      this.bollinger.processCandle(candle);
+    }
   }
 
   shouldAllow(
@@ -105,6 +140,7 @@ export class BollingerVolatilityFilter implements Filter {
 
   reset(): void {
     this.bollinger.reset();
+    this.aggregator?.reset();
   }
 
   // Utility getter for debugging/inspection

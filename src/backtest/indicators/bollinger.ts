@@ -9,74 +9,113 @@ import { Candle } from '../types';
  * - Lower Band: Middle Band - (stdDev × multiplier)
  *
  * Used for volatility measurement, mean reversion, and breakout detection.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
 export interface BollingerResult {
   upper: number;
   middle: number;
   lower: number;
-  bandwidth: number; // (upper - lower) / middle, normalized volatility measure
+  bandwidth: number;
+}
+
+interface BollingerState {
+  prices: number[];
+  index: number;
+  sum: number;
+  isInitialized: boolean;
 }
 
 export class BollingerIndicator {
   private period: number;
   private stdDevMultiplier: number;
-  private prices: number[] = [];
-  private index: number = 0;
-  private sum: number = 0;
-  private isInitialized: boolean = false;
+  private state: BollingerState;
+  private committedState: BollingerState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number = 20, stdDevMultiplier: number = 2) {
     this.period = period;
     this.stdDevMultiplier = stdDevMultiplier;
-    this.prices = new Array(period).fill(0);
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): BollingerState {
+    return {
+      prices: new Array(this.period).fill(0),
+      index: 0,
+      sum: 0,
+      isInitialized: false,
+    };
   }
 
   reset(): void {
-    this.prices = new Array(this.period).fill(0);
-    this.index = 0;
-    this.sum = 0;
-    this.isInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return Bollinger Band values
-   */
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      prices: [...this.state.prices],
+    };
+  }
+
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      prices: [...this.committedState.prices],
+    };
+  }
+
   processCandle(candle: Candle): BollingerResult | null {
-    const price = candle.close;
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle.close);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle.close);
+    }
+  }
 
-    if (!this.isInitialized) {
-      // Still filling the buffer
-      this.prices[this.index] = price;
-      this.sum += price;
-      this.index++;
+  private calculateAndUpdate(price: number): BollingerResult | null {
+    if (!this.state.isInitialized) {
+      this.state.prices[this.state.index] = price;
+      this.state.sum += price;
+      this.state.index++;
 
-      if (this.index < this.period) {
+      if (this.state.index < this.period) {
         return null;
       }
 
-      // Buffer is now full
-      this.isInitialized = true;
-      this.index = 0;
+      this.state.isInitialized = true;
+      this.state.index = 0;
     } else {
-      // Update circular buffer
-      this.sum -= this.prices[this.index];
-      this.sum += price;
-      this.prices[this.index] = price;
-      this.index = (this.index + 1) % this.period;
+      this.state.sum -= this.state.prices[this.state.index];
+      this.state.sum += price;
+      this.state.prices[this.state.index] = price;
+      this.state.index = (this.state.index + 1) % this.period;
     }
 
-    // Calculate SMA (middle band)
-    const middle = this.sum / this.period;
+    const middle = this.state.sum / this.period;
 
-    // Calculate standard deviation
     let squaredDiffSum = 0;
     for (let i = 0; i < this.period; i++) {
-      const diff = this.prices[i] - middle;
+      const diff = this.state.prices[i] - middle;
       squaredDiffSum += diff * diff;
     }
     const stdDev = Math.sqrt(squaredDiffSum / this.period);
 
-    // Calculate bands
     const upper = middle + stdDev * this.stdDevMultiplier;
     const lower = middle - stdDev * this.stdDevMultiplier;
     const bandwidth = (upper - lower) / middle;
@@ -84,19 +123,14 @@ export class BollingerIndicator {
     return { upper, middle, lower, bandwidth };
   }
 
-  /**
-   * Get current Bollinger Band values
-   */
   getBollinger(): BollingerResult | null {
-    if (!this.isInitialized) {
-      return null;
-    }
+    if (!this.state.isInitialized) return null;
 
-    const middle = this.sum / this.period;
+    const middle = this.state.sum / this.period;
 
     let squaredDiffSum = 0;
     for (let i = 0; i < this.period; i++) {
-      const diff = this.prices[i] - middle;
+      const diff = this.state.prices[i] - middle;
       squaredDiffSum += diff * diff;
     }
     const stdDev = Math.sqrt(squaredDiffSum / this.period);
@@ -108,9 +142,6 @@ export class BollingerIndicator {
     return { upper, middle, lower, bandwidth };
   }
 
-  /**
-   * Get the period
-   */
   getPeriod(): number {
     return this.period;
   }

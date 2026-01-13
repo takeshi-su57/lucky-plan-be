@@ -1,12 +1,15 @@
 import { Candle } from '../../types';
 import { SignalGenerator, Signal, StrategyState } from '../../core/interfaces';
 import { RSIIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface RSIReversalParams {
   period: number;
   oversold: number;
   overbought: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -41,6 +44,20 @@ export const rsiReversalMeta: ComponentMeta = {
       max: 90,
       description: 'Overbought threshold (above this = sell signal)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for RSI calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -58,6 +75,8 @@ export class RSIReversalSignal implements SignalGenerator {
   readonly name = 'rsiReversal';
 
   private rsi: RSIIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
   private oversold: number;
   private overbought: number;
   private prevRSI: number | null = null;
@@ -66,14 +85,36 @@ export class RSIReversalSignal implements SignalGenerator {
     this.rsi = new RSIIndicator(params.period);
     this.oversold = params.oversold;
     this.overbought = params.overbought;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle, _state: StrategyState): Signal | null {
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        const signal = this.checkReversal(htfCandle, candle);
+        if (signal) return signal;
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          return this.checkReversal(current, candle);
+        }
+      }
+      return null;
+    } else {
+      return this.checkReversal(candle, candle);
+    }
+  }
+
+  private checkReversal(htfCandle: Candle, originalCandle: Candle): Signal | null {
     // Store previous RSI for crossover detection
     this.prevRSI = this.rsi.getRSI();
 
     // Calculate new RSI
-    const currentRSI = this.rsi.processCandle(candle);
+    const currentRSI = this.rsi.processCandle(htfCandle);
 
     // Need both current and previous RSI
     if (currentRSI === null || this.prevRSI === null) {
@@ -85,8 +126,8 @@ export class RSIReversalSignal implements SignalGenerator {
       return {
         direction: 'LONG',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -95,8 +136,8 @@ export class RSIReversalSignal implements SignalGenerator {
       return {
         direction: 'SHORT',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -105,6 +146,7 @@ export class RSIReversalSignal implements SignalGenerator {
 
   reset(): void {
     this.rsi.reset();
+    this.aggregator?.reset();
     this.prevRSI = null;
   }
 

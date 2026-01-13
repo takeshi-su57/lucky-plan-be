@@ -9,6 +9,8 @@ import { Candle } from '../types';
  * - Upper Band: Highest high of the last N periods
  * - Lower Band: Lowest low of the last N periods
  * - Middle Band: Average of upper and lower
+ *
+ * Supports incomplete candle processing with pending buffer pattern.
  */
 export interface DonchianResult {
   upper: number;
@@ -16,75 +18,111 @@ export interface DonchianResult {
   middle: number;
 }
 
+interface DonchianState {
+  highs: number[];
+  lows: number[];
+  index: number;
+  isInitialized: boolean;
+}
+
 export class DonchianIndicator {
   private period: number;
-  private highs: number[] = [];
-  private lows: number[] = [];
-  private index: number = 0;
-  private isInitialized: boolean = false;
+  private state: DonchianState;
+  private committedState: DonchianState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number = 20) {
     this.period = period;
-    this.highs = new Array(period).fill(0);
-    this.lows = new Array(period).fill(Infinity);
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): DonchianState {
+    return {
+      highs: new Array(this.period).fill(0),
+      lows: new Array(this.period).fill(Infinity),
+      index: 0,
+      isInitialized: false,
+    };
   }
 
   reset(): void {
-    this.highs = new Array(this.period).fill(0);
-    this.lows = new Array(this.period).fill(Infinity);
-    this.index = 0;
-    this.isInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return Donchian Channel values
-   */
-  processCandle(candle: Candle): DonchianResult | null {
-    if (!this.isInitialized) {
-      // Still filling the buffer
-      this.highs[this.index] = candle.high;
-      this.lows[this.index] = candle.low;
-      this.index++;
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      highs: [...this.state.highs],
+      lows: [...this.state.lows],
+    };
+  }
 
-      if (this.index < this.period) {
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      highs: [...this.committedState.highs],
+      lows: [...this.committedState.lows],
+    };
+  }
+
+  processCandle(candle: Candle): DonchianResult | null {
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle);
+    }
+  }
+
+  private calculateAndUpdate(candle: Candle): DonchianResult | null {
+    if (!this.state.isInitialized) {
+      this.state.highs[this.state.index] = candle.high;
+      this.state.lows[this.state.index] = candle.low;
+      this.state.index++;
+
+      if (this.state.index < this.period) {
         return null;
       }
 
-      // Buffer is now full
-      this.isInitialized = true;
-      this.index = 0;
+      this.state.isInitialized = true;
+      this.state.index = 0;
     } else {
-      // Update circular buffer
-      this.highs[this.index] = candle.high;
-      this.lows[this.index] = candle.low;
-      this.index = (this.index + 1) % this.period;
+      this.state.highs[this.state.index] = candle.high;
+      this.state.lows[this.state.index] = candle.low;
+      this.state.index = (this.state.index + 1) % this.period;
     }
 
-    const upper = Math.max(...this.highs);
-    const lower = Math.min(...this.lows);
+    const upper = Math.max(...this.state.highs);
+    const lower = Math.min(...this.state.lows);
     const middle = (upper + lower) / 2;
 
     return { upper, lower, middle };
   }
 
-  /**
-   * Get current Donchian Channel values
-   */
   getDonchian(): DonchianResult | null {
-    if (!this.isInitialized) {
-      return null;
-    }
+    if (!this.state.isInitialized) return null;
 
-    const upper = Math.max(...this.highs);
-    const lower = Math.min(...this.lows);
+    const upper = Math.max(...this.state.highs);
+    const lower = Math.min(...this.state.lows);
     const middle = (upper + lower) / 2;
 
     return { upper, lower, middle };
   }
 
-  /**
-   * Get the period
-   */
   getPeriod(): number {
     return this.period;
   }

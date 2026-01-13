@@ -12,41 +12,78 @@ import { ATRIndicator } from './atr';
  *
  * Uses ATR internally for True Range calculation.
  * Memory efficient: Only stores data needed for initialization.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
+
+interface ADXState {
+  prevCandle: Candle | null;
+  initPlusDM: number[];
+  initMinusDM: number[];
+  initDX: number[];
+  smoothedPlusDM: number | null;
+  smoothedMinusDM: number | null;
+  adx: number | null;
+  dmInitialized: boolean;
+  adxInitialized: boolean;
+}
+
 export class ADXIndicator {
   private period: number;
   private atrIndicator: ATRIndicator;
-  private prevCandle: Candle | null = null;
-  private initPlusDM: number[] = []; // Only used during DM initialization
-  private initMinusDM: number[] = []; // Only used during DM initialization
-  private initDX: number[] = []; // Only used during ADX initialization
-  private smoothedPlusDM: number | null = null;
-  private smoothedMinusDM: number | null = null;
-  private adx: number | null = null;
-  private dmInitialized: boolean = false;
-  private adxInitialized: boolean = false;
+  private state: ADXState;
+  private committedState: ADXState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number = 14) {
     this.period = period;
     this.atrIndicator = new ATRIndicator(period);
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): ADXState {
+    return {
+      prevCandle: null,
+      initPlusDM: [],
+      initMinusDM: [],
+      initDX: [],
+      smoothedPlusDM: null,
+      smoothedMinusDM: null,
+      adx: null,
+      dmInitialized: false,
+      adxInitialized: false,
+    };
   }
 
   reset(): void {
     this.atrIndicator.reset();
-    this.prevCandle = null;
-    this.initPlusDM = [];
-    this.initMinusDM = [];
-    this.initDX = [];
-    this.smoothedPlusDM = null;
-    this.smoothedMinusDM = null;
-    this.adx = null;
-    this.dmInitialized = false;
-    this.adxInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Calculate Directional Movement (+DM and -DM)
-   */
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      prevCandle: this.state.prevCandle ? { ...this.state.prevCandle } : null,
+      initPlusDM: [...this.state.initPlusDM],
+      initMinusDM: [...this.state.initMinusDM],
+      initDX: [...this.state.initDX],
+    };
+  }
+
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      prevCandle: this.committedState.prevCandle
+        ? { ...this.committedState.prevCandle }
+        : null,
+      initPlusDM: [...this.committedState.initPlusDM],
+      initMinusDM: [...this.committedState.initMinusDM],
+      initDX: [...this.committedState.initDX],
+    };
+  }
+
   private calculateDM(
     current: Candle,
     previous: Candle,
@@ -67,46 +104,64 @@ export class ADXIndicator {
     return { plusDM, minusDM };
   }
 
-  /**
-   * Process a new candle and return updated ADX value
-   */
   processCandle(candle: Candle): number | null {
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle);
+    }
+  }
+
+  private calculateAndUpdate(candle: Candle): number | null {
     // Process ATR (handles TR calculation and smoothing)
     const atr = this.atrIndicator.processCandle(candle);
 
     // Need previous candle for DM calculation
-    if (!this.prevCandle) {
-      this.prevCandle = candle;
+    if (!this.state.prevCandle) {
+      this.state.prevCandle = candle;
       return null;
     }
 
     // Calculate DM
-    const { plusDM, minusDM } = this.calculateDM(candle, this.prevCandle);
-    this.prevCandle = candle;
+    const { plusDM, minusDM } = this.calculateDM(candle, this.state.prevCandle);
+    this.state.prevCandle = candle;
 
     // DM Initialization phase
-    if (!this.dmInitialized) {
-      this.initPlusDM.push(plusDM);
-      this.initMinusDM.push(minusDM);
+    if (!this.state.dmInitialized) {
+      this.state.initPlusDM.push(plusDM);
+      this.state.initMinusDM.push(minusDM);
 
-      if (this.initPlusDM.length < this.period) {
+      if (this.state.initPlusDM.length < this.period) {
         return null;
       }
 
       // First smoothed DM values are simple averages
-      this.smoothedPlusDM =
-        this.initPlusDM.reduce((sum, val) => sum + val, 0) / this.period;
-      this.smoothedMinusDM =
-        this.initMinusDM.reduce((sum, val) => sum + val, 0) / this.period;
-      this.dmInitialized = true;
-      this.initPlusDM = []; // Free memory
-      this.initMinusDM = []; // Free memory
+      this.state.smoothedPlusDM =
+        this.state.initPlusDM.reduce((sum, val) => sum + val, 0) / this.period;
+      this.state.smoothedMinusDM =
+        this.state.initMinusDM.reduce((sum, val) => sum + val, 0) / this.period;
+      this.state.dmInitialized = true;
+      this.state.initPlusDM = [];
+      this.state.initMinusDM = [];
     } else {
-      // Wilder's smoothing for DM: (prev * (period-1) + new) / period
-      this.smoothedPlusDM =
-        (this.smoothedPlusDM! * (this.period - 1) + plusDM) / this.period;
-      this.smoothedMinusDM =
-        (this.smoothedMinusDM! * (this.period - 1) + minusDM) / this.period;
+      // Wilder's smoothing for DM
+      this.state.smoothedPlusDM =
+        (this.state.smoothedPlusDM! * (this.period - 1) + plusDM) / this.period;
+      this.state.smoothedMinusDM =
+        (this.state.smoothedMinusDM! * (this.period - 1) + minusDM) /
+        this.period;
     }
 
     // Need ATR to calculate DI
@@ -115,71 +170,56 @@ export class ADXIndicator {
     }
 
     // Calculate +DI and -DI
-    // DI = (smoothedDM / ATR) * 100
-    const plusDI = (this.smoothedPlusDM! / atr) * 100;
-    const minusDI = (this.smoothedMinusDM! / atr) * 100;
+    const plusDI = (this.state.smoothedPlusDM! / atr) * 100;
+    const minusDI = (this.state.smoothedMinusDM! / atr) * 100;
 
     // Calculate DX
     const diSum = plusDI + minusDI;
     const dx = diSum > 0 ? (Math.abs(plusDI - minusDI) / diSum) * 100 : 0;
 
     // ADX Initialization phase
-    if (!this.adxInitialized) {
-      this.initDX.push(dx);
+    if (!this.state.adxInitialized) {
+      this.state.initDX.push(dx);
 
-      if (this.initDX.length < this.period) {
+      if (this.state.initDX.length < this.period) {
         return null;
       }
 
       // First ADX is simple average of DX
-      this.adx = this.initDX.reduce((sum, val) => sum + val, 0) / this.period;
-      this.adxInitialized = true;
-      this.initDX = []; // Free memory
+      this.state.adx =
+        this.state.initDX.reduce((sum, val) => sum + val, 0) / this.period;
+      this.state.adxInitialized = true;
+      this.state.initDX = [];
 
-      return this.adx;
+      return this.state.adx;
     }
 
     // Subsequent ADX uses Wilder's smoothing
-    this.adx = (this.adx! * (this.period - 1) + dx) / this.period;
+    this.state.adx = (this.state.adx! * (this.period - 1) + dx) / this.period;
 
-    return this.adx;
+    return this.state.adx;
   }
 
-  /**
-   * Get current ADX value
-   */
   getADX(): number | null {
-    return this.adx;
+    return this.state.adx;
   }
 
-  /**
-   * Get +DI value
-   */
   getPlusDI(): number | null {
     const atr = this.atrIndicator.getATR();
-    if (!this.dmInitialized || atr === null || atr === 0) return null;
-    return (this.smoothedPlusDM! / atr) * 100;
+    if (!this.state.dmInitialized || atr === null || atr === 0) return null;
+    return (this.state.smoothedPlusDM! / atr) * 100;
   }
 
-  /**
-   * Get -DI value
-   */
   getMinusDI(): number | null {
     const atr = this.atrIndicator.getATR();
-    if (!this.dmInitialized || atr === null || atr === 0) return null;
-    return (this.smoothedMinusDM! / atr) * 100;
+    if (!this.state.dmInitialized || atr === null || atr === 0) return null;
+    return (this.state.smoothedMinusDM! / atr) * 100;
   }
 
-  /**
-   * Get the underlying ATR indicator
-   */
   getATRIndicator(): ATRIndicator {
     return this.atrIndicator;
   }
 
-  /**
-   * Check if ADX indicates a strong enough trend
-   */
   isTrending(threshold: number = 20): boolean {
     const adx = this.getADX();
     return adx !== null && adx >= threshold;

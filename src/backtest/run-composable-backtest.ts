@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { streamPriceData, getDataInfo } from './binance-fetcher';
-import { aggregateCandleStream } from './candle-aggregator';
 import { ComposableBacktestEngine } from './composable-backtest-engine';
 import { StrategyLoader } from './core/strategy-loader';
 import { ComposableStrategy } from './core/strategy-composer';
@@ -238,11 +237,9 @@ async function main(): Promise<void> {
       capitalBase: strategyConfig.settings?.capitalBase,
     });
 
-    // Always fetch 1m data, then aggregate to target interval if needed
-    const sourceInterval = '1m';
-    const sourceStream = streamPriceData(
+    const stream = streamPriceData(
       strategyConfig.symbol,
-      sourceInterval,
+      options.interval,
       options.fromDate,
       options.toDate,
       (progress) => {
@@ -260,12 +257,6 @@ async function main(): Promise<void> {
         }
       },
     );
-
-    // Aggregate to target interval if different from source
-    const stream =
-      options.interval === sourceInterval
-        ? sourceStream
-        : aggregateCandleStream(sourceStream, options.interval);
 
     const result = await engine.runStream(
       stream,

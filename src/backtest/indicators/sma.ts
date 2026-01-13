@@ -7,72 +7,105 @@ import { Candle } from '../types';
  * All prices in the period are weighted equally.
  *
  * Uses a circular buffer for memory efficiency.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
+
+interface SMAState {
+  prices: number[];
+  sum: number;
+  index: number;
+  isInitialized: boolean;
+}
+
 export class SMAIndicator {
   private period: number;
-  private prices: number[] = [];
-  private sum: number = 0;
-  private index: number = 0;
-  private isInitialized: boolean = false;
+  private state: SMAState;
+  private committedState: SMAState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number) {
     this.period = period;
-    this.prices = new Array(period).fill(0);
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): SMAState {
+    return {
+      prices: new Array(this.period).fill(0),
+      sum: 0,
+      index: 0,
+      isInitialized: false,
+    };
   }
 
   reset(): void {
-    this.prices = new Array(this.period).fill(0);
-    this.sum = 0;
-    this.index = 0;
-    this.isInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return updated SMA value
-   */
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      prices: [...this.state.prices],
+    };
+  }
+
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      prices: [...this.committedState.prices],
+    };
+  }
+
   processCandle(candle: Candle): number | null {
-    const price = candle.close;
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle.close);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle.close);
+    }
+  }
 
-    if (!this.isInitialized) {
-      // Still filling the buffer
-      this.prices[this.index] = price;
-      this.sum += price;
-      this.index++;
+  private calculateAndUpdate(price: number): number | null {
+    if (!this.state.isInitialized) {
+      this.state.prices[this.state.index] = price;
+      this.state.sum += price;
+      this.state.index++;
 
-      if (this.index < this.period) {
+      if (this.state.index < this.period) {
         return null;
       }
 
-      // Buffer is now full
-      this.isInitialized = true;
-      this.index = 0;
-      return this.sum / this.period;
+      this.state.isInitialized = true;
+      this.state.index = 0;
+      return this.state.sum / this.period;
     }
 
-    // Remove oldest price and add new price
-    this.sum -= this.prices[this.index];
-    this.sum += price;
-    this.prices[this.index] = price;
+    this.state.sum -= this.state.prices[this.state.index];
+    this.state.sum += price;
+    this.state.prices[this.state.index] = price;
+    this.state.index = (this.state.index + 1) % this.period;
 
-    // Move to next position in circular buffer
-    this.index = (this.index + 1) % this.period;
-
-    return this.sum / this.period;
+    return this.state.sum / this.period;
   }
 
-  /**
-   * Get current SMA value
-   */
   getSMA(): number | null {
-    if (!this.isInitialized) {
-      return null;
-    }
-    return this.sum / this.period;
+    if (!this.state.isInitialized) return null;
+    return this.state.sum / this.period;
   }
 
-  /**
-   * Get the period
-   */
   getPeriod(): number {
     return this.period;
   }

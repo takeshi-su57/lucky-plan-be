@@ -1,6 +1,7 @@
 import { Candle } from '../../types';
 import { Filter, Signal, StrategyState } from '../../core/interfaces';
 import { StochasticIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface StochasticFilterParams {
@@ -9,6 +10,8 @@ export interface StochasticFilterParams {
   smooth: number;
   overbought: number;
   oversold: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -58,6 +61,20 @@ export const stochasticFilterMeta: ComponentMeta = {
       max: 30,
       description: 'Oversold level (blocks SHORT below this)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for Stochastic calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -74,8 +91,10 @@ export class StochasticFilter implements Filter {
   readonly name = 'stochastic';
 
   private stochastic: StochasticIndicator;
+  private aggregator: CandleAggregator | null;
   private overbought: number;
   private oversold: number;
+  private useCurrentCandle: boolean;
 
   constructor(params: StochasticFilterParams) {
     this.stochastic = new StochasticIndicator(
@@ -85,10 +104,26 @@ export class StochasticFilter implements Filter {
     );
     this.overbought = params.overbought;
     this.oversold = params.oversold;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle): void {
-    this.stochastic.processCandle(candle);
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        this.stochastic.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.stochastic.processCandle(current);
+        }
+      }
+    } else {
+      this.stochastic.processCandle(candle);
+    }
   }
 
   shouldAllow(signal: Signal, _candle: Candle, _state: StrategyState): boolean {
@@ -112,6 +147,7 @@ export class StochasticFilter implements Filter {
 
   reset(): void {
     this.stochastic.reset();
+    this.aggregator?.reset();
   }
 
   // Utility getters for debugging/inspection

@@ -1,12 +1,15 @@
 import { Candle } from '../../types';
 import { SignalGenerator, Signal, StrategyState } from '../../core/interfaces';
 import { MACDIndicator, MACDResult } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface MACDCrossoverParams {
   fastPeriod: number;
   slowPeriod: number;
   signalPeriod: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -41,6 +44,20 @@ export const macdCrossoverMeta: ComponentMeta = {
       max: 30,
       description: 'Signal line period (EMA of MACD)',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for MACD calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -58,6 +75,8 @@ export class MACDCrossoverSignal implements SignalGenerator {
   readonly name = 'macdCrossover';
 
   private macd: MACDIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
   private prevMACD: MACDResult | null = null;
 
   constructor(params: MACDCrossoverParams) {
@@ -66,14 +85,36 @@ export class MACDCrossoverSignal implements SignalGenerator {
       params.slowPeriod,
       params.signalPeriod,
     );
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle, _state: StrategyState): Signal | null {
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        const signal = this.checkCrossover(htfCandle, candle);
+        if (signal) return signal;
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          return this.checkCrossover(current, candle);
+        }
+      }
+      return null;
+    } else {
+      return this.checkCrossover(candle, candle);
+    }
+  }
+
+  private checkCrossover(htfCandle: Candle, originalCandle: Candle): Signal | null {
     // Store previous values for crossover detection
     this.prevMACD = this.macd.getMACD();
 
     // Calculate new MACD
-    const current = this.macd.processCandle(candle);
+    const current = this.macd.processCandle(htfCandle);
 
     // Need both current and previous values to detect crossover
     if (current === null || this.prevMACD === null) {
@@ -91,8 +132,8 @@ export class MACDCrossoverSignal implements SignalGenerator {
       return {
         direction: 'LONG',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -101,8 +142,8 @@ export class MACDCrossoverSignal implements SignalGenerator {
       return {
         direction: 'SHORT',
         source: this.name,
-        price: candle.close,
-        timestamp: candle.closeTime,
+        price: originalCandle.close,
+        timestamp: originalCandle.closeTime,
       };
     }
 
@@ -111,6 +152,7 @@ export class MACDCrossoverSignal implements SignalGenerator {
 
   reset(): void {
     this.macd.reset();
+    this.aggregator?.reset();
     this.prevMACD = null;
   }
 

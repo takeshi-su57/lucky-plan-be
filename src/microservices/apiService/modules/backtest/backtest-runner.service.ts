@@ -13,7 +13,6 @@ import {
   ExportOptions,
 } from 'src/backtest/composable-backtest-engine';
 import { streamPriceData } from 'src/backtest/binance-fetcher';
-import { aggregateCandleStream } from 'src/backtest/candle-aggregator';
 import { StrategyConfig } from 'src/backtest/core/interfaces';
 import { OptimizationParams } from './dto';
 import { getReadableError } from 'src/utils';
@@ -204,19 +203,12 @@ export class BacktestRunnerService implements OnModuleInit {
       capitalBase: config.settings?.capitalBase ?? 10000,
     });
 
-    // Always fetch 1m data, then aggregate to target interval if needed
-    const sourceInterval = '1m';
-    const sourceStream = streamPriceData(
+    const candleStream = streamPriceData(
       config.symbol,
-      sourceInterval,
+      options.interval,
       options.startDate,
       options.endDate,
     );
-
-    const candleStream =
-      options.interval === sourceInterval
-        ? sourceStream
-        : aggregateCandleStream(sourceStream, options.interval);
 
     // Run backtest using stream
     const result = await engine.runStream(candleStream);

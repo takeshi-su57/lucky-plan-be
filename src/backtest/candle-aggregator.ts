@@ -147,8 +147,9 @@ export class CandleAggregator {
 
   /**
    * Build candle from current state
+   * @param isCompleted - Whether the candle period is complete
    */
-  private buildCurrentCandle(): Candle | null {
+  private buildCandle(isCompleted: boolean): Candle | null {
     if (!this.hasData) return null;
 
     return {
@@ -159,6 +160,7 @@ export class CandleAggregator {
       close: this.currentClose,
       volume: this.currentVolume,
       closeTime: this.currentCloseTime,
+      isCompleted,
     };
   }
 
@@ -171,8 +173,8 @@ export class CandleAggregator {
 
     // New period started
     if (periodStart !== this.currentPeriodStart) {
-      // Get completed candle from previous period
-      const completedCandle = this.buildCurrentCandle();
+      // Get completed candle from previous period (isCompleted: true)
+      const completedCandle = this.buildCandle(true);
 
       // Start new period
       this.currentPeriodStart = periodStart;
@@ -188,8 +190,9 @@ export class CandleAggregator {
 
   /**
    * Get the current incomplete candle (for real-time calculation)
+   * Returns candle with isCompleted: false
    */
   getCurrentCandle(): Candle | null {
-    return this.buildCurrentCandle();
+    return this.buildCandle(false);
   }
 }

@@ -10,108 +10,141 @@ import { Candle } from '../types';
  *
  * Uses Wilder's smoothing method for average gain/loss calculation.
  * Memory efficient: Only stores data needed for initialization.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
+
+interface RSIState {
+  prevClose: number | null;
+  initGains: number[];
+  initLosses: number[];
+  avgGain: number | null;
+  avgLoss: number | null;
+  rsi: number | null;
+  isInitialized: boolean;
+}
+
 export class RSIIndicator {
   private period: number;
-  private prevClose: number | null = null;
-  private initGains: number[] = []; // Only used during initialization
-  private initLosses: number[] = []; // Only used during initialization
-  private avgGain: number | null = null;
-  private avgLoss: number | null = null;
-  private rsi: number | null = null;
-  private isInitialized: boolean = false;
+  private state: RSIState;
+  private committedState: RSIState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number = 14) {
     this.period = period;
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): RSIState {
+    return {
+      prevClose: null,
+      initGains: [],
+      initLosses: [],
+      avgGain: null,
+      avgLoss: null,
+      rsi: null,
+      isInitialized: false,
+    };
   }
 
   reset(): void {
-    this.prevClose = null;
-    this.initGains = [];
-    this.initLosses = [];
-    this.avgGain = null;
-    this.avgLoss = null;
-    this.rsi = null;
-    this.isInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return updated RSI value
-   */
-  processCandle(candle: Candle): number | null {
-    const close = candle.close;
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      initGains: [...this.state.initGains],
+      initLosses: [...this.state.initLosses],
+    };
+  }
 
-    // Need previous close to calculate change
-    if (this.prevClose === null) {
-      this.prevClose = close;
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      initGains: [...this.committedState.initGains],
+      initLosses: [...this.committedState.initLosses],
+    };
+  }
+
+  processCandle(candle: Candle): number | null {
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle.close);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle.close);
+    }
+  }
+
+  private calculateAndUpdate(close: number): number | null {
+    if (this.state.prevClose === null) {
+      this.state.prevClose = close;
       return null;
     }
 
-    // Calculate price change
-    const change = close - this.prevClose;
-    this.prevClose = close;
+    const change = close - this.state.prevClose;
+    this.state.prevClose = close;
 
     const gain = change > 0 ? change : 0;
     const loss = change < 0 ? -change : 0;
 
-    // Initialization phase
-    if (!this.isInitialized) {
-      this.initGains.push(gain);
-      this.initLosses.push(loss);
+    if (!this.state.isInitialized) {
+      this.state.initGains.push(gain);
+      this.state.initLosses.push(loss);
 
-      if (this.initGains.length < this.period) {
+      if (this.state.initGains.length < this.period) {
         return null;
       }
 
-      // First average gain/loss is simple average
-      this.avgGain =
-        this.initGains.reduce((sum, val) => sum + val, 0) / this.period;
-      this.avgLoss =
-        this.initLosses.reduce((sum, val) => sum + val, 0) / this.period;
-      this.isInitialized = true;
-      this.initGains = []; // Free memory
-      this.initLosses = []; // Free memory
+      this.state.avgGain =
+        this.state.initGains.reduce((sum, val) => sum + val, 0) / this.period;
+      this.state.avgLoss =
+        this.state.initLosses.reduce((sum, val) => sum + val, 0) / this.period;
+      this.state.isInitialized = true;
+      this.state.initGains = [];
+      this.state.initLosses = [];
     } else {
-      // Wilder's smoothing: avg = (prev * (period-1) + new) / period
-      this.avgGain = (this.avgGain! * (this.period - 1) + gain) / this.period;
-      this.avgLoss = (this.avgLoss! * (this.period - 1) + loss) / this.period;
+      this.state.avgGain =
+        (this.state.avgGain! * (this.period - 1) + gain) / this.period;
+      this.state.avgLoss =
+        (this.state.avgLoss! * (this.period - 1) + loss) / this.period;
     }
 
-    // Calculate RSI
-    if (this.avgLoss === 0) {
-      this.rsi = 100; // No losses means RSI = 100
+    if (this.state.avgLoss === 0) {
+      this.state.rsi = 100;
     } else {
-      const rs = this.avgGain! / this.avgLoss;
-      this.rsi = 100 - 100 / (1 + rs);
+      const rs = this.state.avgGain! / this.state.avgLoss;
+      this.state.rsi = 100 - 100 / (1 + rs);
     }
 
-    return this.rsi;
+    return this.state.rsi;
   }
 
-  /**
-   * Get current RSI value
-   */
   getRSI(): number | null {
-    return this.rsi;
+    return this.state.rsi;
   }
 
-  /**
-   * Check if RSI indicates overbought condition
-   */
   isOverbought(threshold: number = 70): boolean {
-    return this.rsi !== null && this.rsi >= threshold;
+    return this.state.rsi !== null && this.state.rsi >= threshold;
   }
 
-  /**
-   * Check if RSI indicates oversold condition
-   */
   isOversold(threshold: number = 30): boolean {
-    return this.rsi !== null && this.rsi <= threshold;
+    return this.state.rsi !== null && this.state.rsi <= threshold;
   }
 
-  /**
-   * Get the period
-   */
   getPeriod(): number {
     return this.period;
   }

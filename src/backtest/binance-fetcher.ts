@@ -40,6 +40,7 @@ function ensureBucketDir(symbol: string, interval: string): void {
 
 /**
  * Load candles from a monthly bucket file
+ * Adds isCompleted: true to all candles (for backwards compatibility with old cache files)
  */
 function loadBucket(
   symbol: string,
@@ -50,7 +51,9 @@ function loadBucket(
   const filePath = getBucketPath(symbol, interval, year, month);
   if (fs.existsSync(filePath)) {
     const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data) as Candle[];
+    const candles = JSON.parse(data) as Candle[];
+    // Ensure all cached candles have isCompleted set (backwards compatibility)
+    return candles.map((c) => ({ ...c, isCompleted: true }));
   }
   return null;
 }
@@ -151,6 +154,7 @@ function parseCandle(raw: unknown[]): Candle {
     close: parseFloat(raw[4] as string),
     volume: parseFloat(raw[5] as string),
     closeTime: raw[6] as number,
+    isCompleted: true, // Historical candles from Binance are always completed
   };
 }
 

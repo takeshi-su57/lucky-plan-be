@@ -8,31 +8,63 @@ import { Candle } from '../types';
  *
  * Uses Wilder's smoothing method (same as ADX).
  * Memory efficient: Only stores data needed for initialization.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
+
+interface ATRState {
+  prevCandle: Candle | null;
+  initTrValues: number[];
+  lastTR: number | null;
+  atr: number | null;
+  isInitialized: boolean;
+}
+
 export class ATRIndicator {
   private period: number;
-  private prevCandle: Candle | null = null;
-  private initTrValues: number[] = []; // Only used during initialization
-  private lastTR: number | null = null;
-  private atr: number | null = null;
-  private isInitialized: boolean = false;
+  private state: ATRState;
+  private committedState: ATRState | null = null;
+  private hasPending: boolean = false;
 
   constructor(period: number = 14) {
     this.period = period;
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): ATRState {
+    return {
+      prevCandle: null,
+      initTrValues: [],
+      lastTR: null,
+      atr: null,
+      isInitialized: false,
+    };
   }
 
   reset(): void {
-    this.prevCandle = null;
-    this.initTrValues = [];
-    this.lastTR = null;
-    this.atr = null;
-    this.isInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Calculate True Range
-   * TR = max(High - Low, |High - PrevClose|, |Low - PrevClose|)
-   */
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      prevCandle: this.state.prevCandle ? { ...this.state.prevCandle } : null,
+      initTrValues: [...this.state.initTrValues],
+    };
+  }
+
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      prevCandle: this.committedState.prevCandle
+        ? { ...this.committedState.prevCandle }
+        : null,
+      initTrValues: [...this.committedState.initTrValues],
+    };
+  }
+
   private calculateTR(current: Candle, previous: Candle | null): number {
     const highLow = current.high - current.low;
 
@@ -46,64 +78,66 @@ export class ATRIndicator {
     return Math.max(highLow, highPrevClose, lowPrevClose);
   }
 
-  /**
-   * Process a new candle and return updated ATR value
-   */
   processCandle(candle: Candle): number | null {
-    const tr = this.calculateTR(candle, this.prevCandle);
-    this.prevCandle = candle;
-    this.lastTR = tr;
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle);
+    }
+  }
 
-    if (!this.isInitialized) {
-      this.initTrValues.push(tr);
+  private calculateAndUpdate(candle: Candle): number | null {
+    const tr = this.calculateTR(candle, this.state.prevCandle);
+    this.state.prevCandle = candle;
+    this.state.lastTR = tr;
 
-      if (this.initTrValues.length < this.period) {
+    if (!this.state.isInitialized) {
+      this.state.initTrValues.push(tr);
+
+      if (this.state.initTrValues.length < this.period) {
         return null;
       }
 
-      // First ATR is simple average of first `period` TR values
-      this.atr =
-        this.initTrValues.reduce((sum, val) => sum + val, 0) / this.period;
-      this.isInitialized = true;
-      this.initTrValues = []; // Free memory
+      this.state.atr =
+        this.state.initTrValues.reduce((sum, val) => sum + val, 0) /
+        this.period;
+      this.state.isInitialized = true;
+      this.state.initTrValues = [];
 
-      return this.atr;
+      return this.state.atr;
     }
 
-    // Wilder's smoothing: ATR = ((prevATR * (period - 1)) + TR) / period
-    this.atr = (this.atr! * (this.period - 1) + tr) / this.period;
-
-    return this.atr;
+    this.state.atr = (this.state.atr! * (this.period - 1) + tr) / this.period;
+    return this.state.atr;
   }
 
-  /**
-   * Get current ATR value
-   */
   getATR(): number | null {
-    return this.atr;
+    return this.state.atr;
   }
 
-  /**
-   * Get current True Range (last calculated)
-   */
   getTR(): number | null {
-    return this.lastTR;
+    return this.state.lastTR;
   }
 
-  /**
-   * Get ATR as percentage of price
-   * Useful for comparing volatility across different price levels
-   */
   getATRPercent(currentPrice: number): number | null {
-    if (this.atr === null || currentPrice === 0) {
+    if (this.state.atr === null || currentPrice === 0) {
       return null;
     }
-    return (this.atr / currentPrice) * 100;
+    return (this.state.atr / currentPrice) * 100;
   }
 
-  /**
-   * Get the period
-   */
   getPeriod(): number {
     return this.period;
   }

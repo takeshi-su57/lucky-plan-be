@@ -9,6 +9,8 @@ import { ComponentMeta } from '../../core/registry';
 
 export interface TakeProfitParams {
   percent: number; // Fixed percentage target
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -25,6 +27,20 @@ export const takeProfitMeta: ComponentMeta = {
       min: 0.5,
       max: 50,
       description: 'Take profit as percentage of entry',
+    },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes (for API consistency)',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles (for API consistency)',
     },
   ],
 };

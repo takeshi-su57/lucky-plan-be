@@ -9,6 +9,7 @@ import { Candle } from '../types';
  * - Histogram: MACD Line - Signal Line
  *
  * Used for identifying trend direction, momentum, and potential reversals.
+ * Supports incomplete candle processing with pending buffer pattern.
  */
 export interface MACDResult {
   macd: number;
@@ -16,28 +17,29 @@ export interface MACDResult {
   histogram: number;
 }
 
+interface MACDState {
+  fastEMA: number | null;
+  fastInitPrices: number[];
+  fastInitialized: boolean;
+  slowEMA: number | null;
+  slowInitPrices: number[];
+  slowInitialized: boolean;
+  signalEMA: number | null;
+  signalInitValues: number[];
+  signalInitialized: boolean;
+}
+
 export class MACDIndicator {
   private fastPeriod: number;
   private slowPeriod: number;
   private signalPeriod: number;
-
-  // Fast EMA state
-  private fastEMA: number | null = null;
   private fastMultiplier: number;
-  private fastInitPrices: number[] = [];
-  private fastInitialized: boolean = false;
-
-  // Slow EMA state
-  private slowEMA: number | null = null;
   private slowMultiplier: number;
-  private slowInitPrices: number[] = [];
-  private slowInitialized: boolean = false;
-
-  // Signal EMA state (EMA of MACD values)
-  private signalEMA: number | null = null;
   private signalMultiplier: number;
-  private signalInitValues: number[] = [];
-  private signalInitialized: boolean = false;
+
+  private state: MACDState;
+  private committedState: MACDState | null = null;
+  private hasPending: boolean = false;
 
   constructor(
     fastPeriod: number = 12,
@@ -51,106 +53,148 @@ export class MACDIndicator {
     this.fastMultiplier = 2 / (fastPeriod + 1);
     this.slowMultiplier = 2 / (slowPeriod + 1);
     this.signalMultiplier = 2 / (signalPeriod + 1);
+
+    this.state = this.createInitialState();
+  }
+
+  private createInitialState(): MACDState {
+    return {
+      fastEMA: null,
+      fastInitPrices: [],
+      fastInitialized: false,
+      slowEMA: null,
+      slowInitPrices: [],
+      slowInitialized: false,
+      signalEMA: null,
+      signalInitValues: [],
+      signalInitialized: false,
+    };
   }
 
   reset(): void {
-    this.fastEMA = null;
-    this.fastInitPrices = [];
-    this.fastInitialized = false;
-
-    this.slowEMA = null;
-    this.slowInitPrices = [];
-    this.slowInitialized = false;
-
-    this.signalEMA = null;
-    this.signalInitValues = [];
-    this.signalInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return MACD values
-   */
-  processCandle(candle: Candle): MACDResult | null {
-    const price = candle.close;
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      fastInitPrices: [...this.state.fastInitPrices],
+      slowInitPrices: [...this.state.slowInitPrices],
+      signalInitValues: [...this.state.signalInitValues],
+    };
+  }
 
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      fastInitPrices: [...this.committedState.fastInitPrices],
+      slowInitPrices: [...this.committedState.slowInitPrices],
+      signalInitValues: [...this.committedState.signalInitValues],
+    };
+  }
+
+  processCandle(candle: Candle): MACDResult | null {
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle.close);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle.close);
+    }
+  }
+
+  private calculateAndUpdate(price: number): MACDResult | null {
     // Update fast EMA
-    if (!this.fastInitialized) {
-      this.fastInitPrices.push(price);
-      if (this.fastInitPrices.length >= this.fastPeriod) {
-        this.fastEMA =
-          this.fastInitPrices.reduce((sum, val) => sum + val, 0) /
+    if (!this.state.fastInitialized) {
+      this.state.fastInitPrices.push(price);
+      if (this.state.fastInitPrices.length >= this.fastPeriod) {
+        this.state.fastEMA =
+          this.state.fastInitPrices.reduce((sum, val) => sum + val, 0) /
           this.fastPeriod;
-        this.fastInitialized = true;
-        this.fastInitPrices = [];
+        this.state.fastInitialized = true;
+        this.state.fastInitPrices = [];
       }
     } else {
-      this.fastEMA =
-        (price - this.fastEMA!) * this.fastMultiplier + this.fastEMA!;
+      this.state.fastEMA =
+        (price - this.state.fastEMA!) * this.fastMultiplier +
+        this.state.fastEMA!;
     }
 
     // Update slow EMA
-    if (!this.slowInitialized) {
-      this.slowInitPrices.push(price);
-      if (this.slowInitPrices.length >= this.slowPeriod) {
-        this.slowEMA =
-          this.slowInitPrices.reduce((sum, val) => sum + val, 0) /
+    if (!this.state.slowInitialized) {
+      this.state.slowInitPrices.push(price);
+      if (this.state.slowInitPrices.length >= this.slowPeriod) {
+        this.state.slowEMA =
+          this.state.slowInitPrices.reduce((sum, val) => sum + val, 0) /
           this.slowPeriod;
-        this.slowInitialized = true;
-        this.slowInitPrices = [];
+        this.state.slowInitialized = true;
+        this.state.slowInitPrices = [];
       }
     } else {
-      this.slowEMA =
-        (price - this.slowEMA!) * this.slowMultiplier + this.slowEMA!;
+      this.state.slowEMA =
+        (price - this.state.slowEMA!) * this.slowMultiplier +
+        this.state.slowEMA!;
     }
 
     // Need both EMAs to calculate MACD
-    if (!this.fastInitialized || !this.slowInitialized) {
+    if (!this.state.fastInitialized || !this.state.slowInitialized) {
       return null;
     }
 
-    const macdLine = this.fastEMA! - this.slowEMA!;
+    const macdLine = this.state.fastEMA! - this.state.slowEMA!;
 
     // Update signal EMA (EMA of MACD values)
-    if (!this.signalInitialized) {
-      this.signalInitValues.push(macdLine);
-      if (this.signalInitValues.length >= this.signalPeriod) {
-        this.signalEMA =
-          this.signalInitValues.reduce((sum, val) => sum + val, 0) /
+    if (!this.state.signalInitialized) {
+      this.state.signalInitValues.push(macdLine);
+      if (this.state.signalInitValues.length >= this.signalPeriod) {
+        this.state.signalEMA =
+          this.state.signalInitValues.reduce((sum, val) => sum + val, 0) /
           this.signalPeriod;
-        this.signalInitialized = true;
-        this.signalInitValues = [];
+        this.state.signalInitialized = true;
+        this.state.signalInitValues = [];
       } else {
         return null;
       }
     } else {
-      this.signalEMA =
-        (macdLine - this.signalEMA!) * this.signalMultiplier + this.signalEMA!;
+      this.state.signalEMA =
+        (macdLine - this.state.signalEMA!) * this.signalMultiplier +
+        this.state.signalEMA!;
     }
 
     return {
       macd: macdLine,
-      signal: this.signalEMA!,
-      histogram: macdLine - this.signalEMA!,
+      signal: this.state.signalEMA!,
+      histogram: macdLine - this.state.signalEMA!,
     };
   }
 
-  /**
-   * Get current MACD values
-   */
   getMACD(): MACDResult | null {
     if (
-      !this.fastInitialized ||
-      !this.slowInitialized ||
-      !this.signalInitialized
+      !this.state.fastInitialized ||
+      !this.state.slowInitialized ||
+      !this.state.signalInitialized
     ) {
       return null;
     }
 
-    const macdLine = this.fastEMA! - this.slowEMA!;
+    const macdLine = this.state.fastEMA! - this.state.slowEMA!;
     return {
       macd: macdLine,
-      signal: this.signalEMA!,
-      histogram: macdLine - this.signalEMA!,
+      signal: this.state.signalEMA!,
+      histogram: macdLine - this.state.signalEMA!,
     };
   }
 }

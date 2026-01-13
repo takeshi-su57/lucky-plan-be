@@ -6,6 +6,7 @@ import {
   StrategyState,
 } from '../../core/interfaces';
 import { ATRIndicator } from '../../indicators';
+import { CandleAggregator } from '../../candle-aggregator';
 import { ComponentMeta } from '../../core/registry';
 
 export interface ATRBasedParams {
@@ -15,6 +16,8 @@ export interface ATRBasedParams {
   useEquity: boolean;
   maxPositionPercent: number;
   riskPercent: number;
+  timeframe: number;
+  useCurrentCandle: boolean;
 }
 
 /**
@@ -70,6 +73,20 @@ export const atrBasedMeta: ComponentMeta = {
       max: 100,
       description: 'Maximum position size as percentage of capital',
     },
+    {
+      name: 'timeframe',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 1440,
+      description: 'Timeframe in minutes for ATR calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
+    },
   ],
 };
 
@@ -85,6 +102,8 @@ export class ATRBasedSizer implements PositionSizer {
   readonly name = 'atrBased';
 
   private atr: ATRIndicator;
+  private aggregator: CandleAggregator | null;
+  private useCurrentCandle: boolean;
   private atrMultiplier: number;
   private riskPercent: number;
   private capitalBase: number;
@@ -98,6 +117,9 @@ export class ATRBasedSizer implements PositionSizer {
     this.capitalBase = params.capitalBase;
     this.useEquity = params.useEquity;
     this.maxPositionPercent = params.maxPositionPercent;
+    this.useCurrentCandle = params.useCurrentCandle;
+    this.aggregator =
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   /**
@@ -105,7 +127,20 @@ export class ATRBasedSizer implements PositionSizer {
    * Note: This should be called by the strategy composer
    */
   processCandle(candle: Candle): void {
-    this.atr.processCandle(candle);
+    if (this.aggregator) {
+      const htfCandle = this.aggregator.processCandle(candle);
+      if (htfCandle) {
+        this.atr.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.atr.processCandle(current);
+        }
+      }
+    } else {
+      this.atr.processCandle(candle);
+    }
   }
 
   calculateSize(
@@ -146,6 +181,7 @@ export class ATRBasedSizer implements PositionSizer {
 
   reset(): void {
     this.atr.reset();
+    this.aggregator?.reset();
   }
 
   // Utility getter for debugging

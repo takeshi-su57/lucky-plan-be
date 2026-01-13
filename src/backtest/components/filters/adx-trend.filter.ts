@@ -8,6 +8,7 @@ export interface ADXTrendParams {
   period: number;
   threshold: number;
   timeframe: number;
+  useCurrentCandle: boolean;
   inverse: boolean;
 }
 
@@ -40,8 +41,13 @@ export const adxTrendMeta: ComponentMeta = {
       required: true,
       min: 1,
       max: 1440,
-      description:
-        'Timeframe in minutes for ADX calculation (0 to use candle timeframe)',
+      description: 'Timeframe in minutes for ADX calculation',
+    },
+    {
+      name: 'useCurrentCandle',
+      type: 'boolean',
+      required: true,
+      description: 'Whether to use incomplete candles for calculation',
     },
     {
       name: 'inverse',
@@ -68,13 +74,15 @@ export class ADXTrendFilter implements Filter {
   private aggregator: CandleAggregator | null;
   private threshold: number;
   private inverse: boolean;
+  private useCurrentCandle: boolean;
 
   constructor(params: ADXTrendParams) {
     this.adx = new ADXIndicator(params.period);
     this.threshold = params.threshold;
     this.inverse = params.inverse;
+    this.useCurrentCandle = params.useCurrentCandle;
     this.aggregator =
-      params.timeframe > 0 ? new CandleAggregator(params.timeframe) : null;
+      params.timeframe > 1 ? new CandleAggregator(params.timeframe) : null;
   }
 
   processCandle(candle: Candle): void {
@@ -82,6 +90,12 @@ export class ADXTrendFilter implements Filter {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
         this.adx.processCandle(htfCandle);
+      }
+      if (this.useCurrentCandle) {
+        const current = this.aggregator.getCurrentCandle();
+        if (current) {
+          this.adx.processCandle(current);
+        }
       }
     } else {
       this.adx.processCandle(candle);

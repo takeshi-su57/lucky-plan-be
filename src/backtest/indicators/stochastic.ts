@@ -11,81 +11,127 @@ import { Candle } from '../types';
  * Values range from 0-100:
  * - Above 80: Overbought
  * - Below 20: Oversold
+ *
+ * Supports incomplete candle processing with pending buffer pattern.
  */
 export interface StochasticResult {
   k: number; // Fast stochastic
   d: number; // Slow stochastic (signal line)
 }
 
+interface StochasticState {
+  highs: number[];
+  lows: number[];
+  highLowIndex: number;
+  highLowInitialized: boolean;
+  rawKValues: number[];
+  rawKIndex: number;
+  rawKInitialized: boolean;
+  kValues: number[];
+  kIndex: number;
+  dInitialized: boolean;
+}
+
 export class StochasticIndicator {
-  private kPeriod: number; // Lookback period for %K
-  private dPeriod: number; // Smoothing period for %D
-  private smooth: number; // Smoothing for %K (usually 3 for slow stochastic)
+  private kPeriod: number;
+  private dPeriod: number;
+  private smooth: number;
 
-  private highs: number[] = [];
-  private lows: number[] = [];
-  private highLowIndex: number = 0;
-  private highLowInitialized: boolean = false;
-
-  private rawKValues: number[] = []; // For %K smoothing
-  private rawKIndex: number = 0;
-  private rawKInitialized: boolean = false;
-
-  private kValues: number[] = []; // For %D calculation
-  private kIndex: number = 0;
-  private dInitialized: boolean = false;
+  private state: StochasticState;
+  private committedState: StochasticState | null = null;
+  private hasPending: boolean = false;
 
   constructor(kPeriod: number = 14, dPeriod: number = 3, smooth: number = 3) {
     this.kPeriod = kPeriod;
     this.dPeriod = dPeriod;
     this.smooth = smooth;
+    this.state = this.createInitialState();
+  }
 
-    this.highs = new Array(kPeriod).fill(0);
-    this.lows = new Array(kPeriod).fill(Infinity);
-    this.rawKValues = new Array(smooth).fill(0);
-    this.kValues = new Array(dPeriod).fill(0);
+  private createInitialState(): StochasticState {
+    return {
+      highs: new Array(this.kPeriod).fill(0),
+      lows: new Array(this.kPeriod).fill(Infinity),
+      highLowIndex: 0,
+      highLowInitialized: false,
+      rawKValues: new Array(this.smooth).fill(0),
+      rawKIndex: 0,
+      rawKInitialized: false,
+      kValues: new Array(this.dPeriod).fill(0),
+      kIndex: 0,
+      dInitialized: false,
+    };
   }
 
   reset(): void {
-    this.highs = new Array(this.kPeriod).fill(0);
-    this.lows = new Array(this.kPeriod).fill(Infinity);
-    this.highLowIndex = 0;
-    this.highLowInitialized = false;
-
-    this.rawKValues = new Array(this.smooth).fill(0);
-    this.rawKIndex = 0;
-    this.rawKInitialized = false;
-
-    this.kValues = new Array(this.dPeriod).fill(0);
-    this.kIndex = 0;
-    this.dInitialized = false;
+    this.state = this.createInitialState();
+    this.committedState = null;
+    this.hasPending = false;
   }
 
-  /**
-   * Process a new candle and return Stochastic values
-   */
-  processCandle(candle: Candle): StochasticResult | null {
-    // Update high-low buffer
-    if (!this.highLowInitialized) {
-      this.highs[this.highLowIndex] = candle.high;
-      this.lows[this.highLowIndex] = candle.low;
-      this.highLowIndex++;
+  private saveCommittedState(): void {
+    this.committedState = {
+      ...this.state,
+      highs: [...this.state.highs],
+      lows: [...this.state.lows],
+      rawKValues: [...this.state.rawKValues],
+      kValues: [...this.state.kValues],
+    };
+  }
 
-      if (this.highLowIndex < this.kPeriod) {
+  private restoreCommittedState(): void {
+    if (!this.committedState) return;
+    this.state = {
+      ...this.committedState,
+      highs: [...this.committedState.highs],
+      lows: [...this.committedState.lows],
+      rawKValues: [...this.committedState.rawKValues],
+      kValues: [...this.committedState.kValues],
+    };
+  }
+
+  processCandle(candle: Candle): StochasticResult | null {
+    if (candle.isCompleted) {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+        this.hasPending = false;
+      }
+      const result = this.calculateAndUpdate(candle);
+      this.saveCommittedState();
+      return result;
+    } else {
+      if (this.hasPending) {
+        this.restoreCommittedState();
+      } else {
+        this.saveCommittedState();
+        this.hasPending = true;
+      }
+      return this.calculateAndUpdate(candle);
+    }
+  }
+
+  private calculateAndUpdate(candle: Candle): StochasticResult | null {
+    // Update high-low buffer
+    if (!this.state.highLowInitialized) {
+      this.state.highs[this.state.highLowIndex] = candle.high;
+      this.state.lows[this.state.highLowIndex] = candle.low;
+      this.state.highLowIndex++;
+
+      if (this.state.highLowIndex < this.kPeriod) {
         return null;
       }
 
-      this.highLowInitialized = true;
-      this.highLowIndex = 0;
+      this.state.highLowInitialized = true;
+      this.state.highLowIndex = 0;
     } else {
-      this.highs[this.highLowIndex] = candle.high;
-      this.lows[this.highLowIndex] = candle.low;
-      this.highLowIndex = (this.highLowIndex + 1) % this.kPeriod;
+      this.state.highs[this.state.highLowIndex] = candle.high;
+      this.state.lows[this.state.highLowIndex] = candle.low;
+      this.state.highLowIndex = (this.state.highLowIndex + 1) % this.kPeriod;
     }
 
     // Calculate raw %K
-    const highestHigh = Math.max(...this.highs);
-    const lowestLow = Math.min(...this.lows);
+    const highestHigh = Math.max(...this.state.highs);
+    const lowestLow = Math.min(...this.state.lows);
     const range = highestHigh - lowestLow;
 
     let rawK: number;
@@ -96,56 +142,57 @@ export class StochasticIndicator {
     }
 
     // Smooth raw %K to get %K
-    if (!this.rawKInitialized) {
-      this.rawKValues[this.rawKIndex] = rawK;
-      this.rawKIndex++;
+    if (!this.state.rawKInitialized) {
+      this.state.rawKValues[this.state.rawKIndex] = rawK;
+      this.state.rawKIndex++;
 
-      if (this.rawKIndex < this.smooth) {
+      if (this.state.rawKIndex < this.smooth) {
         return null;
       }
 
-      this.rawKInitialized = true;
-      this.rawKIndex = 0;
+      this.state.rawKInitialized = true;
+      this.state.rawKIndex = 0;
     } else {
-      this.rawKValues[this.rawKIndex] = rawK;
-      this.rawKIndex = (this.rawKIndex + 1) % this.smooth;
+      this.state.rawKValues[this.state.rawKIndex] = rawK;
+      this.state.rawKIndex = (this.state.rawKIndex + 1) % this.smooth;
     }
 
     // Calculate smoothed %K (SMA of raw %K)
-    const k = this.rawKValues.reduce((sum, val) => sum + val, 0) / this.smooth;
+    const k =
+      this.state.rawKValues.reduce((sum, val) => sum + val, 0) / this.smooth;
 
     // Update %K buffer for %D calculation
-    if (!this.dInitialized) {
-      this.kValues[this.kIndex] = k;
-      this.kIndex++;
+    if (!this.state.dInitialized) {
+      this.state.kValues[this.state.kIndex] = k;
+      this.state.kIndex++;
 
-      if (this.kIndex < this.dPeriod) {
+      if (this.state.kIndex < this.dPeriod) {
         return null;
       }
 
-      this.dInitialized = true;
-      this.kIndex = 0;
+      this.state.dInitialized = true;
+      this.state.kIndex = 0;
     } else {
-      this.kValues[this.kIndex] = k;
-      this.kIndex = (this.kIndex + 1) % this.dPeriod;
+      this.state.kValues[this.state.kIndex] = k;
+      this.state.kIndex = (this.state.kIndex + 1) % this.dPeriod;
     }
 
     // Calculate %D (SMA of %K)
-    const d = this.kValues.reduce((sum, val) => sum + val, 0) / this.dPeriod;
+    const d =
+      this.state.kValues.reduce((sum, val) => sum + val, 0) / this.dPeriod;
 
     return { k, d };
   }
 
-  /**
-   * Get current Stochastic values
-   */
   getStochastic(): StochasticResult | null {
-    if (!this.dInitialized) {
+    if (!this.state.dInitialized) {
       return null;
     }
 
-    const k = this.rawKValues.reduce((sum, val) => sum + val, 0) / this.smooth;
-    const d = this.kValues.reduce((sum, val) => sum + val, 0) / this.dPeriod;
+    const k =
+      this.state.rawKValues.reduce((sum, val) => sum + val, 0) / this.smooth;
+    const d =
+      this.state.kValues.reduce((sum, val) => sum + val, 0) / this.dPeriod;
 
     return { k, d };
   }

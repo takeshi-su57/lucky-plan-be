@@ -6,7 +6,9 @@
     "type": "emaCrossover",
     "params": {
       "fastPeriod": 20,
-      "slowPeriod": 50
+      "slowPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
     }
   },
   "filters": [
@@ -15,7 +17,9 @@
       "params": {
         "period": 14,
         "threshold": 25,
-        "timeframe": 60
+        "timeframe": 60,
+        "useCurrentCandle": false,
+        "inverse": false
       }
     }
   ],
@@ -26,22 +30,31 @@
       "atrMultiplier": 2.5,
       "riskPercent": 2,
       "capitalBase": 10000,
-      "maxPositionPercent": 20
+      "useEquity": false,
+      "maxPositionPercent": 20,
+      "timeframe": 1,
+      "useCurrentCandle": false
     }
   },
   "exits": [
     {
       "type": "stopLoss",
       "params": {
+        "percent": 0,
         "atrMultiplier": 2.5,
-        "atrPeriod": 14
+        "atrPeriod": 14,
+        "timeframe": 1,
+        "useCurrentCandle": false
       }
     },
     {
       "type": "trailingStop",
       "params": {
+        "atrPeriod": 14,
         "atrMultiplier": 2.0,
-        "activateAfterPercent": 1.0
+        "activateAfterPercent": 1.0,
+        "timeframe": 1,
+        "useCurrentCandle": false
       }
     }
   ],

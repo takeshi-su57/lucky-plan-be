@@ -1,7 +1,7 @@
 {
-  "symbol": "ETHUSDT",
-  "name": "ETH Trend Following",
-  "description": "EMA crossover with ADX filter, ATR-based sizing and trailing stop",
+  "symbol": "BTCUSDT",
+  "name": "BTC Test No ADX",
+  "description": "Same as original but without ADX filter",
   "signal": {
     "type": "emaCrossover",
     "params": {
@@ -11,18 +11,7 @@
       "useCurrentCandle": false
     }
   },
-  "filters": [
-    {
-      "type": "adxTrend",
-      "params": {
-        "period": 14,
-        "threshold": 25,
-        "timeframe": 60,
-        "useCurrentCandle": false,
-        "inverse": false
-      }
-    }
-  ],
+  "filters": [],
   "risk": {
     "type": "atrBased",
     "params": {

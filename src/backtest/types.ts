@@ -6,6 +6,7 @@ export interface Candle {
   close: number;
   volume: number;
   closeTime: number;
+  isCompleted: boolean;
 }
 
 export interface Trade {
