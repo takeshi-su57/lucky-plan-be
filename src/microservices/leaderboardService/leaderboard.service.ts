@@ -407,16 +407,6 @@ export class LeaderboardService {
       logIndex: number;
     }[];
   }) {
-    const actionItems = perpTradeEventLogs.map((log) => {
-      const parsed = eventToActionParserV9(log.eventLog as any);
-
-      return {
-        item: parsed,
-        blockNumber: log.blockNumber,
-        logIndex: log.logIndex,
-      };
-    });
-
     const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
       perpTradeEventLogs.map((log) => {
         let usdPnl = 0;
@@ -571,16 +561,6 @@ export class LeaderboardService {
       logIndex: number;
     }[];
   }) {
-    const actionItems = perpTradeEventLogs.map((log) => {
-      const parsed = eventToActionParserV10(log.eventLog as any);
-
-      return {
-        item: parsed,
-        blockNumber: log.blockNumber,
-        logIndex: log.logIndex,
-      };
-    });
-
     const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
       perpTradeEventLogs
         .map((log) => {

@@ -30,7 +30,6 @@ import { PerpTradingEventLog } from '../trade-histories/entities/event-logs.enti
 import { ServiceStatus } from 'src/types';
 import { getWeb3Info } from 'src/web3/utils';
 import { getReadableError } from 'src/utils';
-
 import { CreatePlanInput } from './dto/plan.input';
 import { CreateBotAndStrategyInput } from 'src/microservices/apiService/modules/bots/dto/bot.input';
 
@@ -418,6 +417,8 @@ export class AutoPlansService {
     dateStr: string,
     after: number | null,
   ): Promise<ExpertPnlSnapshotV2Connection> {
+    console.log('filterExperts', platform, dateStr, after);
+
     const expertMap = new Map<
       string,
       PnlSnapshotV2 & {
@@ -430,17 +431,30 @@ export class AutoPlansService {
       }
     >();
 
-    let currentCursor = after;
+    const lastPnlRecord = after
+      ? await this.prismaService.pnlSnapshotV2.findFirst({
+          where: {
+            id: after,
+          },
+        })
+      : null;
+
+    let currentCursor = lastPnlRecord
+      ? {
+          id: lastPnlRecord.id,
+          accUSDPnl: lastPnlRecord.accUSDPnl,
+        }
+      : null;
     const limit = 50;
 
     while (true) {
+      console.log('rounded ==>');
+
+      console.time('pnlRecords');
+
       const pnlRecords: PnlSnapshotV2[] = currentCursor
         ? await this.prismaService.pnlSnapshotV2.findMany({
-            skip: 1,
             take: limit,
-            cursor: {
-              id: currentCursor,
-            },
             where: {
               dateStr: dateStr,
               platform,
@@ -448,6 +462,19 @@ export class AutoPlansService {
                 gt: 100,
               },
               kind: PnlSnapshotKind.MONTH,
+              OR: [
+                {
+                  accUSDPnl: {
+                    lt: currentCursor.accUSDPnl,
+                  },
+                },
+                {
+                  accUSDPnl: currentCursor.accUSDPnl,
+                  id: {
+                    gt: currentCursor.id,
+                  },
+                },
+              ],
             },
             orderBy: [
               {
@@ -477,6 +504,8 @@ export class AutoPlansService {
               },
             ],
           });
+
+      console.timeEnd('pnlRecords');
 
       if (pnlRecords.length === 0) {
         currentCursor = null;
@@ -510,72 +539,64 @@ export class AutoPlansService {
 
       const pnlSnapshotsMapKeys = Array.from(pnlSnapshotsMap.keys());
 
-      const historyRecords =
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            OR: [
-              ...pnlSnapshotsMapKeys
-                .map(
-                  (item) =>
-                    JSON.parse(item) as { address: string; platform: Platform },
-                )
-                .map((item) => ({
-                  address: item.address,
-                  platform: item.platform,
-                  contractId: {
-                    notIn: testContractIds,
-                  },
-                })),
-            ],
-          },
-          orderBy: [
-            {
-              date: 'asc',
-            },
-            {
-              block: 'asc',
-            },
-          ],
-        });
+      const addresses: string[] = pnlSnapshotsMapKeys.map(
+        (item) => JSON.parse(item).address,
+      );
 
       const historyRecordsMap = new Map<
         string,
         (PerpTradingEventLog & { history: PerpTradeHistory })[]
       >();
 
-      historyRecords.forEach((record) => {
-        const key = record.address;
+      console.time('historyRecords');
 
-        const arr = historyRecordsMap.get(key);
+      for (const address of addresses) {
+        const records = (
+          await this.prismaService.perpTradingEventLog.findMany({
+            where: {
+              platform,
+              address,
+            },
+            orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+          })
+        ).filter((item) => !testContractIds.includes(item.contractId));
 
-        const contract = this.allContracts[record.contractId];
+        records.forEach((record) => {
+          const key = record.address;
 
-        const history = getWeb3Info(
-          contract.platform,
-          contract.version,
-        ).eventToPerpTradeHistory(
-          contract.chainId,
-          JSON.parse(record.jsonLog) as any,
-        );
+          const arr = historyRecordsMap.get(key);
 
-        if (!history) {
-          return;
-        }
+          const contract = this.allContracts[record.contractId];
 
-        if (arr) {
-          arr.push({
-            ...record,
-            history,
-          });
-        } else {
-          historyRecordsMap.set(key, [
-            {
+          const history = getWeb3Info(
+            contract.platform,
+            contract.version,
+          ).eventToPerpTradeHistory(
+            contract.chainId,
+            JSON.parse(record.jsonLog) as any,
+          );
+
+          if (!history) {
+            return;
+          }
+
+          if (arr) {
+            arr.push({
               ...record,
               history,
-            },
-          ]);
-        }
-      });
+            });
+          } else {
+            historyRecordsMap.set(key, [
+              {
+                ...record,
+                history,
+              },
+            ]);
+          }
+        });
+      }
+
+      console.timeEnd('historyRecords');
 
       const wideFilter = {
         window: 6,
@@ -590,6 +611,8 @@ export class AutoPlansService {
         ratio: 1,
         maxSize: 700,
       };
+
+      console.time('getExpertPnlSnapshot');
 
       pnlSnapshotsMapKeys.forEach((key) => {
         const item = JSON.parse(key) as { address: string; contractId: number };
@@ -624,12 +647,17 @@ export class AutoPlansService {
         });
       });
 
-      currentCursor = pnlRecords[pnlRecords.length - 1].id;
+      console.timeEnd('getExpertPnlSnapshot');
+
+      currentCursor = {
+        id: pnlRecords[pnlRecords.length - 1].id,
+        accUSDPnl: pnlRecords[pnlRecords.length - 1].accUSDPnl,
+      };
 
       const keys = Array.from(expertMap.keys());
 
       // chunk by 30 for ux
-      if (keys.length >= 10) {
+      if (keys.length >= 5) {
         break;
       }
     }
@@ -710,7 +738,7 @@ export class AutoPlansService {
       edges,
       pageInfo: {
         hasNextPage: currentCursor !== null,
-        endCursor: currentCursor,
+        endCursor: currentCursor ? currentCursor.id : null,
       },
     };
   }
@@ -734,12 +762,23 @@ export class AutoPlansService {
       ignoreMinDurationLimit?: boolean;
     })[];
   }> {
-    const pnlRecords: PnlSnapshotV2[] = cursor
-      ? await this.prismaService.pnlSnapshotV2.findMany({
-          skip: 1,
-          cursor: {
+    const lastPnlRecord = cursor
+      ? await this.prismaService.pnlSnapshotV2.findFirst({
+          where: {
             id: cursor,
           },
+        })
+      : null;
+
+    const currentCursor = lastPnlRecord
+      ? {
+          id: lastPnlRecord.id,
+          accUSDPnl: lastPnlRecord.accUSDPnl,
+        }
+      : null;
+
+    const pnlRecords: PnlSnapshotV2[] = currentCursor
+      ? await this.prismaService.pnlSnapshotV2.findMany({
           take: limit,
           where: {
             dateStr: dateStr,
@@ -748,6 +787,19 @@ export class AutoPlansService {
             },
             kind: PnlSnapshotKind.MONTH,
             platform,
+            OR: [
+              {
+                accUSDPnl: {
+                  gt: currentCursor.accUSDPnl,
+                },
+              },
+              {
+                accUSDPnl: currentCursor.accUSDPnl,
+                id: {
+                  gt: currentCursor.id,
+                },
+              },
+            ],
           },
           orderBy: [
             {
@@ -1008,7 +1060,7 @@ export class AutoPlansService {
 
       let cursor = null;
       let pages = 1;
-      let limit = 100;
+      const limit = 100;
 
       const dateStr = dayjs().format('YYYY-MM-DD');
 

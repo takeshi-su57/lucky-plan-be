@@ -55,26 +55,25 @@ export class EventLogsService {
     const testContractIds = testContracts.map((item) => item.id);
 
     for (const address of addresses) {
-      const records = await this.prismaService.perpTradingEventLog.findMany({
-        where: {
-          address: address.toLowerCase(),
-          platform,
-          contractId: {
-            notIn: testContractIds,
+      const records = (
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            address: address.toLowerCase(),
+            platform,
           },
-        },
-        orderBy: [
-          {
-            date: 'asc',
-          },
-          {
-            block: 'asc',
-          },
-          {
-            id: 'asc',
-          },
-        ],
-      });
+          orderBy: [
+            {
+              date: 'asc',
+            },
+            {
+              block: 'asc',
+            },
+            {
+              id: 'asc',
+            },
+          ],
+        })
+      ).filter((item) => !testContractIds.includes(item.contractId));
 
       result.push(
         limit
