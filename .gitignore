@@ -61,3 +61,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Backtest results
 /result
+
+# Optimizer
+src/backtest/optimizer/.venv
+src/backtest/optimizer/.install-mode
+src/backtest/optimizer/*.db
