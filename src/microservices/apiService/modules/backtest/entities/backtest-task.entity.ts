@@ -36,6 +36,16 @@ export class BacktestTask {
   @Field()
   interval: string;
 
+  // Optimization method fields
+  @Field({ description: 'Search strategy: grid or optuna' })
+  searchStrategy: string;
+
+  @Field(() => [String], { description: 'Metrics to optimize (multi-objective)' })
+  optimizationMetrics: string[];
+
+  @Field(() => Int, { nullable: true, description: 'Number of Optuna trials' })
+  trials?: number | null;
+
   @Field(() => BacktestTaskStatus)
   status: BacktestTaskStatus;
 
@@ -47,6 +57,24 @@ export class BacktestTask {
 
   @Field(() => String, { nullable: true })
   currentConfig?: string | null;
+
+  // Optuna result fields
+  @Field(() => [String], {
+    description: 'Config IDs of Pareto-optimal results (optuna only)',
+  })
+  bestConfigIds: string[];
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Path to Optuna SQLite DB',
+  })
+  optunaStudyPath?: string | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'PID of running optimizer process',
+  })
+  optimizerPid?: number | null;
 
   @Field()
   createdAt: Date;
@@ -110,4 +138,16 @@ export class TaskStats {
 
   @Field(() => Int)
   failed: number;
+}
+
+@ObjectType()
+export class OptunaDashboardStatus {
+  @Field(() => Boolean)
+  running: boolean;
+
+  @Field(() => ID, { nullable: true })
+  taskId: string | null;
+
+  @Field(() => String, { nullable: true })
+  url: string | null;
 }

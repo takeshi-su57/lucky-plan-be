@@ -1,13 +1,19 @@
-import { InputType, Field } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { InputType, Field, Int } from '@nestjs/graphql';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsIn,
+  IsInt,
+  IsArray,
+  Min,
+} from 'class-validator';
 import { JSONScalar } from 'src/global/global.module';
 
 /**
  * Dynamic optimization params structure.
  *
- * Instead of fixed param names, this mirrors the StrategyConfig structure
- * but with arrays of values for each param to test.
- *
+ * For GRID search: Each param value should be an array of values to test.
  * Example:
  * ```json
  * {
@@ -18,34 +24,25 @@ import { JSONScalar } from 'src/global/global.module';
  *       "slowPeriod": [50, 100, 200]
  *     }
  *   },
- *   "filters": [
- *     {
- *       "type": "adxTrend",
- *       "params": {
- *         "period": [14],
- *         "threshold": [20, 25, 30]
- *       }
- *     }
- *   ],
- *   "risk": {
- *     "type": "atrBased",
- *     "params": {
- *       "riskPercent": [1, 2],
- *       "stopMultiplier": [2, 2.5, 3]
- *     }
- *   },
- *   "exits": [
- *     {
- *       "type": "trailingStop",
- *       "params": {
- *         "atrMultiplier": [1.5, 2, 2.5]
- *       }
- *     }
- *   ]
+ *   ...
  * }
  * ```
  *
- * The cartesian product of all arrays will be generated as configurations to test.
+ * For OPTUNA search: Params can be ranges { min, max } or fixed values.
+ * Example:
+ * ```json
+ * {
+ *   "signal": {
+ *     "type": "emaCrossover",
+ *     "params": {
+ *       "fastPeriod": { "min": 5, "max": 50 },
+ *       "slowPeriod": { "min": 50, "max": 200 },
+ *       "timeframe": 60
+ *     }
+ *   },
+ *   ...
+ * }
+ * ```
  */
 export interface OptimizationComponentConfig {
   type: string;
@@ -89,8 +86,28 @@ export class CreateBacktestTaskInput {
 
   @Field(() => JSONScalar, {
     description:
-      'Dynamic optimization params. Each param value should be an array of values to test.',
+      'Dynamic optimization params. Format depends on searchStrategy.',
   })
   @IsNotEmpty()
   optimizationParams: OptimizationParams;
+
+  // ==================== OPTUNA INTEGRATION FIELDS ====================
+
+  @Field({ defaultValue: 'grid', nullable: true })
+  @IsOptional()
+  @IsString()
+  @IsIn(['grid', 'optuna'])
+  searchStrategy?: string;
+
+  @Field(() => [String], { defaultValue: ['sharpeRatio'], nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optimizationMetrics?: string[];
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  trials?: number;
 }

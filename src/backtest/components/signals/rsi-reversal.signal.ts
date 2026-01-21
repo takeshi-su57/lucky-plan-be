@@ -109,7 +109,10 @@ export class RSIReversalSignal implements SignalGenerator {
     }
   }
 
-  private checkReversal(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkReversal(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Store previous RSI for crossover detection
     this.prevRSI = this.rsi.getRSI();
 

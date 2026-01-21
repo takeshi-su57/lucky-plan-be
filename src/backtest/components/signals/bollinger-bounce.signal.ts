@@ -95,7 +95,10 @@ export class BollingerBounceSignal implements SignalGenerator {
     }
   }
 
-  private checkBounce(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkBounce(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Calculate new Bollinger Bands
     const current = this.bollinger.processCandle(htfCandle);
 

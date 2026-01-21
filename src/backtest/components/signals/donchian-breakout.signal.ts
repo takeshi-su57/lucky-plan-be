@@ -87,7 +87,10 @@ export class DonchianBreakoutSignal implements SignalGenerator {
     }
   }
 
-  private checkBreakout(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkBreakout(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Store previous values for breakout detection
     this.prevEntry = this.entryChannel.getDonchian();
 

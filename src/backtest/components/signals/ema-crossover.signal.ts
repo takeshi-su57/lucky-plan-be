@@ -97,7 +97,10 @@ export class EMACrossoverSignal implements SignalGenerator {
     }
   }
 
-  private checkCrossover(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkCrossover(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Store previous values for crossover detection
     this.prevFast = this.fastEMA.getEMA();
     this.prevSlow = this.slowEMA.getEMA();

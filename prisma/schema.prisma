@@ -492,18 +492,30 @@ model BacktestTask {
   symbol String // e.g., "BTCUSDT"
 
   // Optimization parameters (JSON)
-  optimizationParams Json // { fastEma: {min,max,step}, slowEma: {min,max,step}, ... }
+  // For grid: arrays like { fastPeriod: [10,20,30] }
+  // For optuna: ranges like { fastPeriod: { min: 5, max: 50 } }
+  optimizationParams Json
 
   // Date range for backtest
   startDate DateTime
   endDate   DateTime
   interval  String   @default("1m") // candle interval
 
+  // Optimization method
+  searchStrategy      String   @default("grid") // 'grid' | 'optuna'
+  optimizationMetrics String[] @default(["sharpeRatio"]) // Metrics to optimize (multi-objective)
+  trials              Int? // Number of Optuna trials (only for optuna)
+
   // Progress tracking
   status           BacktestTaskStatus @default(AWAIT)
   totalConfigs     Int                @default(0)
   processedConfigs Int                @default(0)
   currentConfig    String? // Current processing config UUID
+
+  // Optuna results
+  bestConfigIds   String[] @default([]) // configIds of Pareto-optimal results
+  optunaStudyPath String? // Path to per-task SQLite DB
+  optimizerPid    Int?    // PID of running optimizer.py process (for cleanup)
 
   // Timestamps
   createdAt   DateTime  @default(now())
@@ -518,6 +530,7 @@ model BacktestTask {
 
   @@index([status, createdAt])
   @@index([symbol])
+  @@index([searchStrategy])
 }
 
 model BacktestResult {

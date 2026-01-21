@@ -13,7 +13,13 @@ import { BacktestTaskStatus } from 'generated/prisma/client';
 
 import { BacktestService } from './backtest.service';
 import { BacktestRunnerService } from './backtest-runner.service';
-import { BacktestTask, TaskStats, BacktestComponents } from './entities';
+import { OptunaDashboardService } from './optuna-dashboard.service';
+import {
+  BacktestTask,
+  TaskStats,
+  BacktestComponents,
+  OptunaDashboardStatus,
+} from './entities';
 import { BacktestResult, ResultFolder, ResultFile } from './entities';
 import { CreateBacktestTaskInput } from './dto';
 
@@ -29,6 +35,7 @@ export class BacktestResolver {
   constructor(
     private readonly backtestService: BacktestService,
     private readonly backtestRunnerService: BacktestRunnerService,
+    private readonly optunaDashboardService: OptunaDashboardService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
@@ -225,6 +232,51 @@ export class BacktestResolver {
     }
 
     return result;
+  }
+
+  // ==================== OPTUNA DASHBOARD ====================
+
+  @Query(() => OptunaDashboardStatus, {
+    description: 'Get current Optuna dashboard status',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  optunaDashboardStatus(): OptunaDashboardStatus {
+    return this.optunaDashboardService.getStatus();
+  }
+
+  @Query(() => [String], {
+    description:
+      'Get available study dates for a task (dates with optuna-study.db)',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  optunaStudyDates(
+    @Args('taskId', { type: () => ID }) taskId: string,
+  ): string[] {
+    return this.optunaDashboardService.findStudyDates(taskId);
+  }
+
+  @Mutation(() => OptunaDashboardStatus, {
+    description: 'Start Optuna dashboard for a specific task',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async startOptunaDashboard(
+    @Args('taskId', { type: () => ID }) taskId: string,
+    @Args('date') date: string,
+    @Args('port', { type: () => Int, defaultValue: 8080 }) port?: number,
+  ): Promise<OptunaDashboardStatus> {
+    return this.optunaDashboardService.startDashboard(taskId, date, port);
+  }
+
+  @Mutation(() => Boolean, {
+    description: 'Stop the running Optuna dashboard',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async stopOptunaDashboard(): Promise<boolean> {
+    return this.optunaDashboardService.stopDashboard();
   }
 
   // ==================== SUBSCRIPTIONS ====================

@@ -109,7 +109,10 @@ export class MACDCrossoverSignal implements SignalGenerator {
     }
   }
 
-  private checkCrossover(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkCrossover(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Store previous values for crossover detection
     this.prevMACD = this.macd.getMACD();
 

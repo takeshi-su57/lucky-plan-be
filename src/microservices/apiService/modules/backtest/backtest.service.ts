@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { BacktestTaskStatus } from 'generated/prisma/client';
+import { firstValueFrom } from 'rxjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
@@ -30,12 +31,120 @@ import {
   ExtendedMetrics,
 } from 'src/backtest/composable-backtest-engine';
 import { StrategyConfig, ComponentConfig } from 'src/backtest/core/interfaces';
+import { WorkerPoolService } from 'src/backtest/workers/worker-pool.service';
+import { WorkerInput } from 'src/backtest/workers/backtest.worker';
+
+/**
+ * Backtest metrics interface for score calculation
+ */
+export interface BacktestMetrics {
+  sharpeRatio: number | null;
+  totalPnlPercent: number;
+  totalPnlUsdt: number;
+  winRate: number;
+  totalTrades: number;
+  maxDrawdownPercent: number;
+  maxDrawdownUsdt: number;
+  profitFactor: number | null;
+}
+
+/**
+ * Composite metric formulas
+ * Higher score = better (all formulas should be maximized)
+ */
+const COMPOSITE_FORMULAS: Record<
+  string,
+  { description: string; calculate: (m: BacktestMetrics) => number }
+> = {
+  calmar: {
+    description: 'Annual return / Max drawdown - balances return vs risk',
+    calculate: (m) =>
+      m.totalPnlPercent / Math.max(Math.abs(m.maxDrawdownPercent), 0.1),
+  },
+  risk_adjusted: {
+    description: 'PnL penalized by drawdown: pnl / (1 + drawdown)',
+    calculate: (m) =>
+      m.totalPnlPercent / (1 + Math.abs(m.maxDrawdownPercent) / 100),
+  },
+  sortino_like: {
+    description: 'Sharpe with drawdown penalty: sharpe * (1 - drawdown/100)',
+    calculate: (m) =>
+      (m.sharpeRatio ?? 0) * (1 - Math.abs(m.maxDrawdownPercent) / 100),
+  },
+  balanced: {
+    description: 'All-around: sharpe * winRate * (1 - drawdown/100)',
+    calculate: (m) =>
+      (m.sharpeRatio ?? 0) *
+      (m.winRate / 100) *
+      (1 - Math.abs(m.maxDrawdownPercent) / 100),
+  },
+  conservative: {
+    description: 'Heavy drawdown penalty: sharpe * (1 - drawdown/50)^2',
+    calculate: (m) =>
+      (m.sharpeRatio ?? 0) *
+      Math.pow(Math.max(0, 1 - Math.abs(m.maxDrawdownPercent) / 50), 2),
+  },
+  aggressive: {
+    description: 'Maximize returns: pnl * sqrt(winRate/100)',
+    calculate: (m) =>
+      m.totalPnlPercent * Math.pow(Math.max(m.winRate, 0) / 100, 0.5),
+  },
+  profit_factor_weighted: {
+    description: 'Profit factor with win rate: profitFactor * winRate/100',
+    calculate: (m) => (m.profitFactor ?? 0) * (m.winRate / 100),
+  },
+};
+
+const SINGLE_METRICS = [
+  'sharpeRatio',
+  'totalPnlPercent',
+  'winRate',
+  'profitFactor',
+  'maxDrawdownPercent',
+  'totalPnlUsdt',
+  'maxDrawdownUsdt',
+  'totalTrades',
+];
+
+/**
+ * Built-in directions for metrics (single source of truth)
+ * All scores returned to optimizer.py are normalized so maximize is always the goal
+ */
+const METRIC_DIRECTIONS: Record<string, 'maximize' | 'minimize'> = {
+  // Maximize (higher is better)
+  sharpeRatio: 'maximize',
+  totalPnlPercent: 'maximize',
+  totalPnlUsdt: 'maximize',
+  winRate: 'maximize',
+  profitFactor: 'maximize',
+  totalTrades: 'maximize',
+
+  // Minimize (lower is better) - will be flipped when normalizing
+  maxDrawdownPercent: 'minimize',
+  maxDrawdownUsdt: 'minimize',
+
+  // Composite metrics (all maximize)
+  calmar: 'maximize',
+  risk_adjusted: 'maximize',
+  sortino_like: 'maximize',
+  balanced: 'maximize',
+  conservative: 'maximize',
+  aggressive: 'maximize',
+  profit_factor_weighted: 'maximize',
+};
+
+/**
+ * Score value for failed/invalid trials
+ * Cannot use Number.NEGATIVE_INFINITY because JSON.stringify converts it to null
+ */
+const WORST_SCORE = -1e100;
 
 @Injectable()
 export class BacktestService {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
+    private readonly workerPool: WorkerPoolService,
   ) {}
 
   /**
@@ -304,7 +413,25 @@ export class BacktestService {
    * Create a new backtest optimization task
    */
   async createTask(input: CreateBacktestTaskInput): Promise<BacktestTask> {
-    const totalConfigs = this.calculateTotalConfigs(input.optimizationParams);
+    const searchStrategy = input.searchStrategy || 'grid';
+    const runDate = new Date().toISOString().split('T')[0];
+
+    // Calculate total configs based on search strategy
+    let totalConfigs: number;
+    let optunaStudyPath: string | null = null;
+
+    if (searchStrategy === 'optuna') {
+      // For optuna, totalConfigs equals the number of trials
+      totalConfigs = input.trials || 100;
+      // Pre-compute the study path
+      optunaStudyPath = this.getOptunaStudyPath(
+        'PLACEHOLDER', // Will be replaced after task creation
+        runDate,
+      );
+    } else {
+      // For grid search, calculate cartesian product
+      totalConfigs = this.calculateTotalConfigs(input.optimizationParams);
+    }
 
     const task = await this.prismaService.backtestTask.create({
       data: {
@@ -317,10 +444,25 @@ export class BacktestService {
         status: BacktestTaskStatus.AWAIT,
         totalConfigs,
         processedConfigs: 0,
+        // Optuna-specific fields
+        searchStrategy,
+        optimizationMetrics: input.optimizationMetrics || ['sharpeRatio'],
+        trials: input.trials,
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskCreated, task);
+    // Update study path with actual task ID for optuna tasks
+    if (searchStrategy === 'optuna') {
+      optunaStudyPath = this.getOptunaStudyPath(task.id, runDate);
+      await this.prismaService.backtestTask.update({
+        where: { id: task.id },
+        data: { optunaStudyPath },
+      });
+    }
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskCreated, task),
+    );
 
     return task;
   }
@@ -405,15 +547,27 @@ export class BacktestService {
       throw new Error('Can only cancel pending or processing tasks');
     }
 
+    // Kill optimizer process if running
+    if (task.optimizerPid) {
+      try {
+        process.kill(task.optimizerPid, 'SIGTERM');
+      } catch {
+        // Process may already be dead
+      }
+    }
+
     const updated = await this.prismaService.backtestTask.update({
       where: { id },
       data: {
         status: BacktestTaskStatus.CANCELLED,
         completedAt: new Date(),
+        optimizerPid: null,
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
 
     return updated;
   }
@@ -520,7 +674,9 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskCreated, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskCreated, updated),
+    );
 
     return updated;
   }
@@ -541,7 +697,29 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
+  }
+
+  /**
+   * Atomically increment task progress to avoid race conditions
+   */
+  async incrementTaskProgress(
+    id: string,
+    currentConfig?: string,
+  ): Promise<void> {
+    const updated = await this.prismaService.backtestTask.update({
+      where: { id },
+      data: {
+        processedConfigs: { increment: 1 },
+        currentConfig,
+      },
+    });
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
   }
 
   /**
@@ -556,7 +734,9 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
   }
 
   /**
@@ -572,7 +752,9 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskCompleted, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskCompleted, updated),
+    );
   }
 
   /**
@@ -589,7 +771,9 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.TaskFailed, updated);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskFailed, updated),
+    );
   }
 
   /**
@@ -633,7 +817,9 @@ export class BacktestService {
       },
     });
 
-    await this.redisClient.emit(PATTERNS.Backtest.ResultCreated, saved);
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.ResultCreated, saved),
+    );
 
     return saved;
   }
@@ -726,5 +912,289 @@ export class BacktestService {
       originalSize: result.originalSize,
       isCompressed: result.isCompressed,
     };
+  }
+
+  // ==================== OPTUNA INTEGRATION METHODS ====================
+
+  /**
+   * Calculate score for a given metric
+   * Supports both single metrics and composite formulas
+   */
+  calculateScore(metrics: BacktestMetrics, metricName: string): number | null {
+    // Check if it's a composite metric
+    if (metricName in COMPOSITE_FORMULAS) {
+      try {
+        return COMPOSITE_FORMULAS[metricName].calculate(metrics);
+      } catch {
+        return null;
+      }
+    }
+
+    // Single metric
+    if (SINGLE_METRICS.includes(metricName)) {
+      const value = metrics[metricName as keyof BacktestMetrics];
+      if (value === null || value === undefined) {
+        return null;
+      }
+      return value as number;
+    }
+
+    // Unknown metric
+    return null;
+  }
+
+  /**
+   * Calculate normalized score - always maximize target
+   * Metrics with 'minimize' direction are multiplied by -1
+   */
+  calculateNormalizedScore(
+    metrics: BacktestMetrics,
+    metricName: string,
+  ): number {
+    const rawScore = this.calculateScore(metrics, metricName);
+
+    if (rawScore === null) {
+      return WORST_SCORE;
+    }
+
+    const direction = METRIC_DIRECTIONS[metricName] || 'maximize';
+
+    return direction === 'minimize' ? -rawScore : rawScore;
+  }
+
+  /**
+   * Calculate normalized scores for multiple metrics
+   */
+  calculateNormalizedScores(
+    metrics: BacktestMetrics,
+    metricNames: string[],
+  ): number[] {
+    return metricNames.map((name) =>
+      this.calculateNormalizedScore(metrics, name),
+    );
+  }
+
+  /**
+   * Get Optuna study path for a task
+   */
+  getOptunaStudyPath(taskId: string, runDate: string): string {
+    const studyDir = path.join('result', runDate, taskId);
+    return `sqlite:///${path.join(studyDir, 'optuna-study.db')}`;
+  }
+
+  /**
+   * Run a single backtest and return normalized scores (for optimizer.py)
+   * Delegates to worker pool to prevent blocking the event loop
+   * Scores are normalized so maximize is always the goal
+   */
+  async runSingleBacktest(
+    taskId: string,
+    configId: string,
+    strategyConfig: StrategyConfig,
+  ): Promise<{
+    success: boolean;
+    scores: number[];
+    metrics: BacktestMetrics;
+    error?: string;
+  }> {
+    try {
+      // Fetch task to get optimization settings
+      const task = await this.prismaService.backtestTask.findUnique({
+        where: { id: taskId },
+      });
+
+      if (!task) {
+        return {
+          success: false,
+          scores: [],
+          metrics: this.getEmptyMetrics(),
+          error: `Task ${taskId} not found`,
+        };
+      }
+
+      // Check if task is cancelled
+      if (task.status === BacktestTaskStatus.CANCELLED) {
+        return {
+          success: false,
+          scores: [],
+          metrics: this.getEmptyMetrics(),
+          error: 'Task was cancelled',
+        };
+      }
+
+      // Prepare worker input
+      const workerInput: WorkerInput = {
+        strategyConfig,
+        symbol: strategyConfig.symbol,
+        interval: task.interval,
+        startDate: task.startDate.toISOString(),
+        endDate: task.endDate.toISOString(),
+        taskId,
+        configId,
+      };
+
+      // Delegate to worker pool (non-blocking)
+      const workerResult = await this.workerPool.runBacktest(workerInput);
+
+      console.log('workerResult', workerResult);
+
+      if (
+        !workerResult.success ||
+        !workerResult.result ||
+        !workerResult.metrics
+      ) {
+        return {
+          success: false,
+          scores: [],
+          metrics: this.getEmptyMetrics(),
+          error: workerResult.error || 'Unknown worker error',
+        };
+      }
+
+      // Get run date
+      const runDate = new Date().toISOString().split('T')[0];
+
+      // Save result to database (I/O bound, non-blocking)
+      await this.saveResult(
+        taskId,
+        configId,
+        runDate,
+        strategyConfig,
+        workerResult.result,
+        workerResult.extendedMetrics!,
+        workerResult.exportFolder!,
+      );
+
+      // Update progress atomically to avoid race conditions
+      await this.incrementTaskProgress(taskId, configId);
+
+      // Calculate normalized scores for all optimization metrics
+      const scores = this.calculateNormalizedScores(
+        workerResult.metrics,
+        task.optimizationMetrics,
+      );
+
+      return {
+        success: true,
+        scores,
+        metrics: workerResult.metrics,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        scores: [],
+        metrics: this.getEmptyMetrics(),
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get empty metrics object for error cases
+   */
+  private getEmptyMetrics(): BacktestMetrics {
+    return {
+      sharpeRatio: null,
+      totalPnlPercent: 0,
+      totalPnlUsdt: 0,
+      winRate: 0,
+      totalTrades: 0,
+      maxDrawdownPercent: 0,
+      maxDrawdownUsdt: 0,
+      profitFactor: null,
+    };
+  }
+
+  /**
+   * Mark optuna task as complete - runs Pareto-optimal configs and saves results
+   * Called by optimizer.py when optimization finishes successfully
+   */
+  async completeOptunaTask(
+    taskId: string,
+    bestConfigs: StrategyConfig[],
+  ): Promise<BacktestTask> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    // Run backtest for each Pareto-optimal config
+    const bestConfigIds: string[] = [];
+
+    for (let i = 0; i < bestConfigs.length; i++) {
+      const config = bestConfigs[i];
+      const configId = crypto.randomUUID();
+
+      // Give it a distinctive name
+      config.name = `${task.name}_BEST_${i + 1}`;
+
+      // Run backtest (saves result automatically)
+      await this.runSingleBacktest(taskId, configId, config);
+      bestConfigIds.push(configId);
+    }
+
+    // Update task with all bestConfigIds
+    const updated = await this.prismaService.backtestTask.update({
+      where: { id: taskId },
+      data: {
+        status: BacktestTaskStatus.DONE,
+        completedAt: new Date(),
+        currentConfig: null,
+        bestConfigIds,
+        optimizerPid: null,
+      },
+    });
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskCompleted, updated),
+    );
+
+    return updated;
+  }
+
+  /**
+   * Mark optuna task as failed
+   * Called by optimizer.py when optimization fails
+   */
+  async failOptunaTask(taskId: string, error: string): Promise<BacktestTask> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    const updated = await this.prismaService.backtestTask.update({
+      where: { id: taskId },
+      data: {
+        status: BacktestTaskStatus.FAILED,
+        completedAt: new Date(),
+        errorMessage: error,
+        currentConfig: null,
+        optimizerPid: null,
+      },
+    });
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskFailed, updated),
+    );
+
+    return updated;
+  }
+
+  /**
+   * Check if task is cancelled (for optimizer.py to poll)
+   */
+  async isTaskCancelled(taskId: string): Promise<boolean> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+
+    return task?.status === BacktestTaskStatus.CANCELLED;
   }
 }

@@ -117,9 +117,30 @@ export class ComposableBacktestEngine {
   }
 
   /**
+   * Calculate unrealized PnL percentage for the current position
+   * Uses worst-case price within the candle (low for LONG, high for SHORT)
+   */
+  private calculateUnrealizedPnlPercent(
+    lowPrice: number,
+    highPrice: number,
+  ): number {
+    if (!this.currentPosition) return 0;
+
+    const { direction, entryPrice } = this.currentPosition;
+
+    if (direction === 'LONG') {
+      // For LONG, worst case is the low price
+      return ((lowPrice - entryPrice) / entryPrice) * 100;
+    } else {
+      // For SHORT, worst case is the high price
+      return ((entryPrice - highPrice) / entryPrice) * 100;
+    }
+  }
+
+  /**
    * Handle a trade action from the strategy
    */
-  private handleAction(action: TradeAction, _candle: Candle): void {
+  private handleAction(action: TradeAction, candle: Candle): void {
     if (action.type === 'EXIT') {
       this.closePosition(action.price, action.timestamp, action.reason);
     } else if (action.type === 'ENTRY') {
@@ -136,6 +157,19 @@ export class ComposableBacktestEngine {
 
       // Open new position
       this.openPosition(action);
+    } else {
+      // Check for liquidation before processing strategy
+      if (this.currentPosition) {
+        const unrealizedPnlPercent = this.calculateUnrealizedPnlPercent(
+          candle.low,
+          candle.high,
+        );
+        if (unrealizedPnlPercent <= -90) {
+          // Liquidation: entire position is lost (-100%)
+          this.liquidatePosition(candle.closeTime);
+          return; // Don't process further actions this candle
+        }
+      }
     }
   }
 
@@ -185,6 +219,9 @@ export class ComposableBacktestEngine {
       pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
     }
 
+    // Bound negative PnL at -100% (cannot lose more than position size)
+    pnlPercent = Math.max(pnlPercent, -100);
+
     const pnl = (pnlPercent / 100) * positionValue;
     this.cumulativePnl += pnl;
 
@@ -193,6 +230,38 @@ export class ComposableBacktestEngine {
       entryPrice,
       exitTime,
       exitPrice,
+      side: direction,
+      positionSize: positionValue,
+      pnl,
+      pnlPercent,
+      cumulativePnl: this.cumulativePnl,
+    });
+
+    this.currentPosition = null;
+    this.strategy.setPosition(null);
+    this.strategy.setEquity(this.capitalBase + this.cumulativePnl);
+  }
+
+  /**
+   * Liquidate position - entire position value is lost (-100%)
+   * Called when unrealized PnL drops to -90% or below
+   */
+  private liquidatePosition(exitTime: number): void {
+    if (!this.currentPosition) return;
+
+    const { direction, entryPrice, entryTime, quantity } = this.currentPosition;
+    const positionValue = quantity * entryPrice;
+
+    // Liquidation = 100% loss of position
+    const pnlPercent = -100;
+    const pnl = -positionValue;
+    this.cumulativePnl += pnl;
+
+    this.trades.push({
+      entryTime,
+      entryPrice,
+      exitTime,
+      exitPrice: 0, // Liquidation - no meaningful exit price
       side: direction,
       positionSize: positionValue,
       pnl,

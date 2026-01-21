@@ -98,7 +98,10 @@ export class SMACrossoverSignal implements SignalGenerator {
     }
   }
 
-  private checkCrossover(htfCandle: Candle, originalCandle: Candle): Signal | null {
+  private checkCrossover(
+    htfCandle: Candle,
+    originalCandle: Candle,
+  ): Signal | null {
     // Store previous values for crossover detection
     this.prevFast = this.fastSMA.getSMA();
     this.prevSlow = this.slowSMA.getSMA();

@@ -160,6 +160,13 @@ export class ComposableStrategy {
             signalSource: signal.source,
             timestamp: signal.timestamp,
           };
+        } else {
+          return {
+            type: 'EXIT',
+            reason: 'Opposite signal',
+            price: signal.price,
+            timestamp: signal.timestamp,
+          };
         }
       }
 
