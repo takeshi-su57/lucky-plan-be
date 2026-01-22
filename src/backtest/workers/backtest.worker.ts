@@ -79,7 +79,7 @@ async function runBacktest(input: WorkerInput): Promise<WorkerResult> {
     // Create backtest engine
     const engine = new ComposableBacktestEngine(strategy, {
       symbol: input.strategyConfig.symbol,
-      capitalBase: input.strategyConfig.settings?.capitalBase ?? 10000,
+      initialCapital: input.strategyConfig.settings.initialCapital,
     });
 
     // Parse dates

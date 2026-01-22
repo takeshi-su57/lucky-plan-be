@@ -234,7 +234,7 @@ async function main(): Promise<void> {
 
     const engine = new ComposableBacktestEngine(strategy, {
       symbol: strategyConfig.symbol,
-      capitalBase: strategyConfig.settings?.capitalBase,
+      initialCapital: strategyConfig.settings.initialCapital,
     });
 
     const stream = streamPriceData(

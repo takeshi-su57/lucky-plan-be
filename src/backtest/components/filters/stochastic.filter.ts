@@ -114,8 +114,7 @@ export class StochasticFilter implements Filter {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
         this.stochastic.processCandle(htfCandle);
-      }
-      if (this.useCurrentCandle) {
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           this.stochastic.processCandle(current);

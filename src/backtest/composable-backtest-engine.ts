@@ -5,7 +5,12 @@ import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { ChartConfiguration } from 'chart.js';
 import { Candle, Trade, BacktestResult } from './types';
 import { ComposableStrategy } from './core/strategy-composer';
-import { Position, TradeAction, StrategyConfig } from './core/interfaces';
+import {
+  Position,
+  TradeAction,
+  StrategyConfig,
+  Platform,
+} from './core/interfaces';
 
 /**
  * Options for structured result export
@@ -40,7 +45,7 @@ export interface ExtendedMetrics {
 
 export interface ComposableBacktestConfig {
   symbol: string;
-  capitalBase?: number;
+  initialCapital?: number;
 }
 
 export interface StreamingStats {
@@ -59,16 +64,26 @@ export interface StreamingStats {
 export class ComposableBacktestEngine {
   private strategy: ComposableStrategy;
   private config: ComposableBacktestConfig;
+  private platform: Platform;
   private trades: Trade[] = [];
-  private cumulativePnl: number = 0;
-  private capitalBase: number;
 
-  // Position tracking
+  // Capital tracking
+  private initialCapital: number;
+  private availableCapital: number;
+  private lockedMargin: number = 0;
+  private realizedPnL: number = 0;
+
+  // Position tracking with leverage fields
   private currentPosition: {
     direction: 'LONG' | 'SHORT';
-    entryPrice: number;
+    entryPrice: number; // After spread (adjusted)
     entryTime: number;
     quantity: number;
+    leverage: number;
+    margin: number;
+    notionalValue: number;
+    liquidationPrice: number;
+    openingFee: number;
   } | null = null;
 
   // Stats tracking
@@ -78,11 +93,15 @@ export class ComposableBacktestEngine {
 
   constructor(strategy: ComposableStrategy, config?: ComposableBacktestConfig) {
     this.strategy = strategy;
+    this.platform = strategy.getPlatform();
+    const strategyConfig = strategy.getConfig();
+    this.initialCapital =
+      config?.initialCapital ?? strategyConfig.settings.initialCapital;
+    this.availableCapital = this.initialCapital;
     this.config = {
       symbol: config?.symbol ?? strategy.getSymbol(),
-      capitalBase: config?.capitalBase ?? 10000,
+      initialCapital: this.initialCapital,
     };
-    this.capitalBase = this.config.capitalBase!;
   }
 
   /**
@@ -90,7 +109,9 @@ export class ComposableBacktestEngine {
    */
   reset(): void {
     this.trades = [];
-    this.cumulativePnl = 0;
+    this.availableCapital = this.initialCapital;
+    this.lockedMargin = 0;
+    this.realizedPnL = 0;
     this.currentPosition = null;
     this.strategy.reset();
     this.firstCandle = null;
@@ -108,6 +129,18 @@ export class ComposableBacktestEngine {
     this.lastCandle = candle;
     this.candleCount++;
 
+    // Check for liquidation BEFORE strategy processing
+    if (this.currentPosition) {
+      const result = this.platform.shouldLiquidate(
+        this.currentPosition as Position,
+        candle.low,
+        candle.high,
+      );
+      if (result.liquidated) {
+        this.liquidatePosition(candle.closeTime, result.liquidationPrice);
+      }
+    }
+
     // Get action from strategy
     const action = this.strategy.processCandle(candle);
 
@@ -117,30 +150,9 @@ export class ComposableBacktestEngine {
   }
 
   /**
-   * Calculate unrealized PnL percentage for the current position
-   * Uses worst-case price within the candle (low for LONG, high for SHORT)
-   */
-  private calculateUnrealizedPnlPercent(
-    lowPrice: number,
-    highPrice: number,
-  ): number {
-    if (!this.currentPosition) return 0;
-
-    const { direction, entryPrice } = this.currentPosition;
-
-    if (direction === 'LONG') {
-      // For LONG, worst case is the low price
-      return ((lowPrice - entryPrice) / entryPrice) * 100;
-    } else {
-      // For SHORT, worst case is the high price
-      return ((entryPrice - highPrice) / entryPrice) * 100;
-    }
-  }
-
-  /**
    * Handle a trade action from the strategy
    */
-  private handleAction(action: TradeAction, candle: Candle): void {
+  private handleAction(action: TradeAction, _candle: Candle): void {
     if (action.type === 'EXIT') {
       this.closePosition(action.price, action.timestamp, action.reason);
     } else if (action.type === 'ENTRY') {
@@ -157,20 +169,8 @@ export class ComposableBacktestEngine {
 
       // Open new position
       this.openPosition(action);
-    } else {
-      // Check for liquidation before processing strategy
-      if (this.currentPosition) {
-        const unrealizedPnlPercent = this.calculateUnrealizedPnlPercent(
-          candle.low,
-          candle.high,
-        );
-        if (unrealizedPnlPercent <= -90) {
-          // Liquidation: entire position is lost (-100%)
-          this.liquidatePosition(candle.closeTime);
-          return; // Don't process further actions this candle
-        }
-      }
     }
+    // Liquidation is now checked in processCandle BEFORE strategy processing
   }
 
   /**
@@ -181,21 +181,67 @@ export class ComposableBacktestEngine {
       return;
     }
 
+    // Get leverage, margin, notionalValue from action (defaults for backward compatibility)
+    const leverage = action.leverage ?? 1;
+    const margin = action.margin ?? action.quantity * action.price;
+    const notionalValue = action.notionalValue ?? margin;
+
+    // Check if enough capital available
+    if (this.availableCapital < margin) {
+      // Not enough capital - skip trade
+      return;
+    }
+
+    // Use Platform for fees/spread/liquidation
+    const result = this.platform.calculateOpenPosition(
+      action.direction,
+      action.price,
+      notionalValue,
+      leverage,
+      margin,
+    );
+    const adjustedEntryPrice = result.adjustedEntryPrice;
+    const openingFee = result.openingFee;
+    const liquidationPrice = result.liquidationPrice;
+
+    // Lock margin from available capital
+    this.availableCapital -= margin;
+    this.lockedMargin = margin;
+
+    // Deduct opening fee from available capital
+    this.availableCapital -= openingFee;
+
     this.currentPosition = {
       direction: action.direction,
-      entryPrice: action.price,
+      entryPrice: adjustedEntryPrice,
       entryTime: action.timestamp,
       quantity: action.quantity,
+      leverage,
+      margin,
+      notionalValue,
+      liquidationPrice,
+      openingFee,
     };
 
-    // Update strategy state
+    // Update strategy state with full Position
     const position: Position = {
       direction: action.direction,
-      entryPrice: action.price,
+      entryPrice: adjustedEntryPrice,
       entryTime: action.timestamp,
       quantity: action.quantity,
+      leverage,
+      margin,
+      notionalValue,
+      liquidationPrice,
     };
     this.strategy.setPosition(position);
+
+    // Update strategy capital state
+    this.strategy.setCapitalState(
+      this.availableCapital,
+      this.lockedMargin,
+      this.realizedPnL,
+    );
   }
 
   /**
@@ -208,70 +254,117 @@ export class ComposableBacktestEngine {
   ): void {
     if (!this.currentPosition) return;
 
-    const { direction, entryPrice, entryTime, quantity } = this.currentPosition;
-    const positionValue = quantity * entryPrice;
+    const {
+      direction,
+      entryPrice,
+      entryTime,
+      leverage,
+      margin,
+      notionalValue,
+      openingFee,
+    } = this.currentPosition;
 
-    // Calculate PnL
-    let pnlPercent: number;
-    if (direction === 'LONG') {
-      pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
-    } else {
-      pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
-    }
+    // Use Platform for PnL calculation
+    const result = this.platform.calculateClosePosition(
+      this.currentPosition as Position,
+      exitPrice,
+    );
+    const adjustedExitPrice = result.adjustedExitPrice;
+    const closingFee = result.closingFee;
+    const grossPnl = result.grossPnl;
+    // Net PnL needs to account for opening fee as well
+    let netPnl = result.netPnl - openingFee;
+    // PnL percent is based on margin
+    let pnlPercent = (netPnl / margin) * 100;
 
-    // Bound negative PnL at -100% (cannot lose more than position size)
+    // Bound negative PnL at -100% of margin (cannot lose more than collateral)
     pnlPercent = Math.max(pnlPercent, -100);
+    netPnl = Math.max(netPnl, -margin);
 
-    const pnl = (pnlPercent / 100) * positionValue;
-    this.cumulativePnl += pnl;
+    // Return margin + PnL to available capital
+    this.availableCapital += margin + netPnl;
+    this.lockedMargin = 0;
+    this.realizedPnL += netPnl;
 
     this.trades.push({
       entryTime,
       entryPrice,
       exitTime,
-      exitPrice,
+      exitPrice: adjustedExitPrice,
       side: direction,
-      positionSize: positionValue,
-      pnl,
+      positionSize: notionalValue,
+      margin,
+      leverage,
+      openingFee,
+      closingFee,
+      grossPnl,
+      pnl: netPnl,
       pnlPercent,
-      cumulativePnl: this.cumulativePnl,
+      cumulativePnl: this.realizedPnL,
+      liquidated: false,
     });
 
     this.currentPosition = null;
     this.strategy.setPosition(null);
-    this.strategy.setEquity(this.capitalBase + this.cumulativePnl);
+    this.strategy.setCapitalState(
+      this.availableCapital,
+      this.lockedMargin,
+      this.realizedPnL,
+    );
   }
 
   /**
-   * Liquidate position - entire position value is lost (-100%)
-   * Called when unrealized PnL drops to -90% or below
+   * Liquidate position - entire margin is lost (-100% of collateral)
+   * Called when price hits liquidation price
    */
-  private liquidatePosition(exitTime: number): void {
+  private liquidatePosition(exitTime: number, liquidationPrice?: number): void {
     if (!this.currentPosition) return;
 
-    const { direction, entryPrice, entryTime, quantity } = this.currentPosition;
-    const positionValue = quantity * entryPrice;
+    const {
+      direction,
+      entryPrice,
+      entryTime,
+      leverage,
+      margin,
+      notionalValue,
+      openingFee,
+    } = this.currentPosition;
 
-    // Liquidation = 100% loss of position
+    // Liquidation = 100% loss of margin (collateral)
     const pnlPercent = -100;
-    const pnl = -positionValue;
-    this.cumulativePnl += pnl;
+    const netPnl = -margin;
+    const grossPnl = -margin + openingFee; // Gross loss before opening fee
+
+    // Margin is lost completely - do not return it to available capital
+    // (margin was already deducted when opening, and opening fee was also deducted)
+    this.lockedMargin = 0;
+    this.realizedPnL += netPnl;
 
     this.trades.push({
       entryTime,
       entryPrice,
       exitTime,
-      exitPrice: 0, // Liquidation - no meaningful exit price
+      exitPrice: liquidationPrice ?? this.currentPosition.liquidationPrice,
       side: direction,
-      positionSize: positionValue,
-      pnl,
+      positionSize: notionalValue,
+      margin,
+      leverage,
+      openingFee,
+      closingFee: 0, // No closing fee on liquidation
+      grossPnl,
+      pnl: netPnl,
       pnlPercent,
-      cumulativePnl: this.cumulativePnl,
+      cumulativePnl: this.realizedPnL,
+      liquidated: true,
     });
 
     this.currentPosition = null;
     this.strategy.setPosition(null);
-    this.strategy.setEquity(this.capitalBase + this.cumulativePnl);
+    this.strategy.setCapitalState(
+      this.availableCapital,
+      this.lockedMargin,
+      this.realizedPnL,
+    );
   }
 
   /**
@@ -281,7 +374,7 @@ export class ComposableBacktestEngine {
     return {
       candlesProcessed: this.candleCount,
       tradesCompleted: this.trades.length,
-      currentPnlUsdt: this.cumulativePnl,
+      currentPnlUsdt: this.realizedPnL,
       openPosition: this.currentPosition !== null,
     };
   }
@@ -447,9 +540,15 @@ export class ComposableBacktestEngine {
       'Exit Time',
       'Exit Price',
       'Position Size (USDT)',
-      'PnL (USDT)',
+      'Margin (USDT)',
+      'Leverage',
+      'Opening Fee',
+      'Closing Fee',
+      'Gross PnL (USDT)',
+      'Net PnL (USDT)',
       'PnL (%)',
       'Cumulative PnL (USDT)',
+      'Liquidated',
     ];
 
     const rows = result.trades.map((trade, index) => [
@@ -460,9 +559,15 @@ export class ComposableBacktestEngine {
       new Date(trade.exitTime).toISOString(),
       trade.exitPrice.toFixed(2),
       trade.positionSize.toFixed(2),
+      trade.margin.toFixed(2),
+      trade.leverage.toFixed(0),
+      trade.openingFee.toFixed(4),
+      trade.closingFee.toFixed(4),
+      trade.grossPnl.toFixed(2),
       trade.pnl.toFixed(2),
       trade.pnlPercent.toFixed(4),
       trade.cumulativePnl.toFixed(2),
+      trade.liquidated ? 'Yes' : 'No',
     ]);
 
     // Add summary rows
@@ -644,9 +749,15 @@ export class ComposableBacktestEngine {
       'Exit Time',
       'Exit Price',
       'Position Size (USDT)',
-      'PnL (USDT)',
+      'Margin (USDT)',
+      'Leverage',
+      'Opening Fee',
+      'Closing Fee',
+      'Gross PnL (USDT)',
+      'Net PnL (USDT)',
       'PnL (%)',
       'Cumulative PnL (USDT)',
+      'Liquidated',
     ];
 
     const rows = result.trades.map((trade, i) => [
@@ -657,9 +768,15 @@ export class ComposableBacktestEngine {
       new Date(trade.exitTime).toISOString(),
       trade.exitPrice.toFixed(2),
       trade.positionSize.toFixed(2),
+      trade.margin.toFixed(2),
+      trade.leverage.toFixed(0),
+      trade.openingFee.toFixed(4),
+      trade.closingFee.toFixed(4),
+      trade.grossPnl.toFixed(2),
       trade.pnl.toFixed(2),
       trade.pnlPercent.toFixed(4),
       trade.cumulativePnl.toFixed(2),
+      trade.liquidated ? 'Yes' : 'No',
     ]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');

@@ -95,8 +95,7 @@ export class EMASlopeFilter implements Filter {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
         this.processEmaCandle(htfCandle);
-      }
-      if (this.useCurrentCandle) {
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           this.processEmaCandle(current);

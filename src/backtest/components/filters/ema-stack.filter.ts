@@ -94,8 +94,7 @@ export class EMAStackFilter implements Filter {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
         this.processEmaCandles(htfCandle);
-      }
-      if (this.useCurrentCandle) {
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           this.processEmaCandles(current);

@@ -92,8 +92,7 @@ export class RSIExtremeFilter implements Filter {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
         this.rsi.processCandle(htfCandle);
-      }
-      if (this.useCurrentCandle) {
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           this.rsi.processCandle(current);

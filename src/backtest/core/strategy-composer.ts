@@ -4,6 +4,7 @@ import {
   Filter,
   PositionSizer,
   ExitCondition,
+  Platform,
   StrategyConfig,
   StrategyState,
   TradeAction,
@@ -37,6 +38,7 @@ export class ComposableStrategy {
   private filters: Filter[];
   private positionSizer: PositionSizer;
   private exits: ExitCondition[];
+  private platform: Platform;
   private state: StrategyState;
 
   constructor(
@@ -44,18 +46,23 @@ export class ComposableStrategy {
     filters: Filter[],
     positionSizer: PositionSizer,
     exits: ExitCondition[],
+    platform: Platform,
     config: StrategyConfig,
   ) {
     this.signal = signal;
     this.filters = filters;
     this.positionSizer = positionSizer;
     this.exits = exits;
+    this.platform = platform;
     this.config = config;
+    const initialCapital = config.settings.initialCapital;
     this.state = {
       position: null,
       indicators: new Map(),
       lastSignal: null,
-      equity: config.settings?.capitalBase ?? 10000,
+      availableCapital: initialCapital,
+      lockedMargin: 0,
+      realizedPnL: 0,
     };
   }
 
@@ -95,11 +102,22 @@ export class ComposableStrategy {
       return entry.factory(e.params);
     });
 
+    // Build platform (required)
+    if (!config.platform) {
+      throw new Error('platform configuration is required');
+    }
+    const platformEntry = registry.platforms[config.platform.type];
+    if (!platformEntry) {
+      throw new Error(`Unknown platform type: ${config.platform.type}`);
+    }
+    const platform = platformEntry.factory(config.platform.params);
+
     return new ComposableStrategy(
       signal,
       filters,
       positionSizer,
       exits,
+      platform,
       config,
     );
   }
@@ -148,6 +166,17 @@ export class ComposableStrategy {
             this.state,
           );
 
+          // Check if enough capital to open position
+          if (!size.canOpen) {
+            // Not enough capital - just exit current position
+            return {
+              type: 'EXIT',
+              reason: 'Opposite signal (insufficient capital for new position)',
+              price: signal.price,
+              timestamp: signal.timestamp,
+            };
+          }
+
           // Store last signal in state
           this.state.lastSignal = signal;
 
@@ -157,6 +186,9 @@ export class ComposableStrategy {
             direction: signal.direction,
             price: signal.price,
             quantity: size.quantity,
+            leverage: size.leverage,
+            margin: size.margin,
+            notionalValue: size.notionalValue,
             signalSource: signal.source,
             timestamp: signal.timestamp,
           };
@@ -203,6 +235,12 @@ export class ComposableStrategy {
     // 6. Calculate position size
     const size = this.positionSizer.calculateSize(signal, candle, this.state);
 
+    // Check if enough capital to open position
+    if (!size.canOpen) {
+      // Not enough capital - skip trade
+      return null;
+    }
+
     // Store last signal in state
     this.state.lastSignal = signal;
 
@@ -211,6 +249,9 @@ export class ComposableStrategy {
       direction: signal.direction,
       price: signal.price,
       quantity: size.quantity,
+      leverage: size.leverage,
+      margin: size.margin,
+      notionalValue: size.notionalValue,
       signalSource: signal.source,
       timestamp: signal.timestamp,
     };
@@ -234,10 +275,17 @@ export class ComposableStrategy {
   }
 
   /**
-   * Update equity in state
+   * Update capital state
+   * Called by backtest engine when capital changes (position open/close)
    */
-  setEquity(equity: number): void {
-    this.state.equity = equity;
+  setCapitalState(
+    availableCapital: number,
+    lockedMargin: number,
+    realizedPnL: number,
+  ): void {
+    this.state.availableCapital = availableCapital;
+    this.state.lockedMargin = lockedMargin;
+    this.state.realizedPnL = realizedPnL;
   }
 
   /**
@@ -256,7 +304,9 @@ export class ComposableStrategy {
       position: null,
       indicators: new Map(),
       lastSignal: null,
-      equity: this.config.settings?.capitalBase ?? 10000,
+      availableCapital: this.config.settings.initialCapital,
+      lockedMargin: 0,
+      realizedPnL: 0,
     };
   }
 
@@ -286,5 +336,12 @@ export class ComposableStrategy {
    */
   getSymbol(): string {
     return this.config.symbol;
+  }
+
+  /**
+   * Get platform component
+   */
+  getPlatform(): Platform {
+    return this.platform;
   }
 }

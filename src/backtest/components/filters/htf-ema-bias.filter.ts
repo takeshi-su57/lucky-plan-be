@@ -76,8 +76,7 @@ export class HTFEMABiasFilter implements Filter {
       if (htfCandle) {
         this.ema.processCandle(htfCandle);
         this.lastHTFClose = htfCandle.close;
-      }
-      if (this.useCurrentCandle) {
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           this.ema.processCandle(current);

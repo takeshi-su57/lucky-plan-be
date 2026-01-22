@@ -118,8 +118,7 @@ export class StopLossExit implements ExitCondition {
         const htfCandle = this.aggregator.processCandle(candle);
         if (htfCandle) {
           this.atr.processCandle(htfCandle);
-        }
-        if (this.useCurrentCandle) {
+        } else if (this.useCurrentCandle) {
           const current = this.aggregator.getCurrentCandle();
           if (current) {
             this.atr.processCandle(current);

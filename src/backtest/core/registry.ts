@@ -3,6 +3,7 @@ import {
   Filter,
   PositionSizer,
   ExitCondition,
+  Platform,
 } from './interfaces';
 
 /**
@@ -48,6 +49,7 @@ export interface ComponentRegistry {
   filters: Record<string, RegistryEntry<Filter>>;
   risk: Record<string, RegistryEntry<PositionSizer>>;
   exits: Record<string, RegistryEntry<ExitCondition>>;
+  platforms: Record<string, RegistryEntry<Platform>>;
 }
 
 /**
@@ -59,6 +61,7 @@ export const registry: ComponentRegistry = {
   filters: {},
   risk: {},
   exits: {},
+  platforms: {},
 };
 
 /**
@@ -142,6 +145,26 @@ export function getExitFactory(
 }
 
 /**
+ * Register a platform component with metadata
+ */
+export function registerPlatform(
+  name: string,
+  factory: ComponentFactory<Platform>,
+  meta: ComponentMeta,
+): void {
+  registry.platforms[name] = { factory, meta };
+}
+
+/**
+ * Get a platform factory by name
+ */
+export function getPlatformFactory(
+  name: string,
+): ComponentFactory<Platform> | undefined {
+  return registry.platforms[name]?.factory;
+}
+
+/**
  * List all registered component names by type
  */
 export function listComponents(): {
@@ -149,12 +172,14 @@ export function listComponents(): {
   filters: string[];
   risk: string[];
   exits: string[];
+  platforms: string[];
 } {
   return {
     signals: Object.keys(registry.signals),
     filters: Object.keys(registry.filters),
     risk: Object.keys(registry.risk),
     exits: Object.keys(registry.exits),
+    platforms: Object.keys(registry.platforms),
   };
 }
 
@@ -162,7 +187,7 @@ export function listComponents(): {
  * Get component metadata for a specific type and name
  */
 export function getComponentMeta(
-  type: 'signals' | 'filters' | 'risk' | 'exits',
+  type: 'signals' | 'filters' | 'risk' | 'exits' | 'platforms',
   name: string,
 ): ComponentMeta | undefined {
   return registry[type][name]?.meta;
@@ -176,6 +201,7 @@ export function getAllComponentMeta(): {
   filters: Record<string, ComponentMeta>;
   risk: Record<string, ComponentMeta>;
   exits: Record<string, ComponentMeta>;
+  platforms: Record<string, ComponentMeta>;
 } {
   const extractMeta = <T>(entries: Record<string, RegistryEntry<T>>) =>
     Object.fromEntries(
@@ -187,5 +213,6 @@ export function getAllComponentMeta(): {
     filters: extractMeta(registry.filters),
     risk: extractMeta(registry.risk),
     exits: extractMeta(registry.exits),
+    platforms: extractMeta(registry.platforms),
   };
 }

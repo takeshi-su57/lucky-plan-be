@@ -49,4 +49,7 @@ export class BacktestComponents {
 
   @Field(() => [ComponentInfo])
   exits: ComponentInfo[];
+
+  @Field(() => [ComponentInfo])
+  platforms: ComponentInfo[];
 }

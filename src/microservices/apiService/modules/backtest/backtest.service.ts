@@ -178,6 +178,7 @@ export class BacktestService {
       filters: mapComponents(meta.filters),
       risk: mapComponents(meta.risk),
       exits: mapComponents(meta.exits),
+      platforms: mapComponents(meta.platforms),
     };
   }
 
@@ -222,12 +223,9 @@ export class BacktestService {
       total *= countComponentCombinations(exit);
     }
 
-    // Settings (optional)
-    if (
-      params.settings?.capitalBase &&
-      params.settings.capitalBase.length > 0
-    ) {
-      total *= params.settings.capitalBase.length;
+    // Initial capital variations
+    if (params.settings.initialCapital.length > 0) {
+      total *= params.settings.initialCapital.length;
     }
 
     return total;
@@ -319,11 +317,11 @@ export class BacktestService {
       this.generateComponentCombinations(exit),
     );
 
-    // Capital base variations
-    const capitalBases =
-      params.settings?.capitalBase && params.settings.capitalBase.length > 0
-        ? params.settings.capitalBase
-        : [10000];
+    // Generate all platform combinations
+    const platformCombinations = this.generateComponentCombinations({
+      type: params.platform.type,
+      params: params.platform.params,
+    });
 
     // Generate cartesian product of all component combinations
     const filterProduct = this.cartesianProductOfArrays(filterCombinations);
@@ -334,26 +332,29 @@ export class BacktestService {
       for (const filters of filterProduct) {
         for (const risk of riskCombinations) {
           for (const exits of exitProduct) {
-            for (const capitalBase of capitalBases) {
-              // Build config name from key params
-              const configName = this.buildConfigName(
-                name,
-                signal,
-                configIndex,
-              );
+            for (const platform of platformCombinations) {
+              for (const initialCapital of params.settings.initialCapital) {
+                // Build config name from key params
+                const configName = this.buildConfigName(
+                  name,
+                  signal,
+                  configIndex,
+                );
 
-              const config: StrategyConfig = {
-                symbol,
-                name: configName,
-                signal,
-                filters: filters.length > 0 ? filters : [],
-                risk,
-                exits,
-                settings: { capitalBase },
-              };
+                const config: StrategyConfig = {
+                  symbol,
+                  name: configName,
+                  signal,
+                  filters: filters.length > 0 ? filters : [],
+                  risk,
+                  exits,
+                  platform,
+                  settings: { initialCapital },
+                };
 
-              configIndex++;
-              configs.push(config);
+                configIndex++;
+                configs.push(config);
+              }
             }
           }
         }

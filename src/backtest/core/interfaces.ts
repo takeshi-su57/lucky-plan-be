@@ -32,6 +32,12 @@ export interface ExitSignal {
  */
 export interface PositionSize {
   quantity: number;
+  leverage: number; // Leverage multiplier (1 = no leverage)
+  margin: number; // Actual margin to use (may be capped by available capital)
+  notionalValue: number; // margin * leverage
+  canOpen: boolean; // Whether enough capital is available to open
+  requestedMargin: number; // Originally requested margin before capital check
+  cappedByCapital: boolean; // Whether size was reduced due to capital limit
 }
 
 /**
@@ -43,6 +49,66 @@ export interface Position {
   entryPrice: number;
   entryTime: number;
   quantity: number;
+  leverage: number; // Leverage multiplier (1 = no leverage)
+  margin: number; // Collateral in USDT
+  notionalValue: number; // margin * leverage
+  liquidationPrice: number; // Price at which position is liquidated
+}
+
+/**
+ * Result of opening a position through a platform
+ */
+export interface OpenPositionResult {
+  adjustedEntryPrice: number; // Entry price after spread
+  openingFee: number; // Fee paid to open position
+  liquidationPrice: number; // Price at which position is liquidated
+}
+
+/**
+ * Result of closing a position through a platform
+ */
+export interface ClosePositionResult {
+  adjustedExitPrice: number; // Exit price after spread
+  closingFee: number; // Fee paid to close position
+  grossPnl: number; // PnL before fees
+  netPnl: number; // PnL after fees
+  pnlPercent: number; // PnL as percentage of margin
+}
+
+/**
+ * Platform component interface
+ * Handles fees, spread, and liquidation for perpetual futures simulation
+ */
+export interface Platform {
+  readonly name: string;
+
+  /**
+   * Calculate costs and liquidation price for opening a position
+   */
+  calculateOpenPosition(
+    direction: TradeDirection,
+    entryPrice: number,
+    notionalValue: number,
+    leverage: number,
+    margin: number,
+  ): OpenPositionResult;
+
+  /**
+   * Calculate costs and PnL for closing a position
+   */
+  calculateClosePosition(
+    position: Position,
+    exitPrice: number,
+  ): ClosePositionResult;
+
+  /**
+   * Check if a position should be liquidated based on candle price range
+   */
+  shouldLiquidate(
+    position: Position,
+    candleLow: number,
+    candleHigh: number,
+  ): { liquidated: boolean; liquidationPrice?: number };
 }
 
 /**
@@ -52,7 +118,9 @@ export interface StrategyState {
   position: Position | null;
   indicators: Map<string, any>;
   lastSignal: Signal | null;
-  equity: number;
+  availableCapital: number; // Capital available for new positions
+  lockedMargin: number; // Capital locked in current position
+  realizedPnL: number; // Cumulative realized PnL
 }
 
 /**
@@ -67,6 +135,9 @@ export interface TradeAction {
   reason?: string;
   signalSource?: string;
   timestamp: number;
+  leverage?: number; // Leverage multiplier (1 = no leverage)
+  margin?: number; // Collateral in USDT
+  notionalValue?: number; // margin * leverage
 }
 
 /**
@@ -201,10 +272,8 @@ export interface StrategyConfig {
   filters: ComponentConfig[];
   risk: ComponentConfig;
   exits: ComponentConfig[];
-  settings?: {
-    timeframe?: string;
-    maxOpenPositions?: number;
-    cooldownCandles?: number;
-    capitalBase?: number;
+  platform: ComponentConfig; // Platform for fees/spread/liquidation (required)
+  settings: {
+    initialCapital: number; // Starting capital
   };
 }

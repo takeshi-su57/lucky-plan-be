@@ -350,7 +350,7 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
     // Create backtest engine
     const engine = new ComposableBacktestEngine(strategy, {
       symbol: config.symbol,
-      capitalBase: config.settings?.capitalBase ?? 10000,
+      initialCapital: config.settings.initialCapital,
     });
 
     const candleStream = streamPriceData(

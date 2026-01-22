@@ -23,25 +23,18 @@
     }
   ],
   "risk": {
-    "type": "atrBased",
+    "type": "percentageBased",
     "params": {
-      "atrPeriod": 14,
-      "riskPercent": 1,
-      "atrMultiplier": 2,
-      "capitalBase": 10000,
-      "useEquity": false,
-      "maxPositionPercent": 20,
-      "timeframe": 1,
-      "useCurrentCandle": false
+      "marginPercent": 10,
+      "maxMargin": 2000,
+      "leverage": 10
     }
   },
   "exits": [
     {
       "type": "stopLoss",
       "params": {
-        "percent": 0,
-        "atrPeriod": 14,
-        "atrMultiplier": 2,
+        "percent": 5,
         "timeframe": 1,
         "useCurrentCandle": false
       }
@@ -49,15 +42,18 @@
     {
       "type": "trailingStop",
       "params": {
-        "atrPeriod": 14,
-        "atrMultiplier": 3,
-        "activateAfterPercent": 1.5,
+        "activationPercent": 3,
+        "trailPercent": 2,
         "timeframe": 1,
         "useCurrentCandle": false
       }
     }
   ],
+  "platform": {
+    "type": "simple",
+    "params": {}
+  },
   "settings": {
-    "capitalBase": 10000
+    "initialCapital": 10000
   }
 }

@@ -107,6 +107,13 @@ export class StrategyLoader {
       });
     }
 
+    // Platform validation (required)
+    if (!config.platform) {
+      errors.push('platform configuration is required');
+    } else if (!config.platform.type) {
+      errors.push('platform.type is required');
+    }
+
     if (errors.length > 0) {
       throw new Error(`Invalid strategy config:\n  - ${errors.join('\n  - ')}`);
     }
@@ -124,7 +131,8 @@ export class StrategyLoader {
     filters?: Array<{ type: string; params: Record<string, any> }>;
     risk: { type: string; params: Record<string, any> };
     exits: Array<{ type: string; params: Record<string, any> }>;
-    settings?: StrategyConfig['settings'];
+    platform: { type: string; params: Record<string, any> };
+    settings: StrategyConfig['settings'];
   }): StrategyConfig {
     return {
       symbol: options.symbol,
@@ -134,6 +142,7 @@ export class StrategyLoader {
       filters: options.filters ?? [],
       risk: options.risk,
       exits: options.exits,
+      platform: options.platform,
       settings: options.settings,
     };
   }

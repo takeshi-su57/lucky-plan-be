@@ -94,10 +94,8 @@ export class RSIReversalSignal implements SignalGenerator {
     if (this.aggregator) {
       const htfCandle = this.aggregator.processCandle(candle);
       if (htfCandle) {
-        const signal = this.checkReversal(htfCandle, candle);
-        if (signal) return signal;
-      }
-      if (this.useCurrentCandle) {
+        return this.checkReversal(htfCandle, candle);
+      } else if (this.useCurrentCandle) {
         const current = this.aggregator.getCurrentCandle();
         if (current) {
           return this.checkReversal(current, candle);

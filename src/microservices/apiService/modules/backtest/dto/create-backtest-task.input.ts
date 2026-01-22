@@ -54,8 +54,9 @@ export interface OptimizationParams {
   filters?: OptimizationComponentConfig[];
   risk: OptimizationComponentConfig;
   exits: OptimizationComponentConfig[];
-  settings?: {
-    capitalBase?: number[];
+  platform: OptimizationComponentConfig;
+  settings: {
+    initialCapital: number[]; // Array for testing multiple capital values
   };
 }
 

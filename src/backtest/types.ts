@@ -15,10 +15,16 @@ export interface Trade {
   exitTime: number;
   exitPrice: number;
   side: 'LONG' | 'SHORT';
-  positionSize: number; // USDT position size
-  pnl: number; // PnL in USDT
-  pnlPercent: number; // PnL as percentage of position
+  positionSize: number; // USDT position size (notional value)
+  margin: number; // Collateral in USDT
+  leverage: number; // Leverage multiplier
+  openingFee: number; // Fee paid to open position
+  closingFee: number; // Fee paid to close position
+  grossPnl: number; // PnL before fees
+  pnl: number; // PnL in USDT (net, after fees)
+  pnlPercent: number; // PnL as percentage of margin
   cumulativePnl: number; // Running total PnL in USDT
+  liquidated: boolean; // Whether position was liquidated
 }
 
 export interface BacktestResult {
