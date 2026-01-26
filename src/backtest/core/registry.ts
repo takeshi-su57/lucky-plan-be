@@ -12,16 +12,25 @@ import {
 export type ComponentFactory<T> = (params: Record<string, any>) => T;
 
 /**
+ * Option for select type parameters
+ */
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+/**
  * Parameter metadata for component documentation
  */
 export interface ParamMeta {
   name: string;
-  type: 'number' | 'boolean' | 'string';
+  type: 'number' | 'boolean' | 'string' | 'select';
   required: boolean;
   default?: number | boolean | string;
   description?: string;
   min?: number;
   max?: number;
+  options?: SelectOption[]; // For 'select' type
 }
 
 /**

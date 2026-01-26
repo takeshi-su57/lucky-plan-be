@@ -199,6 +199,14 @@ export interface PositionSizer {
   readonly name: string;
 
   /**
+   * Process a candle to update internal state (e.g., ATR for volatility-based sizers)
+   * Called on every candle to keep indicators up to date.
+   * Static sizers can implement this as a no-op.
+   * @param candle The current candle
+   */
+  processCandle(candle: Candle): void;
+
+  /**
    * Calculate position size and risk parameters
    * @param signal The entry signal
    * @param candle The current candle
@@ -210,6 +218,11 @@ export interface PositionSizer {
     candle: Candle,
     state: StrategyState,
   ): PositionSize;
+
+  /**
+   * Reset the component to its initial state
+   */
+  reset(): void;
 }
 
 /**

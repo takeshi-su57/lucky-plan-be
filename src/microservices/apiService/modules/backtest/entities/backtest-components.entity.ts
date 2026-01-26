@@ -1,6 +1,15 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
 
 @ObjectType()
+export class SelectOptionInfo {
+  @Field()
+  value: string;
+
+  @Field()
+  label: string;
+}
+
+@ObjectType()
 export class ParamInfo {
   @Field()
   name: string;
@@ -22,6 +31,9 @@ export class ParamInfo {
 
   @Field(() => Float, { nullable: true })
   max?: number;
+
+  @Field(() => [SelectOptionInfo], { nullable: true })
+  options?: SelectOptionInfo[];
 }
 
 @ObjectType()

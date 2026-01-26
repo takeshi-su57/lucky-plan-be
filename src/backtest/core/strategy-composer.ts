@@ -140,11 +140,7 @@ export class ComposableStrategy {
     // 1. Update all component internal states
     this.filters.forEach((f) => f.processCandle(candle));
     this.exits.forEach((e) => e.processCandle(candle));
-
-    // Update position sizer if it has processCandle method
-    if ('processCandle' in this.positionSizer) {
-      (this.positionSizer as any).processCandle(candle);
-    }
+    this.positionSizer.processCandle(candle);
 
     // 2. Generate signal from signal generator
     const signal = this.signal.processCandle(candle, this.state);
@@ -295,10 +291,7 @@ export class ComposableStrategy {
     this.signal.reset();
     this.filters.forEach((f) => f.reset());
     this.exits.forEach((e) => e.reset());
-
-    if ('reset' in this.positionSizer) {
-      (this.positionSizer as any).reset();
-    }
+    this.positionSizer.reset();
 
     this.state = {
       position: null,
