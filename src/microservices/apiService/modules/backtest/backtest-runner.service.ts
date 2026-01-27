@@ -9,6 +9,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 
 import { BacktestService } from './backtest.service';
+import { TemplateSearchService } from './template-search.service';
 import { ComposableStrategy } from 'src/backtest/core/strategy-composer';
 import {
   ComposableBacktestEngine,
@@ -27,6 +28,7 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly backtestService: BacktestService,
+    private readonly templateSearchService: TemplateSearchService,
     private readonly logger: LogsService,
   ) {}
 
@@ -111,6 +113,22 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Hook called after a task completes (success or failure)
+   * Updates parent TemplateSearch status if task belongs to one
+   */
+  async onTaskCompleted(taskId: string): Promise<void> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (task?.templateSearchId) {
+      await this.templateSearchService.updateSearchStatus(
+        task.templateSearchId,
+      );
+    }
+  }
+
+  /**
    * Process the next pending task
    * Only processes one task at a time - blocks new tasks while one is PROCESSING
    */
@@ -145,6 +163,18 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
       // Mark as processing
       await this.backtestService.markTaskProcessing(task.id);
 
+      // If task belongs to a TemplateSearch, mark the search as PROCESSING
+      if (task.templateSearchId) {
+        const search = await this.prismaService.templateSearch.findUnique({
+          where: { id: task.templateSearchId },
+        });
+        if (search?.status === 'AWAIT') {
+          await this.templateSearchService.markSearchProcessing(
+            task.templateSearchId,
+          );
+        }
+      }
+
       // Check search strategy
       if (task.searchStrategy === 'optuna') {
         // Spawn optimizer.py and move on (fire & forget)
@@ -159,6 +189,9 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
         task.id,
         getReadableError(error),
       );
+
+      // Update parent search progress if applicable
+      await this.onTaskCompleted(task.id);
 
       await this.logger.log({
         severity: 'Error',
@@ -323,6 +356,9 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
 
     // Mark as completed
     await this.backtestService.markTaskCompleted(task.id);
+
+    // Update parent search progress if applicable
+    await this.onTaskCompleted(task.id);
 
     await this.logger.log({
       severity: 'Info',

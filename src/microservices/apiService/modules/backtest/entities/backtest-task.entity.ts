@@ -87,6 +87,13 @@ export class BacktestTask {
 
   @Field(() => String, { nullable: true })
   errorMessage?: string | null;
+
+  // Template relations (nullable for backwards compatibility)
+  @Field(() => ID, { nullable: true })
+  templateSearchId?: string | null;
+
+  @Field(() => ID, { nullable: true })
+  templateId?: string | null;
 }
 
 @ObjectType()

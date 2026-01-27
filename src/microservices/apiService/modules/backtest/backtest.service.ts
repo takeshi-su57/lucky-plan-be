@@ -162,6 +162,7 @@ export class BacktestService {
         description: p.description,
         min: p.min,
         max: p.max,
+        options: p.options,
       }));
 
     const mapComponents = (

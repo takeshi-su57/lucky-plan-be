@@ -486,6 +486,65 @@ enum BacktestTaskStatus {
   CANCELLED
 }
 
+enum StrategyCategory {
+  TREND_FOLLOWING
+  MEAN_REVERSION
+  BREAKOUT
+  MOMENTUM
+  VOLATILITY
+  SCALPING
+  SWING
+  CUSTOM
+}
+
+enum TemplateSearchStatus {
+  AWAIT
+  PROCESSING
+  DONE
+  FAILED
+  CANCELLED
+}
+
+model StrategyTemplate {
+  id            String           @id @default(uuid())
+  name          String           @unique
+  description   String?
+  category      StrategyCategory
+  factoryConfig Json             // Same structure as OptimizationParams
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  templateSearches TemplateSearch[]
+  backtestTasks    BacktestTask[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model TemplateSearch {
+  id             String               @id @default(uuid())
+  name           String
+  templateId     String
+  template       StrategyTemplate     @relation(fields: [templateId], references: [id])
+  symbol         String               // Single symbol to test
+  startDate      DateTime
+  endDate        DateTime
+  interval       String               @default("1m")
+  searchStrategy String               @default("optuna")
+  status         TemplateSearchStatus @default(AWAIT)
+  createdAt      DateTime             @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  errorMessage   String?
+
+  task BacktestTask? // 1:1 relation with BacktestTask
+
+  @@index([status, createdAt])
+  @@index([templateId])
+  @@index([symbol])
+}
+
 model BacktestTask {
   id     String @id @default(uuid())
   name   String // User-friendly name
@@ -528,9 +587,16 @@ model BacktestTask {
   // Relations
   results BacktestResult[]
 
+  // Template relations (nullable for backwards compatibility)
+  templateSearchId String?           @unique // 1:1 relation with TemplateSearch
+  templateSearch   TemplateSearch?   @relation(fields: [templateSearchId], references: [id], onDelete: SetNull)
+  templateId       String?
+  template         StrategyTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
   @@index([status, createdAt])
   @@index([symbol])
   @@index([searchStrategy])
+  @@index([templateId])
 }
 
 model BacktestResult {
