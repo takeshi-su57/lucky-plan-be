@@ -20,6 +20,11 @@ import { StrategyConfig } from 'src/backtest/core/interfaces';
 import { OptimizationParams } from './dto';
 import { getReadableError } from 'src/utils';
 
+// Heartbeat monitoring constants
+const HEARTBEAT_STALE_THRESHOLD_MS = 60 * 1000; // 60 seconds without heartbeat = stale
+const HEARTBEAT_FORCE_KILL_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes = force kill
+const INITIAL_HEARTBEAT_GRACE_PERIOD_MS = 30 * 1000; // 30 seconds grace period after task start
+
 @Injectable()
 export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
   private isProcessing = false;
@@ -80,6 +85,169 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
         });
       }
     }
+  }
+
+  /**
+   * Heartbeat monitor - runs every 15 seconds to detect stale/crashed optimizers
+   */
+  @Cron('*/15 * * * * *')
+  async monitorHeartbeats(): Promise<void> {
+    try {
+      // Find all PROCESSING tasks with optimizer processes
+      const processingTasks = await this.prismaService.backtestTask.findMany({
+        where: {
+          status: BacktestTaskStatus.PROCESSING,
+          searchStrategy: 'optuna', // Only Optuna tasks have heartbeats
+          optimizerPid: { not: null },
+        },
+      });
+
+      for (const task of processingTasks) {
+        await this.checkTaskHeartbeat(task);
+      }
+    } catch (error) {
+      await this.logger.log({
+        severity: 'Error',
+        summary: 'Heartbeat monitor error',
+        details: getReadableError(error),
+      });
+    }
+  }
+
+  /**
+   * Check a single task's heartbeat status and handle stale/crashed processes
+   */
+  private async checkTaskHeartbeat(task: BacktestTask): Promise<void> {
+    const now = Date.now();
+    const startedAt = task.startedAt?.getTime() || now;
+    const lastHeartbeat = task.lastHeartbeat?.getTime();
+
+    // If no heartbeat received yet, check if we're past the initial grace period
+    if (!lastHeartbeat) {
+      const timeSinceStart = now - startedAt;
+      if (timeSinceStart < INITIAL_HEARTBEAT_GRACE_PERIOD_MS) {
+        // Still within grace period - optimizer may be starting up
+        return;
+      }
+
+      // Past grace period with no heartbeat - check if process is alive
+      const isAlive = this.isProcessRunning(task.optimizerPid!);
+      if (!isAlive) {
+        await this.markTaskCrashed(
+          task.id,
+          'Optimizer process crashed before sending first heartbeat',
+        );
+        return;
+      }
+
+      // Process alive but no heartbeat after grace period - might be stuck starting
+      if (timeSinceStart > HEARTBEAT_STALE_THRESHOLD_MS) {
+        await this.logger.log({
+          severity: 'Warning',
+          summary: `Task ${task.id} optimizer has not sent heartbeat`,
+          details: `Time since start: ${Math.round(timeSinceStart / 1000)}s, PID: ${task.optimizerPid}`,
+        });
+      }
+      return;
+    }
+
+    // Calculate time since last heartbeat
+    const timeSinceHeartbeat = now - lastHeartbeat;
+
+    // Check for stale heartbeat (>60s)
+    if (timeSinceHeartbeat > HEARTBEAT_STALE_THRESHOLD_MS) {
+      const isAlive = this.isProcessRunning(task.optimizerPid!);
+
+      if (!isAlive) {
+        // Process is dead - mark as crashed
+        await this.markTaskCrashed(
+          task.id,
+          `Optimizer process (PID ${task.optimizerPid}) crashed unexpectedly`,
+        );
+        return;
+      }
+
+      // Process alive but unresponsive - check if we should force kill
+      if (timeSinceHeartbeat > HEARTBEAT_FORCE_KILL_THRESHOLD_MS) {
+        await this.forceKillAndFail(
+          task.id,
+          task.optimizerPid!,
+          `Optimizer unresponsive for ${Math.round(timeSinceHeartbeat / 1000)}s - force killed`,
+        );
+        return;
+      }
+
+      // Log warning for stale but not yet force-kill threshold
+      await this.logger.log({
+        severity: 'Warning',
+        summary: `Task ${task.id} heartbeat stale`,
+        details: `Last heartbeat: ${Math.round(timeSinceHeartbeat / 1000)}s ago, PID: ${task.optimizerPid} (alive)`,
+      });
+    }
+  }
+
+  /**
+   * Check if a process is running by sending signal 0
+   */
+  private isProcessRunning(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Mark task as failed due to optimizer crash
+   */
+  private async markTaskCrashed(
+    taskId: string,
+    errorMessage: string,
+  ): Promise<void> {
+    await this.prismaService.backtestTask.update({
+      where: { id: taskId },
+      data: {
+        status: BacktestTaskStatus.FAILED,
+        completedAt: new Date(),
+        errorMessage,
+        optimizerPid: null,
+      },
+    });
+
+    await this.logger.log({
+      severity: 'Error',
+      summary: `Task ${taskId} marked as FAILED`,
+      details: errorMessage,
+    });
+
+    // Update parent search if applicable
+    await this.onTaskCompleted(taskId);
+  }
+
+  /**
+   * Force kill unresponsive optimizer and mark task as failed
+   */
+  private async forceKillAndFail(
+    taskId: string,
+    pid: number,
+    errorMessage: string,
+  ): Promise<void> {
+    // Try SIGTERM first, then SIGKILL
+    try {
+      process.kill(pid, 'SIGTERM');
+      // Give it a moment to terminate gracefully
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Check if still alive
+      if (this.isProcessRunning(pid)) {
+        process.kill(pid, 'SIGKILL');
+      }
+    } catch {
+      // Process may already be dead
+    }
+
+    await this.markTaskCrashed(taskId, errorMessage);
   }
 
   /**
@@ -207,13 +375,21 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
    * Fire-and-forget: the Python script will call back when done
    */
   private async spawnOptunaOptimizer(task: BacktestTask): Promise<void> {
+    // Validate PostgreSQL URL is configured
+    const postgresUrl = process.env.OPTUNA_POSTGRES_URL;
+    if (!postgresUrl) {
+      throw new Error(
+        'OPTUNA_POSTGRES_URL environment variable is required for Optuna optimization',
+      );
+    }
+
     const runOptimizerScript = path.join(
       process.cwd(),
       'src/backtest/optimizer/run-optimizer.sh',
     );
 
     const configJson = JSON.stringify(task.optimizationParams);
-    const runDate = new Date().toISOString().split('T')[0];
+    const studyName = `task-${task.id}`;
 
     // Build arguments for the optimizer script
     // run-optimizer.sh passes all arguments to optimizer.py
@@ -237,16 +413,16 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
       JSON.stringify(task.optimizationMetrics),
       '--trials',
       String(task.trials || 100),
-      '--run-date',
-      runDate,
       '--api-url',
       apiUrl,
+      '--postgres-url',
+      postgresUrl,
     ];
 
     await this.logger.log({
       severity: 'Info',
       summary: `Spawning Optuna optimizer for task ${task.id}`,
-      details: `Trials: ${task.trials || 100}, Metrics: ${task.optimizationMetrics.join(', ')}`,
+      details: `Trials: ${task.trials || 100}, Metrics: ${task.optimizationMetrics.join(', ')}, Study: ${studyName}`,
     });
 
     // Spawn process using bash to run the shell script
@@ -276,7 +452,7 @@ export class BacktestRunnerService implements OnModuleInit, OnModuleDestroy {
     await this.logger.log({
       severity: 'Info',
       summary: `Optuna optimizer spawned for task ${task.id}`,
-      details: `PID: ${child.pid}`,
+      details: `PID: ${child.pid}, Study: ${studyName}`,
     });
   }
 

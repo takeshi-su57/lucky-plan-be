@@ -145,6 +145,19 @@ export class BacktestResolver {
     return this.backtestService.retryTask(taskId);
   }
 
+  @Mutation(() => BacktestTask, {
+    description: 'Resume or extend an Optuna optimization task',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async resumeBacktestTask(
+    @Args('taskId', { type: () => ID }) taskId: string,
+    @Args('additionalTrials', { type: () => Int, nullable: true })
+    additionalTrials?: number,
+  ): Promise<BacktestTask> {
+    return this.backtestService.resumeOptunaTask(taskId, additionalTrials);
+  }
+
   // ==================== RESULT QUERIES ====================
 
   @Query(() => [BacktestResult], {
@@ -245,29 +258,16 @@ export class BacktestResolver {
     return this.optunaDashboardService.getStatus();
   }
 
-  @Query(() => [String], {
-    description:
-      'Get available study dates for a task (dates with optuna-study.db)',
-  })
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  optunaStudyDates(
-    @Args('taskId', { type: () => ID }) taskId: string,
-  ): string[] {
-    return this.optunaDashboardService.findStudyDates(taskId);
-  }
-
   @Mutation(() => OptunaDashboardStatus, {
-    description: 'Start Optuna dashboard for a specific task',
+    description:
+      'Start global Optuna dashboard (connects to PostgreSQL, shows all studies)',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async startOptunaDashboard(
-    @Args('taskId', { type: () => ID }) taskId: string,
-    @Args('date') date: string,
     @Args('port', { type: () => Int, defaultValue: 8080 }) port?: number,
   ): Promise<OptunaDashboardStatus> {
-    return this.optunaDashboardService.startDashboard(taskId, date, port);
+    return this.optunaDashboardService.startDashboard(port);
   }
 
   @Mutation(() => Boolean, {

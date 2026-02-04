@@ -3,3 +3,7 @@ export * from './backtest-result.entity';
 export * from './backtest-components.entity';
 export * from './strategy-template.entity';
 export * from './template-search.entity';
+export * from './validation-pipeline.entity';
+export * from './validation-candidate.entity';
+export * from './walk-forward-result.entity';
+export * from './robustness-test.entity';

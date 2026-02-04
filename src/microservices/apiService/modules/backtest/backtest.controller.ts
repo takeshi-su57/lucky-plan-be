@@ -33,7 +33,7 @@ interface RunSingleRequest {
  * Request body for complete-task endpoint
  */
 interface CompleteTaskRequest {
-  bestConfigs: StrategyConfig[];
+  bestConfigIds: string[];
 }
 
 /**
@@ -41,6 +41,14 @@ interface CompleteTaskRequest {
  */
 interface FailTaskRequest {
   error: string;
+}
+
+/**
+ * Request body for heartbeat endpoint
+ */
+interface HeartbeatRequest {
+  currentTrial?: number;
+  trialProgress?: string; // "sampling" | "evaluating" | "completed"
 }
 
 @Controller('backtest')
@@ -93,7 +101,7 @@ export class BacktestController {
     try {
       const task = await this.backtestService.completeOptunaTask(
         taskId,
-        body.bestConfigs,
+        body.bestConfigIds,
       );
 
       return { success: true, task };
@@ -153,6 +161,59 @@ export class BacktestController {
       );
     }
   }
+
+  /**
+   * Receive heartbeat from optimizer.py
+   * Updates lastHeartbeat timestamp and optional progress info
+   * Returns current task status for cancellation detection
+   */
+  @Post('task/:id/heartbeat')
+  @UseGuards(InternalApiGuard)
+  async receiveHeartbeat(
+    @Param('id') taskId: string,
+    @Body() body: HeartbeatRequest,
+  ) {
+    try {
+      const result = await this.backtestService.recordHeartbeat(
+        taskId,
+        body.currentTrial,
+        body.trialProgress,
+      );
+
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Handle optimizer reconnection after NestJS restart
+   * Returns task state for optimizer to decide whether to continue
+   */
+  @Get('task/:id/reconnect')
+  @UseGuards(InternalApiGuard)
+  async handleReconnect(@Param('id') taskId: string) {
+    try {
+      const result = await this.backtestService.handleReconnect(taskId);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          shouldContinue: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
   // ==================== REDIS EVENT HANDLERS ====================
 

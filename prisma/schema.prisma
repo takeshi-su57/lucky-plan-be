@@ -505,6 +505,59 @@ enum TemplateSearchStatus {
   CANCELLED
 }
 
+// ============================================
+// VALIDATION PIPELINE ENUMS
+// ============================================
+
+enum ValidationPipelineStatus {
+  CREATED
+  LAYER_1_RUNNING
+  LAYER_1_DONE
+  LAYER_2_RUNNING
+  LAYER_2_DONE
+  LAYER_3_RUNNING
+  LAYER_3_DONE
+  AWAITING_USER_SELECTION
+  LAYER_5_RUNNING
+  LAYER_5_DONE
+  AWAITING_FINAL_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ValidationCandidateStatus {
+  PENDING
+  PASSED_THRESHOLD
+  FAILED_THRESHOLD
+  PARETO_OPTIMAL
+  PARETO_DOMINATED
+  WFA_PENDING
+  WFA_PASSED
+  WFA_FAILED
+  USER_SELECTED
+  USER_REJECTED
+  ROBUSTNESS_PENDING
+  ROBUSTNESS_PASSED
+  ROBUSTNESS_FAILED
+  FINAL_APPROVED
+  FINAL_REJECTED
+}
+
+enum WalkForwardStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum RobustnessTestStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
 model StrategyTemplate {
   id            String           @id @default(uuid())
   name          String           @unique
@@ -538,7 +591,8 @@ model TemplateSearch {
   completedAt    DateTime?
   errorMessage   String?
 
-  task BacktestTask? // 1:1 relation with BacktestTask
+  task                BacktestTask? // 1:1 relation with BacktestTask
+  validationPipelines ValidationPipeline[]
 
   @@index([status, createdAt])
   @@index([templateId])
@@ -572,9 +626,13 @@ model BacktestTask {
   currentConfig    String? // Current processing config UUID
 
   // Optuna results
-  bestConfigIds   String[] @default([]) // configIds of Pareto-optimal results
-  optunaStudyPath String? // Path to per-task SQLite DB
-  optimizerPid    Int?    // PID of running optimizer.py process (for cleanup)
+  bestConfigIds String[] @default([]) // configIds of Pareto-optimal results
+  optimizerPid  Int? // PID of running optimizer.py process (for cleanup)
+
+  // Heartbeat tracking for optimizer connection management
+  lastHeartbeat DateTime? // Last heartbeat timestamp from optimizer.py
+  currentTrial  Int       @default(0) // Real-time trial progress (updated via heartbeat)
+  trialProgress String?   // Trial phase: "sampling" | "evaluating" | "completed"
 
   // Timestamps
   createdAt   DateTime  @default(now())
@@ -628,7 +686,152 @@ model BacktestResult {
 
   createdAt DateTime @default(now())
 
+  validationCandidates ValidationCandidate[]
+
   @@index([taskId, runDate])
   @@index([taskId, totalPnlUsdt])
   @@index([taskId, winRate])
+}
+
+// ============================================
+// VALIDATION PIPELINE MODELS
+// ============================================
+
+model ValidationPipeline {
+  id               String                   @id @default(uuid())
+  name             String
+  templateSearchId String
+  templateSearch   TemplateSearch           @relation(fields: [templateSearchId], references: [id])
+  status           ValidationPipelineStatus @default(CREATED)
+
+  // Layer 1: Threshold config
+  thresholdConfig Json // { minSharpe: 1.0, maxDrawdown: 20, minWinRate: 0.4, ... }
+
+  // Layer 2: Pareto config
+  paretoMetrics String[] // ["sharpeRatio", "totalPnlPercent", "maxDrawdownPercent"]
+
+  // Layer 3: WFA config
+  wfaTrainRatio     Float @default(0.7) // 70% train, 30% test
+  wfaWindows        Int   @default(3) // Number of walk-forward windows
+  wfaMinConsistency Float @default(0.6) // Min consistency score to pass
+
+  // Layer 5: Robustness config
+  robustnessSteps    Int   @default(10) // Number of startDate iterations
+  robustnessMinScore Float @default(0.7) // Min stability score to pass
+
+  // Stats
+  totalCandidates  Int @default(0)
+  passedThreshold  Int @default(0)
+  paretoOptimal    Int @default(0)
+  passedWfa        Int @default(0)
+  userSelected     Int @default(0)
+  passedRobustness Int @default(0)
+  finalApproved    Int @default(0)
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+
+  candidates ValidationCandidate[]
+
+  @@index([status])
+  @@index([templateSearchId])
+}
+
+model ValidationCandidate {
+  id         String                    @id @default(uuid())
+  pipelineId String
+  pipeline   ValidationPipeline        @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  resultId   String
+  result     BacktestResult            @relation(fields: [resultId], references: [id])
+  configId   String // Reference to original config
+  status     ValidationCandidateStatus @default(PENDING)
+
+  // Layer 1 results
+  thresholdPassed  Boolean?
+  thresholdDetails Json? // { sharpeRatio: { value: 1.5, passed: true }, ... }
+
+  // Layer 2 results
+  paretoRank  Int? // 0 = Pareto front, 1+ = dominated
+  dominatedBy String[] // IDs of candidates that dominate this one
+
+  // Layer 3 results (aggregated from WalkForwardResult)
+  wfaConsistency Float? // Overall consistency score 0-1
+  wfaPassed      Boolean?
+
+  // Layer 4 results
+  userSelectedAt DateTime?
+  userNotes      String?
+
+  // Layer 5 results (aggregated from RobustnessTest)
+  robustnessScore  Float? // Overall stability score 0-1
+  robustnessPassed Boolean?
+
+  // Layer 6 results
+  finalApprovedAt DateTime?
+  finalNotes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  walkForwardResults WalkForwardResult[]
+  robustnessTests    RobustnessTest[]
+
+  @@unique([pipelineId, resultId])
+  @@index([pipelineId, status])
+  @@index([resultId])
+}
+
+model WalkForwardResult {
+  id          String              @id @default(uuid())
+  candidateId String
+  candidate   ValidationCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  windowIndex Int // 0, 1, 2, ...
+  status      WalkForwardStatus   @default(PENDING)
+
+  // Train period
+  trainStart   DateTime
+  trainEnd     DateTime
+  trainMetrics Json? // Metrics from training period
+
+  // Test period
+  testStart   DateTime
+  testEnd     DateTime
+  testMetrics Json? // Metrics from test period
+
+  // Comparison
+  consistency Float? // How well test matches train (0-1)
+  degradation Float? // Performance drop from train to test
+
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@unique([candidateId, windowIndex])
+  @@index([candidateId])
+}
+
+model RobustnessTest {
+  id          String               @id @default(uuid())
+  candidateId String
+  candidate   ValidationCandidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  stepIndex   Int // 0, 1, 2, ... (startDate iteration)
+  status      RobustnessTestStatus @default(PENDING)
+
+  // Sliding window
+  startDate DateTime // Shifted startDate
+  endDate   DateTime // Fixed endDate
+
+  // Results
+  metrics     Json? // Backtest metrics for this window
+  sharpeRatio Float?
+  totalPnl    Float?
+  maxDrawdown Float?
+
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@unique([candidateId, stepIndex])
+  @@index([candidateId])
 }

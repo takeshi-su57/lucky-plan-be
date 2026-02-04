@@ -12,6 +12,13 @@ import { StrategyTemplateService } from './strategy-template.service';
 import { StrategyTemplateResolver } from './strategy-template.resolver';
 import { TemplateSearchService } from './template-search.service';
 import { TemplateSearchResolver } from './template-search.resolver';
+import { ValidationPipelineService } from './validation-pipeline.service';
+import { ThresholdFilterService } from './threshold-filter.service';
+import { ParetoSelectionService } from './pareto-selection.service';
+import { WalkForwardService } from './walk-forward.service';
+import { RobustnessTestService } from './robustness-test.service';
+import { ValidationRunnerService } from './validation-runner.service';
+import { ValidationPipelineResolver } from './validation-pipeline.resolver';
 
 @Module({
   imports: [ScheduleModule.forRoot()],
@@ -26,6 +33,14 @@ import { TemplateSearchResolver } from './template-search.resolver';
     StrategyTemplateResolver,
     TemplateSearchService,
     TemplateSearchResolver,
+    // Validation pipeline services
+    ValidationPipelineService,
+    ThresholdFilterService,
+    ParetoSelectionService,
+    WalkForwardService,
+    RobustnessTestService,
+    ValidationRunnerService,
+    ValidationPipelineResolver,
   ],
   exports: [
     BacktestService,
@@ -33,6 +48,7 @@ import { TemplateSearchResolver } from './template-search.resolver';
     OptunaDashboardService,
     StrategyTemplateService,
     TemplateSearchService,
+    ValidationPipelineService,
   ],
 })
 export class BacktestModule {}

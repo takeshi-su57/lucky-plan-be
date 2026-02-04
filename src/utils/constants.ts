@@ -25,6 +25,9 @@ export const SUBSCRIPTION_TOKEN = {
   backtestResultCreated: 'backtestResultCreated',
   // Template search subscriptions
   templateSearchUpdated: 'templateSearchUpdated',
+  // Validation pipeline subscriptions
+  validationPipelineUpdated: 'validationPipelineUpdated',
+  validationCandidateUpdated: 'validationCandidateUpdated',
 };
 
 export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
@@ -88,6 +91,11 @@ export const PATTERNS = {
     TemplateCreated: 'BACKTEST_TEMPLATE_CREATED',
     TemplateSearchCreated: 'BACKTEST_TEMPLATE_SEARCH_CREATED',
     TemplateSearchUpdated: 'BACKTEST_TEMPLATE_SEARCH_UPDATED',
+  },
+  Validation: {
+    PipelineCreated: 'VALIDATION_PIPELINE_CREATED',
+    PipelineUpdated: 'VALIDATION_PIPELINE_UPDATED',
+    CandidateUpdated: 'VALIDATION_CANDIDATE_UPDATED',
   },
 };
 

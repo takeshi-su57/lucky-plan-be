@@ -416,20 +416,13 @@ export class BacktestService {
    */
   async createTask(input: CreateBacktestTaskInput): Promise<BacktestTask> {
     const searchStrategy = input.searchStrategy || 'grid';
-    const runDate = new Date().toISOString().split('T')[0];
 
     // Calculate total configs based on search strategy
     let totalConfigs: number;
-    let optunaStudyPath: string | null = null;
 
     if (searchStrategy === 'optuna') {
       // For optuna, totalConfigs equals the number of trials
       totalConfigs = input.trials || 100;
-      // Pre-compute the study path
-      optunaStudyPath = this.getOptunaStudyPath(
-        'PLACEHOLDER', // Will be replaced after task creation
-        runDate,
-      );
     } else {
       // For grid search, calculate cartesian product
       totalConfigs = this.calculateTotalConfigs(input.optimizationParams);
@@ -452,15 +445,6 @@ export class BacktestService {
         trials: input.trials,
       },
     });
-
-    // Update study path with actual task ID for optuna tasks
-    if (searchStrategy === 'optuna') {
-      optunaStudyPath = this.getOptunaStudyPath(task.id, runDate);
-      await this.prismaService.backtestTask.update({
-        where: { id: task.id },
-        data: { optunaStudyPath },
-      });
-    }
 
     await firstValueFrom(
       this.redisClient.emit(PATTERNS.Backtest.TaskCreated, task),
@@ -977,14 +961,6 @@ export class BacktestService {
   }
 
   /**
-   * Get Optuna study path for a task
-   */
-  getOptunaStudyPath(taskId: string, runDate: string): string {
-    const studyDir = path.join('result', runDate, taskId);
-    return `sqlite:///${path.join(studyDir, 'optuna-study.db')}`;
-  }
-
-  /**
    * Run a single backtest and return normalized scores (for optimizer.py)
    * Delegates to worker pool to prevent blocking the event loop
    * Scores are normalized so maximize is always the goal
@@ -1037,8 +1013,6 @@ export class BacktestService {
 
       // Delegate to worker pool (non-blocking)
       const workerResult = await this.workerPool.runBacktest(workerInput);
-
-      console.log('workerResult', workerResult);
 
       if (
         !workerResult.success ||
@@ -1108,12 +1082,13 @@ export class BacktestService {
   }
 
   /**
-   * Mark optuna task as complete - runs Pareto-optimal configs and saves results
+   * Mark optuna task as complete with Pareto-optimal config IDs
    * Called by optimizer.py when optimization finishes successfully
+   * Results already exist in DB from optimization runs - no re-running needed
    */
   async completeOptunaTask(
     taskId: string,
-    bestConfigs: StrategyConfig[],
+    bestConfigIds: string[],
   ): Promise<BacktestTask> {
     const task = await this.prismaService.backtestTask.findUnique({
       where: { id: taskId },
@@ -1123,22 +1098,7 @@ export class BacktestService {
       throw new NotFoundException(`Task ${taskId} not found`);
     }
 
-    // Run backtest for each Pareto-optimal config
-    const bestConfigIds: string[] = [];
-
-    for (let i = 0; i < bestConfigs.length; i++) {
-      const config = bestConfigs[i];
-      const configId = crypto.randomUUID();
-
-      // Give it a distinctive name
-      config.name = `${task.name}_BEST_${i + 1}`;
-
-      // Run backtest (saves result automatically)
-      await this.runSingleBacktest(taskId, configId, config);
-      bestConfigIds.push(configId);
-    }
-
-    // Update task with all bestConfigIds
+    // Update task with bestConfigIds directly (results already exist in DB)
     const updated = await this.prismaService.backtestTask.update({
       where: { id: taskId },
       data: {
@@ -1189,6 +1149,54 @@ export class BacktestService {
   }
 
   /**
+   * Resume an Optuna optimization task
+   * If additionalTrials > 0, extends the task
+   * Resets status to AWAIT to trigger the runner
+   */
+  async resumeOptunaTask(
+    taskId: string,
+    additionalTrials: number = 0,
+  ): Promise<BacktestTask> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    if (task.searchStrategy !== 'optuna') {
+      throw new Error('Can only resume Optuna optimization tasks');
+    }
+
+    // Determine new trial count
+    let trials = task.trials || 100;
+    if (additionalTrials > 0) {
+      trials += additionalTrials;
+    }
+
+    // Update task
+    const updated = await this.prismaService.backtestTask.update({
+      where: { id: taskId },
+      data: {
+        status: BacktestTaskStatus.AWAIT, // Reset to AWAIT to trigger runner
+        trials,
+        totalConfigs: trials, // For Optuna, totalConfigs = trials
+        errorMessage: null, // Clear error if any
+        completedAt: null, // Clear completion time
+        optimizerPid: null, // Clear PID just in case
+        bestConfigIds: [], // Clear best configs to prevent confusion
+      },
+    });
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
+
+    return updated;
+  }
+
+  /**
    * Check if task is cancelled (for optimizer.py to poll)
    */
   async isTaskCancelled(taskId: string): Promise<boolean> {
@@ -1198,5 +1206,101 @@ export class BacktestService {
     });
 
     return task?.status === BacktestTaskStatus.CANCELLED;
+  }
+
+  // ==================== HEARTBEAT MANAGEMENT ====================
+
+  /**
+   * Record heartbeat from optimizer.py
+   * Updates lastHeartbeat timestamp and optional progress info
+   * Emits Redis event for real-time subscription updates
+   */
+  async recordHeartbeat(
+    taskId: string,
+    currentTrial?: number,
+    trialProgress?: string,
+  ): Promise<{ success: boolean; status: BacktestTaskStatus }> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    // Build update data - only include fields that are provided
+    const updateData: {
+      lastHeartbeat: Date;
+      currentTrial?: number;
+      trialProgress?: string;
+    } = {
+      lastHeartbeat: new Date(),
+    };
+
+    if (currentTrial !== undefined) {
+      updateData.currentTrial = currentTrial;
+    }
+
+    if (trialProgress !== undefined) {
+      updateData.trialProgress = trialProgress;
+    }
+
+    const updated = await this.prismaService.backtestTask.update({
+      where: { id: taskId },
+      data: updateData,
+    });
+
+    // Emit Redis event for real-time updates
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Backtest.TaskUpdated, updated),
+    );
+
+    return {
+      success: true,
+      status: task.status,
+    };
+  }
+
+  /**
+   * Handle reconnection request from optimizer.py
+   * Called when optimizer detects NestJS may have restarted
+   * Returns task state for optimizer to decide whether to continue
+   */
+  async handleReconnect(taskId: string): Promise<{
+    success: boolean;
+    status: BacktestTaskStatus;
+    shouldContinue: boolean;
+    processedConfigs: number;
+    totalConfigs: number;
+  }> {
+    const task = await this.prismaService.backtestTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    // Determine if optimizer should continue based on task status
+    const shouldContinue =
+      task.status === BacktestTaskStatus.PROCESSING ||
+      task.status === BacktestTaskStatus.AWAIT;
+
+    // Update heartbeat on reconnect to reset stale detection
+    if (shouldContinue) {
+      await this.prismaService.backtestTask.update({
+        where: { id: taskId },
+        data: { lastHeartbeat: new Date() },
+      });
+    }
+
+    return {
+      success: true,
+      status: task.status,
+      shouldContinue,
+      processedConfigs: task.processedConfigs,
+      totalConfigs: task.totalConfigs,
+    };
   }
 }

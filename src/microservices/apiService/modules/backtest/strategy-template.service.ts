@@ -172,20 +172,64 @@ export class StrategyTemplateService {
   }
 
   /**
-   * Delete a template
-   * Related tasks and searches will have their FK set to null (SetNull)
+   * Delete a template with app-level cascading
+   * Deletion order (deepest first):
+   *   1. ValidationPipeline (ValidationCandidate auto-cascades via DB)
+   *   2. BacktestTask (BacktestResult auto-cascades via DB)
+   *   3. TemplateSearch
+   *   4. StrategyTemplate
    */
   async deleteTemplate(id: string): Promise<boolean> {
     const existing = await this.prismaService.strategyTemplate.findUnique({
       where: { id },
+      include: {
+        templateSearches: {
+          select: { id: true },
+        },
+      },
     });
 
     if (!existing) {
       throw new NotFoundException(`Template ${id} not found`);
     }
 
-    await this.prismaService.strategyTemplate.delete({
-      where: { id },
+    const templateSearchIds = existing.templateSearches.map((s) => s.id);
+
+    // Use transaction to ensure atomicity
+    await this.prismaService.$transaction(async (tx) => {
+      // 1. Delete ValidationPipelines for all TemplateSearches
+      // (ValidationCandidates will auto-cascade via DB onDelete: Cascade)
+      if (templateSearchIds.length > 0) {
+        await tx.validationPipeline.deleteMany({
+          where: { templateSearchId: { in: templateSearchIds } },
+        });
+      }
+
+      // 2. Delete BacktestTasks related to this template
+      // (BacktestResults will auto-cascade via DB onDelete: Cascade)
+      // Tasks can be related via templateSearchId OR templateId
+      await tx.backtestTask.deleteMany({
+        where: {
+          OR: [
+            { templateId: id },
+            ...(templateSearchIds.length > 0
+              ? [{ templateSearchId: { in: templateSearchIds } }]
+              : []),
+          ],
+        },
+      });
+
+      // 3. Delete TemplateSearches
+      if (templateSearchIds.length > 0) {
+        await tx.templateSearch.deleteMany({
+          where: { id: { in: templateSearchIds } },
+        });
+      }
+
+      // 4. Delete the StrategyTemplate
+      await tx.strategyTemplate.delete({
+        where: { id },
+      });
     });
 
     return true;

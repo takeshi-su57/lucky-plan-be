@@ -1,75 +1,70 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { spawn, ChildProcess } from 'child_process';
-import * as fs from 'fs';
 import * as path from 'path';
 
 import { LogsService } from 'src/global/logs.service';
 
 export interface DashboardStatus {
   running: boolean;
-  taskId: string | null;
   url: string | null;
 }
 
 @Injectable()
 export class OptunaDashboardService implements OnModuleDestroy {
   private dashboardProcess: ChildProcess | null = null;
-  private currentTaskId: string | null = null;
   private currentPort: number | null = null;
 
-  constructor(private readonly logger: LogsService) {}
+  constructor(
+    private readonly logger: LogsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async onModuleDestroy() {
     await this.stopDashboard();
   }
 
   /**
-   * Start Optuna dashboard for a specific task
+   * Get PostgreSQL URL from environment
    */
-  async startDashboard(
-    taskId: string,
-    runDate: string,
-    port: number = 8080,
-  ): Promise<DashboardStatus> {
+  private getPostgresUrl(): string {
+    const url = this.configService.get<string>('OPTUNA_POSTGRES_URL');
+    if (!url) {
+      throw new Error(
+        'OPTUNA_POSTGRES_URL environment variable is not set. ' +
+          'PostgreSQL is required for Optuna storage.',
+      );
+    }
+    return url;
+  }
+
+  /**
+   * Start global Optuna dashboard
+   * Shows all studies - user selects from dropdown in UI
+   */
+  async startDashboard(port: number = 8080): Promise<DashboardStatus> {
     // Stop existing dashboard if running
     if (this.dashboardProcess) {
       await this.stopDashboard();
     }
 
-    // Build study path
-    const studyDbPath = path.join(
-      process.cwd(),
-      'result',
-      runDate,
-      taskId,
-      'optuna-study.db',
-    );
-
-    // Verify study file exists
-    if (!fs.existsSync(studyDbPath)) {
-      throw new Error(
-        `Optuna study not found for task ${taskId}. Path: ${studyDbPath}`,
-      );
-    }
-
-    const storageUrl = `sqlite:///${studyDbPath}`;
+    const postgresUrl = this.getPostgresUrl();
 
     await this.logger.log({
       severity: 'Info',
-      summary: `Starting Optuna dashboard for task ${taskId}`,
-      details: `Storage: ${storageUrl}, Port: ${port}`,
+      summary: 'Starting Optuna dashboard',
+      details: `Port: ${port}`,
     });
 
-    // Use run-dashboard.sh to properly handle venv activation
     const runDashboardScript = path.join(
       process.cwd(),
       'src/backtest/optimizer/run-dashboard.sh',
     );
 
-    // Spawn optuna-dashboard via shell script
+    // Spawn optuna-dashboard with PostgreSQL URL
     this.dashboardProcess = spawn(
       'bash',
-      [runDashboardScript, storageUrl, String(port)],
+      [runDashboardScript, postgresUrl, String(port)],
       {
         detached: false,
         stdio: 'pipe',
@@ -77,10 +72,8 @@ export class OptunaDashboardService implements OnModuleDestroy {
       },
     );
 
-    this.currentTaskId = taskId;
     this.currentPort = port;
 
-    // Handle process errors
     this.dashboardProcess.on('error', (error) => {
       this.logger.log({
         severity: 'Error',
@@ -88,7 +81,6 @@ export class OptunaDashboardService implements OnModuleDestroy {
         details: error.message,
       });
       this.dashboardProcess = null;
-      this.currentTaskId = null;
       this.currentPort = null;
     });
 
@@ -99,7 +91,6 @@ export class OptunaDashboardService implements OnModuleDestroy {
         details: `Exit code: ${code}`,
       });
       this.dashboardProcess = null;
-      this.currentTaskId = null;
       this.currentPort = null;
     });
 
@@ -112,14 +103,13 @@ export class OptunaDashboardService implements OnModuleDestroy {
 
     await this.logger.log({
       severity: 'Info',
-      summary: `Optuna dashboard started for task ${taskId}`,
+      summary: 'Optuna dashboard started',
       details: `URL: http://localhost:${port}`,
     });
 
     return {
       running: true,
-      taskId: this.currentTaskId,
-      url: `http://localhost:${this.currentPort}`,
+      url: `http://localhost:${port}`,
     };
   }
 
@@ -134,7 +124,6 @@ export class OptunaDashboardService implements OnModuleDestroy {
     await this.logger.log({
       severity: 'Info',
       summary: 'Stopping Optuna dashboard',
-      details: `Task: ${this.currentTaskId}`,
     });
 
     try {
@@ -144,7 +133,6 @@ export class OptunaDashboardService implements OnModuleDestroy {
     }
 
     this.dashboardProcess = null;
-    this.currentTaskId = null;
     this.currentPort = null;
 
     return true;
@@ -155,8 +143,8 @@ export class OptunaDashboardService implements OnModuleDestroy {
    */
   private async waitForDashboard(
     port: number,
-    maxRetries: number = 10,
-    retryDelay: number = 500,
+    maxRetries: number = 15,
+    retryDelay: number = 1000,
   ): Promise<boolean> {
     for (let i = 0; i < maxRetries; i++) {
       // Check if process died
@@ -185,34 +173,7 @@ export class OptunaDashboardService implements OnModuleDestroy {
   getStatus(): DashboardStatus {
     return {
       running: this.dashboardProcess !== null && !this.dashboardProcess.killed,
-      taskId: this.currentTaskId,
       url: this.currentPort ? `http://localhost:${this.currentPort}` : null,
     };
-  }
-
-  /**
-   * Find available study dates for a task
-   */
-  findStudyDates(taskId: string): string[] {
-    const resultDir = path.join(process.cwd(), 'result');
-    const dates: string[] = [];
-
-    if (!fs.existsSync(resultDir)) {
-      return dates;
-    }
-
-    // Scan result directories for this taskId
-    const entries = fs.readdirSync(resultDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const taskDir = path.join(resultDir, entry.name, taskId);
-        const studyPath = path.join(taskDir, 'optuna-study.db');
-        if (fs.existsSync(studyPath)) {
-          dates.push(entry.name);
-        }
-      }
-    }
-
-    return dates.sort().reverse();
   }
 }

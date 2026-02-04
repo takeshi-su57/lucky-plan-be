@@ -40,7 +40,9 @@ export class BacktestTask {
   @Field({ description: 'Search strategy: grid or optuna' })
   searchStrategy: string;
 
-  @Field(() => [String], { description: 'Metrics to optimize (multi-objective)' })
+  @Field(() => [String], {
+    description: 'Metrics to optimize (multi-objective)',
+  })
   optimizationMetrics: string[];
 
   @Field(() => Int, { nullable: true, description: 'Number of Optuna trials' })
@@ -64,17 +66,29 @@ export class BacktestTask {
   })
   bestConfigIds: string[];
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Path to Optuna SQLite DB',
-  })
-  optunaStudyPath?: string | null;
-
   @Field(() => Int, {
     nullable: true,
     description: 'PID of running optimizer process',
   })
   optimizerPid?: number | null;
+
+  // Heartbeat tracking fields
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Last heartbeat timestamp from optimizer.py',
+  })
+  lastHeartbeat?: Date | null;
+
+  @Field(() => Int, {
+    description: 'Current trial number (real-time via heartbeat)',
+  })
+  currentTrial: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Trial progress phase: sampling | evaluating | completed',
+  })
+  trialProgress?: string | null;
 
   @Field()
   createdAt: Date;
@@ -151,9 +165,6 @@ export class TaskStats {
 export class OptunaDashboardStatus {
   @Field(() => Boolean)
   running: boolean;
-
-  @Field(() => ID, { nullable: true })
-  taskId: string | null;
 
   @Field(() => String, { nullable: true })
   url: string | null;

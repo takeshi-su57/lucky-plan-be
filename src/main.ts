@@ -104,6 +104,9 @@ async function bootstrap() {
     case SERVICE_NAMES.API_SERVICE: {
       const app = await NestFactory.create<NestExpressApplication>(ApiModule);
 
+      // Increase body size limit for large optimizer payloads (Pareto front results)
+      app.useBodyParser('json', { limit: '50mb' });
+
       app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.REDIS,
         options: {
