@@ -67,12 +67,17 @@ export class OpenTradeInput {
   @IsNotEmpty()
   @IsNumber()
   @Field(() => Int)
+  collateralIndex: number;
+  
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
   leverage: number;
 
   @IsNotEmpty()
   @Field(() => Boolean)
   long: boolean;
-
+  
   @IsNotEmpty()
   @Field(() => String)
   collateralAmount: string;
@@ -84,6 +89,11 @@ export class OpenTradeInput {
   @IsNotEmpty()
   @Field(() => String)
   sl: string;
+  
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  maxSlippageP: number;
 }
 
 @InputType()

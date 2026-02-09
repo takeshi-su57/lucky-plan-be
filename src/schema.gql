@@ -151,6 +151,12 @@ input CloseTradeInput {
   pairIndex: Int!
 }
 
+type CollateralBalance {
+  allowance: String
+  balance: String
+  collateralIndex: Int!
+}
+
 type Contract {
   address: String!
   backendUrl: String
@@ -296,14 +302,13 @@ type FollowerConnection {
 type FollowerDetail {
   accountIndex: Int!
   address: String!
+  collateralBalances: [CollateralBalance!]
   contractId: Int!
   ethBalance: String
   pendingOrders: [FollowerPendingOrder!]!
   pnlSnapshots: [PnlSnapshotV2!]!
   publicKey: String!
   trades: [FollowerTrade!]!
-  usdcAllowance: String
-  usdcBalance: String
   userId: String!
 }
 
@@ -549,9 +554,11 @@ type Mutation {
 input OpenTradeInput {
   address: String!
   collateralAmount: String!
+  collateralIndex: Int!
   contractId: Int!
   leverage: Int!
   long: Boolean!
+  maxSlippageP: Int!
   pairIndex: Int!
   sl: String!
   tp: String!
