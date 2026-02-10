@@ -16,7 +16,7 @@ export class ApiController {
     private readonly logger: LogsService,
     private readonly pricesService: PricesService,
   ) {
-    this.pricesService.connectToGnsPriceWsServer();
+    // this.pricesService.connectToGnsPriceWsServer();
   }
 
   @EventPattern(PATTERNS.ProcessStatus)
