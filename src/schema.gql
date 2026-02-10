@@ -34,6 +34,7 @@ input AddUserInput {
 input AssetInput {
   address: String!
   amount: String!
+  collateralIndex: Int!
   contractId: Int!
   kind: String!
 }
@@ -499,7 +500,7 @@ type Mutation {
   createBot(input: CreateBotInput!): BotBackwardDetails!
   createPlan(createPlanInput: CreatePlanInput!): Plan!
   createSLTP(input: SLTPRequestInput!): SLTPRequest!
-  decreaseAllowanceToZero(contractId: Int!, followerAddress: String!, password: String!): Boolean!
+  decreaseAllowanceToZero(collateralIndex: Int!, contractId: Int!, followerAddress: String!, password: String!): Boolean!
   decreasePositionSize(input: DecreasePositionSizeInput!): ContractExecutionResult!
   deleteBot(id: Int!): BotBackwardDetails!
   deleteCategory(id: Int!): TagCategory!
@@ -513,7 +514,7 @@ type Mutation {
   generateNewFollower: Follower!
   getToken(signature: String!, timestamp: String!, walletAddress: String!): AccessToken!
   ignoreMission(id: Int!): Boolean!
-  increaseAllowanceToMax(contractId: Int!, followerAddress: String!, password: String!): Boolean!
+  increaseAllowanceToMax(collateralIndex: Int!, contractId: Int!, followerAddress: String!, password: String!): Boolean!
   increasePositionSize(input: IncreasePositionSizeInput!): ContractExecutionResult!
   initializePnlSnapshotV2(beginingDate: Date!, isForceBuild: Boolean!, platform: Platform!): Boolean!
   killSubService(service: String!): Boolean!
@@ -544,11 +545,11 @@ type Mutation {
   upsertCategory(input: TagCategoryInput!): TagCategory!
   upsertTag(input: TagInput!): Tag!
   withdrawAllETH(input: WithdrawAllInput!): Boolean!
-  withdrawAllUSDC(input: WithdrawAllInput!): Boolean!
+  withdrawAllErc20(input: WithdrawAllInput!): Boolean!
   withdrawAsset(input: AssetInput!): Boolean!
   withdrawETHToUser(amount: Float!, contractId: Int!, password: String!): Boolean!
+  withdrawErc20ToUser(amount: Float!, collateralIndex: Int!, contractId: Int!, password: String!): Boolean!
   withdrawPositivePnl(input: WithdrawPositivePnlInput!): ContractExecutionResult!
-  withdrawUSDCToUser(amount: Float!, contractId: Int!, password: String!): Boolean!
 }
 
 input OpenTradeInput {
@@ -1016,6 +1017,7 @@ type WholeCompressedHistoriesV2 {
 
 input WithdrawAllInput {
   address: String!
+  collateralIndex: Int!
   contractId: Int!
 }
 

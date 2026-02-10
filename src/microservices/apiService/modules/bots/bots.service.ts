@@ -222,6 +222,7 @@ export class BotsService {
           contractId: followerContract.id,
           amount: MAX_GAS - ethBalance,
           kind: 'eth',
+          collateralIndex: 0,
         });
       }
     } catch (err) {

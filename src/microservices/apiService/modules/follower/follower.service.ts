@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
-import { isAddress, maxInt256 } from 'viem';
+import { isAddress, maxInt256, erc20Abi } from 'viem';
 import * as dayjs from 'dayjs';
 import { BotStatus, MissionStatus } from 'generated/prisma/client';
 
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
-import { USDCCollateralIndex } from 'src/utils/constants';
 import { MissionForwardDetails } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 import {
   CollateralBalance,
@@ -45,6 +44,7 @@ import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 import { TradeType } from 'src/web3/platform/gns/v10/types';
 import { PnlSnapshotsService } from '../trade-histories/pnlsnapshot.service';
 import { collateralConfigs } from 'src/web3/platform/gns/v10/configs/collateralsConfig';
+import { EvmChainsService } from 'src/web3/web3/evm-chains.service';
 
 @Injectable()
 export class FollowerService {
@@ -52,6 +52,7 @@ export class FollowerService {
     private prismaService: PrismaService,
     private contractService: ContractsService,
     private evmAdapterService: EvmAdapterService,
+    private chainsService: EvmChainsService,
     private pnlSnapshotsService: PnlSnapshotsService,
     private gnsService: GnsService,
     private logger: LogsService,
@@ -81,11 +82,13 @@ export class FollowerService {
       contractId,
       amount,
       kind,
+      collateralIndex,
     }: {
       address: string;
       contractId: number;
       amount: bigint;
-      kind: 'usdc' | 'eth';
+      kind: 'erc20' | 'eth';
+      collateralIndex: number;
     },
   ) {
     let tx: string = 'no tx';
@@ -135,19 +138,31 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      if (!collateralInfo) {
-        throw new Error('Invalid collateral index');
-      }
-
       switch (kind) {
-        case 'usdc': {
+        case 'erc20': {
+          const collateralInfo = getCollateral(
+            contract.chainId,
+            collateralIndex,
+          );
+
+          if (!collateralInfo) {
+            throw new Error('Invalid collateral index');
+          }
+
+          const symbol = await this.chainsService.readWithSemaphore(
+            contract.chainId,
+            ChainPriority.HIGH,
+            async (publicClient) => {
+              return await publicClient.readContract({
+                address: collateralInfo.collateral as `0x${string}`,
+                abi: erc20Abi,
+                functionName: 'symbol',
+                args: [],
+              });
+            },
+            false,
+          );
+
           tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
@@ -160,7 +175,7 @@ export class FollowerService {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>depositAsset',
-            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${follower.address} tx: ${tx}`,
+            details: `Move ${amount / BigInt(collateralInfo.precision)} ${symbol} from ${masterFollower.address} to ${follower.address} tx: ${tx}`,
           });
 
           break;
@@ -203,11 +218,13 @@ export class FollowerService {
       contractId,
       amount,
       kind,
+      collateralIndex,
     }: {
       address: string;
       contractId: number;
       amount: bigint;
-      kind: 'usdc' | 'eth';
+      kind: 'erc20' | 'eth';
+      collateralIndex: number;
     },
   ) {
     // skip 0 amount
@@ -266,19 +283,31 @@ export class FollowerService {
         return true;
       }
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      if (!collateralInfo) {
-        throw new Error('Invalid collateral index');
-      }
-
       switch (kind) {
-        case 'usdc': {
+        case 'erc20': {
+          const collateralInfo = getCollateral(
+            contract.chainId,
+            collateralIndex,
+          );
+
+          if (!collateralInfo) {
+            throw new Error('Invalid collateral index');
+          }
+
+          const symbol = await this.chainsService.readWithSemaphore(
+            contract.chainId,
+            ChainPriority.HIGH,
+            async (publicClient) => {
+              return await publicClient.readContract({
+                address: collateralInfo.collateral as `0x${string}`,
+                abi: erc20Abi,
+                functionName: 'symbol',
+                args: [],
+              });
+            },
+            false,
+          );
+
           tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
@@ -291,7 +320,7 @@ export class FollowerService {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>withdrawAsset',
-            details: `Move ${amount / 1000000n} USDC from ${follower.address} to ${masterFollower.address} tx: ${tx}`,
+            details: `Move ${amount / BigInt(collateralInfo.precision)} ${symbol} from ${follower.address} to ${masterFollower.address} tx: ${tx}`,
           });
 
           break;
@@ -341,41 +370,35 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawAllUSDC(
+  async withdrawAllErc20(
     userId: string,
     address: string,
     contractId: number,
+    collateralIndex: number,
   ): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
+      const collateralInfo = getCollateral(contract.chainId, collateralIndex);
 
       if (!collateralInfo) {
         throw new Error('Invalid collateral index');
       }
 
-      const usdcBalance = await this.evmAdapterService.erc20Balance({
+      const balance = await this.evmAdapterService.erc20Balance({
         chainId: contract.chainId,
         priority: ChainPriority.LOW,
         erc20ContractAddress: collateralInfo.collateral,
         address: address as Address,
       });
 
-      // 1000000n (1usdc) is the minimum amount of USDC to withdraw
-      if (usdcBalance > 1000000n) {
-        await this.withdrawAsset(userId, {
-          address,
-          contractId: contractId,
-          amount: usdcBalance,
-          kind: 'usdc',
-        });
-      }
+      await this.withdrawAsset(userId, {
+        address,
+        contractId: contractId,
+        amount: balance,
+        kind: 'erc20',
+        collateralIndex,
+      });
 
       return true;
     } catch (err) {
@@ -408,6 +431,7 @@ export class FollowerService {
         contractId: contractId,
         amount: ethBalance,
         kind: 'eth',
+        collateralIndex: 0,
       });
 
       return true;
@@ -430,11 +454,13 @@ export class FollowerService {
       contract,
       amount,
       kind,
+      collateralIndex,
     }: {
       address: string;
       contract: Contract;
       amount: bigint;
-      kind: 'usdc' | 'eth';
+      kind: 'erc20' | 'eth';
+      collateralIndex: number;
     },
   ) {
     let tx: string = 'no tx';
@@ -469,19 +495,31 @@ export class FollowerService {
 
       const mnemonic = await this.getMnemonic(user.mnemonic || '');
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
-
-      if (!collateralInfo) {
-        throw new Error('Invalid collateral index');
-      }
-
       switch (kind) {
-        case 'usdc': {
+        case 'erc20': {
+          const collateralInfo = getCollateral(
+            contract.chainId,
+            collateralIndex,
+          );
+
+          if (!collateralInfo) {
+            throw new Error('Invalid collateral index');
+          }
+
+          const symbol = await this.chainsService.readWithSemaphore(
+            contract.chainId,
+            ChainPriority.HIGH,
+            async (publicClient) => {
+              return await publicClient.readContract({
+                address: collateralInfo.collateral as `0x${string}`,
+                abi: erc20Abi,
+                functionName: 'symbol',
+                args: [],
+              });
+            },
+            false,
+          );
+
           tx = await this.evmAdapterService.erc20Transfer({
             chainId: contract.chainId,
             mnemonic,
@@ -494,7 +532,7 @@ export class FollowerService {
           await this.logger.log({
             severity: 'Info',
             summary: 'FollowerService>withdrawAssetToAny',
-            details: `Move ${amount / 1000000n} USDC from ${masterFollower.address} to ${address} tx: ${tx}`,
+            details: `Move ${amount / BigInt(collateralInfo.precision)} ${symbol} from ${masterFollower.address} to ${address} tx: ${tx}`,
           });
 
           break;
@@ -530,21 +568,17 @@ export class FollowerService {
     return false;
   }
 
-  async withdrawUSDCToUser(
+  async withdrawErc20ToUser(
     userId: string,
     password: string,
     amount: number,
     contractId: number,
+    collateralIndex: number,
   ): Promise<boolean> {
     try {
       const contract = await this.contractService.findOne(contractId);
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
+      const collateralInfo = getCollateral(contract.chainId, collateralIndex);
 
       if (!collateralInfo) {
         throw new Error('Invalid collateral index');
@@ -554,14 +588,15 @@ export class FollowerService {
         address: userId as Address,
         contract: contract,
         amount: BigInt(Math.floor(amount * Number(collateralInfo.precision))),
-        kind: 'usdc',
+        kind: 'erc20',
+        collateralIndex,
       });
 
       return true;
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `FollowerService>withdrawUSDCToUser`,
+        summary: `FollowerService>withdrawErc20ToUser`,
         details: getReadableError(err),
       });
     }
@@ -583,6 +618,7 @@ export class FollowerService {
         contract: contract,
         amount: BigInt(Math.floor(amount * Math.pow(10, 18))),
         kind: 'eth',
+        collateralIndex: 0,
       });
 
       return true;
@@ -601,6 +637,7 @@ export class FollowerService {
     userId: string,
     password: string,
     contractId: number,
+    collateralIndex: number,
     followerAddress: string,
   ): Promise<boolean> {
     try {
@@ -630,12 +667,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
+      const collateralInfo = getCollateral(contract.chainId, collateralIndex);
 
       if (!collateralInfo) {
         throw new Error('Invalid collateral index');
@@ -678,6 +710,7 @@ export class FollowerService {
     userId: string,
     password: string,
     contractId: number,
+    collateralIndex: number,
     followerAddress: string,
   ): Promise<boolean> {
     try {
@@ -707,12 +740,7 @@ export class FollowerService {
         throw new Error('Follower not found');
       }
 
-      const collateralInfo = getCollateral(
-        contract.chainId,
-        USDCCollateralIndex[
-          contract.chainId as keyof typeof USDCCollateralIndex
-        ],
-      );
+      const collateralInfo = getCollateral(contract.chainId, collateralIndex);
 
       if (!collateralInfo) {
         throw new Error('Invalid collateral index');
