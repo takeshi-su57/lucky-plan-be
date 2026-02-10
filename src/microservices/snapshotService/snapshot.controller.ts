@@ -123,20 +123,17 @@ export class SnapshotController implements OnApplicationBootstrap {
     }
 
     try {
-      await this.pnlSnapshotService.dynamicSnapshotBuild(
-        Platform.GNS,
-        dayjs(new Date()).format('YYYY-MM-DD'),
-      );
+      for (const platform of Object.values(Platform)) {
+        await this.pnlSnapshotService.dynamicSnapshotBuild(
+          platform,
+          dayjs(new Date()).format('YYYY-MM-DD'),
+        );
 
-      await this.pnlSnapshotService.dynamicSnapshotBuild(
-        Platform.GMX,
-        dayjs(new Date()).format('YYYY-MM-DD'),
-      );
-
-      await this.pnlSnapshotService.dynamicSnapshotBuild(
-        Platform.AVNT,
-        dayjs(new Date()).format('YYYY-MM-DD'),
-      );
+        await this.pnlSnapshotService.removeNegativePnlSnapshot(
+          platform,
+          dayjs(new Date()).subtract(3, 'day').format('YYYY-MM-DD'),
+        );
+      }
 
       if (this.count % 3 === 0) {
         await this.autoPlansService.createAutoPlans();

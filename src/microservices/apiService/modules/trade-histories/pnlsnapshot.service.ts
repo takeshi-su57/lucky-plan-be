@@ -307,7 +307,7 @@ export class PnlSnapshotsService {
     };
   }
 
-  private async removeNegativePnlSnapshot(platform: Platform, dateStr: string) {
+  async removeNegativePnlSnapshot(platform: Platform, dateStr: string) {
     const { count } = await this.prismaService.pnlSnapshotV2.deleteMany({
       where: {
         accUSDPnl: { lte: 0 },
