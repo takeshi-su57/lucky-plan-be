@@ -17,6 +17,7 @@ import {
   apeChain,
   Chain,
   avalanche,
+  megaeth
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
@@ -39,9 +40,16 @@ export const privateRPCProviders = {
       421614: 'arbitrum-sepolia',
       33139: 'apechain',
       43114: 'avalanche',
+      4326: 'megaeth',
     },
-    tokens: process.env.DRPC_TOKENS?.split(',').filter((item) => item.trim() !== '') || [],
-    paidTokens: process.env.DRPC_PAID_TOKENS?.split(',').filter((item) => item.trim() !== '') || [],
+    tokens:
+      process.env.DRPC_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
+    paidTokens:
+      process.env.DRPC_PAID_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
   },
   alchemy: {
     provider: 'alchemy',
@@ -56,9 +64,16 @@ export const privateRPCProviders = {
       421614: 'arb-sepolia',
       33139: 'apechain-mainnet',
       43114: 'avalanche-mainnet',
+      4326: 'megaeth-mainnet',
     },
-    tokens: process.env.ALCHEMY_TOKENS?.split(',').filter((item) => item.trim() !== '') || [],
-    paidTokens: process.env.ALCHEMY_PAID_TOENS?.split(',').filter((item) => item.trim() !== '') || [],
+    tokens:
+      process.env.ALCHEMY_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
+    paidTokens:
+      process.env.ALCHEMY_PAID_TOENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
   },
 };
 
@@ -121,6 +136,10 @@ const publicRpcProviders = {
     'https://avalanche-c-chain-rpc.publicnode.com',
     'https://0xrpc.io/avax',
   ],
+  4326: [
+    'https://rpc-megaeth-mainnet.globalstake.io',
+    'https://mainnet.megaeth.com/rpc',
+  ],
 };
 
 export type Web3Configuration = {
@@ -151,6 +170,7 @@ export class EvmChainsService {
       arbitrumSepolia,
       apeChain,
       avalanche,
+      megaeth,
     ];
     this.freePublicClients = {};
     this.privatePublicClients = {};

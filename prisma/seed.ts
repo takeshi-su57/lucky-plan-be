@@ -184,6 +184,21 @@ async function main() {
       isTestnet: false,
     },
     {
+      platform: Platform.GNS,
+      version: Version.V10,
+      chainId: 4326,
+      address: '0x2d5b1ba6e2093a5b927fe5bf8c049b107de31eaf',
+      description:
+        'This is a gains megaeth chain chain gnsDiamondContract address.',
+      fromBlock: 7584314,
+      toBlock: 0,
+      lastBlockNumber: 7584314,
+      lastLeaderboardBlockNumber: 7584314,
+      backendUrl: 'https://backend-megaeth.gains.trade',
+      status: ContractStatus.Dead,
+      isTestnet: false,
+    },
+    {
       platform: Platform.GMX,
       version: Version.V2,
       chainId: 42161,
