@@ -9,6 +9,7 @@ import { Contract } from 'src/microservices/apiService/modules/contracts/entitie
 import { USDCCollateralIndex } from 'src/utils/constants';
 import { MissionForwardDetails } from 'src/microservices/apiService/modules/missions/entities/mission.entity';
 import {
+  CollateralBalance,
   ContractExecutionResult,
   FollowerConnection,
   FollowerEdge,
@@ -43,6 +44,7 @@ import {
 import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 import { TradeType } from 'src/web3/platform/gns/v10/types';
 import { PnlSnapshotsService } from '../trade-histories/pnlsnapshot.service';
+import { collateralConfigs } from 'src/web3/platform/gns/v10/configs/collateralsConfig';
 
 @Injectable()
 export class FollowerService {
@@ -924,8 +926,6 @@ export class FollowerService {
         },
       });
 
-      const contract = await this.contractService.findOne(input.contractId);
-
       if (!user) {
         throw new Error('User not found');
       }
@@ -956,10 +956,7 @@ export class FollowerService {
             tp: BigInt(input.tp),
             sl: BigInt(input.sl),
             openPrice: currentPrice,
-            collateralIndex:
-              USDCCollateralIndex[
-                contract.chainId as keyof typeof USDCCollateralIndex
-              ],
+            collateralIndex: input.collateralIndex,
             tradeType: TradeType.TRADE,
             index: 0,
             isOpen: true,
@@ -967,7 +964,7 @@ export class FollowerService {
             positionSizeToken: 0n,
             __placeholder: 0,
           },
-          maxSlippageP: 1000,
+          maxSlippageP: input.maxSlippageP,
         },
       });
 
@@ -1715,15 +1712,6 @@ export class FollowerService {
   ): Promise<FollowerConnection> {
     const contract = await this.contractService.findOne(contractId);
 
-    const collateralInfo = getCollateral(
-      contract.chainId,
-      USDCCollateralIndex[contract.chainId as keyof typeof USDCCollateralIndex],
-    );
-
-    if (!collateralInfo) {
-      throw new Error('Invalid collateral index');
-    }
-
     const followerEntities = await this.prismaService.follower.findMany({
       where: {
         userId,
@@ -1740,22 +1728,12 @@ export class FollowerService {
     });
 
     const ethMap: Record<string, bigint> = {};
-    const usdcMap: Record<string, bigint> = {};
-    const usdcAllowanceMap: Record<string, bigint> = {};
+    const collateralBalancesMap: Record<string, CollateralBalance[]> = {};
     const pnlSnapshotsMap: Record<string, PnlSnapshotV2[]> = {};
     const tradesMap: Record<string, FollowerTrade[]> = {};
     const pendingOrdersMap: Record<string, FollowerPendingOrder[]> = {};
 
     const firstEntity = followerEntities[0];
-
-    const usdcBalance = await this.evmAdapterService.erc20Balance({
-      chainId: contract.chainId,
-      priority: ChainPriority.LOW,
-      erc20ContractAddress: collateralInfo.collateral,
-      address: firstEntity.address as Address,
-    });
-
-    usdcMap[firstEntity.address] = usdcBalance;
 
     const ethBalance = await this.evmAdapterService.nativeBalance({
       chainId: contract.chainId,
@@ -1763,16 +1741,38 @@ export class FollowerService {
       address: firstEntity.address as Address,
     });
 
-    const usdcAllowance = await this.evmAdapterService.erc20Allowance({
-      chainId: contract.chainId,
-      priority: ChainPriority.LOW,
-      erc20ContractAddress: collateralInfo.collateral,
-      address: firstEntity.address as Address,
-      spender: contract.address as Address,
-    });
-
     ethMap[firstEntity.address] = ethBalance;
-    usdcAllowanceMap[firstEntity.address] = usdcAllowance;
+
+    const activeCollaterals = collateralConfigs[contract.chainId].filter(
+      (item) => item.isActive,
+    );
+
+    const collateralBalances: CollateralBalance[] = [];
+
+    for (const collateral of activeCollaterals) {
+      const balance = await this.evmAdapterService.erc20Balance({
+        chainId: contract.chainId,
+        priority: ChainPriority.LOW,
+        erc20ContractAddress: collateral.collateral as `0x${string}`,
+        address: firstEntity.address as Address,
+      });
+
+      const allowance = await this.evmAdapterService.erc20Allowance({
+        chainId: contract.chainId,
+        priority: ChainPriority.LOW,
+        erc20ContractAddress: collateral.collateral,
+        address: firstEntity.address as Address,
+        spender: contract.address as Address,
+      });
+
+      collateralBalances.push({
+        collateralIndex: collateral.collateralIndex,
+        balance: balance.toString(),
+        allowance: allowance.toString(),
+      });
+    }
+
+    collateralBalancesMap[firstEntity.address] = collateralBalances;
 
     const pnlSnapshots =
       await this.pnlSnapshotsService.getPnlSnapshotsByAddress(
@@ -1800,8 +1800,7 @@ export class FollowerService {
         ...entity,
         contractId,
         ethBalance: ethMap[entity.address]?.toString() || null,
-        usdcBalance: usdcMap[entity.address]?.toString() || null,
-        usdcAllowance: usdcAllowanceMap[entity.address]?.toString() || null,
+        collateralBalances: collateralBalancesMap[entity.address],
         pnlSnapshots: pnlSnapshotsMap[entity.address] || [],
         trades: tradesMap[entity.address] || [],
         pendingOrders: pendingOrdersMap[entity.address] || [],
