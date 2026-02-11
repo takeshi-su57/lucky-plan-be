@@ -5,6 +5,7 @@ export const USDCCollateralIndex = {
   8453: 1,
   42161: 3,
   421614: 3,
+  4326: 1,
 };
 export const CloseMissionAction = 'CloseMissionAction';
 export const OpenMissionAction = 'OpenMissionAction';
