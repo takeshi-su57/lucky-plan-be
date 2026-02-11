@@ -694,11 +694,6 @@ type PnlSnapshotV2DetailsEdge {
   node: PnlSnapshotV2Details!
 }
 
-type PnlSnapshotV2DetailsForPagination {
-  data: [PnlSnapshotV2Details!]!
-  pageInfo: PnlSnapshotV2DetailsForPaginationAPIPageInfo!
-}
-
 type PnlSnapshotV2DetailsForPaginationAPIPageInfo {
   page: Int!
   total: Int!
@@ -746,8 +741,7 @@ type Query {
   getPlanById(id: Int!): PlanForwardDetails
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
-  getPnlSnapshotsV2(after: Int, dateStr: String!, first: Int!, kind: PnlSnapshotKind!, platform: Platform!): PnlSnapshotV2DetailsConnection!
-  getPnlsnpashotsV2ByPagination(dateStr: String!, kind: PnlSnapshotKind!, limit: Int!, page: Int!, platform: Platform!): PnlSnapshotV2DetailsForPagination!
+  getPnlSnapshotsV2(after: Int, dateStr: String!, first: Int!, kind: PnlSnapshotKind!, minR2: Float!, minSlope: Float!, platform: Platform!): PnlSnapshotV2DetailsConnection!
   getServerTime: ServerTime!
   getTradingSignalLogs: [TradingSignalLog!]!
   getWalletAccountByAddress(input: GetUserByAddressInput!): WalletAccount!

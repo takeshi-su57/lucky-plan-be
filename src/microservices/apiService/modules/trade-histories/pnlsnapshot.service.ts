@@ -8,14 +8,13 @@ import {
 import * as dayjs from 'dayjs';
 import { LogsService } from 'src/global/logs.service';
 
+import { SimpleLinearRegression } from 'ml-regression-simple-linear';
 import { PrismaService } from 'src/global/prisma.service';
 import { ServiceStatus } from 'src/types';
 import { getReadableError, getStartOfDay } from 'src/utils';
 import {
-  PnlSnapshotV2Details,
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2DetailsEdge,
-  PnlSnapshotV2DetailsForPagination,
 } from './entities/event-logs.entity';
 
 function parseKey(key: string) {
@@ -58,75 +57,9 @@ export class PnlSnapshotsService {
     kind: PnlSnapshotKind,
     first: number,
     after: number | null,
+    minSlope: number,
+    minR2: number,
   ): Promise<PnlSnapshotV2DetailsConnection> {
-    const lastPnlRecord = after
-      ? await this.prismaService.pnlSnapshotV2.findFirst({
-          where: {
-            id: after,
-          },
-        })
-      : null;
-
-    const currentCursor = lastPnlRecord
-      ? {
-          id: lastPnlRecord.id,
-          accUSDPnl: lastPnlRecord.accUSDPnl,
-        }
-      : null;
-
-    const pnlRecords: PnlSnapshotV2[] = currentCursor
-      ? await this.prismaService.pnlSnapshotV2.findMany({
-          take: first,
-          where: {
-            dateStr,
-            kind,
-            platform,
-            accUSDPnl: {
-              gt: 100,
-            },
-            OR: [
-              {
-                accUSDPnl: {
-                  gt: currentCursor.accUSDPnl,
-                },
-              },
-              {
-                accUSDPnl: currentCursor.accUSDPnl,
-                id: {
-                  gt: currentCursor.id,
-                },
-              },
-            ],
-          },
-          orderBy: [
-            {
-              accUSDPnl: 'desc',
-            },
-            {
-              id: 'asc',
-            },
-          ],
-        })
-      : await this.prismaService.pnlSnapshotV2.findMany({
-          take: first,
-          where: {
-            dateStr,
-            kind,
-            platform,
-            accUSDPnl: {
-              not: 0,
-            },
-          },
-          orderBy: [
-            {
-              accUSDPnl: 'desc',
-            },
-            {
-              id: 'asc',
-            },
-          ],
-        });
-
     const testContracts = await this.prismaService.contract.findMany({
       where: {
         isTestnet: true,
@@ -145,164 +78,151 @@ export class PnlSnapshotsService {
     const endDate = new Date(dateStr);
 
     const edges: PnlSnapshotV2DetailsEdge[] = [];
+    let currentAfter = after;
+    let hasNextPage = true;
 
-    for (const pnlRecord of pnlRecords) {
-      const historyRecords = (
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            address: pnlRecord.address.toLowerCase(),
-            platform,
-            date: {
-              gt: startDate,
-              lte: endDate,
+    while (edges.length < first) {
+      const lastPnlRecord = currentAfter
+        ? await this.prismaService.pnlSnapshotV2.findFirst({
+            where: { id: currentAfter },
+          })
+        : null;
+
+      const currentCursor = lastPnlRecord
+        ? {
+            id: lastPnlRecord.id,
+            accUSDPnl: lastPnlRecord.accUSDPnl,
+          }
+        : null;
+
+      const pnlRecords: PnlSnapshotV2[] = currentCursor
+        ? await this.prismaService.pnlSnapshotV2.findMany({
+            take: first,
+            where: {
+              dateStr,
+              kind,
+              platform,
+              accUSDPnl: {
+                gt: 100,
+              },
+              OR: [
+                {
+                  accUSDPnl: {
+                    lt: currentCursor.accUSDPnl,
+                  },
+                },
+                {
+                  accUSDPnl: currentCursor.accUSDPnl,
+                  id: {
+                    gt: currentCursor.id,
+                  },
+                },
+              ],
             },
+            orderBy: [
+              {
+                accUSDPnl: 'desc',
+              },
+              {
+                id: 'asc',
+              },
+            ],
+          })
+        : await this.prismaService.pnlSnapshotV2.findMany({
+            take: first,
+            where: {
+              dateStr,
+              kind,
+              platform,
+              accUSDPnl: {
+                not: 0,
+              },
+            },
+            orderBy: [
+              {
+                accUSDPnl: 'desc',
+              },
+              {
+                id: 'asc',
+              },
+            ],
+          });
+
+      if (pnlRecords.length === 0) {
+        hasNextPage = false;
+        break;
+      }
+
+      for (const pnlRecord of pnlRecords) {
+        if (edges.length >= first) break;
+
+        const historyRecords = (
+          await this.prismaService.perpTradingEventLog.findMany({
+            where: {
+              address: pnlRecord.address.toLowerCase(),
+              platform,
+              date: {
+                gt: startDate,
+                lte: endDate,
+              },
+            },
+            orderBy: [
+              {
+                date: 'asc',
+              },
+              {
+                block: 'asc',
+              },
+            ],
+          })
+        ).filter((item) => !testContractIds.includes(item.contractId));
+
+        if (historyRecords.length < 2) continue;
+
+        const xs: number[] = [];
+        const pnlArrs: number[] = [];
+        let pnlSum = 0;
+
+        for (let i = 0; i < historyRecords.length; i++) {
+          pnlSum += +historyRecords[i].usdPnl;
+          pnlArrs.push(pnlSum);
+          xs.push(i);
+        }
+
+        const regression = new SimpleLinearRegression(xs, pnlArrs);
+        const score = regression.score(xs, pnlArrs);
+
+        let r2 = score.r2;
+        if (Number.isNaN(r2)) r2 = 1;
+        if (r2 === Infinity) continue;
+
+        if (regression.slope < minSlope || r2 < minR2) continue;
+
+        edges.push({
+          cursor: pnlRecord.id,
+          node: {
+            ...pnlRecord,
+            perpTradingEventLogs: historyRecords.slice(
+              Math.max(0, historyRecords.length - 2500),
+              historyRecords.length,
+            ),
           },
-          orderBy: [
-            {
-              date: 'asc',
-            },
-            {
-              block: 'asc',
-            },
-          ],
-        })
-      ).filter((item) => !testContractIds.includes(item.contractId));
+        });
+      }
 
-      edges.push({
-        cursor: pnlRecord.id,
-        node: {
-          ...pnlRecord,
-          perpTradingEventLogs: historyRecords.slice(
-            Math.max(0, historyRecords.length - 2500),
-            historyRecords.length,
-          ),
-        },
-      });
+      currentAfter = pnlRecords[pnlRecords.length - 1].id;
+
+      if (pnlRecords.length < first) {
+        hasNextPage = false;
+        break;
+      }
     }
 
     return {
       edges,
       pageInfo: {
-        hasNextPage: edges.length > 0,
+        hasNextPage,
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      },
-    };
-  }
-
-  async getPnlSnapshotsByPagination(
-    dateStr: string,
-    platform: Platform,
-    kind: PnlSnapshotKind,
-    page: number,
-    limit: number,
-  ): Promise<PnlSnapshotV2DetailsForPagination> {
-    const skip = page * limit;
-
-    const pnlRecords: PnlSnapshotV2[] =
-      await this.prismaService.pnlSnapshotV2.findMany({
-        skip,
-        take: limit,
-        where: {
-          dateStr,
-          kind,
-          platform,
-          accUSDPnl: {
-            gt: 100,
-          },
-        },
-        orderBy: [
-          {
-            accUSDPnl: 'desc',
-          },
-          {
-            id: 'asc',
-          },
-        ],
-      });
-
-    console.log('pnlRecords', pnlRecords.length);
-
-    const total = await this.prismaService.pnlSnapshotV2.count({
-      where: {
-        dateStr,
-        kind,
-        platform,
-        accUSDPnl: {
-          not: 100,
-        },
-      },
-    });
-
-    const testContracts = await this.prismaService.contract.findMany({
-      where: {
-        isTestnet: true,
-      },
-    });
-
-    const testContractIds = testContracts.map((item) => item.id);
-
-    const timestampGap =
-      timestampGapByPnlSnapshotKind[
-        kind as keyof typeof timestampGapByPnlSnapshotKind
-      ];
-    const startDate = new Date(
-      getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
-    );
-    const endDate = new Date(dateStr);
-
-    const historyRecords: PerpTradingEventLog[] = [];
-
-    for (const pnlRecord of pnlRecords) {
-      const records = (
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            address: pnlRecord.address.toLowerCase(),
-            platform,
-            date: {
-              gt: startDate,
-              lte: endDate,
-            },
-          },
-          orderBy: [
-            {
-              date: 'asc',
-            },
-            {
-              block: 'asc',
-            },
-            {
-              id: 'asc',
-            },
-          ],
-        })
-      ).filter((item) => !testContractIds.includes(item.contractId));
-
-      historyRecords.push(...records);
-    }
-
-    const historyRecordsMap = new Map<string, PerpTradingEventLog[]>();
-
-    historyRecords.forEach((record) => {
-      const arr = historyRecordsMap.get(record.address);
-
-      if (arr) {
-        arr.push(record);
-      } else {
-        historyRecordsMap.set(record.address, [record]);
-      }
-    });
-
-    const data: PnlSnapshotV2Details[] = pnlRecords.map((record) => ({
-      ...record,
-      perpTradingEventLogs: historyRecordsMap.get(record.address) || [],
-    }));
-
-    return {
-      data,
-      pageInfo: {
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
       },
     };
   }

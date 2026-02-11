@@ -8,7 +8,7 @@ import { LogsService } from 'src/global/logs.service';
 import { CreateGnsPriceInput } from './dto/price.input';
 
 import { getPairName } from 'src/web3/platform/gns/v10/configs';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class PricesService {
