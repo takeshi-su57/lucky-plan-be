@@ -8,6 +8,7 @@ import { LogsService } from 'src/global/logs.service';
 import { CreateGnsPriceInput } from './dto/price.input';
 
 import { getPairName } from 'src/web3/platform/gns/v10/configs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class PricesService {
@@ -17,13 +18,13 @@ export class PricesService {
   ) {}
 
   async createGnsPrices(prices: CreateGnsPriceInput[]) {
-    return this.prismaService.gnsPricingRecord.createMany({
+    return await this.prismaService.gnsPricingRecord.createMany({
       data: prices,
     });
   }
 
   async getLastPrices(pairName: string, lastDate: Date) {
-    return this.prismaService.gnsPricingRecord.findMany({
+    return await this.prismaService.gnsPricingRecord.findMany({
       where: {
         pair: pairName,
         date: {
@@ -37,7 +38,7 @@ export class PricesService {
   }
 
   async getGnsPrices(pairName: string, fromDate: Date, toDate: Date) {
-    return this.prismaService.gnsPricingRecord.findMany({
+    return await this.prismaService.gnsPricingRecord.findMany({
       where: {
         pair: pairName,
         date: {
@@ -47,6 +48,16 @@ export class PricesService {
       },
       orderBy: {
         date: 'asc',
+      },
+    });
+  }
+
+  async removeStaledData() {
+    return await this.prismaService.gnsPricingRecord.deleteMany({
+      where: {
+        date: {
+          lte: dayjs(new Date()).subtract(1, 'month').toDate(),
+        },
       },
     });
   }

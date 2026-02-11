@@ -13,6 +13,8 @@ import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { SecurityService } from './modules/security/security.service';
 
 import { LogsService } from 'src/global/logs.service';
+import { PrismaService } from 'src/global/prisma.service';
+import { LogSeverity } from 'generated/prisma/enums';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,6 +35,7 @@ export class ApiService {
   constructor(
     private securityService: SecurityService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
+    private prismaService: PrismaService,
     private logger: LogsService,
   ) {
     this.isPaused = true;
@@ -221,5 +224,23 @@ export class ApiService {
       timezone: dayjs.tz.guess(),
       timestamp: dayjs().utc().unix(),
     };
+  }
+
+  async cleanDB() {
+    await this.prismaService.gnsPricingRecord.deleteMany({
+      where: {
+        date: {
+          lte: dayjs(new Date()).subtract(1, 'month').toDate(),
+        },
+      },
+    });
+
+    await this.prismaService.eventLog.deleteMany();
+
+    await this.prismaService.log.deleteMany({
+      where: {
+        severity: LogSeverity.Info,
+      },
+    });
   }
 }

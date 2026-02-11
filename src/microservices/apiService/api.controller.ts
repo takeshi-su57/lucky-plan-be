@@ -1,5 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { ServiceStatus } from 'src/types';
 
@@ -16,7 +17,7 @@ export class ApiController {
     private readonly logger: LogsService,
     private readonly pricesService: PricesService,
   ) {
-    // this.pricesService.connectToGnsPriceWsServer();
+    this.pricesService.connectToGnsPriceWsServer();
   }
 
   @EventPattern(PATTERNS.ProcessStatus)
@@ -32,5 +33,10 @@ export class ApiController {
     });
 
     this.apiService.updateProcessStatus(data.service, data.status, data.pid);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async removeStaledGnsPricingData() {
+    await this.pricesService.removeStaledData();
   }
 }
