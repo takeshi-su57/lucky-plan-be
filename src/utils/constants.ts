@@ -1,6 +1,6 @@
 import { etherUnits } from 'viem';
 
-export const USDCCollateralIndex = {
+export const MainCollateralIndex = {
   137: 3,
   8453: 1,
   42161: 3,

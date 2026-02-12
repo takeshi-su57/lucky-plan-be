@@ -351,7 +351,7 @@ export class MissionsService {
 
           if (!collateral) {
             throw new Error(
-              `follower contract doesn't support this collateral index: ${t.collateralIndex}`,
+              `leader contract doesn't support this collateral index: ${t.collateralIndex}`,
             );
           }
 

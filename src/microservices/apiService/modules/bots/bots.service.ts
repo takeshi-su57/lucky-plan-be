@@ -36,7 +36,7 @@ import {
   MIN_GAS,
   PATTERNS,
   SERVICE_NAMES,
-  USDCCollateralIndex,
+  MainCollateralIndex,
 } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
@@ -491,8 +491,8 @@ export class BotsService {
 
     const collateralInfo = getCollateral(
       bot.followerContract.chainId,
-      USDCCollateralIndex[
-        followerContract.chainId as keyof typeof USDCCollateralIndex
+      MainCollateralIndex[
+        followerContract.chainId as keyof typeof MainCollateralIndex
       ],
     );
 

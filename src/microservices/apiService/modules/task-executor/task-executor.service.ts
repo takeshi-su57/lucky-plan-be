@@ -53,7 +53,7 @@ import { TaskBackwardDetails } from 'src/microservices/apiService/modules/tasks/
 import {
   CloseMissionAction,
   OpenMissionAction,
-  USDCCollateralIndex,
+  MainCollateralIndex,
 } from 'src/utils/constants';
 
 import { getReadableError } from 'src/utils';
@@ -148,6 +148,25 @@ export class TaskExecutorService {
         throw new Error('User not found');
       }
 
+      const followerCollateral = getCollateral(
+        followerContract.chainId,
+        MainCollateralIndex[
+          followerContract.chainId as keyof typeof MainCollateralIndex
+        ],
+      );
+
+      if (!followerCollateral) {
+        await this.missionsService.closeMany([{ id: mission.id }], new Map());
+
+        throw new Error(
+          `follower contract doesn't support this collateral index: ${
+            MainCollateralIndex[
+              followerContract.chainId as keyof typeof MainCollateralIndex
+            ]
+          }`,
+        );
+      }
+
       const mnemonic = await this.followerService.getMnemonic(
         user.mnemonic || '',
       );
@@ -175,7 +194,11 @@ export class TaskExecutorService {
           contractId: followerContract.id,
           args: {
             trade: {
-              collateralAmount: BigInt(args.collateralAmountUSDC),
+              collateralAmount: BigInt(
+                (Number(args.collateralAmountUSDC) *
+                  Number(followerCollateral.precision)) /
+                  1e6,
+              ),
               leverage: args.leverage,
               long: args.long,
               openPrice: BigInt(args.openPrice),
@@ -186,8 +209,8 @@ export class TaskExecutorService {
               pairIndex: args.pairIndex,
               isOpen: true,
               collateralIndex:
-                USDCCollateralIndex[
-                  followerContract.chainId as keyof typeof USDCCollateralIndex
+                MainCollateralIndex[
+                  followerContract.chainId as keyof typeof MainCollateralIndex
                 ],
               tradeType: TradeType.TRADE,
               isCounterTrade: false,
@@ -293,19 +316,19 @@ export class TaskExecutorService {
               },
             });
 
-            const collateral = getCollateral(
+            const leaderCollateral = getCollateral(
               leaderContract.chainId,
               args.collateralIndex,
             );
 
-            if (!collateral) {
+            if (!leaderCollateral) {
               await this.missionsService.closeMany(
                 [{ id: mission.id }],
                 new Map(),
               );
 
               throw new Error(
-                `follower contract doesn't support this collateral index: ${args.collateralIndex}`,
+                `leader contract doesn't support this collateral index: ${args.collateralIndex}`,
               );
             }
 
@@ -317,7 +340,7 @@ export class TaskExecutorService {
                 newLeverage: BigInt(args.values.newLeverage),
                 newOpenPrice: BigInt(args.values.newOpenPrice),
               },
-              collateral,
+              leaderCollateral,
               followerTradeData,
             );
 
@@ -356,29 +379,6 @@ export class TaskExecutorService {
                   message: `Skipped this position size update because collateral delta is too small`,
                 };
               }
-
-              // const result = await this.followerService.depositAsset(
-              //   task.mission.bot.plan.userId,
-              //   {
-              //     address: follower.address,
-              //     contract: followerContract,
-              //     amount: increaseParams.collateralDelta,
-              //     kind: 'usdc',
-              //   },
-              // );
-
-              // if (!result) {
-              //   await this.logger.log({
-              //     severity: 'Error',
-              //     summary: 'TaskExecutorService>performTask',
-              //     details: `Failed at borrowing usdc from vault`,
-              //   });
-
-              //   return {
-              //     success: 'failed',
-              //     message: `Failed at borrowing usdc from vault`,
-              //   };
-              // }
             }
 
             tx = await this.gnsService.increasePositionSize({
@@ -387,6 +387,13 @@ export class TaskExecutorService {
               contractId: followerContract.id,
               args: {
                 ...increaseParams,
+                collateralDelta: BigInt(
+                  Math.floor(
+                    (Number(increaseParams.collateralDelta) *
+                      Number(followerCollateral.precision)) /
+                      1e6,
+                  ),
+                ),
                 index: achievePosition!.index,
                 maxSlippageP: 1000,
               },
@@ -477,19 +484,19 @@ export class TaskExecutorService {
                 );
               }
 
-              const collateral = getCollateral(
+              const leaderCollateral = getCollateral(
                 leaderContract.chainId,
                 t.collateralIndex,
               );
 
-              if (!collateral) {
+              if (!leaderCollateral) {
                 await this.missionsService.closeMany(
                   [{ id: mission.id }],
                   new Map(),
                 );
 
                 throw new Error(
-                  `follower contract doesn't support this collateral index: ${t.collateralIndex}`,
+                  `leader contract doesn't support this collateral index: ${t.collateralIndex}`,
                 );
               }
 
@@ -514,7 +521,7 @@ export class TaskExecutorService {
                         leverage: t.leverage,
                         collateralAmount: BigInt(t.collateralAmount),
                         collateralPriceUsd: BigInt(collateralPriceUsd),
-                        collateral,
+                        collateral: leaderCollateral,
                         isLong: t.long,
                         openPrice: BigInt(t.openPrice),
                         usdcPrice: 100_000_000n,
@@ -523,31 +530,6 @@ export class TaskExecutorService {
                       bot.leaderCollateralBaseline,
                     );
 
-                // if (openMissionParams.collateralAmount > 0n) {
-                //   const result = await this.followerService.depositAsset(
-                //     task.mission.bot.plan.userId,
-                //     {
-                //       address: follower.address,
-                //       contract: followerContract,
-                //       amount: openMissionParams.collateralAmount,
-                //       kind: 'usdc',
-                //     },
-                //   );
-
-                //   if (!result) {
-                //     await this.logger.log({
-                //       severity: 'Error',
-                //       summary: 'TaskExecutorService>performTask',
-                //       details: 'Failed at borrowing usdc from vault',
-                //     });
-
-                //     return {
-                //       success: 'failed',
-                //       message: `Failed at borrowing usdc from vault`,
-                //     };
-                //   }
-                // }
-
                 tx = await this.gnsService.openTrade({
                   mnemonic,
                   accountIndex: follower.accountIndex,
@@ -555,13 +537,20 @@ export class TaskExecutorService {
                   args: {
                     trade: {
                       ...openMissionParams,
+                      collateralAmount: BigInt(
+                        Math.floor(
+                          (Number(openMissionParams.collateralAmount) *
+                            Number(followerCollateral.precision)) /
+                            1e6,
+                        ),
+                      ),
                       user: follower.address as Address,
                       index: 0,
                       pairIndex: t.pairIndex,
                       isOpen: true,
                       collateralIndex:
-                        USDCCollateralIndex[
-                          followerContract.chainId as keyof typeof USDCCollateralIndex
+                        MainCollateralIndex[
+                          followerContract.chainId as keyof typeof MainCollateralIndex
                         ],
                       tradeType: TradeType.TRADE,
                       isCounterTrade: false,
@@ -596,12 +585,6 @@ export class TaskExecutorService {
                 });
 
                 if (tx) {
-                  // await this.followerService.withdrawAllUSDC(
-                  //   task.mission.bot.plan.userId,
-                  //   follower.address,
-                  //   followerContract.id,
-                  // );
-
                   return {
                     success: 'success',
                     message: `Task achieved tx: ${tx}`,
@@ -717,31 +700,6 @@ export class TaskExecutorService {
                 bot.leaderCollateralBaseline,
               );
 
-              // if (openMissionParams.collateralAmount > 0n) {
-              //   const result = await this.followerService.depositAsset(
-              //     task.mission.bot.plan.userId,
-              //     {
-              //       address: follower.address,
-              //       contract: followerContract,
-              //       amount: openMissionParams.collateralAmount,
-              //       kind: 'usdc',
-              //     },
-              //   );
-
-              //   if (!result) {
-              //     await this.logger.log({
-              //       severity: 'Error',
-              //       summary: 'TaskExecutorService>performTask',
-              //       details: 'Failed at borrowing usdc from vault',
-              //     });
-
-              //     return {
-              //       success: 'failed',
-              //       message: `Failed at borrowing usdc from vault`,
-              //     };
-              //   }
-              // }
-
               tx = await this.gnsService.openTrade({
                 mnemonic,
                 accountIndex: follower.accountIndex,
@@ -749,13 +707,20 @@ export class TaskExecutorService {
                 args: {
                   trade: {
                     ...openMissionParams,
+                    collateralAmount: BigInt(
+                      Math.floor(
+                        (Number(openMissionParams.collateralAmount) *
+                          Number(followerCollateral.precision)) /
+                          1e6,
+                      ),
+                    ),
                     user: follower.address as Address,
                     index: 0,
                     pairIndex: pairIndex,
                     isOpen: true,
                     collateralIndex:
-                      USDCCollateralIndex[
-                        followerContract.chainId as keyof typeof USDCCollateralIndex
+                      MainCollateralIndex[
+                        followerContract.chainId as keyof typeof MainCollateralIndex
                       ],
                     tradeType: TradeType.TRADE,
                     isCounterTrade: false,
@@ -847,29 +812,6 @@ export class TaskExecutorService {
                     message: `Skipped this position size update because collateral delta is too small`,
                   };
                 }
-
-                // const result = await this.followerService.depositAsset(
-                //   task.mission.bot.plan.userId,
-                //   {
-                //     address: follower.address,
-                //     contract: followerContract,
-                //     amount: increaseParams.collateralDelta,
-                //     kind: 'usdc',
-                //   },
-                // );
-
-                // if (!result) {
-                //   await this.logger.log({
-                //     severity: 'Error',
-                //     summary: 'TaskExecutorService>performTask',
-                //     details: `Failed at borrowing usdc from vault`,
-                //   });
-
-                //   return {
-                //     success: 'failed',
-                //     message: `Failed at borrowing usdc from vault`,
-                //   };
-                // }
               }
 
               tx = await this.gnsService.increasePositionSize({
@@ -878,6 +820,13 @@ export class TaskExecutorService {
                 contractId: followerContract.id,
                 args: {
                   ...increaseParams,
+                  collateralDelta: BigInt(
+                    Math.floor(
+                      (Number(increaseParams.collateralDelta) *
+                        Number(followerCollateral.precision)) /
+                        1e6,
+                    ),
+                  ),
                   index: achievePosition!.index,
                   maxSlippageP: 1000,
                 },
@@ -905,12 +854,6 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                // await this.followerService.withdrawAllUSDC(
-                //   task.mission.bot.plan.userId,
-                //   follower.address,
-                //   followerContract.id,
-                // );
-
                 return {
                   success: 'success',
                   message: `Task achieved tx: ${tx}`,
@@ -973,12 +916,6 @@ export class TaskExecutorService {
               });
 
               if (tx) {
-                // await this.followerService.withdrawAllUSDC(
-                //   task.mission.bot.plan.userId,
-                //   follower.address,
-                //   followerContract.id,
-                // );
-
                 return {
                   success: 'success',
                   message: `Task achieved tx: ${tx}`,
@@ -1038,7 +975,7 @@ export class TaskExecutorService {
                 );
 
                 throw new Error(
-                  `Follower contract doesn't support this pair name: ${pairName}`,
+                  `Leader contract doesn't support this pair name: ${pairName}`,
                 );
               }
 
@@ -1087,31 +1024,6 @@ export class TaskExecutorService {
                   bot.leaderCollateralBaseline,
                 );
 
-                // if (openMissionParams.collateralAmount > 0n) {
-                //   const result = await this.followerService.depositAsset(
-                //     task.mission.bot.plan.userId,
-                //     {
-                //       address: follower.address,
-                //       contract: followerContract,
-                //       amount: openMissionParams.collateralAmount,
-                //       kind: 'usdc',
-                //     },
-                //   );
-
-                //   if (!result) {
-                //     await this.logger.log({
-                //       severity: 'Error',
-                //       summary: 'TaskExecutorService>performTask',
-                //       details: 'Failed at borrowing usdc from vault',
-                //     });
-
-                //     return {
-                //       success: 'failed',
-                //       message: `Failed at borrowing usdc from vault`,
-                //     };
-                //   }
-                // }
-
                 tx = await this.gnsService.openTrade({
                   mnemonic,
                   accountIndex: follower.accountIndex,
@@ -1119,13 +1031,20 @@ export class TaskExecutorService {
                   args: {
                     trade: {
                       ...openMissionParams,
+                      collateralAmount: BigInt(
+                        Math.floor(
+                          (Number(openMissionParams.collateralAmount) *
+                            Number(followerCollateral.precision)) /
+                            1e6,
+                        ),
+                      ),
                       user: follower.address as Address,
                       index: 0,
                       pairIndex,
                       isOpen: true,
                       collateralIndex:
-                        USDCCollateralIndex[
-                          followerContract.chainId as keyof typeof USDCCollateralIndex
+                        MainCollateralIndex[
+                          followerContract.chainId as keyof typeof MainCollateralIndex
                         ],
                       tradeType: TradeType.TRADE,
                       isCounterTrade: false,
@@ -1160,12 +1079,6 @@ export class TaskExecutorService {
                 });
 
                 if (tx) {
-                  // await this.followerService.withdrawAllUSDC(
-                  //   task.mission.bot.plan.userId,
-                  //   follower.address,
-                  //   followerContract.id,
-                  // );
-
                   return {
                     success: 'success',
                     message: `Task achieved tx: ${tx}`,
