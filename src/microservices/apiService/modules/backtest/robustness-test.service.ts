@@ -116,7 +116,11 @@ export class RobustnessTestService {
 
   /**
    * Generate robustness test steps (Entry Point Robustness Test)
-   * Each step shifts the start date while keeping end date fixed
+   * Each step tests a window of EQUAL duration with shifted start points.
+   * This ensures fair comparison across all robustness tests.
+   *
+   * Window duration is 80% of total period to allow meaningful shifts.
+   * Steps are evenly distributed across the remaining 20% shift range.
    */
   private createRobustnessSteps(
     startDate: Date,
@@ -124,17 +128,23 @@ export class RobustnessTestService {
     numSteps: number,
   ): RobustnessStep[] {
     const totalMs = endDate.getTime() - startDate.getTime();
-    const stepMs = totalMs / numSteps;
+
+    // Use 80% of total period as window duration for each step
+    // This leaves 20% as the shift range
+    const windowDuration = totalMs * 0.8;
+    const shiftRange = totalMs - windowDuration; // 20% of total
+    const shiftStep = numSteps > 1 ? shiftRange / (numSteps - 1) : 0;
 
     const steps: RobustnessStep[] = [];
 
     for (let i = 0; i < numSteps; i++) {
-      const shiftedStart = new Date(startDate.getTime() + i * stepMs);
+      const shiftedStart = new Date(startDate.getTime() + i * shiftStep);
+      const shiftedEnd = new Date(shiftedStart.getTime() + windowDuration);
 
       steps.push({
         stepIndex: i,
         startDate: shiftedStart,
-        endDate: endDate, // Fixed end date
+        endDate: shiftedEnd,
       });
     }
 

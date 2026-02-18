@@ -127,24 +127,85 @@ export class ParetoSelectionService {
   }
 
   /**
-   * Compute Pareto front using non-dominated sorting
+   * Compute Pareto front using non-dominated sorting (NSGA-II style)
+   * Assigns proper Pareto ranks: 0 = Pareto front, 1 = second front, etc.
    */
   private computeParetoFront(
     candidates: CandidateWithMetrics[],
     metrics: string[],
   ): CandidateWithMetrics[] {
-    // For each candidate, check if it's dominated by any other candidate
+    // Initialize all candidates
     for (const candidate of candidates) {
-      candidate.paretoRank = 0;
+      candidate.paretoRank = -1; // Unassigned
       candidate.dominatedBy = [];
+    }
 
-      for (const other of candidates) {
-        if (candidate.id === other.id) continue;
+    // Build domination relationships
+    const dominationCount = new Map<string, number>(); // How many dominate this candidate
+    const dominates = new Map<string, string[]>(); // Who this candidate dominates
 
-        if (this.dominates(other, candidate, metrics)) {
-          candidate.dominatedBy.push(other.id);
-          candidate.paretoRank = Math.max(candidate.paretoRank, 1);
+    for (const candidate of candidates) {
+      dominationCount.set(candidate.id, 0);
+      dominates.set(candidate.id, []);
+    }
+
+    // Compare all pairs
+    for (let i = 0; i < candidates.length; i++) {
+      for (let j = i + 1; j < candidates.length; j++) {
+        const a = candidates[i];
+        const b = candidates[j];
+
+        if (this.dominates(a, b, metrics)) {
+          // a dominates b
+          dominates.get(a.id)!.push(b.id);
+          dominationCount.set(b.id, dominationCount.get(b.id)! + 1);
+          b.dominatedBy!.push(a.id);
+        } else if (this.dominates(b, a, metrics)) {
+          // b dominates a
+          dominates.get(b.id)!.push(a.id);
+          dominationCount.set(a.id, dominationCount.get(a.id)! + 1);
+          a.dominatedBy!.push(b.id);
         }
+        // If neither dominates, they are non-dominated with respect to each other
+      }
+    }
+
+    // Assign Pareto ranks using fronts
+    const candidateMap = new Map(candidates.map((c) => [c.id, c]));
+    let currentRank = 0;
+    let remaining = new Set(candidates.map((c) => c.id));
+
+    while (remaining.size > 0) {
+      // Find all non-dominated candidates in current set
+      const currentFront: string[] = [];
+
+      for (const id of remaining) {
+        // Count how many dominators are still in the remaining set
+        const candidate = candidateMap.get(id)!;
+        const activeDominators = candidate.dominatedBy!.filter((d) =>
+          remaining.has(d),
+        );
+
+        if (activeDominators.length === 0) {
+          currentFront.push(id);
+        }
+      }
+
+      // Assign rank to current front
+      for (const id of currentFront) {
+        candidateMap.get(id)!.paretoRank = currentRank;
+        remaining.delete(id);
+      }
+
+      currentRank++;
+
+      // Safety check to prevent infinite loop
+      if (currentFront.length === 0 && remaining.size > 0) {
+        // This shouldn't happen, but assign remaining to current rank
+        for (const id of remaining) {
+          candidateMap.get(id)!.paretoRank = currentRank;
+        }
+        break;
       }
     }
 

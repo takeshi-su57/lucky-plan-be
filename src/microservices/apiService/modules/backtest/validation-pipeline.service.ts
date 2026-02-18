@@ -8,7 +8,6 @@ import { ClientProxy } from '@nestjs/microservices';
 import {
   ValidationPipelineStatus,
   ValidationCandidateStatus,
-  TemplateSearchStatus,
 } from 'generated/prisma/client';
 import { firstValueFrom } from 'rxjs';
 
@@ -61,49 +60,48 @@ export class ValidationPipelineService {
       );
     }
 
-    if (search.status !== TemplateSearchStatus.DONE) {
-      throw new BadRequestException(
-        `TemplateSearch must be DONE to create validation pipeline. Current status: ${search.status}`,
-      );
-    }
-
     if (!search.task || search.task.results.length === 0) {
       throw new BadRequestException(
         'TemplateSearch has no backtest results to validate',
       );
     }
 
-    // Create the pipeline
-    const pipeline = await this.prismaService.validationPipeline.create({
-      data: {
-        name: input.name,
-        templateSearchId: input.templateSearchId,
-        status: ValidationPipelineStatus.CREATED,
-        thresholdConfig: input.thresholdConfig as object,
-        paretoMetrics: input.paretoMetrics || [
-          'sharpeRatio',
-          'totalPnlPercent',
-          'maxDrawdownPercent',
-        ],
-        wfaTrainRatio: input.wfaTrainRatio ?? 0.7,
-        wfaWindows: input.wfaWindows ?? 3,
-        wfaMinConsistency: input.wfaMinConsistency ?? 0.6,
-        robustnessSteps: input.robustnessSteps ?? 10,
-        robustnessMinScore: input.robustnessMinScore ?? 0.7,
-        totalCandidates: search.task.results.length,
-      },
-    });
+    // Use transaction to ensure pipeline and candidates are created atomically
+    const pipeline = await this.prismaService.$transaction(async (tx) => {
+      // Create the pipeline
+      const newPipeline = await tx.validationPipeline.create({
+        data: {
+          name: input.name,
+          templateSearchId: input.templateSearchId,
+          status: ValidationPipelineStatus.CREATED,
+          thresholdConfig: input.thresholdConfig as object,
+          paretoMetrics: input.paretoMetrics || [
+            'sharpeRatio',
+            'totalPnlPercent',
+            'maxDrawdownPercent',
+          ],
+          wfaTrainRatio: input.wfaTrainRatio ?? 0.7,
+          wfaWindows: input.wfaWindows ?? 3,
+          wfaMinConsistency: input.wfaMinConsistency ?? 0.6,
+          robustnessSteps: input.robustnessSteps ?? 10,
+          robustnessMinScore: input.robustnessMinScore ?? 0.7,
+          totalCandidates: search.task?.results.length ?? 0,
+        },
+      });
 
-    // Create ValidationCandidate for each result
-    const candidateData = search.task.results.map((result) => ({
-      pipelineId: pipeline.id,
-      resultId: result.id,
-      configId: result.configId,
-      status: ValidationCandidateStatus.PENDING,
-    }));
+      // Create ValidationCandidate for each result
+      const candidateData = search.task?.results.map((result) => ({
+        pipelineId: newPipeline.id,
+        resultId: result.id,
+        configId: result.configId,
+        status: ValidationCandidateStatus.PENDING,
+      }));
 
-    await this.prismaService.validationCandidate.createMany({
-      data: candidateData,
+      await tx.validationCandidate.createMany({
+        data: candidateData || [],
+      });
+
+      return newPipeline;
     });
 
     await firstValueFrom(
@@ -337,6 +335,7 @@ export class ValidationPipelineService {
 
   /**
    * Submit user selection (Layer 4)
+   * Uses transaction to ensure atomic updates of selected/rejected candidates
    */
   async submitUserSelection(
     pipelineId: string,
@@ -358,31 +357,33 @@ export class ValidationPipelineService {
 
     const now = new Date();
 
-    // Mark selected candidates
-    await this.prismaService.validationCandidate.updateMany({
-      where: {
-        pipelineId,
-        id: { in: input.selectedCandidateIds },
-        status: ValidationCandidateStatus.WFA_PASSED,
-      },
-      data: {
-        status: ValidationCandidateStatus.USER_SELECTED,
-        userSelectedAt: now,
-        userNotes: input.notes,
-      },
-    });
-
-    // Mark non-selected candidates as rejected
-    await this.prismaService.validationCandidate.updateMany({
-      where: {
-        pipelineId,
-        id: { notIn: input.selectedCandidateIds },
-        status: ValidationCandidateStatus.WFA_PASSED,
-      },
-      data: {
-        status: ValidationCandidateStatus.USER_REJECTED,
-      },
-    });
+    // Use transaction to ensure atomic updates
+    await this.prismaService.$transaction([
+      // Mark selected candidates
+      this.prismaService.validationCandidate.updateMany({
+        where: {
+          pipelineId,
+          id: { in: input.selectedCandidateIds },
+          status: ValidationCandidateStatus.WFA_PASSED,
+        },
+        data: {
+          status: ValidationCandidateStatus.USER_SELECTED,
+          userSelectedAt: now,
+          userNotes: input.notes,
+        },
+      }),
+      // Mark non-selected candidates as rejected
+      this.prismaService.validationCandidate.updateMany({
+        where: {
+          pipelineId,
+          id: { notIn: input.selectedCandidateIds },
+          status: ValidationCandidateStatus.WFA_PASSED,
+        },
+        data: {
+          status: ValidationCandidateStatus.USER_REJECTED,
+        },
+      }),
+    ]);
 
     // Update stats and move to next layer
     await this.updateStats(pipelineId);
@@ -391,11 +392,19 @@ export class ValidationPipelineService {
     const result = await this.prismaService.validationPipeline.findUnique({
       where: { id: pipelineId },
     });
-    return result!;
+
+    if (!result) {
+      throw new NotFoundException(
+        `Pipeline ${pipelineId} was deleted during user selection`,
+      );
+    }
+
+    return result;
   }
 
   /**
    * Submit final approval (Layer 6)
+   * Uses transaction to ensure atomic updates of approved/rejected candidates
    */
   async submitFinalApproval(
     pipelineId: string,
@@ -417,31 +426,33 @@ export class ValidationPipelineService {
 
     const now = new Date();
 
-    // Mark approved candidates
-    await this.prismaService.validationCandidate.updateMany({
-      where: {
-        pipelineId,
-        id: { in: input.approvedCandidateIds },
-        status: ValidationCandidateStatus.ROBUSTNESS_PASSED,
-      },
-      data: {
-        status: ValidationCandidateStatus.FINAL_APPROVED,
-        finalApprovedAt: now,
-        finalNotes: input.notes,
-      },
-    });
-
-    // Mark non-approved candidates as rejected
-    await this.prismaService.validationCandidate.updateMany({
-      where: {
-        pipelineId,
-        id: { notIn: input.approvedCandidateIds },
-        status: ValidationCandidateStatus.ROBUSTNESS_PASSED,
-      },
-      data: {
-        status: ValidationCandidateStatus.FINAL_REJECTED,
-      },
-    });
+    // Use transaction to ensure atomic updates
+    await this.prismaService.$transaction([
+      // Mark approved candidates
+      this.prismaService.validationCandidate.updateMany({
+        where: {
+          pipelineId,
+          id: { in: input.approvedCandidateIds },
+          status: ValidationCandidateStatus.ROBUSTNESS_PASSED,
+        },
+        data: {
+          status: ValidationCandidateStatus.FINAL_APPROVED,
+          finalApprovedAt: now,
+          finalNotes: input.notes,
+        },
+      }),
+      // Mark non-approved candidates as rejected
+      this.prismaService.validationCandidate.updateMany({
+        where: {
+          pipelineId,
+          id: { notIn: input.approvedCandidateIds },
+          status: ValidationCandidateStatus.ROBUSTNESS_PASSED,
+        },
+        data: {
+          status: ValidationCandidateStatus.FINAL_REJECTED,
+        },
+      }),
+    ]);
 
     // Update stats and mark pipeline as completed
     await this.updateStats(pipelineId);

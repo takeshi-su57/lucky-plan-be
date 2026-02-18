@@ -77,8 +77,19 @@ export class ThresholdFilterService {
 
     let passedCount = 0;
     let failedCount = 0;
+    let skippedCount = 0;
 
     for (const candidate of candidates) {
+      // Skip candidates without result data (data integrity issue)
+      if (!candidate.result) {
+        await this.logger.log({
+          severity: 'Warning',
+          summary: `Candidate ${candidate.id} has no result data, skipping`,
+        });
+        skippedCount++;
+        continue;
+      }
+
       const metrics: CandidateMetrics = {
         sharpeRatio: candidate.result.sharpeRatio,
         winRate: candidate.result.winRate,
@@ -125,7 +136,7 @@ export class ThresholdFilterService {
     await this.logger.log({
       severity: 'Info',
       summary: `Threshold filter completed for pipeline ${pipelineId}`,
-      details: `Passed: ${passedCount}, Failed: ${failedCount}`,
+      details: `Passed: ${passedCount}, Failed: ${failedCount}${skippedCount > 0 ? `, Skipped: ${skippedCount}` : ''}`,
     });
   }
 

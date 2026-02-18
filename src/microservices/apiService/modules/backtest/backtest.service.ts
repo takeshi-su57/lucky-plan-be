@@ -570,11 +570,17 @@ export class BacktestService {
       throw new NotFoundException(`Task ${id} not found`);
     }
 
-    // Delete result files from filesystem
-    this.deleteResultFolder(
-      id,
-      task.startDate?.toISOString().split('T')[0] || '',
-    );
+    // Get all unique runDates from results to delete the correct folders
+    const results = await this.prismaService.backtestResult.findMany({
+      where: { taskId: id },
+      select: { runDate: true },
+      distinct: ['runDate'],
+    });
+
+    // Delete result files from filesystem for each runDate
+    for (const result of results) {
+      this.deleteResultFolder(id, result.runDate);
+    }
 
     // Cascade delete will remove results from DB
     await this.prismaService.backtestTask.delete({
