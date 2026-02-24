@@ -511,16 +511,12 @@ enum TemplateSearchStatus {
 
 enum ValidationPipelineStatus {
   CREATED
-  LAYER_1_RUNNING
-  LAYER_1_DONE
-  LAYER_2_RUNNING
-  LAYER_2_DONE
-  LAYER_3_RUNNING
-  LAYER_3_DONE
-  AWAITING_USER_SELECTION
-  LAYER_5_RUNNING
-  LAYER_5_DONE
-  AWAITING_FINAL_APPROVAL
+  STEP_THRESHOLD
+  STEP_PARETO
+  STEP_WFA
+  STEP_USER_SELECTION
+  STEP_ROBUSTNESS
+  STEP_FINAL_APPROVAL
   COMPLETED
   FAILED
   CANCELLED
@@ -528,34 +524,18 @@ enum ValidationPipelineStatus {
 
 enum ValidationCandidateStatus {
   PENDING
-  PASSED_THRESHOLD
-  FAILED_THRESHOLD
+  ACTIVE
+  THRESHOLD_ELIMINATED
   PARETO_OPTIMAL
   PARETO_DOMINATED
-  WFA_PENDING
   WFA_PASSED
   WFA_FAILED
   USER_SELECTED
   USER_REJECTED
-  ROBUSTNESS_PENDING
   ROBUSTNESS_PASSED
   ROBUSTNESS_FAILED
   FINAL_APPROVED
   FINAL_REJECTED
-}
-
-enum WalkForwardStatus {
-  PENDING
-  PROCESSING
-  DONE
-  FAILED
-}
-
-enum RobustnessTestStatus {
-  PENDING
-  PROCESSING
-  DONE
-  FAILED
 }
 
 model StrategyTemplate {
@@ -591,8 +571,7 @@ model TemplateSearch {
   completedAt    DateTime?
   errorMessage   String?
 
-  task                BacktestTask? // 1:1 relation with BacktestTask
-  validationPipelines ValidationPipeline[]
+  task BacktestTask? // 1:1 relation with BacktestTask
 
   @@index([status, createdAt])
   @@index([templateId])
@@ -643,7 +622,8 @@ model BacktestTask {
   errorMessage String?
 
   // Relations
-  results BacktestResult[]
+  results             BacktestResult[]
+  validationPipelines ValidationPipeline[]
 
   // Template relations (nullable for backwards compatibility)
   templateSearchId String?           @unique // 1:1 relation with TemplateSearch
@@ -698,26 +678,23 @@ model BacktestResult {
 // ============================================
 
 model ValidationPipeline {
-  id               String                   @id @default(uuid())
-  name             String
-  templateSearchId String
-  templateSearch   TemplateSearch           @relation(fields: [templateSearchId], references: [id])
-  status           ValidationPipelineStatus @default(CREATED)
+  id             String                   @id @default(uuid())
+  name           String
+  backtestTaskId String
+  backtestTask   BacktestTask             @relation(fields: [backtestTaskId], references: [id])
+  status         ValidationPipelineStatus @default(CREATED)
 
-  // Layer 1: Threshold config
-  thresholdConfig Json // { minSharpe: 1.0, maxDrawdown: 20, minWinRate: 0.4, ... }
+  // Current step tracking (1-7)
+  currentStep Int @default(1)
 
-  // Layer 2: Pareto config
-  paretoMetrics String[] // ["sharpeRatio", "totalPnlPercent", "maxDrawdownPercent"]
+  // Step configs (set incrementally as user reaches each step)
+  paretoConfig     Json? // { metrics: ["sharpeRatio", ...] }
+  wfaConfig        Json? // { trainRatio, windows, minConsistency }
+  robustnessConfig Json? // { steps, minScore }
 
-  // Layer 3: WFA config
-  wfaTrainRatio     Float @default(0.7) // 70% train, 30% test
-  wfaWindows        Int   @default(3) // Number of walk-forward windows
-  wfaMinConsistency Float @default(0.6) // Min consistency score to pass
-
-  // Layer 5: Robustness config
-  robustnessSteps    Int   @default(10) // Number of startDate iterations
-  robustnessMinScore Float @default(0.7) // Min stability score to pass
+  // Progress tracking for per-window/per-step execution
+  wfaCompletedWindows    Int @default(0)
+  robustnessCompletedSteps Int @default(0)
 
   // Stats
   totalCandidates  Int @default(0)
@@ -734,10 +711,12 @@ model ValidationPipeline {
   completedAt  DateTime?
   errorMessage String?
 
-  candidates ValidationCandidate[]
+  candidates     ValidationCandidate[]
+  thresholdSteps ThresholdStep[]
+  paretoSteps    ParetoStep[]
 
   @@index([status])
-  @@index([templateSearchId])
+  @@index([backtestTaskId])
 }
 
 model ValidationCandidate {
@@ -749,89 +728,74 @@ model ValidationCandidate {
   configId   String // Reference to original config
   status     ValidationCandidateStatus @default(PENDING)
 
-  // Layer 1 results
-  thresholdPassed  Boolean?
-  thresholdDetails Json? // { sharpeRatio: { value: 1.5, passed: true }, ... }
+  // Threshold results
+  thresholdPassed Boolean?
 
-  // Layer 2 results
+  // Pareto results
   paretoRank  Int? // 0 = Pareto front, 1+ = dominated
   dominatedBy String[] // IDs of candidates that dominate this one
 
-  // Layer 3 results (aggregated from WalkForwardResult)
-  wfaConsistency Float? // Overall consistency score 0-1
-  wfaPassed      Boolean?
+  // WFA results (aggregated + per-window JSON)
+  wfaConsistency   Float? // Overall consistency score 0-1
+  wfaPassed        Boolean?
+  wfaWindowResults Json? // [{ windowIndex, consistency, degradation, status }]
 
-  // Layer 4 results
+  // User selection results
   userSelectedAt DateTime?
   userNotes      String?
 
-  // Layer 5 results (aggregated from RobustnessTest)
-  robustnessScore  Float? // Overall stability score 0-1
-  robustnessPassed Boolean?
+  // Robustness results (aggregated + per-step JSON)
+  robustnessScore       Float? // Overall stability score 0-1
+  robustnessPassed      Boolean?
+  robustnessStepResults Json? // [{ stepIndex, sharpeRatio, totalPnl, maxDrawdown, status }]
 
-  // Layer 6 results
+  // Final approval results
   finalApprovedAt DateTime?
   finalNotes      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  walkForwardResults WalkForwardResult[]
-  robustnessTests    RobustnessTest[]
-
   @@unique([pipelineId, resultId])
   @@index([pipelineId, status])
   @@index([resultId])
 }
 
-model WalkForwardResult {
-  id          String              @id @default(uuid())
-  candidateId String
-  candidate   ValidationCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  windowIndex Int // 0, 1, 2, ...
-  status      WalkForwardStatus   @default(PENDING)
+model ThresholdStep {
+  id         String             @id @default(uuid())
+  pipelineId String
+  pipeline   ValidationPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 
-  // Train period
-  trainStart   DateTime
-  trainEnd     DateTime
-  trainMetrics Json? // Metrics from training period
+  stepOrder  Int    // 1, 2, 3, ... (order added by user)
+  metricName String // e.g., "sharpeRatio", "winRate"
+  operator   String // "gte", "lte"
+  value      Float  // threshold value
 
-  // Test period
-  testStart   DateTime
-  testEnd     DateTime
-  testMetrics Json? // Metrics from test period
+  // Result of applying this filter
+  candidatesBefore Int
+  candidatesAfter  Int
 
-  // Comparison
-  consistency Float? // How well test matches train (0-1)
-  degradation Float? // Performance drop from train to test
+  createdAt DateTime @default(now())
 
-  errorMessage String?
-  createdAt    DateTime @default(now())
-
-  @@unique([candidateId, windowIndex])
-  @@index([candidateId])
+  @@unique([pipelineId, stepOrder])
+  @@index([pipelineId])
 }
 
-model RobustnessTest {
-  id          String               @id @default(uuid())
-  candidateId String
-  candidate   ValidationCandidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  stepIndex   Int // 0, 1, 2, ... (startDate iteration)
-  status      RobustnessTestStatus @default(PENDING)
+model ParetoStep {
+  id         String             @id @default(uuid())
+  pipelineId String
+  pipeline   ValidationPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 
-  // Sliding window
-  startDate DateTime // Shifted startDate
-  endDate   DateTime // Fixed endDate
+  stepOrder        Int      // 1, 2, 3, ... (order added by user)
+  metrics          String[] // e.g., ["sharpeRatio", "totalPnlPercent"]
+  optimalCandidateIds String[] // IDs of candidates that are Pareto-optimal for this run
 
-  // Results
-  metrics     Json? // Backtest metrics for this window
-  sharpeRatio Float?
-  totalPnl    Float?
-  maxDrawdown Float?
+  // Result of applying this run
+  candidatesBefore Int
+  candidatesAfter  Int // how many are pareto-optimal for THIS run
 
-  errorMessage String?
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  @@unique([candidateId, stepIndex])
-  @@index([candidateId])
+  @@unique([pipelineId, stepOrder])
+  @@index([pipelineId])
 }

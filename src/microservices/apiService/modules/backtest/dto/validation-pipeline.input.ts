@@ -16,50 +16,6 @@ import {
 } from 'generated/prisma/client';
 
 @InputType()
-export class ThresholdConfigInput {
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  minSharpeRatio?: number;
-
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  maxSharpeRatio?: number;
-
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  minWinRate?: number;
-
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  minProfitFactor?: number;
-
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  maxDrawdownPercent?: number;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  minTotalTrades?: number;
-
-  @Field(() => Float, { nullable: true })
-  @IsOptional()
-  @IsNumber()
-  minTotalPnlPercent?: number;
-}
-
-@InputType()
 export class CreateValidationPipelineInput {
   @Field()
   @IsNotEmpty()
@@ -69,55 +25,136 @@ export class CreateValidationPipelineInput {
   @Field(() => ID)
   @IsNotEmpty()
   @IsString()
-  templateSearchId: string;
+  backtestTaskId: string;
+}
 
-  @Field(() => ThresholdConfigInput)
+@InputType()
+export class ApplyThresholdStepInput {
+  @Field(() => ID)
   @IsNotEmpty()
-  thresholdConfig: ThresholdConfigInput;
+  @IsString()
+  pipelineId: string;
 
-  @Field(() => [String], {
-    defaultValue: ['sharpeRatio', 'totalPnlPercent', 'maxDrawdownPercent'],
-    nullable: true,
-  })
-  @IsOptional()
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  metricName: string;
+
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  operator: string; // "gte" or "lte"
+
+  @Field(() => Float)
+  @IsNumber()
+  value: number;
+}
+
+@InputType()
+export class PreviewThresholdStepInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  metricName: string;
+
+  @Field()
+  @IsNotEmpty()
+  @IsString()
+  operator: string;
+
+  @Field(() => Float)
+  @IsNumber()
+  value: number;
+}
+
+@InputType()
+export class ApplyParetoStepInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field(() => [String])
   @IsArray()
   @IsString({ each: true })
-  paretoMetrics?: string[];
+  metrics: string[];
+}
 
-  @Field(() => Float, { defaultValue: 0.7, nullable: true })
-  @IsOptional()
+@InputType()
+export class PreviewParetoStepInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field(() => [String])
+  @IsArray()
+  @IsString({ each: true })
+  metrics: string[];
+}
+
+@InputType()
+export class StartWfaInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field(() => Float)
   @IsNumber()
   @Min(0.1)
   @Max(0.9)
-  wfaTrainRatio?: number;
+  trainRatio: number;
 
-  @Field(() => Int, { defaultValue: 3, nullable: true })
-  @IsOptional()
+  @Field(() => Int)
   @IsInt()
   @Min(1)
   @Max(10)
-  wfaWindows?: number;
+  windows: number;
 
-  @Field(() => Float, { defaultValue: 0.6, nullable: true })
-  @IsOptional()
+  @Field(() => Float)
   @IsNumber()
   @Min(0)
   @Max(1)
-  wfaMinConsistency?: number;
+  minConsistency: number;
+}
 
-  @Field(() => Int, { defaultValue: 10, nullable: true })
-  @IsOptional()
+@InputType()
+export class ConfigureRobustnessInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field(() => Int)
   @IsInt()
   @Min(2)
   @Max(50)
-  robustnessSteps?: number;
+  steps: number;
 
-  @Field(() => Float, { defaultValue: 0.7, nullable: true })
-  @IsOptional()
+  @Field(() => Float)
   @IsNumber()
   @Min(0)
   @Max(1)
-  robustnessMinScore?: number;
+  minScore: number;
+}
+
+@InputType()
+export class RunRobustnessStepInput {
+  @Field(() => ID)
+  @IsNotEmpty()
+  @IsString()
+  pipelineId: string;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(0)
+  stepIndex: number;
 }
 
 @InputType()
@@ -158,7 +195,7 @@ export class ValidationPipelineFilterInput {
   @Field(() => ID, { nullable: true })
   @IsOptional()
   @IsString()
-  templateSearchId?: string;
+  backtestTaskId?: string;
 
   @Field(() => Int, { defaultValue: 20 })
   @IsOptional()

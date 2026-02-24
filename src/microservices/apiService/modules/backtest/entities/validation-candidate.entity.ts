@@ -10,8 +10,6 @@ import { JSONScalar } from 'src/global/global.module';
 import { Prisma, ValidationCandidateStatus } from 'generated/prisma/client';
 
 import { BacktestResult } from './backtest-result.entity';
-import { WalkForwardResult } from './walk-forward-result.entity';
-import { RobustnessTest } from './robustness-test.entity';
 
 registerEnumType(ValidationCandidateStatus, {
   name: 'ValidationCandidateStatus',
@@ -38,9 +36,6 @@ export class ValidationCandidate {
   @Field(() => Boolean, { nullable: true })
   thresholdPassed?: boolean | null;
 
-  @Field(() => JSONScalar, { nullable: true })
-  thresholdDetails?: Prisma.JsonValue | null;
-
   @Field(() => Int, { nullable: true })
   paretoRank?: number | null;
 
@@ -53,6 +48,9 @@ export class ValidationCandidate {
   @Field(() => Boolean, { nullable: true })
   wfaPassed?: boolean | null;
 
+  @Field(() => JSONScalar, { nullable: true, description: 'Per-window WFA results JSON array' })
+  wfaWindowResults?: Prisma.JsonValue | null;
+
   @Field(() => Date, { nullable: true })
   userSelectedAt?: Date | null;
 
@@ -64,6 +62,9 @@ export class ValidationCandidate {
 
   @Field(() => Boolean, { nullable: true })
   robustnessPassed?: boolean | null;
+
+  @Field(() => JSONScalar, { nullable: true, description: 'Per-step robustness results JSON array' })
+  robustnessStepResults?: Prisma.JsonValue | null;
 
   @Field(() => Date, { nullable: true })
   finalApprovedAt?: Date | null;
@@ -84,11 +85,13 @@ export class ValidationCandidateWithResult extends ValidationCandidate {
   result: BacktestResult;
 }
 
-@ObjectType()
-export class ValidationCandidateWithDetails extends ValidationCandidateWithResult {
-  @Field(() => [WalkForwardResult])
-  walkForwardResults: WalkForwardResult[];
+@ObjectType({
+  description: 'Paginated validation candidates with total count',
+})
+export class PaginatedValidationCandidatesResult {
+  @Field(() => [ValidationCandidateWithResult])
+  candidates: ValidationCandidateWithResult[];
 
-  @Field(() => [RobustnessTest])
-  robustnessTests: RobustnessTest[];
+  @Field(() => Int)
+  totalCount: number;
 }

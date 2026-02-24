@@ -14,8 +14,7 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PATTERNS, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
-import { BacktestTask } from './entities';
-import { BacktestResult } from './entities';
+import { BacktestTask, BacktestResult, ValidationPipeline, ValidationCandidate } from './entities';
 import { BacktestService } from './backtest.service';
 import { StrategyConfig } from 'src/backtest/core/interfaces';
 import { InternalApiGuard } from './internal-api.guard';
@@ -228,6 +227,20 @@ export class BacktestController {
   async handleBacktestResultCreated(@Payload() result: BacktestResult) {
     await this.pubSub.publish(SUBSCRIPTION_TOKEN.backtestResultCreated, {
       [SUBSCRIPTION_TOKEN.backtestResultCreated]: result,
+    });
+  }
+
+  @EventPattern(PATTERNS.Validation.PipelineUpdated)
+  async handleValidationPipelineUpdated(@Payload() pipeline: ValidationPipeline) {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.validationPipelineUpdated, {
+      [SUBSCRIPTION_TOKEN.validationPipelineUpdated]: pipeline,
+    });
+  }
+
+  @EventPattern(PATTERNS.Validation.CandidateUpdated)
+  async handleValidationCandidateUpdated(@Payload() candidate: ValidationCandidate) {
+    await this.pubSub.publish(SUBSCRIPTION_TOKEN.validationCandidateUpdated, {
+      [SUBSCRIPTION_TOKEN.validationCandidateUpdated]: candidate,
     });
   }
 }

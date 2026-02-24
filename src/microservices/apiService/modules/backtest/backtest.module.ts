@@ -17,7 +17,6 @@ import { ThresholdFilterService } from './threshold-filter.service';
 import { ParetoSelectionService } from './pareto-selection.service';
 import { WalkForwardService } from './walk-forward.service';
 import { RobustnessTestService } from './robustness-test.service';
-import { ValidationRunnerService } from './validation-runner.service';
 import { ValidationPipelineResolver } from './validation-pipeline.resolver';
 
 @Module({
@@ -39,7 +38,6 @@ import { ValidationPipelineResolver } from './validation-pipeline.resolver';
     ParetoSelectionService,
     WalkForwardService,
     RobustnessTestService,
-    ValidationRunnerService,
     ValidationPipelineResolver,
   ],
   exports: [

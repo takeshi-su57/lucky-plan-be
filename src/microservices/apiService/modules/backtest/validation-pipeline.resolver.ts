@@ -16,12 +16,24 @@ import {
   ValidationPipelineStats,
   ValidationCandidate,
   ValidationCandidateWithResult,
-  ValidationCandidateWithDetails,
+  PaginatedValidationCandidatesResult,
+  ThresholdStep,
+  ThresholdPreviewResult,
+  ParetoStep,
+  ParetoPreviewResult,
+  RobustnessStepResult,
 } from './entities';
 import {
   CreateValidationPipelineInput,
   ValidationPipelineFilterInput,
   ValidationCandidateFilterInput,
+  ApplyThresholdStepInput,
+  PreviewThresholdStepInput,
+  ApplyParetoStepInput,
+  PreviewParetoStepInput,
+  StartWfaInput,
+  ConfigureRobustnessInput,
+  RunRobustnessStepInput,
   UserSelectionInput,
   FinalApprovalInput,
 } from './dto';
@@ -86,34 +98,44 @@ export class ValidationPipelineResolver {
     return this.validationPipelineService.getPipelineStats();
   }
 
-  @Query(() => ValidationCandidateWithDetails, {
+  @Query(() => ValidationCandidateWithResult, {
     nullable: true,
-    description: 'Get a validation candidate with full details',
+    description: 'Get a validation candidate with result details',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async validationCandidate(
     @Args('id', { type: () => ID }) id: string,
-  ): Promise<ValidationCandidateWithDetails | null> {
+  ): Promise<ValidationCandidateWithResult | null> {
     return this.validationPipelineService.getCandidateWithDetails(id);
   }
 
-  @Query(() => [ValidationCandidateWithResult], {
+  @Query(() => PaginatedValidationCandidatesResult, {
     description: 'Get validation candidates by pipeline and optional status',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   async validationCandidatesByStatus(
     @Args('filter') filter: ValidationCandidateFilterInput,
-  ): Promise<ValidationCandidateWithResult[]> {
+  ): Promise<PaginatedValidationCandidatesResult> {
     return this.validationPipelineService.getCandidatesByStatus(filter);
+  }
+
+  @Query(() => [ThresholdStep], {
+    description: 'Get all threshold steps for a pipeline',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async thresholdSteps(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ThresholdStep[]> {
+    return this.validationPipelineService.getThresholdSteps(pipelineId);
   }
 
   // ==================== MUTATIONS ====================
 
   @Mutation(() => ValidationPipeline, {
-    description:
-      'Create a new validation pipeline from a completed template search',
+    description: 'Create a new validation pipeline from a completed backtest task',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -123,20 +145,188 @@ export class ValidationPipelineResolver {
     return this.validationPipelineService.createPipeline(input);
   }
 
+  // --- Step 2: Threshold ---
+
   @Mutation(() => ValidationPipeline, {
-    description: 'Start a validation pipeline (triggers Layer 1-3 processing)',
+    description: 'Apply a single threshold filter to pipeline candidates',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  async startValidationPipeline(
-    @Args('id', { type: () => ID }) id: string,
+  async applyThresholdStep(
+    @Args('input') input: ApplyThresholdStepInput,
   ): Promise<ValidationPipeline> {
-    return this.validationPipelineService.startPipeline(id);
+    return this.validationPipelineService.applyThresholdStep(
+      input.pipelineId,
+      input.metricName,
+      input.operator,
+      input.value,
+    );
+  }
+
+  @Mutation(() => ThresholdPreviewResult, {
+    description: 'Preview a threshold filter without applying it',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async previewThresholdStep(
+    @Args('input') input: PreviewThresholdStepInput,
+  ): Promise<ThresholdPreviewResult> {
+    return this.validationPipelineService.previewThresholdStep(
+      input.pipelineId,
+      input.metricName,
+      input.operator,
+      input.value,
+    );
   }
 
   @Mutation(() => ValidationPipeline, {
-    description:
-      'Submit user selection of candidates (Layer 4) to proceed to Layer 5',
+    description: 'Remove a threshold step and recalculate',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async removeThresholdStep(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+    @Args('stepId', { type: () => ID }) stepId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.removeThresholdStep(
+      pipelineId,
+      stepId,
+    );
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Complete threshold step and advance to Pareto selection',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async completeThresholdStep(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.completeThresholdStep(pipelineId);
+  }
+
+  // --- Step 3: Pareto ---
+
+  @Query(() => [ParetoStep], {
+    description: 'Get all Pareto steps for a pipeline',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async paretoSteps(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ParetoStep[]> {
+    return this.validationPipelineService.getParetoSteps(pipelineId);
+  }
+
+  @Mutation(() => ParetoPreviewResult, {
+    description: 'Preview Pareto selection without applying it',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async previewParetoStep(
+    @Args('input') input: PreviewParetoStepInput,
+  ): Promise<ParetoPreviewResult> {
+    return this.validationPipelineService.previewParetoStep(
+      input.pipelineId,
+      input.metrics,
+    );
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Apply a Pareto selection run with specified metrics',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async applyParetoStep(
+    @Args('input') input: ApplyParetoStepInput,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.applyParetoStep(
+      input.pipelineId,
+      input.metrics,
+    );
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Remove a Pareto step and recalculate',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async removeParetoStep(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+    @Args('stepId', { type: () => ID }) stepId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.removeParetoStep(
+      pipelineId,
+      stepId,
+    );
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Complete Pareto step and advance to WFA',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async completeParetoStep(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.completeParetoStep(pipelineId);
+  }
+
+  // --- Step 4: Walk-Forward Analysis ---
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Start WFA background process. Returns immediately, progress via subscription.',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async startWfa(
+    @Args('input') input: StartWfaInput,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.startWfa(
+      input.pipelineId,
+      input.trainRatio,
+      input.windows,
+      input.minConsistency,
+    );
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Pause a running WFA process. Takes effect after current candidate finishes.',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async pauseWfa(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.pauseWfa(pipelineId);
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Resume a paused WFA process. Continues from where it left off.',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async resumeWfa(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.resumeWfa(pipelineId);
+  }
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Approve WFA results, remove failed candidates, and advance to user selection',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async completeWfa(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.completeWfa(pipelineId);
+  }
+
+  // --- Step 5: User Selection ---
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Submit user selection of candidates and advance to robustness',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -150,9 +340,55 @@ export class ValidationPipelineResolver {
     );
   }
 
+  // --- Step 6: Robustness ---
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Configure robustness test parameters before running steps',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async configureRobustness(
+    @Args('input') input: ConfigureRobustnessInput,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.configureRobustness(
+      input.pipelineId,
+      {
+        steps: input.steps,
+        minScore: input.minScore,
+      },
+    );
+  }
+
+  @Mutation(() => [RobustnessStepResult], {
+    description: 'Run a single robustness step across all selected candidates',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async runRobustnessStep(
+    @Args('input') input: RunRobustnessStepInput,
+  ): Promise<RobustnessStepResult[]> {
+    return this.validationPipelineService.runRobustnessStep(
+      input.pipelineId,
+      input.stepIndex,
+    );
+  }
+
   @Mutation(() => ValidationPipeline, {
     description:
-      'Submit final approval of candidates (Layer 6) to complete pipeline',
+      'Complete robustness testing, aggregate results, and advance to final approval',
+  })
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async completeRobustness(
+    @Args('pipelineId', { type: () => ID }) pipelineId: string,
+  ): Promise<ValidationPipeline> {
+    return this.validationPipelineService.completeRobustness(pipelineId);
+  }
+
+  // --- Step 7: Final Approval ---
+
+  @Mutation(() => ValidationPipeline, {
+    description: 'Submit final approval of candidates to complete the pipeline',
   })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -165,6 +401,8 @@ export class ValidationPipelineResolver {
       input,
     );
   }
+
+  // --- Pipeline Management ---
 
   @Mutation(() => ValidationPipeline, {
     description: 'Cancel a validation pipeline',

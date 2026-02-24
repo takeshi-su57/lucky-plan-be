@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { ParetoPreviewResult } from './entities';
 
 interface CandidateWithMetrics {
   id: string;
@@ -28,46 +29,153 @@ export class ParetoSelectionService {
   ) {}
 
   /**
-   * Run Pareto selection on all PASSED_THRESHOLD candidates
+   * Preview Pareto selection — in-memory only, no DB writes.
    */
-  async runParetoSelection(pipelineId: string): Promise<void> {
-    const pipeline = await this.prismaService.validationPipeline.findUnique({
-      where: { id: pipelineId },
-    });
+  async previewParetoSelection(
+    pipelineId: string,
+    metrics: string[],
+  ): Promise<ParetoPreviewResult> {
+    const candidates = await this.loadActiveCandidates(pipelineId);
+    const ranked = this.computeParetoFront(
+      candidates.map((c) => ({ ...c })),
+      metrics,
+    );
+    const optimalCount = ranked.filter((c) => c.paretoRank === 0).length;
 
-    if (!pipeline) {
-      throw new Error(`Pipeline ${pipelineId} not found`);
-    }
+    return {
+      currentCount: candidates.length,
+      optimalCount,
+      dominatedCount: candidates.length - optimalCount,
+    };
+  }
 
-    const paretoMetrics = pipeline.paretoMetrics;
-
-    // Get all PASSED_THRESHOLD candidates with their results
-    const candidates = await this.prismaService.validationCandidate.findMany({
-      where: {
-        pipelineId,
-        status: ValidationCandidateStatus.PASSED_THRESHOLD,
-      },
-      include: {
-        result: true,
-      },
-    });
+  /**
+   * Apply a single Pareto run. Returns the IDs of optimal candidates for this run.
+   */
+  async applySingleParetoRun(
+    pipelineId: string,
+    metrics: string[],
+  ): Promise<{ candidatesBefore: number; candidatesAfter: number; optimalIds: string[] }> {
+    const candidates = await this.loadActiveCandidates(pipelineId);
 
     if (candidates.length === 0) {
-      await this.logger.log({
-        severity: 'Info',
-        summary: `No candidates passed threshold filter for pipeline ${pipelineId}`,
-      });
-      return;
+      return { candidatesBefore: 0, candidatesAfter: 0, optimalIds: [] };
     }
+
+    const ranked = this.computeParetoFront(candidates, metrics);
+    const optimalIds = ranked
+      .filter((c) => c.paretoRank === 0)
+      .map((c) => c.id);
 
     await this.logger.log({
       severity: 'Info',
-      summary: `Running Pareto selection for pipeline ${pipelineId}`,
-      details: `Processing ${candidates.length} candidates with metrics: ${paretoMetrics.join(', ')}`,
+      summary: `Pareto run for pipeline ${pipelineId}`,
+      details: `Metrics: ${metrics.join(', ')}. Optimal: ${optimalIds.length}/${candidates.length}`,
     });
 
-    // Build candidate metrics array
-    const candidateMetrics: CandidateWithMetrics[] = candidates.map((c) => ({
+    return {
+      candidatesBefore: candidates.length,
+      candidatesAfter: optimalIds.length,
+      optimalIds,
+    };
+  }
+
+  /**
+   * Recompute candidate statuses from all ParetoStep records (union model).
+   * A candidate is PARETO_OPTIMAL if it appears in the optimal set of ANY step.
+   */
+  async recalculateFromSteps(pipelineId: string): Promise<void> {
+    const steps = await this.prismaService.paretoStep.findMany({
+      where: { pipelineId },
+      orderBy: { stepOrder: 'asc' },
+    });
+
+    const candidates = await this.prismaService.validationCandidate.findMany({
+      where: {
+        pipelineId,
+        status: {
+          in: [
+            ValidationCandidateStatus.ACTIVE,
+            ValidationCandidateStatus.PARETO_OPTIMAL,
+            ValidationCandidateStatus.PARETO_DOMINATED,
+          ],
+        },
+      },
+    });
+
+    if (steps.length === 0) {
+      // No steps — reset all to ACTIVE
+      for (const c of candidates) {
+        if (c.status !== ValidationCandidateStatus.ACTIVE) {
+          await this.prismaService.validationCandidate.update({
+            where: { id: c.id },
+            data: {
+              status: ValidationCandidateStatus.ACTIVE,
+              paretoRank: null,
+              dominatedBy: [],
+            },
+          });
+        }
+      }
+      return;
+    }
+
+    // Union optimal sets from all steps (OR — optimal in ANY run)
+    const optimalSet = new Set<string>();
+    for (const step of steps) {
+      for (const id of step.optimalCandidateIds) {
+        optimalSet.add(id);
+      }
+    }
+
+    for (const c of candidates) {
+      const isOptimal = optimalSet.has(c.id);
+      const newStatus = isOptimal
+        ? ValidationCandidateStatus.PARETO_OPTIMAL
+        : ValidationCandidateStatus.PARETO_DOMINATED;
+
+      if (c.status !== newStatus) {
+        await this.prismaService.validationCandidate.update({
+          where: { id: c.id },
+          data: {
+            status: newStatus,
+            paretoRank: isOptimal ? 0 : 1,
+            dominatedBy: [],
+          },
+        });
+
+        await firstValueFrom(
+          this.redisClient.emit(PATTERNS.Validation.CandidateUpdated, {
+            id: c.id,
+            pipelineId,
+            status: newStatus,
+            paretoRank: isOptimal ? 0 : 1,
+          }),
+        );
+      }
+    }
+  }
+
+  // ==================== Private helpers ====================
+
+  private async loadActiveCandidates(
+    pipelineId: string,
+  ): Promise<CandidateWithMetrics[]> {
+    const candidates = await this.prismaService.validationCandidate.findMany({
+      where: {
+        pipelineId,
+        status: {
+          in: [
+            ValidationCandidateStatus.ACTIVE,
+            ValidationCandidateStatus.PARETO_OPTIMAL,
+            ValidationCandidateStatus.PARETO_DOMINATED,
+          ],
+        },
+      },
+      include: { result: true },
+    });
+
+    return candidates.map((c) => ({
       id: c.id,
       resultId: c.resultId,
       sharpeRatio: c.result.sharpeRatio,
@@ -76,122 +184,47 @@ export class ParetoSelectionService {
       winRate: c.result.winRate,
       profitFactor: c.result.profitFactor,
     }));
-
-    // Compute Pareto front
-    const rankedCandidates = this.computeParetoFront(
-      candidateMetrics,
-      paretoMetrics,
-    );
-
-    let paretoOptimalCount = 0;
-    let dominatedCount = 0;
-
-    // Update candidates with Pareto results
-    for (const candidate of rankedCandidates) {
-      const isParetoOptimal = candidate.paretoRank === 0;
-      const newStatus = isParetoOptimal
-        ? ValidationCandidateStatus.PARETO_OPTIMAL
-        : ValidationCandidateStatus.PARETO_DOMINATED;
-
-      await this.prismaService.validationCandidate.update({
-        where: { id: candidate.id },
-        data: {
-          status: newStatus,
-          paretoRank: candidate.paretoRank,
-          dominatedBy: candidate.dominatedBy || [],
-        },
-      });
-
-      if (isParetoOptimal) {
-        paretoOptimalCount++;
-      } else {
-        dominatedCount++;
-      }
-
-      // Emit update for real-time tracking
-      await firstValueFrom(
-        this.redisClient.emit(PATTERNS.Validation.CandidateUpdated, {
-          id: candidate.id,
-          pipelineId,
-          status: newStatus,
-          paretoRank: candidate.paretoRank,
-        }),
-      );
-    }
-
-    await this.logger.log({
-      severity: 'Info',
-      summary: `Pareto selection completed for pipeline ${pipelineId}`,
-      details: `Pareto optimal: ${paretoOptimalCount}, Dominated: ${dominatedCount}`,
-    });
   }
 
-  /**
-   * Compute Pareto front using non-dominated sorting (NSGA-II style)
-   * Assigns proper Pareto ranks: 0 = Pareto front, 1 = second front, etc.
-   */
   private computeParetoFront(
     candidates: CandidateWithMetrics[],
     metrics: string[],
   ): CandidateWithMetrics[] {
-    // Initialize all candidates
     for (const candidate of candidates) {
-      candidate.paretoRank = -1; // Unassigned
+      candidate.paretoRank = -1;
       candidate.dominatedBy = [];
     }
 
-    // Build domination relationships
-    const dominationCount = new Map<string, number>(); // How many dominate this candidate
-    const dominates = new Map<string, string[]>(); // Who this candidate dominates
-
-    for (const candidate of candidates) {
-      dominationCount.set(candidate.id, 0);
-      dominates.set(candidate.id, []);
-    }
-
-    // Compare all pairs
     for (let i = 0; i < candidates.length; i++) {
       for (let j = i + 1; j < candidates.length; j++) {
         const a = candidates[i];
         const b = candidates[j];
 
         if (this.dominates(a, b, metrics)) {
-          // a dominates b
-          dominates.get(a.id)!.push(b.id);
-          dominationCount.set(b.id, dominationCount.get(b.id)! + 1);
           b.dominatedBy!.push(a.id);
         } else if (this.dominates(b, a, metrics)) {
-          // b dominates a
-          dominates.get(b.id)!.push(a.id);
-          dominationCount.set(a.id, dominationCount.get(a.id)! + 1);
           a.dominatedBy!.push(b.id);
         }
-        // If neither dominates, they are non-dominated with respect to each other
       }
     }
 
-    // Assign Pareto ranks using fronts
     const candidateMap = new Map(candidates.map((c) => [c.id, c]));
     let currentRank = 0;
     let remaining = new Set(candidates.map((c) => c.id));
 
     while (remaining.size > 0) {
-      // Find all non-dominated candidates in current set
       const currentFront: string[] = [];
 
       for (const id of remaining) {
-        // Count how many dominators are still in the remaining set
         const candidate = candidateMap.get(id)!;
         const activeDominators = candidate.dominatedBy!.filter((d) =>
           remaining.has(d),
         );
-
         if (activeDominators.length === 0) {
           currentFront.push(id);
         }
       }
 
-      // Assign rank to current front
       for (const id of currentFront) {
         candidateMap.get(id)!.paretoRank = currentRank;
         remaining.delete(id);
@@ -199,9 +232,7 @@ export class ParetoSelectionService {
 
       currentRank++;
 
-      // Safety check to prevent infinite loop
       if (currentFront.length === 0 && remaining.size > 0) {
-        // This shouldn't happen, but assign remaining to current rank
         for (const id of remaining) {
           candidateMap.get(id)!.paretoRank = currentRank;
         }
@@ -212,11 +243,6 @@ export class ParetoSelectionService {
     return candidates;
   }
 
-  /**
-   * Check if candidate A dominates candidate B
-   * A dominates B if A is >= B in all metrics and > B in at least one
-   * Note: maxDrawdownPercent is inverted (lower is better)
-   */
   private dominates(
     a: CandidateWithMetrics,
     b: CandidateWithMetrics,
@@ -228,33 +254,27 @@ export class ParetoSelectionService {
       const aVal = this.getMetricValue(a, metric);
       const bVal = this.getMetricValue(b, metric);
 
-      // Handle null values - null is treated as worst
       if (aVal === null && bVal === null) continue;
-      if (aVal === null) return false; // A can't dominate if A has null
+      if (aVal === null) return false;
       if (bVal === null) {
         betterInOne = true;
         continue;
       }
 
-      // maxDrawdownPercent is a minimization metric (lower is better)
       const isMaximize = metric !== 'maxDrawdownPercent';
 
       if (isMaximize) {
-        if (aVal < bVal) return false; // A is worse, can't dominate
-        if (aVal > bVal) betterInOne = true; // A is better in this metric
+        if (aVal < bVal) return false;
+        if (aVal > bVal) betterInOne = true;
       } else {
-        // Minimization: lower is better
-        if (aVal > bVal) return false; // A is worse, can't dominate
-        if (aVal < bVal) betterInOne = true; // A is better in this metric
+        if (aVal > bVal) return false;
+        if (aVal < bVal) betterInOne = true;
       }
     }
 
     return betterInOne;
   }
 
-  /**
-   * Get metric value from candidate
-   */
   private getMetricValue(
     candidate: CandidateWithMetrics,
     metric: string,

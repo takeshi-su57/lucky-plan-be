@@ -10,6 +10,7 @@ import { JSONScalar } from 'src/global/global.module';
 import { Prisma, ValidationPipelineStatus } from 'generated/prisma/client';
 
 import { ValidationCandidate } from './validation-candidate.entity';
+import { ThresholdStep } from './threshold-step.entity';
 
 registerEnumType(ValidationPipelineStatus, {
   name: 'ValidationPipelineStatus',
@@ -25,31 +26,28 @@ export class ValidationPipeline {
   name: string;
 
   @Field(() => ID)
-  templateSearchId: string;
+  backtestTaskId: string;
 
   @Field(() => ValidationPipelineStatus)
   status: ValidationPipelineStatus;
 
-  @Field(() => JSONScalar, { description: 'Threshold filter configuration' })
-  thresholdConfig: Prisma.JsonValue;
+  @Field(() => Int, { description: 'Current step (1-7)' })
+  currentStep: number;
 
-  @Field(() => [String], { description: 'Metrics for Pareto optimization' })
-  paretoMetrics: string[];
+  @Field(() => JSONScalar, { nullable: true, description: 'Pareto config: { metrics: string[] }' })
+  paretoConfig?: Prisma.JsonValue | null;
 
-  @Field(() => Float, { description: 'Train ratio for walk-forward analysis' })
-  wfaTrainRatio: number;
+  @Field(() => JSONScalar, { nullable: true, description: 'WFA config: { trainRatio, windows, minConsistency }' })
+  wfaConfig?: Prisma.JsonValue | null;
 
-  @Field(() => Int, { description: 'Number of walk-forward windows' })
-  wfaWindows: number;
+  @Field(() => JSONScalar, { nullable: true, description: 'Robustness config: { steps, minScore }' })
+  robustnessConfig?: Prisma.JsonValue | null;
 
-  @Field(() => Float, { description: 'Minimum consistency score to pass WFA' })
-  wfaMinConsistency: number;
+  @Field(() => Int, { description: 'Number of completed WFA windows' })
+  wfaCompletedWindows: number;
 
-  @Field(() => Int, { description: 'Number of robustness test steps' })
-  robustnessSteps: number;
-
-  @Field(() => Float, { description: 'Minimum robustness score to pass' })
-  robustnessMinScore: number;
+  @Field(() => Int, { description: 'Number of completed robustness steps' })
+  robustnessCompletedSteps: number;
 
   @Field(() => Int)
   totalCandidates: number;
@@ -97,7 +95,7 @@ export class ValidationPipelineStats {
   created: number;
 
   @Field(() => Int)
-  running: number;
+  inProgress: number;
 
   @Field(() => Int)
   awaitingUser: number;

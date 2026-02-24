@@ -7,34 +7,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
-interface ThresholdConfig {
-  minSharpeRatio?: number;
-  maxSharpeRatio?: number;
-  minWinRate?: number;
-  minProfitFactor?: number;
-  maxDrawdownPercent?: number;
-  minTotalTrades?: number;
-  minTotalPnlPercent?: number;
-}
-
-interface ThresholdDetail {
-  value: number | null;
-  threshold: number;
-  passed: boolean;
-}
-
-interface ThresholdDetails {
-  [key: string]: ThresholdDetail;
-}
-
-interface CandidateMetrics {
-  sharpeRatio: number | null;
-  winRate: number;
-  profitFactor: number | null;
-  maxDrawdownPercent: number;
-  totalTrades: number;
-  totalPnlPercent: number;
-}
+import { ThresholdPreviewResult } from './entities';
 
 @Injectable()
 export class ThresholdFilterService {
@@ -45,195 +18,203 @@ export class ThresholdFilterService {
   ) {}
 
   /**
-   * Run threshold filter on all PENDING candidates for a pipeline
+   * Apply a single threshold filter to all currently surviving candidates.
+   * Candidates in PENDING or ACTIVE status that fail are marked THRESHOLD_ELIMINATED.
    */
-  async runThresholdFilter(pipelineId: string): Promise<void> {
-    const pipeline = await this.prismaService.validationPipeline.findUnique({
-      where: { id: pipelineId },
-    });
-
-    if (!pipeline) {
-      throw new Error(`Pipeline ${pipelineId} not found`);
-    }
-
-    const thresholdConfig = pipeline.thresholdConfig as ThresholdConfig;
-
-    // Get all PENDING candidates with their results
+  async applySingleThreshold(
+    pipelineId: string,
+    metricName: string,
+    operator: string,
+    value: number,
+  ): Promise<{ candidatesBefore: number; candidatesAfter: number }> {
     const candidates = await this.prismaService.validationCandidate.findMany({
       where: {
         pipelineId,
-        status: ValidationCandidateStatus.PENDING,
+        status: {
+          in: [
+            ValidationCandidateStatus.PENDING,
+            ValidationCandidateStatus.ACTIVE,
+          ],
+        },
       },
-      include: {
-        result: true,
-      },
+      include: { result: true },
     });
 
-    await this.logger.log({
-      severity: 'Info',
-      summary: `Running threshold filter for pipeline ${pipelineId}`,
-      details: `Processing ${candidates.length} candidates`,
-    });
-
-    let passedCount = 0;
-    let failedCount = 0;
-    let skippedCount = 0;
+    const candidatesBefore = candidates.length;
+    let eliminatedCount = 0;
 
     for (const candidate of candidates) {
-      // Skip candidates without result data (data integrity issue)
-      if (!candidate.result) {
-        await this.logger.log({
-          severity: 'Warning',
-          summary: `Candidate ${candidate.id} has no result data, skipping`,
+      if (!candidate.result) continue;
+
+      const metricValue = this.getMetricValue(candidate.result, metricName);
+      const passed = this.evaluateMetric(metricValue, operator, value);
+
+      if (!passed) {
+        await this.prismaService.validationCandidate.update({
+          where: { id: candidate.id },
+          data: {
+            status: ValidationCandidateStatus.THRESHOLD_ELIMINATED,
+            thresholdPassed: false,
+          },
         });
-        skippedCount++;
-        continue;
+        eliminatedCount++;
+
+        await firstValueFrom(
+          this.redisClient.emit(PATTERNS.Validation.CandidateUpdated, {
+            id: candidate.id,
+            pipelineId,
+            status: ValidationCandidateStatus.THRESHOLD_ELIMINATED,
+          }),
+        );
+      } else if (candidate.status === ValidationCandidateStatus.PENDING) {
+        await this.prismaService.validationCandidate.update({
+          where: { id: candidate.id },
+          data: {
+            status: ValidationCandidateStatus.ACTIVE,
+            thresholdPassed: true,
+          },
+        });
       }
-
-      const metrics: CandidateMetrics = {
-        sharpeRatio: candidate.result.sharpeRatio,
-        winRate: candidate.result.winRate,
-        profitFactor: candidate.result.profitFactor,
-        maxDrawdownPercent: candidate.result.maxDrawdownPercent,
-        totalTrades: candidate.result.totalTrades,
-        totalPnlPercent: candidate.result.totalPnlPercent,
-      };
-
-      const { passed, details } = this.evaluateThresholds(
-        metrics,
-        thresholdConfig,
-      );
-
-      const newStatus = passed
-        ? ValidationCandidateStatus.PASSED_THRESHOLD
-        : ValidationCandidateStatus.FAILED_THRESHOLD;
-
-      await this.prismaService.validationCandidate.update({
-        where: { id: candidate.id },
-        data: {
-          status: newStatus,
-          thresholdPassed: passed,
-          thresholdDetails: details as object,
-        },
-      });
-
-      if (passed) {
-        passedCount++;
-      } else {
-        failedCount++;
-      }
-
-      // Emit update for real-time tracking
-      await firstValueFrom(
-        this.redisClient.emit(PATTERNS.Validation.CandidateUpdated, {
-          id: candidate.id,
-          pipelineId,
-          status: newStatus,
-        }),
-      );
     }
+
+    const candidatesAfter = candidatesBefore - eliminatedCount;
 
     await this.logger.log({
       severity: 'Info',
-      summary: `Threshold filter completed for pipeline ${pipelineId}`,
-      details: `Passed: ${passedCount}, Failed: ${failedCount}${skippedCount > 0 ? `, Skipped: ${skippedCount}` : ''}`,
+      summary: `Threshold applied: ${metricName} ${operator} ${value}`,
+      details: `Before: ${candidatesBefore}, After: ${candidatesAfter}, Eliminated: ${eliminatedCount}`,
     });
+
+    return { candidatesBefore, candidatesAfter };
   }
 
   /**
-   * Evaluate a candidate against threshold configuration
+   * Preview a threshold filter without applying it.
    */
-  private evaluateThresholds(
-    metrics: CandidateMetrics,
-    config: ThresholdConfig,
-  ): { passed: boolean; details: ThresholdDetails } {
-    const details: ThresholdDetails = {};
-    let allPassed = true;
+  async previewSingleThreshold(
+    pipelineId: string,
+    metricName: string,
+    operator: string,
+    value: number,
+  ): Promise<ThresholdPreviewResult> {
+    const candidates = await this.prismaService.validationCandidate.findMany({
+      where: {
+        pipelineId,
+        status: {
+          in: [
+            ValidationCandidateStatus.PENDING,
+            ValidationCandidateStatus.ACTIVE,
+          ],
+        },
+      },
+      include: { result: true },
+    });
 
-    // Min Sharpe Ratio
-    if (config.minSharpeRatio != null) {
-      const value = metrics.sharpeRatio;
-      const passed = value != null && value >= config.minSharpeRatio;
-      details.minSharpeRatio = {
-        value,
-        threshold: config.minSharpeRatio,
-        passed,
-      };
-      allPassed = allPassed && passed;
+    const currentCount = candidates.length;
+    let survivingCount = 0;
+
+    for (const candidate of candidates) {
+      if (!candidate.result) continue;
+      const metricValue = this.getMetricValue(candidate.result, metricName);
+      if (this.evaluateMetric(metricValue, operator, value)) {
+        survivingCount++;
+      }
     }
 
-    // Max Sharpe Ratio
-    if (config.maxSharpeRatio != null) {
-      const value = metrics.sharpeRatio;
-      const passed = value != null && value <= config.maxSharpeRatio;
-      details.maxSharpeRatio = {
-        value,
-        threshold: config.maxSharpeRatio,
-        passed,
-      };
-      allPassed = allPassed && passed;
-    }
+    return {
+      currentCount,
+      survivingCount,
+      eliminatedCount: currentCount - survivingCount,
+    };
+  }
 
-    // Min Win Rate
-    if (config.minWinRate != null) {
-      const value = metrics.winRate;
-      const passed = value >= config.minWinRate;
-      details.minWinRate = {
-        value,
-        threshold: config.minWinRate,
-        passed,
-      };
-      allPassed = allPassed && passed;
-    }
+  /**
+   * Recalculate all thresholds from scratch.
+   * Resets all threshold-related candidates back to PENDING, then re-applies each step.
+   */
+  async recalculateThresholds(pipelineId: string): Promise<void> {
+    await this.prismaService.validationCandidate.updateMany({
+      where: {
+        pipelineId,
+        status: {
+          in: [
+            ValidationCandidateStatus.PENDING,
+            ValidationCandidateStatus.ACTIVE,
+            ValidationCandidateStatus.THRESHOLD_ELIMINATED,
+          ],
+        },
+      },
+      data: {
+        status: ValidationCandidateStatus.PENDING,
+        thresholdPassed: null,
+      },
+    });
 
-    // Min Profit Factor
-    if (config.minProfitFactor != null) {
-      const value = metrics.profitFactor;
-      const passed = value != null && value >= config.minProfitFactor;
-      details.minProfitFactor = {
-        value,
-        threshold: config.minProfitFactor,
-        passed,
-      };
-      allPassed = allPassed && passed;
-    }
+    const steps = await this.prismaService.thresholdStep.findMany({
+      where: { pipelineId },
+      orderBy: { stepOrder: 'asc' },
+    });
 
-    // Max Drawdown Percent (lower is better)
-    if (config.maxDrawdownPercent != null) {
-      const value = metrics.maxDrawdownPercent;
-      const passed = value <= config.maxDrawdownPercent;
-      details.maxDrawdownPercent = {
-        value,
-        threshold: config.maxDrawdownPercent,
-        passed,
-      };
-      allPassed = allPassed && passed;
-    }
+    for (const step of steps) {
+      const result = await this.applySingleThreshold(
+        pipelineId,
+        step.metricName,
+        step.operator,
+        step.value,
+      );
 
-    // Min Total Trades
-    if (config.minTotalTrades != null) {
-      const value = metrics.totalTrades;
-      const passed = value >= config.minTotalTrades;
-      details.minTotalTrades = {
-        value,
-        threshold: config.minTotalTrades,
-        passed,
-      };
-      allPassed = allPassed && passed;
+      await this.prismaService.thresholdStep.update({
+        where: { id: step.id },
+        data: {
+          candidatesBefore: result.candidatesBefore,
+          candidatesAfter: result.candidatesAfter,
+        },
+      });
     }
+  }
 
-    // Min Total PnL Percent
-    if (config.minTotalPnlPercent != null) {
-      const value = metrics.totalPnlPercent;
-      const passed = value >= config.minTotalPnlPercent;
-      details.minTotalPnlPercent = {
-        value,
-        threshold: config.minTotalPnlPercent,
-        passed,
-      };
-      allPassed = allPassed && passed;
+  private getMetricValue(
+    result: {
+      sharpeRatio: number | null;
+      winRate: number;
+      profitFactor: number | null;
+      maxDrawdownPercent: number;
+      totalTrades: number;
+      totalPnlPercent: number;
+    },
+    metricName: string,
+  ): number | null {
+    switch (metricName) {
+      case 'sharpeRatio':
+        return result.sharpeRatio;
+      case 'winRate':
+        return result.winRate;
+      case 'profitFactor':
+        return result.profitFactor;
+      case 'maxDrawdownPercent':
+        return result.maxDrawdownPercent;
+      case 'totalTrades':
+        return result.totalTrades;
+      case 'totalPnlPercent':
+        return result.totalPnlPercent;
+      default:
+        return null;
     }
+  }
 
-    return { passed: allPassed, details };
+  private evaluateMetric(
+    metricValue: number | null,
+    operator: string,
+    threshold: number,
+  ): boolean {
+    if (metricValue === null) return false;
+    switch (operator) {
+      case 'gte':
+        return metricValue >= threshold;
+      case 'lte':
+        return metricValue <= threshold;
+      default:
+        return false;
+    }
   }
 }

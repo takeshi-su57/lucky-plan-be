@@ -197,18 +197,8 @@ export class StrategyTemplateService {
 
     // Use transaction to ensure atomicity
     await this.prismaService.$transaction(async (tx) => {
-      // 1. Delete ValidationPipelines for all TemplateSearches
-      // (ValidationCandidates will auto-cascade via DB onDelete: Cascade)
-      if (templateSearchIds.length > 0) {
-        await tx.validationPipeline.deleteMany({
-          where: { templateSearchId: { in: templateSearchIds } },
-        });
-      }
-
-      // 2. Delete BacktestTasks related to this template
-      // (BacktestResults will auto-cascade via DB onDelete: Cascade)
-      // Tasks can be related via templateSearchId OR templateId
-      await tx.backtestTask.deleteMany({
+      // 1. Find BacktestTasks related to this template
+      const tasks = await tx.backtestTask.findMany({
         where: {
           OR: [
             { templateId: id },
@@ -217,16 +207,34 @@ export class StrategyTemplateService {
               : []),
           ],
         },
+        select: { id: true },
       });
+      const taskIds = tasks.map((t) => t.id);
 
-      // 3. Delete TemplateSearches
+      // 2. Delete ValidationPipelines linked to these tasks
+      // (ValidationCandidates will auto-cascade via DB onDelete: Cascade)
+      if (taskIds.length > 0) {
+        await tx.validationPipeline.deleteMany({
+          where: { backtestTaskId: { in: taskIds } },
+        });
+      }
+
+      // 3. Delete BacktestTasks
+      // (BacktestResults will auto-cascade via DB onDelete: Cascade)
+      if (taskIds.length > 0) {
+        await tx.backtestTask.deleteMany({
+          where: { id: { in: taskIds } },
+        });
+      }
+
+      // 4. Delete TemplateSearches
       if (templateSearchIds.length > 0) {
         await tx.templateSearch.deleteMany({
           where: { id: { in: templateSearchIds } },
         });
       }
 
-      // 4. Delete the StrategyTemplate
+      // 5. Delete the StrategyTemplate
       await tx.strategyTemplate.delete({
         where: { id },
       });

@@ -9,5 +9,4 @@ export * from './threshold-filter.service';
 export * from './pareto-selection.service';
 export * from './walk-forward.service';
 export * from './robustness-test.service';
-export * from './validation-runner.service';
 export * from './validation-pipeline.resolver';

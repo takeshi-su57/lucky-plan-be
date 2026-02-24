@@ -1,13 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import {
-  ValidationCandidateStatus,
-  WalkForwardStatus,
-} from 'generated/prisma/client';
+import { ValidationCandidateStatus } from 'generated/prisma/client';
+import { firstValueFrom } from 'rxjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
-import { SERVICE_NAMES } from 'src/utils/constants';
+import { SERVICE_NAMES, PATTERNS } from 'src/utils/constants';
 
 import { ComposableStrategy } from 'src/backtest/core/strategy-composer';
 import { ComposableBacktestEngine } from 'src/backtest/composable-backtest-engine';
@@ -32,6 +30,20 @@ interface BacktestMetrics {
   profitFactor: number | null;
 }
 
+interface WfaConfig {
+  trainRatio: number;
+  windows: number;
+  minConsistency: number;
+}
+
+export type WfaStatus = 'IDLE' | 'RUNNING' | 'PAUSED' | 'DONE';
+
+export interface WfaConfigWithState extends WfaConfig {
+  status: WfaStatus;
+  processedCandidates: number;
+  totalCandidates: number;
+}
+
 @Injectable()
 export class WalkForwardService {
   constructor(
@@ -41,92 +53,248 @@ export class WalkForwardService {
   ) {}
 
   /**
-   * Run walk-forward analysis on all PARETO_OPTIMAL candidates
+   * Process the next unprocessed PARETO_OPTIMAL candidate for this pipeline.
+   * Each call = one "tick" (one candidate fully processed).
+   * After processing, reads DB status — if still RUNNING, schedules next tick via setTimeout.
+   * If status is no longer RUNNING (i.e., PAUSED), stops scheduling.
+   * If no more candidates remain, sets status to DONE.
    */
-  async runWalkForward(pipelineId: string): Promise<void> {
+  async processNextCandidate(pipelineId: string): Promise<void> {
+    // 1. Read pipeline + task from DB (source of truth for status)
     const pipeline = await this.prismaService.validationPipeline.findUnique({
       where: { id: pipelineId },
-      include: {
-        templateSearch: {
-          include: {
-            task: true,
-          },
-        },
-      },
+      include: { backtestTask: true },
     });
 
-    if (!pipeline) {
-      throw new Error(`Pipeline ${pipelineId} not found`);
-    }
-
-    // Get all PARETO_OPTIMAL candidates
-    const candidates = await this.prismaService.validationCandidate.findMany({
-      where: {
-        pipelineId,
-        status: ValidationCandidateStatus.PARETO_OPTIMAL,
-      },
-      include: {
-        result: true,
-      },
-    });
-
-    if (candidates.length === 0) {
+    if (!pipeline || !pipeline.backtestTask) {
       await this.logger.log({
-        severity: 'Info',
-        summary: `No Pareto optimal candidates for pipeline ${pipelineId}`,
+        severity: 'Error',
+        summary: `WFA tick: Pipeline ${pipelineId} or its task not found`,
       });
       return;
     }
 
-    await this.logger.log({
-      severity: 'Info',
-      summary: `Running walk-forward analysis for pipeline ${pipelineId}`,
-      details: `Processing ${candidates.length} candidates with ${pipeline.wfaWindows} windows`,
-    });
+    const wfaConfig = pipeline.wfaConfig as unknown as WfaConfigWithState | null;
 
-    const task = pipeline.templateSearch.task;
-    if (!task) {
-      throw new Error('Pipeline has no associated backtest task');
+    // 2. Check DB status — if not RUNNING, do not proceed (pause took effect)
+    if (!wfaConfig || wfaConfig.status !== 'RUNNING') {
+      return;
     }
 
-    // Create WFA windows for each candidate
-    for (const candidate of candidates) {
-      // Mark candidate as WFA_PENDING
-      await this.prismaService.validationCandidate.update({
-        where: { id: candidate.id },
-        data: { status: ValidationCandidateStatus.WFA_PENDING },
-      });
+    const task = pipeline.backtestTask;
+    const config: WfaConfig = {
+      trainRatio: wfaConfig.trainRatio,
+      windows: wfaConfig.windows,
+      minConsistency: wfaConfig.minConsistency,
+    };
 
-      const windows = this.createWfaWindows(
-        task.startDate,
-        task.endDate,
-        pipeline.wfaTrainRatio,
-        pipeline.wfaWindows,
+    // 3. Find the next unprocessed candidate (PARETO_OPTIMAL = not yet processed)
+    const candidate = await this.prismaService.validationCandidate.findFirst({
+      where: {
+        pipelineId,
+        status: ValidationCandidateStatus.PARETO_OPTIMAL,
+      },
+      include: { result: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // 4. If no more candidates, mark DONE
+    if (!candidate) {
+      await this.updateWfaState(
+        pipelineId,
+        config,
+        'DONE',
+        wfaConfig.processedCandidates,
+        wfaConfig.totalCandidates,
       );
+      await this.logger.log({
+        severity: 'Info',
+        summary: `WFA completed for pipeline ${pipelineId}`,
+        details: `Processed ${wfaConfig.processedCandidates}/${wfaConfig.totalCandidates} candidates`,
+      });
+      return;
+    }
 
-      // Create WalkForwardResult records
-      for (const window of windows) {
-        await this.prismaService.walkForwardResult.create({
-          data: {
-            candidateId: candidate.id,
-            windowIndex: window.windowIndex,
-            status: WalkForwardStatus.PENDING,
-            trainStart: window.trainStart,
-            trainEnd: window.trainEnd,
-            testStart: window.testStart,
-            testEnd: window.testEnd,
-          },
+    // 5. Process this single candidate (all windows)
+    const strategyConfig = candidate.result
+      .strategyConfig as unknown as StrategyConfig;
+
+    const windows = this.createWfaWindows(
+      task.startDate,
+      task.endDate,
+      config.trainRatio,
+      config.windows,
+    );
+
+    const windowResults: Array<{
+      windowIndex: number;
+      consistency: number | null;
+      degradation: number | null;
+      status: string;
+      errorMessage?: string;
+    }> = [];
+
+    let hasFailed = false;
+
+    for (const window of windows) {
+      try {
+        const trainMetrics = await this.runBacktest(
+          strategyConfig,
+          task.symbol,
+          task.interval,
+          window.trainStart,
+          window.trainEnd,
+        );
+
+        const testMetrics = await this.runBacktest(
+          strategyConfig,
+          task.symbol,
+          task.interval,
+          window.testStart,
+          window.testEnd,
+        );
+
+        const { consistency, degradation } = this.calculateConsistency(
+          trainMetrics,
+          testMetrics,
+        );
+
+        windowResults.push({
+          windowIndex: window.windowIndex,
+          consistency,
+          degradation,
+          status: 'DONE',
+        });
+      } catch (error) {
+        hasFailed = true;
+        windowResults.push({
+          windowIndex: window.windowIndex,
+          consistency: null,
+          degradation: null,
+          status: 'FAILED',
+          errorMessage: getReadableError(error),
+        });
+
+        await this.logger.log({
+          severity: 'Error',
+          summary: `WFA window ${window.windowIndex} failed for candidate ${candidate.id}`,
+          details: getReadableError(error),
         });
       }
     }
 
-    // Process WFA windows (this could be done in parallel in the runner)
-    await this.processAllWfaWindows(pipelineId, task.symbol, task.interval);
+    // 6. Compute consistency for this candidate
+    const consistencies = windowResults
+      .filter((r) => r.status === 'DONE')
+      .map((r) => r.consistency)
+      .filter((c): c is number => c != null);
+
+    let passed = false;
+    let avgConsistency: number | null = null;
+
+    if (!hasFailed && consistencies.length > 0) {
+      avgConsistency =
+        consistencies.reduce((a, b) => a + b, 0) / consistencies.length;
+      passed = avgConsistency >= config.minConsistency;
+    }
+
+    // 7. Persist candidate results
+    const updatedCandidate = await this.prismaService.validationCandidate.update({
+      where: { id: candidate.id },
+      data: {
+        wfaWindowResults: windowResults as object,
+        wfaConsistency: avgConsistency,
+        wfaPassed: passed,
+        status: passed
+          ? ValidationCandidateStatus.WFA_PASSED
+          : ValidationCandidateStatus.WFA_FAILED,
+      },
+    });
+
+    // 8. Emit candidate update via Redis
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Validation.CandidateUpdated, updatedCandidate),
+    );
+
+    const newProcessedCount = wfaConfig.processedCandidates + 1;
+
+    // 9. Update pipeline progress
+    await this.updateWfaState(
+      pipelineId,
+      config,
+      'RUNNING',
+      newProcessedCount,
+      wfaConfig.totalCandidates,
+    );
+
+    // 10. Re-read pipeline status from DB to check if paused during processing
+    const freshPipeline = await this.prismaService.validationPipeline.findUnique({
+      where: { id: pipelineId },
+    });
+    const freshConfig = freshPipeline?.wfaConfig as unknown as WfaConfigWithState | null;
+
+    if (freshConfig?.status !== 'RUNNING') {
+      return;
+    }
+
+    // 11. Schedule next tick via setTimeout (yields to event loop)
+    setTimeout(() => {
+      this.processNextCandidate(pipelineId).catch(async (error) => {
+        await this.logger.log({
+          severity: 'Error',
+          summary: `WFA tick failed for pipeline ${pipelineId}`,
+          details: getReadableError(error),
+        });
+
+        try {
+          await this.updateWfaState(
+            pipelineId,
+            config,
+            'PAUSED',
+            newProcessedCount,
+            wfaConfig.totalCandidates,
+          );
+        } catch { /* best effort */ }
+      });
+    }, 0);
   }
 
-  /**
-   * Generate walk-forward analysis windows
-   */
+  private async updateWfaState(
+    pipelineId: string,
+    config: WfaConfig,
+    status: WfaStatus,
+    processedCandidates: number,
+    totalCandidates: number,
+  ): Promise<void> {
+    const wfaConfig: WfaConfigWithState = {
+      ...config,
+      status,
+      processedCandidates,
+      totalCandidates,
+    };
+
+    // Count passed candidates for real-time stats
+    const passedWfaCount = await this.prismaService.validationCandidate.count({
+      where: {
+        pipelineId,
+        status: ValidationCandidateStatus.WFA_PASSED,
+      },
+    });
+
+    const updatedPipeline = await this.prismaService.validationPipeline.update({
+      where: { id: pipelineId },
+      data: {
+        wfaConfig: wfaConfig as object,
+        wfaCompletedWindows: processedCandidates,
+        passedWfa: passedWfaCount,
+      },
+    });
+
+    await firstValueFrom(
+      this.redisClient.emit(PATTERNS.Validation.PipelineUpdated, updatedPipeline),
+    );
+  }
+
   private createWfaWindows(
     startDate: Date,
     endDate: Date,
@@ -156,138 +324,6 @@ export class WalkForwardService {
     return windows;
   }
 
-  /**
-   * Process all WFA windows for a pipeline
-   */
-  private async processAllWfaWindows(
-    pipelineId: string,
-    symbol: string,
-    interval: string,
-  ): Promise<void> {
-    // Get all pending WFA results
-    const wfaResults = await this.prismaService.walkForwardResult.findMany({
-      where: {
-        candidate: { pipelineId },
-        status: WalkForwardStatus.PENDING,
-      },
-      include: {
-        candidate: {
-          include: {
-            result: true,
-          },
-        },
-      },
-    });
-
-    for (const wfaResult of wfaResults) {
-      await this.processWfaWindow(wfaResult.id, symbol, interval);
-    }
-
-    // After all windows are processed, aggregate results
-    const candidates = await this.prismaService.validationCandidate.findMany({
-      where: {
-        pipelineId,
-        status: ValidationCandidateStatus.WFA_PENDING,
-      },
-    });
-
-    const pipeline = await this.prismaService.validationPipeline.findUnique({
-      where: { id: pipelineId },
-    });
-
-    for (const candidate of candidates) {
-      await this.aggregateWfaResults(candidate.id, pipeline!.wfaMinConsistency);
-    }
-  }
-
-  /**
-   * Process a single WFA window
-   */
-  async processWfaWindow(
-    wfaResultId: string,
-    symbol: string,
-    interval: string,
-  ): Promise<void> {
-    const wfaResult = await this.prismaService.walkForwardResult.findUnique({
-      where: { id: wfaResultId },
-      include: {
-        candidate: {
-          include: {
-            result: true,
-          },
-        },
-      },
-    });
-
-    if (!wfaResult) {
-      throw new Error(`WFA result ${wfaResultId} not found`);
-    }
-
-    // Mark as processing
-    await this.prismaService.walkForwardResult.update({
-      where: { id: wfaResultId },
-      data: { status: WalkForwardStatus.PROCESSING },
-    });
-
-    try {
-      const strategyConfig = wfaResult.candidate.result
-        .strategyConfig as unknown as StrategyConfig;
-
-      // Run backtest on train period
-      const trainMetrics = await this.runBacktest(
-        strategyConfig,
-        symbol,
-        interval,
-        wfaResult.trainStart,
-        wfaResult.trainEnd,
-      );
-
-      // Run backtest on test period
-      const testMetrics = await this.runBacktest(
-        strategyConfig,
-        symbol,
-        interval,
-        wfaResult.testStart,
-        wfaResult.testEnd,
-      );
-
-      // Calculate consistency and degradation
-      const { consistency, degradation } = this.calculateConsistency(
-        trainMetrics,
-        testMetrics,
-      );
-
-      // Update WFA result
-      await this.prismaService.walkForwardResult.update({
-        where: { id: wfaResultId },
-        data: {
-          status: WalkForwardStatus.DONE,
-          trainMetrics: trainMetrics as object,
-          testMetrics: testMetrics as object,
-          consistency,
-          degradation,
-        },
-      });
-    } catch (error) {
-      await this.prismaService.walkForwardResult.update({
-        where: { id: wfaResultId },
-        data: {
-          status: WalkForwardStatus.FAILED,
-          errorMessage: getReadableError(error),
-        },
-      });
-
-      await this.logger.log({
-        severity: 'Error',
-        summary: `WFA window ${wfaResultId} failed`,
-        details: getReadableError(error),
-      });
-    }
-  }
-
-  /**
-   * Run a backtest for a specific period
-   */
   private async runBacktest(
     config: StrategyConfig,
     symbol: string,
@@ -317,14 +353,10 @@ export class WalkForwardService {
     };
   }
 
-  /**
-   * Calculate consistency score between train and test periods
-   */
   private calculateConsistency(
     trainMetrics: BacktestMetrics,
     testMetrics: BacktestMetrics,
   ): { consistency: number; degradation: number } {
-    // Calculate degradation (how much worse test is compared to train)
     const pnlDegradation =
       trainMetrics.totalPnlPercent !== 0
         ? (trainMetrics.totalPnlPercent - testMetrics.totalPnlPercent) /
@@ -336,7 +368,6 @@ export class WalkForwardService {
         ? (trainMetrics.winRate - testMetrics.winRate) / trainMetrics.winRate
         : 0;
 
-    // Sharpe ratio degradation (handle nulls)
     let sharpeDegradation = 0;
     if (trainMetrics.sharpeRatio != null && testMetrics.sharpeRatio != null) {
       sharpeDegradation =
@@ -346,87 +377,11 @@ export class WalkForwardService {
           : 0;
     }
 
-    // Overall degradation (weighted average)
     const degradation =
       pnlDegradation * 0.4 + winRateDegradation * 0.3 + sharpeDegradation * 0.3;
 
-    // Consistency is inverse of degradation (clamped to 0-1)
-    // Lower degradation = higher consistency
     const consistency = Math.max(0, Math.min(1, 1 - Math.abs(degradation)));
 
     return { consistency, degradation };
-  }
-
-  /**
-   * Aggregate WFA results for a candidate and determine pass/fail
-   */
-  async aggregateWfaResults(
-    candidateId: string,
-    minConsistency: number,
-  ): Promise<void> {
-    const wfaResults = await this.prismaService.walkForwardResult.findMany({
-      where: { candidateId },
-    });
-
-    // Check if all windows completed
-    const completedResults = wfaResults.filter(
-      (r) => r.status === WalkForwardStatus.DONE,
-    );
-    const failedResults = wfaResults.filter(
-      (r) => r.status === WalkForwardStatus.FAILED,
-    );
-
-    // If any window failed, mark candidate as WFA_FAILED
-    if (failedResults.length > 0) {
-      await this.prismaService.validationCandidate.update({
-        where: { id: candidateId },
-        data: {
-          status: ValidationCandidateStatus.WFA_FAILED,
-          wfaPassed: false,
-          wfaConsistency: null,
-        },
-      });
-      return;
-    }
-
-    // Calculate overall consistency (average of all windows)
-    const consistencies = completedResults
-      .map((r) => r.consistency)
-      .filter((c): c is number => c != null);
-
-    if (consistencies.length === 0) {
-      await this.prismaService.validationCandidate.update({
-        where: { id: candidateId },
-        data: {
-          status: ValidationCandidateStatus.WFA_FAILED,
-          wfaPassed: false,
-          wfaConsistency: null,
-        },
-      });
-      return;
-    }
-
-    const avgConsistency =
-      consistencies.reduce((a, b) => a + b, 0) / consistencies.length;
-    const passed = avgConsistency >= minConsistency;
-
-    const newStatus = passed
-      ? ValidationCandidateStatus.WFA_PASSED
-      : ValidationCandidateStatus.WFA_FAILED;
-
-    await this.prismaService.validationCandidate.update({
-      where: { id: candidateId },
-      data: {
-        status: newStatus,
-        wfaPassed: passed,
-        wfaConsistency: avgConsistency,
-      },
-    });
-
-    await this.logger.log({
-      severity: 'Info',
-      summary: `WFA completed for candidate ${candidateId}`,
-      details: `Consistency: ${(avgConsistency * 100).toFixed(1)}%, Passed: ${passed}`,
-    });
   }
 }
