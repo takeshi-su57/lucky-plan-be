@@ -80,6 +80,13 @@ export class ApiResolver {
     return this.apiService.changePassword(oldPassword, newPassword);
   }
 
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  cleanDB() {
+    return this.apiService.cleanDB();
+  }
+
   @Query(() => Boolean)
   async isSafeApp() {
     return await this.securityService.isSafeApp();

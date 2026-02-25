@@ -22,6 +22,11 @@ export class WithdrawAllInput {
   @IsNumber()
   @Field(() => Int)
   contractId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  collateralIndex: number;
 }
 
 @InputType()
@@ -42,9 +47,13 @@ export class AssetInput {
   contractId: number;
 
   @IsNotEmpty()
-  @IsIn(['usdc', 'eth'])
+  @IsIn(['erc20', 'eth'])
   @Field(() => String)
-  kind: 'usdc' | 'eth';
+  kind: 'erc20' | 'eth';
+
+  @IsNumber()
+  @Field(() => Int)
+  collateralIndex: number;
 }
 
 @InputType()
@@ -67,6 +76,11 @@ export class OpenTradeInput {
   @IsNotEmpty()
   @IsNumber()
   @Field(() => Int)
+  collateralIndex: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
   leverage: number;
 
   @IsNotEmpty()
@@ -84,6 +98,11 @@ export class OpenTradeInput {
   @IsNotEmpty()
   @Field(() => String)
   sl: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Int)
+  maxSlippageP: number;
 }
 
 @InputType()

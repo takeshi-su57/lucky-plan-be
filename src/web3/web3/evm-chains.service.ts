@@ -17,6 +17,7 @@ import {
   apeChain,
   Chain,
   avalanche,
+  megaeth
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
@@ -39,50 +40,16 @@ export const privateRPCProviders = {
       421614: 'arbitrum-sepolia',
       33139: 'apechain',
       43114: 'avalanche',
+      4326: 'megaeth',
     },
-    tokens: [
-      'AkmD_pBAzEUQhav-6uRSvWSbAYNipbgR8IK2wg8TMB_n',
-      'AvGtIYYogklRrpaggqvjp1j3cgGGpbgR8IK3wg8TMB_n',
-      'Aqqat3QH4EpUqjjHnLw09yI7GzhxpbkR8IK4wg8TMB_n',
-      'AnMNymlffU-QrAcuMNQPOgSDHILEpbkR8IK5wg8TMB_n',
-      'ApwGtOqeUkKxkts19FtVyeTdvuiPpbkR8IK7wg8TMB_n',
-      'AmykbowjykM3m1WsAnVq9y0lYrc4pboR8IK8wg8TMB_n',
-      'AiI0N4My2EVzmMsk9McDToJuw7n_pboR8IK9wg8TMB_n',
-      'AtA3DzvN80VAuMXpEuYs0Mwy1dvpKa4R8I32EjfP07KJ',
-      'AujdrLCySkHriKcgivXkfC0gs51UKa8R8I35EjfP07KJ',
-      'Asn7XUs2fkptrHY34vZx5MFV10lJKbMR8I4FEjfP07KJ',
-      'Aiio8plb7kwEgVttGQTB3IEuci3CKbUR8I4OEjfP07KJ',
-      'AtlOYq-ZCkL8jXgPHIzwPncmB_E4LAsR8JkoEjfP07KJ',
-      'AloSriF4B0nggEsKDMYiOnCUPYBmLAwR8JktEjfP07KJ',
-      'ApKBwP0pl0l6ln5RcDDqlLlFHxYWLA4R8JkyEjfP07KJ',
-      'AkNxllrJh0nksMTENrcqKm1DFf5kMWER8JFMzoXPVSjK',
-      'ApVf0uNDHkPam4cKtEZkmdOABGQQMWIR8JFmzoXPVSjK',
-      'Ai7nDC0ZDkOIuUPRt36OQX8VJV66MWMR8JFvzoXPVSjK',
-      'AuMyZSJJTUrJm17HmV-gSBKLouOVMWMR8JF0zoXPVSjK',
-      'AqDEH4eq0kRIjc40MipYGQEAGVw1MWQR8JF2zoXPVSjK',
-      'AkswE_iiZUmtiPuxd0CraLwC6_hnMWUR8JF6zoXPVSjK',
-      'An5iFO58sk0nlEXPDJCF_6XLwuqPMWUR8JGAzoXPVSjK',
-      'AtktOWrzeUTEi2EVRcWmUKIa4ZYKNVER8KcdbrRhIxXF',
-      'Aqq3FuSAAED6kMaZiiiLXCeU8nNfNVER8KcibrRhIxXF',
-      'AkQNsv9c6E_1qKEVLn2s0ygVbTupNVIR8KcjbrRhIxXF',
-      'AmdqXkkNLUGYmQXRDL-5igWAobmiNVIR8KckbrRhIxXF',
-      'An4YvT8YRUFwt8RqK1hWUg_zfgBINVIR8KcnbrRhIxXF',
-      'AlR_TmfXQUU-pB7upZ6E0-Z18O97NVMR8KcqbrRhIxXF',
-      'AifMkmm5G0pnvqmEBLdeSrX9FFmsNVMR8KcrbrRhIxXF',
-      'Ard4jC4mIk0XsnxBlrzM9rufePoANVQR8KcwbrRhIxXF',
-      'AmZAx6KHJEz3n9Bj00HP0foWrZtGNVUR8KcybrRhIxXF',
-      'Ago1ytX_50a7nn9yE2Qdq6MN-zZvNVYR8Kc2brRhIxXF',
-      'AjfXw1CrM0jCosH83uXA2CIZOBxyNVcR8Kc5brRhIxXF',
-      'AtPNaMCuBURqjAcNlkanGoh8sK2ZNVcR8Kc7brRhIxXF',
-      'AhGDkiI8E0fhgJ9gbdPfXPUfVgxxkw8R8I42zltYSRe_',
-      'AgNu2FsZsELPo7SkO6ko15R9h5lWkw8R8I43zltYSRe_',
-      'AqKJv9sjPEX_iXfLEttlJOS9Ax1Qkw8R8I44zltYSRe_',
-      'AkRrJFiVgECelg92H7TKWtP_-l5Xkw8R8I45zltYSRe_',
-      'Aq2mSEztfEtnmOLyxoatvr85j3lEkxAR8I46zltYSRe_',
-      'AuKd0G6EF01oioIfRzuafMhxJ6dmkxAR8I47zltYSRe_',
-      'AqtKk9PeCEZBqKUvQww9n2trk0TvkxER8I48zltYSRe_',
-    ],
-    paidTokens: ['AnxSCzrS6kLymZIBqC68tbmkEZm5J1oR8IUSEjfP07KJ'],
+    tokens:
+      process.env.DRPC_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
+    paidTokens:
+      process.env.DRPC_PAID_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
   },
   alchemy: {
     provider: 'alchemy',
@@ -97,16 +64,16 @@ export const privateRPCProviders = {
       421614: 'arb-sepolia',
       33139: 'apechain-mainnet',
       43114: 'avalanche-mainnet',
+      4326: 'megaeth-mainnet',
     },
-    tokens: [
-      'Zxh4D-fVDWSXyUJbN5ZITVgjbET7-9N_', // 'takeshisuz
-      'fDh9_XoNmoCdrrqPuU6wxoKRuSP1OM90',
-      'OUfJrKB_TzPSqYwzk0KgjeNDg_bb4k2u', // brunopalma
-      'JsxyfNiRtf4XV58c4onA7-QdK2_UA6-o',
-      'wzmljbYQCRX6Mq6tkQy5npdZQTAOY_iQ', // takeshisuz
-      'qf9Xqi-AIXnz1_mNnbgbN', // wpope
-    ],
-    paidTokens: [],
+    tokens:
+      process.env.ALCHEMY_TOKENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
+    paidTokens:
+      process.env.ALCHEMY_PAID_TOENS?.split(',').filter(
+        (item) => item.trim() !== '',
+      ) || [],
   },
 };
 
@@ -169,6 +136,10 @@ const publicRpcProviders = {
     'https://avalanche-c-chain-rpc.publicnode.com',
     'https://0xrpc.io/avax',
   ],
+  4326: [
+    'https://rpc-megaeth-mainnet.globalstake.io',
+    'https://mainnet.megaeth.com/rpc',
+  ],
 };
 
 export type Web3Configuration = {
@@ -199,6 +170,7 @@ export class EvmChainsService {
       arbitrumSepolia,
       apeChain,
       avalanche,
+      megaeth,
     ];
     this.freePublicClients = {};
     this.privatePublicClients = {};

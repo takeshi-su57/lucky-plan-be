@@ -45,15 +45,24 @@ export class FollowerPendingOrder {
 }
 
 @ObjectType()
+export class CollateralBalance {
+  @Field(() => Int)
+  collateralIndex: number;
+
+  @Field(() => String, { nullable: true })
+  balance: string | null;
+
+  @Field(() => String, { nullable: true })
+  allowance: string | null;
+}
+
+@ObjectType()
 export class FollowerDetail extends Follower {
   @Field(() => String, { nullable: true })
   ethBalance: string | null;
 
-  @Field(() => String, { nullable: true })
-  usdcBalance: string | null;
-
-  @Field(() => String, { nullable: true })
-  usdcAllowance: string | null;
+  @Field(() => [CollateralBalance], { nullable: true })
+  collateralBalances: CollateralBalance[];
 
   @Field(() => Int)
   contractId: number;

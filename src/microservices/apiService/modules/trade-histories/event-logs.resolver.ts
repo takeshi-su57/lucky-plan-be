@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Float, Mutation } from '@nestjs/graphql';
 import {
   PnlSnapshotKind,
   Platform,
@@ -14,7 +14,6 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
-  PnlSnapshotV2DetailsForPagination,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
@@ -108,6 +107,8 @@ export class EventLogsResolver {
     @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('minSlope', { type: () => Float }) minSlope: number,
+    @Args('minR2', { type: () => Float }) minR2: number,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
@@ -115,23 +116,8 @@ export class EventLogsResolver {
       kind,
       first,
       after,
-    );
-  }
-
-  @Query(() => PnlSnapshotV2DetailsForPagination)
-  getPnlsnpashotsV2ByPagination(
-    @Args('dateStr', { type: () => String }) dateStr: string,
-    @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
-    @Args('page', { type: () => Int }) page: number,
-    @Args('limit', { type: () => Int }) limit: number,
-  ) {
-    return this.pnlSnapshotsService.getPnlSnapshotsByPagination(
-      dateStr,
-      platform,
-      kind,
-      page,
-      limit,
+      minSlope,
+      minR2,
     );
   }
 

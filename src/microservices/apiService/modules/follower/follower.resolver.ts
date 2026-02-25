@@ -47,7 +47,8 @@ export class FollowerResolver {
       address: input.address,
       contractId: input.contractId,
       amount: BigInt(input.amount),
-      kind: input.kind as 'usdc' | 'eth',
+      kind: input.kind,
+      collateralIndex: input.collateralIndex,
     });
   }
 
@@ -59,21 +60,23 @@ export class FollowerResolver {
       address: input.address,
       contractId: input.contractId,
       amount: BigInt(input.amount),
-      kind: input.kind as 'usdc' | 'eth',
+      kind: input.kind,
+      collateralIndex: input.collateralIndex,
     });
   }
 
   @Mutation(() => Boolean)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  withdrawAllUSDC(
+  withdrawAllErc20(
     @Args('input') input: WithdrawAllInput,
     @CurrentUser() user: User,
   ) {
-    return this.followerService.withdrawAllUSDC(
+    return this.followerService.withdrawAllErc20(
       user.address,
       input.address,
       input.contractId,
+      input.collateralIndex,
     );
   }
 
@@ -111,17 +114,19 @@ export class FollowerResolver {
   @Mutation(() => Boolean)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  withdrawUSDCToUser(
+  withdrawErc20ToUser(
     @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('collateralIndex', { type: () => Int }) collateralIndex: number,
     @Args('amount', { type: () => Float }) amount: number,
     @Args('password', { type: () => String }) password: string,
     @CurrentUser() user: User,
   ) {
-    return this.followerService.withdrawUSDCToUser(
+    return this.followerService.withdrawErc20ToUser(
       user.address,
       password,
       amount,
       contractId,
+      collateralIndex,
     );
   }
 
@@ -130,6 +135,7 @@ export class FollowerResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   decreaseAllowanceToZero(
     @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('collateralIndex', { type: () => Int }) collateralIndex: number,
     @Args('followerAddress', { type: () => String }) followerAddress: string,
     @Args('password', { type: () => String }) password: string,
     @CurrentUser() user: User,
@@ -138,6 +144,7 @@ export class FollowerResolver {
       user.address,
       password,
       contractId,
+      collateralIndex,
       followerAddress,
     );
   }
@@ -147,6 +154,7 @@ export class FollowerResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   increaseAllowanceToMax(
     @Args('contractId', { type: () => Int }) contractId: number,
+    @Args('collateralIndex', { type: () => Int }) collateralIndex: number,
     @Args('followerAddress', { type: () => String }) followerAddress: string,
     @Args('password', { type: () => String }) password: string,
     @CurrentUser() user: User,
@@ -155,6 +163,7 @@ export class FollowerResolver {
       user.address,
       password,
       contractId,
+      collateralIndex,
       followerAddress,
     );
   }
