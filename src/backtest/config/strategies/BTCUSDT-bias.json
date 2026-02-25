@@ -1,0 +1,78 @@
+{
+  "symbol": "BTCUSDT",
+  "name": "BTC Trend with HTF Bias",
+  "description": "EMA crossover with HTF EMA bias filter (5m timeframe)",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": 9,
+      "slowPeriod": 21,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "filters": [
+    {
+      "type": "htfEmaBias",
+      "params": {
+        "timeframe": 5,
+        "period": 50,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "emaSlope",
+      "params": {
+        "period": 50,
+        "slopePeriod": 10,
+        "minSlope": 0.0001,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "risk": {
+    "type": "volatilityMarginFixed",
+    "params": {
+      "baseMargin": 1000,
+      "minMargin": 200,
+      "maxMargin": 2000,
+      "leverage": 10,
+      "atrPeriod": 14,
+      "atrSmaPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "exits": [
+    {
+      "type": "stopLoss",
+      "params": {
+        "percent": 5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "trailingStop",
+      "params": {
+        "activationPercent": 3,
+        "trailPercent": 2,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "platform": {
+    "type": "general",
+    "params": {
+      "openingFeePercent": 0.05,
+      "closingFeePercent": 0.05,
+      "spreadPercent": 0.01,
+      "liquidationThreshold": 90
+    }
+  },
+  "settings": {
+    "initialCapital": 10000
+  }
+}

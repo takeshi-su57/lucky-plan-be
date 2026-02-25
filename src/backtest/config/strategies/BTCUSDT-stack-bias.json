@@ -1,0 +1,70 @@
+{
+  "symbol": "BTCUSDT",
+  "name": "BTC EMA Stack Bias",
+  "description": "EMA crossover with EMA stack bias filter",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": 20,
+      "slowPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "filters": [
+    {
+      "type": "emaStack",
+      "params": {
+        "fastPeriod": 20,
+        "midPeriod": 50,
+        "slowPeriod": 200,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "risk": {
+    "type": "volatilityMarginPercent",
+    "params": {
+      "baseMarginPercent": 10,
+      "minMargin": 200,
+      "maxMargin": 2000,
+      "leverage": 10,
+      "atrPeriod": 14,
+      "atrSmaPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "exits": [
+    {
+      "type": "stopLoss",
+      "params": {
+        "percent": 5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "trailingStop",
+      "params": {
+        "activationPercent": 2,
+        "trailPercent": 1.5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "platform": {
+    "type": "general",
+    "params": {
+      "openingFeePercent": 0.05,
+      "closingFeePercent": 0.05,
+      "spreadPercent": 0.01,
+      "liquidationThreshold": 90
+    }
+  },
+  "settings": {
+    "initialCapital": 10000
+  }
+}

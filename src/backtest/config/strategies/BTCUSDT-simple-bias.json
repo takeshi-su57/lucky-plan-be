@@ -1,0 +1,59 @@
+{
+  "symbol": "BTCUSDT",
+  "name": "BTC Simple MA Bias",
+  "description": "EMA crossover with simple MA position bias",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": 20,
+      "slowPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "filters": [
+    {
+      "type": "maPosition",
+      "params": {
+        "period": 100,
+        "maType": "EMA",
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "risk": {
+    "type": "percentageBased",
+    "params": {
+      "marginPercent": 10,
+      "maxMargin": 2000,
+      "leverage": 10
+    }
+  },
+  "exits": [
+    {
+      "type": "stopLoss",
+      "params": {
+        "percent": 5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "trailingStop",
+      "params": {
+        "activationPercent": 3,
+        "trailPercent": 2,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "platform": {
+    "type": "simple",
+    "params": {}
+  },
+  "settings": {
+    "initialCapital": 10000
+  }
+}

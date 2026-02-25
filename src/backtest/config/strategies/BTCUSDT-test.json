@@ -1,0 +1,60 @@
+{
+  "symbol": "BTCUSDT",
+  "name": "BTC Test No ADX",
+  "description": "Same as original but without ADX filter",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": 20,
+      "slowPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "filters": [],
+  "risk": {
+    "type": "volatilityLeveragePercent",
+    "params": {
+      "marginPercent": 10,
+      "maxMargin": 2000,
+      "baseLeverage": 10,
+      "minLeverage": 3,
+      "maxLeverage": 20,
+      "atrPeriod": 14,
+      "atrSmaPeriod": 50,
+      "timeframe": 1,
+      "useCurrentCandle": false
+    }
+  },
+  "exits": [
+    {
+      "type": "stopLoss",
+      "params": {
+        "percent": 5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    },
+    {
+      "type": "trailingStop",
+      "params": {
+        "activationPercent": 2,
+        "trailPercent": 1.5,
+        "timeframe": 1,
+        "useCurrentCandle": false
+      }
+    }
+  ],
+  "platform": {
+    "type": "general",
+    "params": {
+      "openingFeePercent": 0.05,
+      "closingFeePercent": 0.05,
+      "spreadPercent": 0.01,
+      "liquidationThreshold": 90
+    }
+  },
+  "settings": {
+    "initialCapital": 10000
+  }
+}
