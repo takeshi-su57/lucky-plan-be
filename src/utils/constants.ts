@@ -21,6 +21,14 @@ export const SUBSCRIPTION_TOKEN = {
   taskUpdated: 'taskUpdated',
   newLog: 'newLog',
   tradingSignalLogUpdated: 'tradingSignalLogUpdated',
+  // Backtest subscriptions
+  backtestTaskUpdated: 'backtestTaskUpdated',
+  backtestResultCreated: 'backtestResultCreated',
+  // Template search subscriptions
+  templateSearchUpdated: 'templateSearchUpdated',
+  // Validation pipeline subscriptions
+  validationPipelineUpdated: 'validationPipelineUpdated',
+  validationCandidateUpdated: 'validationCandidateUpdated',
 };
 
 export const MIN_GAS = BigInt(0.0005 * Math.pow(10, etherUnits.wei));
@@ -74,6 +82,21 @@ export const PATTERNS = {
     BuildPnlSnapshot: 'BUILD_PNL_SNAPSHOT',
     DynamicSnapshotBuild: 'DYNAMIC_SNAPSHOT_BUILD',
     InitializePnlSnapshot: 'INITIALIZE_PNL_SNAPSHOT',
+  },
+  Backtest: {
+    TaskCreated: 'BACKTEST_TASK_CREATED',
+    TaskUpdated: 'BACKTEST_TASK_UPDATED',
+    TaskCompleted: 'BACKTEST_TASK_COMPLETED',
+    TaskFailed: 'BACKTEST_TASK_FAILED',
+    ResultCreated: 'BACKTEST_RESULT_CREATED',
+    TemplateCreated: 'BACKTEST_TEMPLATE_CREATED',
+    TemplateSearchCreated: 'BACKTEST_TEMPLATE_SEARCH_CREATED',
+    TemplateSearchUpdated: 'BACKTEST_TEMPLATE_SEARCH_UPDATED',
+  },
+  Validation: {
+    PipelineCreated: 'VALIDATION_PIPELINE_CREATED',
+    PipelineUpdated: 'VALIDATION_PIPELINE_UPDATED',
+    CandidateUpdated: 'VALIDATION_CANDIDATE_UPDATED',
   },
 };
 

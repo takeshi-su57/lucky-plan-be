@@ -1,0 +1,27 @@
+{
+  "symbol": "BTCUSDT",
+  "name": "Simple EMA Optimization",
+  "description": "Simple EMA crossover optimization without filters",
+  "signal": {
+    "type": "emaCrossover",
+    "params": {
+      "fastPeriod": { "min": 5, "max": 30 },
+      "slowPeriod": { "min": 30, "max": 100 },
+      "timeframe": 60,
+      "useCurrentCandle": false
+    }
+  },
+  "filters": [],
+  "risk": {
+    "type": "fixed",
+    "params": {
+      "positionSizeUsdt": 1000,
+      "timeframe": 60,
+      "useCurrentCandle": false
+    }
+  },
+  "exits": [],
+  "settings": {
+    "capitalBase": 10000
+  }
+}
