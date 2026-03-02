@@ -1,6 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BotStatus, Contract, MissionStatus } from 'generated/prisma/client';
+import {
+  BotStatus,
+  Contract,
+  MissionStatus,
+  MissionMode,
+} from 'generated/prisma/client';
 import { Address, isAddressEqual, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -267,6 +272,12 @@ export class BotsService {
         const batchBots = bots.slice(i, i + BATCH_SIZE);
 
         const promises = batchBots.map(async (bot) => {
+          const additionalParams = getAdditionalParams(bot.strategy.params);
+
+          const realMissionsCount = bot.missions.filter(
+            (item) => item.mode === MissionMode.Default,
+          ).length;
+
           if (
             bot.status === BotStatus.Stop &&
             !bot.missions.find(
@@ -279,10 +290,15 @@ export class BotsService {
 
             updatedBots.push(updatedBot);
           } else if (
-            bot.status === BotStatus.Live ||
-            bot.status === BotStatus.Stop
+            bot.status === BotStatus.Live &&
+            !additionalParams.mode &&
+            realMissionsCount >= bot.strategy.lifeTime
           ) {
-            // await this.reBalanceAsset(bot);
+            // handle for default bot mode.
+
+            const updatedBot = await this._turnoffDefaultMode(bot);
+
+            updatedBots.push(updatedBot);
           }
         });
 
@@ -650,6 +666,25 @@ export class BotsService {
     //   bot.followerAddress,
     //   bot.followerContractId,
     // );
+
+    return await this._update({
+      id: bot.id,
+      status: BotStatus.Dead,
+    });
+  }
+
+  private async _turnoffDefaultMode(bot: BotBackwardDetails) {
+    await this.prismaService.strategy.update({
+      where: {
+        id: bot.strategyId,
+      },
+      data: {
+        params: JSON.stringify({
+          ...getAdditionalParams(bot.strategy.params),
+          mode: 'signal',
+        }),
+      },
+    });
 
     return await this._update({
       id: bot.id,
