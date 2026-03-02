@@ -75,6 +75,11 @@ export class UpdateStrategyInput {
   minLeverage: number;
 
   @IsNotEmpty()
+  @IsInt()
+  @Field()
+  lifeTime: number;
+
+  @IsNotEmpty()
   @IsJSON()
   @Field()
   params: string;
