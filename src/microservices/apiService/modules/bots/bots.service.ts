@@ -688,7 +688,6 @@ export class BotsService {
 
     return await this._update({
       id: bot.id,
-      status: BotStatus.Dead,
     });
   }
 
