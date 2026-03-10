@@ -23,6 +23,7 @@ import { PlansService } from './plans.service';
 import {
   Plan,
   PlanConnection,
+  PlanSummaryConnection,
   PlanForwardDetails,
   ExpertPnlSnapshotV2Connection,
   BotGroupConnection,
@@ -134,6 +135,24 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.getPlansByStatus(
+      user.address,
+      status,
+      first,
+      after,
+    );
+  }
+
+  @Query(() => PlanSummaryConnection)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getPlanSummariesByStatus(
+    @Args('status', { type: () => PlanStatus })
+    status: PlanStatus,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.getPlanSummariesByStatus(
       user.address,
       status,
       first,

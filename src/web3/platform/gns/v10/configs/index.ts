@@ -88,3 +88,7 @@ export function getCollateral(
 
   return collateralConfigsMap[chainId][collateralIndex - 1] || null;
 }
+
+export function getCollaterals(chainId: number): Collateral[] {
+  return collateralConfigsMap[chainId] || [];
+}
