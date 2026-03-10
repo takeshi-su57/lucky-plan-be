@@ -454,33 +454,9 @@ export class PlansService {
   async getPlanById(
     userId: string,
     id: number,
-  ): Promise<PlanForwardDetails | null> {
+  ): Promise<Plan | null> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
-      include: {
-        bots: {
-          include: {
-            follower: true,
-            strategy: true,
-            leaderContract: true,
-            followerContract: true,
-            missions: {
-              include: {
-                tasks: {
-                  include: {
-                    action: true,
-                    followerActions: {
-                      include: {
-                        action: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!plan) {
