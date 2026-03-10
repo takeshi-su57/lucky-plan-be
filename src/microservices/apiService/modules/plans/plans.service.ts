@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BotStatus, PlanStatus } from 'generated/prisma/client';
+import { BotStatus, Platform, PlanStatus } from 'generated/prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
@@ -7,6 +7,7 @@ import {
   PlanConnection,
   PlanForwardDetails,
   Plan,
+  BotGroupConnection,
 } from './entities/plan.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -205,6 +206,105 @@ export class PlansService {
     }
 
     return plan;
+  }
+
+  async getPlanBotGroups(
+    userId: string,
+    planId: number,
+    first: number,
+    after: number | null,
+    hideDead: boolean,
+  ): Promise<BotGroupConnection> {
+    await this.checkAuthorization(userId, planId);
+
+    const bots = await this.prisma.bot.findMany({
+      where: {
+        planId,
+        ...(hideDead && { status: { not: BotStatus.Dead } }),
+      },
+      orderBy: { id: 'asc' },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        missions: {
+          include: {
+            tasks: {
+              include: {
+                action: true,
+                followerActions: {
+                  include: {
+                    action: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const groupMap = new Map<
+      string,
+      {
+        leaderAddress: string;
+        platform: Platform;
+        hasDefault: boolean;
+        bots: typeof bots;
+      }
+    >();
+
+    for (const bot of bots) {
+      const key = `${bot.leaderAddress.toLowerCase()}-${bot.leaderContract.platform}`;
+      const existing = groupMap.get(key);
+
+      if (existing) {
+        existing.bots.push(bot);
+      } else {
+        groupMap.set(key, {
+          leaderAddress: bot.leaderAddress,
+          platform: bot.leaderContract.platform,
+          hasDefault: false,
+          bots: [bot],
+        });
+      }
+
+      try {
+        const params = JSON.parse(bot.strategy.params);
+        if (!params.mode) {
+          groupMap.get(key)!.hasDefault = true;
+        }
+      } catch {
+        groupMap.get(key)!.hasDefault = true;
+      }
+    }
+
+    const sortedGroups = Array.from(groupMap.values()).sort((a, b) =>
+      a.hasDefault === b.hasDefault ? 0 : a.hasDefault ? -1 : 1,
+    );
+
+    const startIndex = after !== null && after !== undefined ? after + 1 : 0;
+    const sliced = sortedGroups.slice(startIndex, startIndex + first);
+
+    const edges = sliced.map((group, i) => ({
+      cursor: startIndex + i,
+      node: group,
+    }));
+
+    const lastCursor =
+      edges.length > 0 ? edges[edges.length - 1].cursor : null;
+    const hasNextPage =
+      lastCursor !== null && lastCursor < sortedGroups.length - 1;
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage,
+        endCursor: lastCursor,
+      },
+      totalGroups: sortedGroups.length,
+    };
   }
 
   private async _start(id: number): Promise<boolean> {

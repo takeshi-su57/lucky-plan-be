@@ -6,7 +6,7 @@ import {
   Float,
   OmitType,
 } from '@nestjs/graphql';
-import { PlanStatus } from 'generated/prisma/client';
+import { PlanStatus, Platform } from 'generated/prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 import {
@@ -71,6 +71,51 @@ export class PlanConnection {
   @Field(() => [PlanEdge])
   edges: PlanEdge[];
   @Field(() => PlanPageInfo) pageInfo: PlanPageInfo;
+}
+
+@ObjectType()
+export class BotGroup {
+  @Field(() => String)
+  leaderAddress: string;
+
+  @Field(() => Platform)
+  platform: Platform;
+
+  @Field(() => Boolean)
+  hasDefault: boolean;
+
+  @Field(() => [BotForwardDetails])
+  bots: BotForwardDetails[];
+}
+
+@ObjectType()
+export class BotGroupEdge {
+  @Field(() => Int)
+  cursor: number;
+
+  @Field(() => BotGroup)
+  node: BotGroup;
+}
+
+@ObjectType()
+export class BotGroupPageInfo {
+  @Field(() => Boolean)
+  hasNextPage: boolean;
+
+  @Field(() => Int, { nullable: true })
+  endCursor: number | null;
+}
+
+@ObjectType()
+export class BotGroupConnection {
+  @Field(() => [BotGroupEdge])
+  edges: BotGroupEdge[];
+
+  @Field(() => BotGroupPageInfo)
+  pageInfo: BotGroupPageInfo;
+
+  @Field(() => Int)
+  totalGroups: number;
 }
 
 @ObjectType()
