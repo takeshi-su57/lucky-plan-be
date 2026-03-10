@@ -74,7 +74,7 @@ export function convertTradeActionToHistory(
         collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
         leverage: Number(args.values.newLeverage) / 1000,
         long: Number(args.long),
-        pairIndex: args.pairIndex,
+        pairIndex: Number(args.pairIndex),
         pnl: Number(
           Number(args.values.borrowingFeeCollateral) /
             Number(collateral.precision),
@@ -104,7 +104,7 @@ export function convertTradeActionToHistory(
         collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
         leverage: Number(args.values.newLeverage) / 1000,
         long: Number(args.long),
-        pairIndex: args.pairIndex,
+        pairIndex: Number(args.pairIndex),
         pnl: Number(
           Number(args.values.borrowingFeeCollateral) /
             Number(collateral.precision),
@@ -134,7 +134,7 @@ export function convertTradeActionToHistory(
         collateralPriceUsd: 0,
         leverage: Number(args.values.newLeverage) / 1e3,
         long: 0,
-        pairIndex: args.pairIndex,
+        pairIndex: Number(args.pairIndex),
         pnl: 0,
         price: Number(args.values.oraclePrice) / 1e10,
         size: Number(
@@ -167,7 +167,7 @@ export function convertTradeActionToHistory(
         collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
         leverage: Number(args.t.leverage) / 1e3,
         long: Number(args.t.long),
-        pairIndex: args.t.pairIndex,
+        pairIndex: Number(args.t.pairIndex),
         pnl,
         price: Number(args.oraclePrice) / 1e10,
         size: Number(
@@ -209,7 +209,7 @@ export function convertTradeActionToHistory(
         collateralPriceUsd: Number(args.collateralPriceUsd) / 1e8,
         leverage: Number(args.t.leverage) / 1e3,
         long: Number(args.t.long),
-        pairIndex: args.t.pairIndex,
+        pairIndex: Number(args.t.pairIndex),
         pnl,
         price: Number(args.oraclePrice) / 1e10,
         size: Number(
