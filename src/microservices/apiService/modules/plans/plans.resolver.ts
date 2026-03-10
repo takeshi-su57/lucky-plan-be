@@ -160,7 +160,7 @@ export class PlansResolver {
     );
   }
 
-  @Query(() => PlanForwardDetails, { nullable: true })
+  @Query(() => Plan, { nullable: true })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   getPlanById(
