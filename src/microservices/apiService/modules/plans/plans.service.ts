@@ -14,7 +14,7 @@ import {
   PlanSummaryConnection,
   ContractPnlSummary,
   Plan,
-  BotGroupConnection,
+  BotGroupPaginatedResponse,
 } from './entities/plan.entity';
 import {
   convertTradeActionToHistory,
@@ -497,10 +497,10 @@ export class PlansService {
   async getPlanBotGroups(
     userId: string,
     planId: number,
-    first: number,
-    after: number | null,
+    page: number,
+    pageSize: number,
     hideDead: boolean,
-  ): Promise<BotGroupConnection> {
+  ): Promise<BotGroupPaginatedResponse> {
     await this.checkAuthorization(userId, planId);
 
     const bots = await this.prisma.bot.findMany({
@@ -570,26 +570,16 @@ export class PlansService {
       a.hasDefault === b.hasDefault ? 0 : a.hasDefault ? -1 : 1,
     );
 
-    const startIndex = after !== null && after !== undefined ? after + 1 : 0;
-    const sliced = sortedGroups.slice(startIndex, startIndex + first);
-
-    const edges = sliced.map((group, i) => ({
-      cursor: startIndex + i,
-      node: group,
-    }));
-
-    const lastCursor =
-      edges.length > 0 ? edges[edges.length - 1].cursor : null;
-    const hasNextPage =
-      lastCursor !== null && lastCursor < sortedGroups.length - 1;
+    const totalGroups = sortedGroups.length;
+    const totalPages = Math.ceil(totalGroups / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const items = sortedGroups.slice(startIndex, startIndex + pageSize);
 
     return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        endCursor: lastCursor,
-      },
-      totalGroups: sortedGroups.length,
+      items,
+      totalGroups,
+      totalPages,
+      currentPage: page,
     };
   }
 
