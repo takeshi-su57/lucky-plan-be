@@ -74,6 +74,99 @@ export class PlanConnection {
 }
 
 @ObjectType()
+export class OpenPosition {
+  @Field(() => Float)
+  openPrice: number;
+
+  @Field(() => Boolean)
+  long: boolean;
+
+  @Field(() => Float)
+  size: number;
+
+  @Field(() => Float)
+  leverage: number;
+
+  @Field(() => Int)
+  pairIndex: number;
+}
+
+@ObjectType()
+export class ContractPnlSummary {
+  @Field(() => Int)
+  contractId: number;
+
+  @Field(() => Int)
+  chainId: number;
+
+  @Field(() => Float)
+  realizedPnl: number;
+
+  @Field(() => Int)
+  realizedCount: number;
+
+  @Field(() => [OpenPosition])
+  openPositions: OpenPosition[];
+}
+
+@ObjectType()
+export class PlanSummary {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => String)
+  userId: string;
+
+  @Field()
+  title: string;
+
+  @Field()
+  description: string;
+
+  @Field(() => Date, { nullable: true })
+  startedAt: Date | null;
+
+  @Field(() => Date, { nullable: true })
+  endedAt: Date | null;
+
+  @Field()
+  scheduledStart: Date;
+
+  @Field()
+  scheduledEnd: Date;
+
+  @Field(() => PlanStatus)
+  status: PlanStatus;
+
+  @Field(() => Int)
+  botCount: number;
+
+  @Field(() => [ContractPnlSummary])
+  leaderPnl: ContractPnlSummary[];
+
+  @Field(() => [ContractPnlSummary])
+  followerPnl: ContractPnlSummary[];
+}
+
+@ObjectType()
+export class PlanSummaryEdge {
+  @Field(() => Int)
+  cursor: number;
+
+  @Field(() => PlanSummary)
+  node: PlanSummary;
+}
+
+@ObjectType()
+export class PlanSummaryConnection {
+  @Field(() => [PlanSummaryEdge])
+  edges: PlanSummaryEdge[];
+
+  @Field(() => PlanPageInfo)
+  pageInfo: PlanPageInfo;
+}
+
+@ObjectType()
 export class BotGroup {
   @Field(() => String)
   leaderAddress: string;

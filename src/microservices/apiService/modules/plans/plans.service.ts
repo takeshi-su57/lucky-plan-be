@@ -1,14 +1,27 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BotStatus, Platform, PlanStatus } from 'generated/prisma/client';
+import {
+  BotStatus,
+  MissionStatus,
+  Platform,
+  PlanStatus,
+} from 'generated/prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import {
   PlanConnection,
   PlanForwardDetails,
+  PlanSummaryConnection,
+  ContractPnlSummary,
   Plan,
   BotGroupConnection,
 } from './entities/plan.entity';
+import {
+  convertTradeActionToHistory,
+  TradeActionType,
+  CLOSE_ACTION_TYPES,
+} from './utils/convert-trade-action';
+import { getCollaterals } from 'src/web3/platform/gns/v10/configs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
@@ -162,6 +175,279 @@ export class PlansService {
         hasNextPage: edges.length > 0,
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
+    };
+  }
+
+  async getPlanSummariesByStatus(
+    userId: string,
+    status: PlanStatus,
+    first: number,
+    after: number | null,
+  ): Promise<PlanSummaryConnection> {
+    const records = await this.prisma.plan.findMany({
+      skip: after ? 1 : undefined,
+      take: first,
+      cursor: after
+        ? {
+            id: after,
+          }
+        : undefined,
+      where: { status, userId },
+      orderBy: [
+        { startedAt: 'desc' },
+        {
+          id: 'asc',
+        },
+      ],
+      include: {
+        bots: {
+          include: {
+            leaderContract: true,
+            followerContract: true,
+            missions: {
+              include: {
+                tasks: {
+                  include: {
+                    action: true,
+                    followerActions: {
+                      include: {
+                        action: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const edges = records.map((record) => {
+      const finished = record.status === PlanStatus.Finished;
+      const contractMap = new Map<
+        number,
+        { chainId: number; side: 'leader' | 'follower' }
+      >();
+
+      for (const bot of record.bots) {
+        if (!contractMap.has(bot.leaderContractId)) {
+          contractMap.set(bot.leaderContractId, {
+            chainId: bot.leaderContract.chainId,
+            side: 'leader',
+          });
+        }
+        if (!contractMap.has(bot.followerContractId)) {
+          contractMap.set(bot.followerContractId, {
+            chainId: bot.followerContract.chainId,
+            side: 'follower',
+          });
+        }
+      }
+
+      const leaderPnl: ContractPnlSummary[] = [];
+      const followerPnl: ContractPnlSummary[] = [];
+
+      const leaderContractIds = [
+        ...new Set(record.bots.map((b) => b.leaderContractId)),
+      ];
+      const followerContractIds = [
+        ...new Set(record.bots.map((b) => b.followerContractId)),
+      ];
+
+      for (const contractId of leaderContractIds) {
+        const info = contractMap.get(contractId);
+        if (!info) continue;
+
+        const collaterals = getCollaterals(info.chainId);
+        const bots = record.bots.filter(
+          (b) => b.leaderContractId === contractId,
+        );
+
+        const finishedMissionActions = bots.flatMap((bot) =>
+          bot.missions
+            .filter(
+              (m) =>
+                !!m.achievePositionKey && m.status === MissionStatus.Closed,
+            )
+            .map((m) => m.tasks.map((t) => t.action)),
+        );
+
+        const openedMissionActions = bots.flatMap((bot) =>
+          bot.missions
+            .filter(
+              (m) =>
+                !!m.achievePositionKey &&
+                m.status !== MissionStatus.Ignored &&
+                m.status !== MissionStatus.Closed,
+            )
+            .map((m) => m.tasks.map((t) => t.action)),
+        );
+
+        leaderPnl.push(
+          this.computeContractPnlSummary(
+            contractId,
+            info.chainId,
+            finishedMissionActions,
+            openedMissionActions,
+            finished,
+            collaterals,
+          ),
+        );
+      }
+
+      for (const contractId of followerContractIds) {
+        const info = contractMap.get(contractId);
+        if (!info) continue;
+
+        const collaterals = getCollaterals(info.chainId);
+        const bots = record.bots.filter(
+          (b) => b.followerContractId === contractId,
+        );
+
+        const finishedMissionActions = bots.flatMap((bot) =>
+          bot.missions
+            .filter(
+              (m) =>
+                m.status === MissionStatus.Closed && !!m.achievePositionKey,
+            )
+            .map((m) =>
+              m.tasks
+                .map((t) => {
+                  if (t.followerActions.length === 0) return null;
+                  const fa = t.followerActions[t.followerActions.length - 1];
+                  return fa?.action ?? null;
+                })
+                .filter((a) => a !== null),
+            ),
+        );
+
+        const openedMissionActions = bots.flatMap((bot) =>
+          bot.missions
+            .filter(
+              (m) =>
+                m.status !== MissionStatus.Closed &&
+                m.status !== MissionStatus.Ignored &&
+                !!m.achievePositionKey,
+            )
+            .map((m) =>
+              m.tasks
+                .map((t) => {
+                  if (t.followerActions.length === 0) return null;
+                  const fa = t.followerActions[t.followerActions.length - 1];
+                  return fa?.action ?? null;
+                })
+                .filter((a) => a !== null),
+            ),
+        );
+
+        followerPnl.push(
+          this.computeContractPnlSummary(
+            contractId,
+            info.chainId,
+            finishedMissionActions,
+            openedMissionActions,
+            finished,
+            collaterals,
+          ),
+        );
+      }
+
+      return {
+        cursor: record.id,
+        node: {
+          id: record.id,
+          userId: record.userId,
+          title: record.title,
+          description: record.description,
+          startedAt: record.startedAt,
+          endedAt: record.endedAt,
+          scheduledStart: record.scheduledStart,
+          scheduledEnd: record.scheduledEnd,
+          status: record.status,
+          botCount: record.bots.length,
+          leaderPnl,
+          followerPnl,
+        },
+      };
+    });
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      },
+    };
+  }
+
+  private computeContractPnlSummary(
+    contractId: number,
+    chainId: number,
+    finishedMissionActions: any[][],
+    openedMissionActions: any[][],
+    finished: boolean,
+    collaterals: any[],
+  ): ContractPnlSummary {
+    let realizedPnl = 0;
+    let realizedCount = 0;
+
+    for (const missionActions of finishedMissionActions) {
+      for (const action of missionActions) {
+        const history = convertTradeActionToHistory(
+          contractId,
+          action,
+          collaterals,
+        );
+        if (history) {
+          realizedPnl += (history.pnl || 0) * (history.collateralPriceUsd || 0);
+          realizedCount++;
+        }
+      }
+    }
+
+    const openPositions = finished
+      ? []
+      : openedMissionActions
+          .map((missionActions) =>
+            missionActions
+              .map((action) =>
+                convertTradeActionToHistory(contractId, action, collaterals),
+              )
+              .filter((h) => h !== null),
+          )
+          .filter(
+            (missionHistories) =>
+              !missionHistories.find((h) =>
+                CLOSE_ACTION_TYPES.includes(h.action),
+              ),
+          )
+          .map((missionHistories) => {
+            let openPrice = 0;
+            let long = false;
+            let size = 0;
+            let leverage = 0;
+            let pairIndex = 0;
+
+            for (const history of missionHistories) {
+              if (history.action !== TradeActionType.TradeLeverageUpdate) {
+                openPrice = history.price;
+                long = !!history.long;
+              }
+              size = history.size * history.collateralPriceUsd;
+              leverage = history.leverage;
+              pairIndex = history.pairIndex;
+            }
+
+            return { openPrice, long, size, leverage, pairIndex };
+          });
+
+    return {
+      contractId,
+      chainId,
+      realizedPnl,
+      realizedCount,
+      openPositions,
     };
   }
 
