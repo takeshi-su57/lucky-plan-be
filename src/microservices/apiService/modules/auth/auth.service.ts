@@ -69,20 +69,6 @@ export class AuthService {
     signature: `0x${string}`,
     timestamp: number,
   ): Promise<User | null> {
-    let user: User | null = null;
-
-    user = await this.prisma.user.findUnique({
-      select: {
-        address: true,
-        permission: true,
-        allowAuto: true,
-        budget: true,
-        ratio: true,
-        followerContractId: true,
-      },
-      where: { address: walletAddress.toLowerCase() },
-    });
-
     const verified = await this.verifyWeb3Auth(
       walletAddress,
       signature,
@@ -93,6 +79,31 @@ export class AuthService {
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
     }
 
+    const selectFields = {
+      address: true,
+      secondAddress: true,
+      permission: true,
+      allowAuto: true,
+      budget: true,
+      ratio: true,
+      followerContractId: true,
+    } as const;
+
+    // Try primary address first
+    let user: User | null = await this.prisma.user.findUnique({
+      select: selectFields,
+      where: { address: walletAddress.toLowerCase() },
+    });
+
+    // Fallback: try secondAddress
+    if (!user) {
+      user = await this.prisma.user.findUnique({
+        select: selectFields,
+        where: { secondAddress: walletAddress.toLowerCase() },
+      });
+    }
+
+    // No match at all — create new account
     if (!user) {
       const result = await this.createAccount(walletAddress);
 
@@ -105,6 +116,7 @@ export class AuthService {
 
       user = {
         address: result.address,
+        secondAddress: result.secondAddress,
         permission: result.permission,
         allowAuto: result.allowAuto,
         budget: result.budget,
@@ -140,6 +152,7 @@ export class AuthService {
     return await this.prisma.user.findMany({
       select: {
         address: true,
+        secondAddress: true,
         permission: true,
         allowAuto: true,
         budget: true,
@@ -153,6 +166,7 @@ export class AuthService {
     return await this.prisma.user.update({
       select: {
         address: true,
+        secondAddress: true,
         permission: true,
         allowAuto: true,
         budget: true,
@@ -176,6 +190,7 @@ export class AuthService {
     return await this.prisma.user.update({
       select: {
         address: true,
+        secondAddress: true,
         permission: true,
         allowAuto: true,
         budget: true,

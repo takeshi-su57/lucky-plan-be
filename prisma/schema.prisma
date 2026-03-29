@@ -219,6 +219,7 @@ model Log {
 
 model User {
   address            String         @unique
+  secondAddress      String?        @unique
   mnemonic           String
   permission         UserPermission
   allowAuto          Boolean        @default(false)
