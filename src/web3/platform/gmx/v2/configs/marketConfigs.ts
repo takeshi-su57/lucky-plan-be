@@ -130,6 +130,180 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       },
     },
   },
+  '4326': {
+    '0x31EdCc52bE2Fa55Ba68f50409F9e6b7d9EbF3D59': {
+      marketTokenAddress: '0x31EdCc52bE2Fa55Ba68f50409F9e6b7d9EbF3D59',
+      indexTokenAddress: '0xc258141Ad80cafF9ab82a04bEb1c10F4B5bCb8F4',
+      longTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      shortTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      longToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      shortToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      indexToken: {
+        name: 'Bitcoin',
+        symbol: 'BTC',
+        address: '0xc258141Ad80cafF9ab82a04bEb1c10F4B5bCb8F4',
+        isSynthetic: true,
+        decimals: 8,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/7598/thumb/wrapped_bitcoin_wbtc.png?1548822744',
+      },
+    },
+    '0x9b1B72720f6D277F3b1e607a0c5fab1B300248b1': {
+      marketTokenAddress: '0x9b1B72720f6D277F3b1e607a0c5fab1B300248b1',
+      indexTokenAddress: '0x4200000000000000000000000000000000000006',
+      longTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      shortTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      longToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      shortToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      indexToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        address: '0x4200000000000000000000000000000000000006',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+      },
+    },
+    '0xe8E716F1cddfFD0698B86919D41A8228d701fEe9': {
+      marketTokenAddress: '0xe8E716F1cddfFD0698B86919D41A8228d701fEe9',
+      indexTokenAddress: '0x30998706b1e5C95e9d3645D2e9E0EB1466819962',
+      longTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      shortTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      longToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      shortToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      indexToken: {
+        name: 'Solana',
+        symbol: 'SOL',
+        address: '0x30998706b1e5C95e9d3645D2e9E0EB1466819962',
+        isSynthetic: true,
+        decimals: 9,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/4128/small/solana.png?1640133422',
+      },
+    },
+    '0x1b997cb4841c4cb360E384192fFd7fb26eb10e5f': {
+      marketTokenAddress: '0x1b997cb4841c4cb360E384192fFd7fb26eb10e5f',
+      indexTokenAddress: '0x28B7E77f82B25B95953825F1E3eA0E36c1c29861',
+      longTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      shortTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      longToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      shortToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      indexToken: {
+        name: 'MegaETH',
+        symbol: 'MEGA',
+        address: '0x28B7E77f82B25B95953825F1E3eA0E36c1c29861',
+        decimals: 18,
+        categories: ['layer2', 'defi'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69995/standard/ICON.png?1760337992',
+      },
+    },
+    '0xc5c9B5E23810565763De41144741477eeCB25e2e': {
+      marketTokenAddress: '0xc5c9B5E23810565763De41144741477eeCB25e2e',
+      indexTokenAddress: '0x0000000000000000000000000000000000000000',
+      longTokenAddress: '0x4200000000000000000000000000000000000006',
+      shortTokenAddress: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        address: '0x4200000000000000000000000000000000000006',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+      },
+      shortToken: {
+        name: 'USDM',
+        symbol: 'USDM',
+        address: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+        decimals: 18,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69955/standard/USDm.png?1760170136',
+      },
+      indexToken: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        address: '0x0000000000000000000000000000000000000000',
+        decimals: 18,
+        isNative: true,
+        isShortable: true,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+        wrappedAddress: '0x4200000000000000000000000000000000000006',
+      },
+    },
+  },
   '42161': {
     '0x47c031236e19d024b42f8AE6780E44A573170703': {
       marketTokenAddress: '0x47c031236e19d024b42f8AE6780E44A573170703',
@@ -259,7 +433,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Dogecoin',
         symbol: 'DOGE',
         decimals: 8,
-        priceDecimals: 5,
         address: '0xC4da4c24fd591125c3F47b340b6f4f76111883d8',
         isSynthetic: true,
         categories: ['meme'],
@@ -276,7 +449,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -306,7 +478,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -355,7 +526,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Litecoin',
         symbol: 'LTC',
         decimals: 8,
-        priceDecimals: 3,
         address: '0xB46A094Bc4B0adBD801E14b9DB95e05E28962764',
         isSynthetic: true,
         categories: ['layer1'],
@@ -372,7 +542,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Uniswap',
         symbol: 'UNI',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0',
         isStable: false,
         isShortable: true,
@@ -402,7 +571,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Uniswap',
         symbol: 'UNI',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0',
         isStable: false,
         isShortable: true,
@@ -425,7 +593,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Chainlink',
         symbol: 'LINK',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4',
         isStable: false,
         isShortable: true,
@@ -455,7 +622,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Chainlink',
         symbol: 'LINK',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4',
         isStable: false,
         isShortable: true,
@@ -478,7 +644,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Arbitrum',
         symbol: 'ARB',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
         categories: ['layer2', 'defi'],
         imageUrl:
@@ -505,7 +670,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Arbitrum',
         symbol: 'ARB',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
         categories: ['layer2', 'defi'],
         imageUrl:
@@ -688,7 +852,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'XRP',
         symbol: 'XRP',
         decimals: 6,
-        priceDecimals: 4,
         address: '0xc14e065b0067dE91534e032868f5Ac6ecf2c6868',
         categories: ['layer1'],
         imageUrl:
@@ -752,7 +915,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Aave',
         symbol: 'AAVE',
         assetSymbol: 'AAVE',
-        priceDecimals: 3,
         address: '0xba5DdD1f9d7F570dc94a51479a000E3BCE967196',
         decimals: 18,
         categories: ['defi'],
@@ -778,7 +940,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Aave',
         symbol: 'AAVE',
         assetSymbol: 'AAVE',
-        priceDecimals: 3,
         address: '0xba5DdD1f9d7F570dc94a51479a000E3BCE967196',
         decimals: 18,
         categories: ['defi'],
@@ -823,7 +984,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Cosmos',
         symbol: 'ATOM',
         assetSymbol: 'ATOM',
-        priceDecimals: 4,
         address: '0x7D7F1765aCbaF847b9A1f7137FE8Ed4931FbfEbA',
         decimals: 6,
         categories: ['layer1'],
@@ -867,7 +1027,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Near',
         symbol: 'NEAR',
         assetSymbol: 'NEAR',
-        priceDecimals: 4,
         address: '0x1FF7F3EFBb9481Cbd7db4F932cBCD4467144237C',
         decimals: 24,
         categories: ['layer1'],
@@ -885,7 +1044,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped AVAX (Wormhole)',
         symbol: 'AVAX',
         assetSymbol: 'WAVAX (Wormhole)',
-        priceDecimals: 4,
         address: '0x565609fAF65B92F7be02468acF86f8979423e514',
         decimals: 18,
         categories: ['layer1'],
@@ -913,7 +1071,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped AVAX (Wormhole)',
         symbol: 'AVAX',
         assetSymbol: 'WAVAX (Wormhole)',
-        priceDecimals: 4,
         address: '0x565609fAF65B92F7be02468acF86f8979423e514',
         decimals: 18,
         categories: ['layer1'],
@@ -933,7 +1090,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       longToken: {
         name: 'Optimism',
         symbol: 'OP',
-        priceDecimals: 4,
         address: '0xaC800FD6159c2a2CB8fC31EF74621eB430287a5A',
         decimals: 18,
         categories: ['layer2'],
@@ -956,7 +1112,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       indexToken: {
         name: 'Optimism',
         symbol: 'OP',
-        priceDecimals: 4,
         address: '0xaC800FD6159c2a2CB8fC31EF74621eB430287a5A',
         decimals: 18,
         categories: ['layer2'],
@@ -1116,7 +1271,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PEPE',
         address: '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00',
         decimals: 18,
-        priceDecimals: 8,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776',
@@ -1141,7 +1295,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PEPE',
         address: '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00',
         decimals: 18,
-        priceDecimals: 8,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776',
@@ -1159,7 +1312,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WIF',
         address: '0xA1b91fe9FD52141Ff8cac388Ce3F10BFDc1dE79d',
         decimals: 6,
-        priceDecimals: 5,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/33566/standard/dogwifhat.jpg?1702499428',
@@ -1185,7 +1337,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WIF',
         address: '0xA1b91fe9FD52141Ff8cac388Ce3F10BFDc1dE79d',
         decimals: 6,
-        priceDecimals: 5,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/33566/standard/dogwifhat.jpg?1702499428',
@@ -1348,7 +1499,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         assetSymbol: 'SHIB',
         address: '0x3E57D02f9d196873e55727382974b02EdebE6bfd',
         decimals: 18,
-        priceDecimals: 9,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/11939/standard/shiba.png?1696511800',
@@ -1570,7 +1720,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'SATS',
         address: '0x2cD2eB61D17b78239Fcd19aafF72981B5D5eF319',
         decimals: 6,
-        priceDecimals: 11,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/30666/standard/_dD8qr3M_400x400.png?1702913020',
@@ -1614,7 +1763,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Polygon',
         symbol: 'POL',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x9c74772b713a1B032aEB173E28683D937E51921c',
         categories: ['layer1', 'layer2'],
         imageUrl:
@@ -1657,7 +1805,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Aave',
         symbol: 'AAVE',
         assetSymbol: 'AAVE',
-        priceDecimals: 3,
         address: '0xba5DdD1f9d7F570dc94a51479a000E3BCE967196',
         decimals: 18,
         categories: ['defi'],
@@ -1703,7 +1850,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PEPE',
         address: '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00',
         decimals: 18,
-        priceDecimals: 8,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776',
@@ -1746,7 +1892,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Uniswap',
         symbol: 'UNI',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0',
         isStable: false,
         isShortable: true,
@@ -1770,7 +1915,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'APE',
         address: '0x7f9FBf9bDd3F4105C478b996B648FE6e828a1e98',
         decimals: 18,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/24383/standard/apecoin.jpg?1696523566',
       },
@@ -1792,7 +1936,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'APE',
         address: '0x7f9FBf9bDd3F4105C478b996B648FE6e828a1e98',
         decimals: 18,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/24383/standard/apecoin.jpg?1696523566',
       },
@@ -1833,7 +1976,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'SUI',
         address: '0x197aa2DE1313c7AD50184234490E12409B2a1f95',
         decimals: 9,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/26375/standard/sui-ocean-square.png?1727791290',
@@ -1876,7 +2018,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'SEI',
         address: '0x55e85A147a1029b985384822c0B2262dF8023452',
         decimals: 18,
-        priceDecimals: 5,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/28205/standard/Sei_Logo_-_Transparent.png?1696527207',
@@ -1919,7 +2060,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'APT',
         address: '0x3f8f0dCE4dCE4d0D1d0871941e79CDA82cA50d0B',
         decimals: 8,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/26455/standard/aptos_round.png?1696525528',
@@ -1962,7 +2102,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TIA',
         address: '0x38676f62d166f5CE7De8433F51c6B3D6D9d66C19',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/31967/standard/tia.jpg?1696530772',
@@ -2005,7 +2144,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TRX',
         address: '0xb06aa7E4af937C130dDade66f6ed7642716fe07A',
         decimals: 6,
-        priceDecimals: 5,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/1094/standard/tron-logo.png?1696502193',
@@ -2048,7 +2186,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TON',
         address: '0xB2f7cefaeEb08Aa347705ac829a7b8bE2FB560f3',
         decimals: 9,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/17980/standard/photo_2024-09-10_17.09.00.jpeg?1725963446',
@@ -2091,7 +2228,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WLD',
         address: '0x75B9AdD873641b253718810E6c65dB6d72311FD0',
         decimals: 18,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/31069/standard/worldcoin.jpeg?1696529903',
         isSynthetic: true,
@@ -2133,7 +2269,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'BONK',
         address: '0x1FD10E767187A92f0AB2ABDEEF4505e319cA06B2',
         decimals: 5,
-        priceDecimals: 9,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/28600/standard/bonk.jpg?1696527587',
@@ -2182,7 +2317,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TAO',
         address: '0x938aef36CAaFbcB37815251B602168087eC14648',
         decimals: 9,
-        priceDecimals: 3,
         imageUrl:
           'https://assets.coingecko.com/coins/images/28452/standard/ARUsPeNQ_400x400.jpeg?1696527447',
         isSynthetic: true,
@@ -2228,7 +2362,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'BOME',
         address: '0x3Eea56A1ccCdbfB70A26aD381C71Ee17E4c8A15F',
         decimals: 6,
-        priceDecimals: 6,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/36071/standard/bome.png?1710407255',
@@ -2275,7 +2408,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'FLOKI',
         address: '0x6792c5B8962ffbDD020c6b6FD0Be7b182e0e33a3',
         decimals: 9,
-        priceDecimals: 8,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/16746/standard/PNG_image.png?1696516318',
@@ -2324,7 +2456,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MEME',
         address: '0xaF770F03518686a365300ab35AD860e99967B2f0',
         decimals: 18,
-        priceDecimals: 6,
         imageUrl:
           'https://assets.coingecko.com/coins/images/32528/standard/memecoin_%282%29.png?1698912168',
         isSynthetic: true,
@@ -2370,7 +2501,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MEW',
         address: '0x5503CF72f54b6d692d36BBCD391516A7dE068687',
         decimals: 5,
-        priceDecimals: 7,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/36440/standard/MEW.png?1711442286',
@@ -2432,7 +2562,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PENDLE',
         address: '0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/15069/standard/Pendle_Logo_Normal-03.png?1696514728',
@@ -2458,7 +2587,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PENDLE',
         address: '0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/15069/standard/Pendle_Logo_Normal-03.png?1696514728',
@@ -2507,7 +2635,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ADA',
         address: '0x53186c8419BEB83fE4Da74F7875041a1287337ED',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/975/standard/cardano.png?1696502090',
@@ -2554,7 +2681,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'BCH',
         address: '0xc33D9C096e74aa4f571E9417b69a19C4A1e72ef2',
         decimals: 8,
-        priceDecimals: 3,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/780/standard/bitcoin-cash-circle.png?1696501932',
@@ -2601,7 +2727,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'DOT',
         address: '0xE958f107b467d5172573F761d26931D658C1b436',
         decimals: 10,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://static.coingecko.com/s/polkadot-73b0c058cae10a2f076a82dcade5cbe38601fad05d5e6211188f09eb96fa4617.gif',
@@ -2648,7 +2773,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ICP',
         address: '0xdaf0A71608938F762e37eC5F72F670Cc44703454',
         decimals: 8,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/14495/standard/Internet_Computer_logo.png?1696514180',
@@ -2695,7 +2819,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XLM',
         address: '0xc5dbD52Ae5a927Cf585B884011d0C7631C9974c6',
         decimals: 7,
-        priceDecimals: 5,
         imageUrl:
           'https://assets.coingecko.com/coins/images/100/standard/Stellar_symbol_black_RGB.png?1696501482',
         isSynthetic: true,
@@ -2737,7 +2860,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'RENDER',
         address: '0x82BB89fcc64c5d4016C5Ed1AB016bB0D1C20D6C3',
         decimals: 18,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/11636/standard/rndr.png?1696511529',
         isSynthetic: true,
@@ -2752,7 +2874,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -2769,7 +2890,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -2786,7 +2906,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -2841,7 +2960,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0x3AeBb98f57081DcBEb0B8EA823Cf84900A31e5D8',
         decimals: 18,
         categories: ['layer1'],
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/12817/standard/filecoin.png?1696512609',
         isSynthetic: true,
@@ -2887,7 +3005,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'DYDX',
         address: '0x0739Ad7AeA69aD36EdEb91b0e55cAC140427c632',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1', 'defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/32594/standard/dydx.png?1698673495',
@@ -2934,7 +3051,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'INJ',
         address: '0xfdE73EddbE6c5712A12B72c470F8FE5c77A7fF17',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/12882/standard/Secondary_Symbol.png?1696512670',
@@ -2977,7 +3093,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TRUMP',
         address: '0x30021aFA4767Ad66aA52A06dF8a5AB3acA9371fD',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53746/standard/trump.png?1737171561',
@@ -3020,7 +3135,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MELANIA',
         address: '0xfa4F8E582214eBCe1A08eB2a65e08082053E441F',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53775/standard/melania-meme.png?1737329885',
@@ -3063,7 +3177,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ENA',
         address: '0xfe1Aac2CD9C5cC77b58EeCfE75981866ed0c8b7a',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/36530/standard/ethena.png?1711701436',
@@ -3110,7 +3223,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'AI16Z',
         address: '0xBb69bd9dc152C2c0F083507641a46193d2B61EBb',
         decimals: 9,
-        priceDecimals: 5,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/51090/standard/AI16Z.jpg?1730027175',
@@ -3127,7 +3239,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ANIME',
         address: '0x37a645648dF29205C6261289983FB04ECD70b4B3',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53575/standard/anime.jpg?1736748703',
@@ -3151,7 +3262,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ANIME',
         address: '0x37a645648dF29205C6261289983FB04ECD70b4B3',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53575/standard/anime.jpg?1736748703',
@@ -3198,7 +3308,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'FARTCOIN',
         address: '0xaca341E61aB6177B0b0Df46a612e4311F8a7605f',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/50891/standard/fart.jpg?1729503972',
@@ -3241,7 +3350,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'BERA',
         address: '0x67ADABbAd211eA9b3B4E2fd0FD165E593De1e983',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1', 'defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/25235/standard/BERA.png?1738822008',
@@ -3284,7 +3392,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'LDO',
         address: '0x9D678B4Dd38a6E01df8090aEB7974aD71142b05f',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/13573/standard/Lido_DAO.png?1696513326',
@@ -3331,7 +3438,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'VIRTUAL',
         address: '0xB6672496214C90134A9223894e709F26A5eED362',
         decimals: 18,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/34057/standard/LOGOMARK.png?1708356054',
         isSynthetic: true,
@@ -3377,7 +3483,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PENGU',
         address: '0x4C1dac9b6eAf122Fe3DE824c1C2220413F3aC197',
         decimals: 6,
-        priceDecimals: 7,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/52622/standard/PUDGY_PENGUINS_PENGU_PFP.png?1733809110',
@@ -3420,7 +3525,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ONDO',
         address: '0xEcFB4718aD19b626A77491895a2f99ea0cedEd08',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/26580/standard/ONDO.png?1696525656',
@@ -3463,7 +3567,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'FET',
         address: '0x83D5944E7f5EF1d8432002d3cb062e1012f6F8e6',
         decimals: 18,
-        priceDecimals: 5,
         imageUrl:
           'https://assets.coingecko.com/coins/images/5681/standard/ASI.png?1719827289',
         isSynthetic: true,
@@ -3505,7 +3608,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'AIXBT',
         address: '0xcA543Cb8bCC76e4E0A034F56EB40a1029bDFd70E',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/51784/standard/3.png?1731981138',
@@ -3552,7 +3654,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'S',
         address: '0x8F6cCb99d4Fd0B4095915147b5ae3bbDb8075394',
         decimals: 18,
-        priceDecimals: 5,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/38108/standard/200x200_Sonic_Logo.png?1734679256',
@@ -3599,7 +3700,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'CAKE',
         address: '0x580b373Ac16803BB0133356F470f3c7EEF54151B',
         decimals: 18,
-        priceDecimals: 5,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/12632/standard/pancakeswap-cake-logo_%281%29.png?1696512440',
@@ -3646,7 +3746,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'HYPE',
         address: '0xfDFA0A749dA3bCcee20aE0B4AD50E39B26F58f7C',
         decimals: 8,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/50882/standard/hyperliquid.jpg?1729431300',
@@ -3693,7 +3792,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'JUP',
         address: '0xfEd500Df379427Fbc48BDaf3b511b519c7eCCD26',
         decimals: 6,
-        priceDecimals: 5,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/34188/standard/jup.png?1704266489',
@@ -3736,7 +3834,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MKR',
         address: '0x8904De84c3bB3B7D2383F934Af40FcB3Ef82F28b',
         decimals: 18,
-        priceDecimals: 2,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/1364/standard/Mark_Maker.png?1696502423',
@@ -3783,7 +3880,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'OM',
         address: '0x1f3407Ea067DfBDF6dEb6bBFdA4869215fB0ab77',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1', 'defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/12151/standard/OM_Token.png?1696511991',
@@ -3826,7 +3922,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'DOLO',
         address: '0x97Ce1F309B949f7FBC4f58c5cb6aa417A5ff8964',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/54710/standard/DOLO-small.png?1745398535',
@@ -3869,7 +3964,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ZRO',
         address: '0xa8193C55C34Ed22e1Dbe73FD5Adc668E51578a67',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/28206/standard/ftxG9_TJ_400x400.jpeg?1696527208',
@@ -4096,7 +4190,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PUMP',
         address: '0x9c060B2fA953b5f69879a8B7B81f62BFfEF360be',
         decimals: 18,
-        priceDecimals: 6,
         imageUrl:
           'https://assets.coingecko.com/coins/images/67164/standard/pump.jpg?1751949376',
         isSynthetic: true,
@@ -4139,7 +4232,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'SPX6900',
         address: '0xb736be525A65326513351058427d1f47B0CfB045',
         decimals: 8,
-        priceDecimals: 4,
         imageUrl:
           'https://assets.coingecko.com/coins/images/31401/standard/centeredcoin_%281%29.png?1737048493',
         isSynthetic: true,
@@ -4182,7 +4274,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MNT',
         address: '0x955cd91eEaE618F5a7b49E1e3c7482833B10DAb4',
         decimals: 18,
-        priceDecimals: 5,
         imageUrl:
           'https://assets.coingecko.com/coins/images/30980/standard/token-logo.png?1696529819',
         isSynthetic: true,
@@ -4198,7 +4289,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Arbitrum',
         symbol: 'ARB',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
         categories: ['layer2', 'defi'],
         imageUrl:
@@ -4212,7 +4302,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Arbitrum',
         symbol: 'ARB',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
         categories: ['layer2', 'defi'],
         imageUrl:
@@ -4226,7 +4315,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Arbitrum',
         symbol: 'ARB',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
         categories: ['layer2', 'defi'],
         imageUrl:
@@ -4277,7 +4365,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ALGO',
         address: '0x72Cd3a21aA7A898028d9501868Fbe6dED0020434',
         decimals: 6,
-        priceDecimals: 5,
         isSynthetic: true,
         categories: ['layer1', 'defi'],
         imageUrl:
@@ -4324,7 +4411,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'CRO',
         address: '0xB7EfE7c7f059E84Ab87A83A169c583Fb4A54fAc3',
         decimals: 8,
-        priceDecimals: 5,
         isSynthetic: true,
         categories: ['layer1'],
         imageUrl:
@@ -4371,7 +4457,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'HBAR',
         address: '0xEb2A83b973f4dbB9511D92dd40d2ba4C683f0971',
         decimals: 8,
-        priceDecimals: 5,
         isSynthetic: true,
         categories: ['layer1', 'defi'],
         imageUrl:
@@ -4414,7 +4499,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'CVX',
         address: '0x3B6f801C0052Dfe0Ac80287D611F31B7c47B9A6b',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4461,7 +4545,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'KAS',
         address: '0x91c6a8F6aFAC036F4ABf1bA55f4E76892E865E4a',
         decimals: 8,
-        priceDecimals: 6,
         isSynthetic: true,
         categories: ['layer1'],
         imageUrl:
@@ -4504,7 +4587,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'OKB',
         address: '0xd37F01A3379f052FEF70F63c0Be27931891aa2B9',
         decimals: 18,
-        priceDecimals: 3,
         isSynthetic: true,
         categories: ['layer2'],
         imageUrl:
@@ -4551,7 +4633,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WIF',
         address: '0xA1b91fe9FD52141Ff8cac388Ce3F10BFDc1dE79d',
         decimals: 6,
-        priceDecimals: 5,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/33566/standard/dogwifhat.jpg?1702499428',
@@ -4596,7 +4677,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'AERO',
         address: '0xEcc5eb985Ddbb8335b175b0A2A1144E4c978F1f6',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4639,7 +4719,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'BRETT',
         address: '0x4249F6e0808bEfF7368AaAD3F7A3Fd511F61Ee60',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['meme'],
         imageUrl:
@@ -4682,7 +4761,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WLFI',
         address: '0xC5799ab6E2818fD8d0788dB8D156B0c5db1Bf97b',
         decimals: 18,
-        priceDecimals: 5,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4724,7 +4802,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Chainlink',
         symbol: 'LINK',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4',
         isStable: false,
         isShortable: true,
@@ -4774,7 +4851,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MORPHO',
         address: '0xF67b2a901D674B443Fa9f6DB2A689B37c07fD4fE',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4817,7 +4893,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'VVV',
         address: '0xB79Eb5BA64A167676694bB41bc1640F95d309a2F',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4860,7 +4935,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WELL',
         address: '0x465A31E5bA29b8EAcC860d499D714a6f07e56E85',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -4904,7 +4978,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         decimals: 18,
         address: '0x96Ee343E36E8642627FAEa235D57a9FEC8a6e34f',
         isSynthetic: true,
-        priceDecimals: 5,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/54693/standard/zora.jpg?1741094751',
@@ -4947,7 +5020,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         decimals: 18,
         address: '0xc5ff0eB026dB972F95DF3dfF04e697d8b660092a',
         isSynthetic: true,
-        priceDecimals: 6,
         categories: ['layer2'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/54723/standard/2025-03-05_22.53.06.jpg?1741234207',
@@ -4993,7 +5065,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XPL',
         address: '0x2e73bDBee83D91623736D514b0BB41f2afd9C7Fd',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1', 'defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/66489/standard/Plasma-symbol-green-1.png?1755142558',
@@ -5040,7 +5111,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ASTER',
         address: '0x2aAB60E62f05d17e58dEc982870bfAdc7F4e7ADF',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/69040/standard/_ASTER.png?1757326782',
@@ -5087,7 +5157,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: '0G',
         address: '0x95c317066CF214b2E6588B2685D949384504F51e',
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/69096/standard/0G_1024x1024_Circular_Outlined.png?1758637574',
@@ -5130,7 +5199,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'AVNT',
         address: '0xdB58EB7f408EbA2176eCb44A4696292605cCEB39',
         decimals: 18,
-        priceDecimals: 5,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/68972/standard/avnt-token.png?1757134448',
@@ -5173,7 +5241,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'LINEA',
         address: '0xc4017CFe7D7eaBDE63d3252caBF26A286fE2B1E0',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['layer2'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/68507/standard/linea-logo.jpeg?1756025484',
@@ -5219,7 +5286,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07',
         categories: ['layer1'],
@@ -5319,7 +5385,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MON',
         address: '0xB96e60CA3a7677b29f1e10dd109E952B275038Be',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['layer1', 'defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/38927/standard/mon.png?1766029057',
@@ -5366,7 +5431,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'ZEC',
         address: '0x6eAbbaA3278556Dc5b19c034dc26c0eaB60d65B5',
         decimals: 8,
-        priceDecimals: 3,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/486/standard/circle-zcash-color.png?1696501740',
@@ -5409,7 +5473,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'SKY',
         address: '0xeeA41ceA2204D1156De1BDF2CF4ab6184d17f90B',
         decimals: 18,
-        priceDecimals: 6,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/39925/standard/sky.jpg?1724827980',
@@ -5549,7 +5612,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0xF01D2AA2f3f903A93D57c4Bf672C8096DE485FA7',
         isSynthetic: true,
         decimals: 9,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/33228/standard/jto.png?1701137022',
@@ -5592,7 +5654,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0x9759C297fb6C91e252c7292cECa30a509558E5De',
         isSynthetic: true,
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/51232/standard/_syrup_token_logo.png?1747292046',
@@ -5635,7 +5696,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0x5dB4692926C8ceebF6Da0995358Bbc438F3fd80C',
         isSynthetic: true,
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/8834/standard/CHZ_Token_updated.png?1696508986',
@@ -5684,7 +5744,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0x7624cccCc59361D583F28BEC40D37e7771d2ef5D',
         isSynthetic: true,
         decimals: 18,
-        priceDecimals: 2,
         categories: ['rwa'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
@@ -5727,7 +5786,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0xE6172EecBB07F197F52bb73d74daa0e19C31c4Db',
         isSynthetic: true,
         decimals: 18,
-        priceDecimals: 4,
         categories: ['defi'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/71121/standard/lighter.png?1765888098',
@@ -5774,10 +5832,371 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         address: '0xe7304E9F4ca383BD6312a5179cdC7B40B96A6F5a',
         isSynthetic: true,
         decimals: 18,
-        priceDecimals: 4,
         categories: ['layer1'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/54035/standard/Transparent_bg.png?1738075331',
+      },
+    },
+    '0x45F0331a6e175B556Bc7d28E0A1c349525006d4E': {
+      marketTokenAddress: '0x45F0331a6e175B556Bc7d28E0A1c349525006d4E',
+      indexTokenAddress: '0x7F2A3967bd0999A860E13Ab8DC34aF98675CC208',
+      longTokenAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Bitcoin',
+        symbol: 'BTC',
+        assetSymbol: 'WBTC',
+        baseSymbol: 'BTC',
+        decimals: 8,
+        address: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+        isShortable: true,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/26115/thumb/btcb.png?1655921693',
+        explorerUrl:
+          'https://arbiscan.io/address/0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Canton',
+        symbol: 'CC',
+        address: '0x7F2A3967bd0999A860E13Ab8DC34aF98675CC208',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/70468/standard/Canton-Ticker_%281%29.png?1762826299',
+        explorerUrl:
+          'https://arbiscan.io/token/0x7F2A3967bd0999A860E13Ab8DC34aF98675CC208',
+      },
+    },
+    '0xbA30e198CFFeBEf0A84D6943cC8B2e356E324112': {
+      marketTokenAddress: '0xbA30e198CFFeBEf0A84D6943cC8B2e356E324112',
+      indexTokenAddress: '0x84D523493Aac127025AC770981a54C9601326A41',
+      longTokenAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Bitcoin',
+        symbol: 'BTC',
+        assetSymbol: 'WBTC',
+        baseSymbol: 'BTC',
+        decimals: 8,
+        address: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+        isShortable: true,
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/26115/thumb/btcb.png?1655921693',
+        explorerUrl:
+          'https://arbiscan.io/address/0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Meteora',
+        symbol: 'MET',
+        address: '0x84D523493Aac127025AC770981a54C9601326A41',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['defi'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69110/standard/meteora.png?1757517561',
+        explorerUrl:
+          'https://arbiscan.io/token/0x84D523493Aac127025AC770981a54C9601326A41',
+      },
+    },
+    '0x0Df2BE76F517BCF0000AbfFcB6344B3b2aC4Cc4f': {
+      marketTokenAddress: '0x0Df2BE76F517BCF0000AbfFcB6344B3b2aC4Cc4f',
+      indexTokenAddress: '0xc48d782c5C54157d37d2Fa4E6BA27E8cf57Da956',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Gold (XAU)',
+        symbol: 'GOLD',
+        address: '0xc48d782c5C54157d37d2Fa4E6BA27E8cf57Da956',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69746/standard/1000023657.jpg?1759482216',
+        explorerUrl:
+          'https://arbiscan.io/token/0xc48d782c5C54157d37d2Fa4E6BA27E8cf57Da956',
+      },
+    },
+    '0x448Fa722717df299ee197E2F6d8EB7911EFF6cEc': {
+      marketTokenAddress: '0x448Fa722717df299ee197E2F6d8EB7911EFF6cEc',
+      indexTokenAddress: '0xE41902f9aD379A8CC34A34efa00F5c3EE5112bC8',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Silver (XAG)',
+        symbol: 'SILVER',
+        address: '0xE41902f9aD379A8CC34A34efa00F5c3EE5112bC8',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39343.png',
+        explorerUrl:
+          'https://arbiscan.io/token/0xE41902f9aD379A8CC34A34efa00F5c3EE5112bC8',
+      },
+    },
+    '0xda81cdd397210C08cFc567f93982E148A3aac8a6': {
+      marketTokenAddress: '0xda81cdd397210C08cFc567f93982E148A3aac8a6',
+      indexTokenAddress: '0xa8Ffb545d5cBF1F44E3eBA123D60372cD267D73c',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'WTI Crude Oil',
+        symbol: 'WTIOIL',
+        address: '0xa8Ffb545d5cBF1F44E3eBA123D60372cD267D73c',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['rwa'],
+        searchAliases: ['CL'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39487.png',
+        explorerUrl:
+          'https://arbiscan.io/token/0xa8Ffb545d5cBF1F44E3eBA123D60372cD267D73c',
+      },
+    },
+    '0x6F287D071800BfA847B4a7a7104BE33F87Ce9E74': {
+      marketTokenAddress: '0x6F287D071800BfA847B4a7a7104BE33F87Ce9E74',
+      indexTokenAddress: '0x9C5C4b9BA1fEBA72186f50d8Ae7C58b1D7f0B12F',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Brent Crude Oil',
+        symbol: 'BRENTOIL',
+        address: '0x9C5C4b9BA1fEBA72186f50d8Ae7C58b1D7f0B12F',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['rwa'],
+        searchAliases: ['BZ'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39804.png',
+        explorerUrl:
+          'https://arbiscan.io/token/0x9C5C4b9BA1fEBA72186f50d8Ae7C58b1D7f0B12F',
+      },
+    },
+    '0x2Ce2bc8B0f9d000f359d756a5816C125474Bb39b': {
+      marketTokenAddress: '0x2Ce2bc8B0f9d000f359d756a5816C125474Bb39b',
+      indexTokenAddress: '0x620aC65BE29066Bb9D1E92C65b35B9fD321Fb963',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'Natural Gas',
+        symbol: 'NATGAS',
+        address: '0x620aC65BE29066Bb9D1E92C65b35B9fD321Fb963',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39464.png',
+        explorerUrl:
+          'https://arbiscan.io/token/0x620aC65BE29066Bb9D1E92C65b35B9fD321Fb963',
+      },
+    },
+    '0xE26E7b91143f367445f1c0a5dCf4f4aC8EaDcDb1': {
+      marketTokenAddress: '0xE26E7b91143f367445f1c0a5dCf4f4aC8EaDcDb1',
+      indexTokenAddress: '0x13983f27Ce9365055a6a553233c49fE28e70103e',
+      longTokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      shortTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      longToken: {
+        name: 'Wrapped Ethereum',
+        symbol: 'WETH',
+        decimals: 18,
+        address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295',
+        isV1Available: true,
+        isPermitSupported: true,
+        contractVersion: '1',
+      },
+      shortToken: {
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isStable: true,
+        isV1Available: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+        explorerUrl:
+          'https://arbiscan.io/address/0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        isPermitSupported: true,
+      },
+      indexToken: {
+        name: 'MegaETH',
+        symbol: 'MEGA',
+        address: '0x13983f27Ce9365055a6a553233c49fE28e70103e',
+        isSynthetic: true,
+        decimals: 18,
+        categories: ['layer2', 'defi'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/69995/standard/ICON.png?1760337992',
+        explorerUrl:
+          'https://arbiscan.io/token/0x13983f27Ce9365055a6a553233c49fE28e70103e',
       },
     },
   },
@@ -5790,7 +6209,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       longToken: {
         name: 'Wrapped AVAX',
         symbol: 'WAVAX',
-        priceDecimals: 3,
         decimals: 18,
         address: '0x1D308089a2D1Ced3f1Ce36B1FcaF815b07217be3',
         isWrapped: true,
@@ -5816,7 +6234,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       indexToken: {
         name: 'Wrapped AVAX',
         symbol: 'WAVAX',
-        priceDecimals: 3,
         decimals: 18,
         address: '0x1D308089a2D1Ced3f1Ce36B1FcaF815b07217be3',
         isWrapped: true,
@@ -6067,7 +6484,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Solana',
         symbol: 'SOL',
         decimals: 18,
-        priceDecimals: 3,
         address: '0x137f4a7336df4f3f11894718528516edaaD0B082',
         categories: ['layer1'],
         isSynthetic: true,
@@ -6105,7 +6521,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
       indexToken: {
         name: 'Avalanche',
         symbol: 'AVAX',
-        priceDecimals: 3,
         decimals: 18,
         address: '0x0000000000000000000000000000000000000000',
         isNative: true,
@@ -6149,7 +6564,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Dogecoin',
         symbol: 'DOGE',
         decimals: 8,
-        priceDecimals: 5,
         address: '0x2265F317eA5f47A684E5B26c50948617c945d986',
         isSynthetic: true,
         isShortable: true,
@@ -6189,7 +6603,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Chainlink',
         symbol: 'LINK',
         decimals: 18,
-        priceDecimals: 3,
         address: '0x6BD09E8D65AD5cc761DF62454452d4EC1545e647',
         isSynthetic: true,
         isShortable: true,
@@ -6229,7 +6642,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'BNB',
         symbol: 'BNB',
         decimals: 18,
-        priceDecimals: 3,
         address: '0x110892Dd5fa73bE430c0ade694febD9a4CAc68Be',
         isSynthetic: true,
       },
@@ -6267,7 +6679,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Cardano',
         symbol: 'ADA',
         decimals: 18,
-        priceDecimals: 5,
         address: '0xE64dfFF37Fa6Fe969b792B4146cEe2774Ef6e1a1',
         categories: ['layer1'],
         isSynthetic: true,
@@ -6306,7 +6717,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'TRON',
         symbol: 'TRX',
         decimals: 18,
-        priceDecimals: 5,
         address: '0x0D1495527C255068F2f6feE31C85d326D0A76FE8',
         isSynthetic: true,
       },
@@ -6344,7 +6754,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Polygon',
         symbol: 'MATIC',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xadc4698B257F78187Fd675FBf591a09f4c975240',
         categories: ['layer1'],
         isSynthetic: true,
@@ -6384,7 +6793,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'DOT',
         address: '0x65FFb5664a7B3377A5a27D9e59C72Fb1A5E94962',
         decimals: 18,
-        priceDecimals: 4,
         isSynthetic: true,
         categories: ['layer1'],
       },
@@ -6422,7 +6830,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Uniswap',
         symbol: 'UNI',
         decimals: 18,
-        priceDecimals: 4,
         address: '0xF62dC1d2452d0893735D22945Af53C290b158eAF',
         isSynthetic: true,
         categories: ['layer2', 'defi'],
@@ -6716,7 +7123,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Dogecoin',
         symbol: 'DOGE',
         decimals: 8,
-        priceDecimals: 5,
         address: '0xC301E6fe31062C557aEE806cc6A841aE989A3ac6',
         isSynthetic: true,
         categories: ['meme'],
@@ -6733,7 +7139,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0xFE6B19286885a4F7F55AdAD09C3Cd1f906D2478F',
         categories: ['layer1'],
@@ -6762,7 +7167,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Wrapped SOL (Wormhole)',
         symbol: 'SOL',
         assetSymbol: 'WSOL (Wormhole)',
-        priceDecimals: 3,
         decimals: 9,
         address: '0xFE6B19286885a4F7F55AdAD09C3Cd1f906D2478F',
         categories: ['layer1'],
@@ -6811,7 +7215,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'Litecoin',
         symbol: 'LTC',
         decimals: 8,
-        priceDecimals: 3,
         address: '0x8E9C35235C38C44b5a53B56A41eaf6dB9a430cD6',
         isSynthetic: true,
         categories: ['layer1'],
@@ -7075,7 +7478,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         name: 'XRP',
         symbol: 'XRP',
         decimals: 6,
-        priceDecimals: 5,
         address: '0x34B2885D617cE2ddeD4F60cCB49809fc17bb58Af',
         categories: ['layer1'],
         imageUrl:
@@ -7264,7 +7666,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'TRUMP',
         address: '0x2f6d7be53fab5538065a226BA091015d422a7528',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53746/standard/trump.png?1737171561',
@@ -7308,7 +7709,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'MELANIA',
         address: '0xd42C991a4FAb293C57a7bf25C2E2ec5aE1dB1714',
         decimals: 6,
-        priceDecimals: 4,
         categories: ['meme'],
         imageUrl:
           'https://assets.coingecko.com/coins/images/53775/standard/melania-meme.png?1737329885',
@@ -7352,7 +7752,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'PUMP',
         address: '0xdA598795DfE56388ca3D35e2ccFA96EFf83eC306',
         decimals: 18,
-        priceDecimals: 6,
         imageUrl:
           'https://assets.coingecko.com/coins/images/67164/standard/pump.jpg?1751949376',
         isSynthetic: true,
@@ -7396,7 +7795,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'WLFI',
         address: '0xbDF8a77ACB7A54597E7760b34D3E632912bB59b7',
         decimals: 18,
-        priceDecimals: 5,
         isSynthetic: true,
         categories: ['defi'],
         imageUrl:
@@ -7413,7 +7811,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XAUt0',
         address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
         decimals: 6,
-        priceDecimals: 2,
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
         explorerUrl:
@@ -7427,7 +7824,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XAUt0',
         address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
         decimals: 6,
-        priceDecimals: 2,
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
         explorerUrl:
@@ -7441,7 +7837,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XAUt0',
         address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
         decimals: 6,
-        priceDecimals: 2,
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
         explorerUrl:
@@ -7461,7 +7856,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XAUt0',
         address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
         decimals: 6,
-        priceDecimals: 2,
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
         explorerUrl:
@@ -7488,7 +7882,6 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'XAUt0',
         address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
         decimals: 6,
-        priceDecimals: 2,
         imageUrl:
           'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
         explorerUrl:
@@ -7666,9 +8059,152 @@ export const gmxMarketConfigs: Record<string, Record<string, MarketConfig>> = {
         symbol: 'CRV',
         address: '0xD5DdAED48B09fa1D7944bd662CB05265FCD7077C',
         decimals: 18,
-        priceDecimals: 5,
         imageUrl:
           'https://assets.coingecko.com/coins/images/12134/small/curve.png?1596358786',
+        isSynthetic: true,
+      },
+    },
+    '0x860F6B4B2F218885935C306B1c782a864ed2d67f': {
+      marketTokenAddress: '0x860F6B4B2F218885935C306B1c782a864ed2d67f',
+      indexTokenAddress: '0x0f16dFBA0242F23F4a5faDE95Cd138139DD7592F',
+      longTokenAddress: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      shortTokenAddress: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+      longToken: {
+        name: 'Wrapped ETH',
+        symbol: 'WETH',
+        address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      },
+      shortToken: {
+        name: 'USD Coin Stargate',
+        symbol: 'USDC.SG',
+        address: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+        decimals: 6,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      },
+      indexToken: {
+        name: 'Gold',
+        symbol: 'XAU',
+        address: '0x0f16dFBA0242F23F4a5faDE95Cd138139DD7592F',
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39344.png',
+        isSynthetic: true,
+      },
+    },
+    '0x8490D84c29134dA93f434210D76721179C382471': {
+      marketTokenAddress: '0x8490D84c29134dA93f434210D76721179C382471',
+      indexTokenAddress: '0xAc0CeE37770FdC16732C1f591a6B90A4Ea580643',
+      longTokenAddress: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      shortTokenAddress: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+      longToken: {
+        name: 'Wrapped ETH',
+        symbol: 'WETH',
+        address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      },
+      shortToken: {
+        name: 'USD Coin Stargate',
+        symbol: 'USDC.SG',
+        address: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+        decimals: 6,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      },
+      indexToken: {
+        name: 'Silver',
+        symbol: 'XAG',
+        address: '0xAc0CeE37770FdC16732C1f591a6B90A4Ea580643',
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39343.png',
+        isSynthetic: true,
+      },
+    },
+    '0x02f0D10977f044d59460B2e71afB8c07Dc7b5E1F': {
+      marketTokenAddress: '0x02f0D10977f044d59460B2e71afB8c07Dc7b5E1F',
+      indexTokenAddress: '0xF3a3486de22725d8d762671AC4479d8ab9C21173',
+      longTokenAddress: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      shortTokenAddress: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+      longToken: {
+        name: 'Wrapped ETH',
+        symbol: 'WETH',
+        address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      },
+      shortToken: {
+        name: 'USD Coin Stargate',
+        symbol: 'USDC.SG',
+        address: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+        decimals: 6,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      },
+      indexToken: {
+        name: 'Platinum',
+        symbol: 'XPT',
+        address: '0xF3a3486de22725d8d762671AC4479d8ab9C21173',
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39460.png',
+        isSynthetic: true,
+      },
+    },
+    '0x0b0A750812700E9673547134096577D8a79d8108': {
+      marketTokenAddress: '0x0b0A750812700E9673547134096577D8a79d8108',
+      indexTokenAddress: '0xC371020838605F2150b0C3C8E2f872c13C3F1d5b',
+      longTokenAddress: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+      shortTokenAddress: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+      longToken: {
+        name: 'Wrapped ETH',
+        symbol: 'WETH',
+        address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
+        decimals: 18,
+        isWrapped: true,
+        baseSymbol: 'ETH',
+        categories: ['layer1'],
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880',
+      },
+      shortToken: {
+        name: 'USD Coin Stargate',
+        symbol: 'USDC.SG',
+        address: '0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773',
+        decimals: 6,
+        isStable: true,
+        imageUrl:
+          'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389',
+      },
+      indexToken: {
+        name: 'Palladium',
+        symbol: 'XPD',
+        address: '0xC371020838605F2150b0C3C8E2f872c13C3F1d5b',
+        decimals: 18,
+        categories: ['rwa'],
+        imageUrl:
+          'https://s2.coinmarketcap.com/static/img/coins/64x64/39481.png',
         isSynthetic: true,
       },
     },

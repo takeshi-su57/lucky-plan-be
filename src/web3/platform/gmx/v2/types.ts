@@ -22,6 +22,7 @@ export type Token = {
   isPermitSupported?: boolean;
   isPermitDisabled?: boolean;
   contractVersion?: string;
+  searchAliases?: string[];
 
   isUsdg?: boolean;
   isNative?: boolean;
