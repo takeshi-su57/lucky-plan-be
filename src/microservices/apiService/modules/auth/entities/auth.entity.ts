@@ -16,6 +16,9 @@ export class User {
   @Field()
   address: string;
 
+  @Field(() => String, { nullable: true })
+  secondAddress?: string | null;
+
   @Field(() => UserPermission)
   permission: UserPermission;
 

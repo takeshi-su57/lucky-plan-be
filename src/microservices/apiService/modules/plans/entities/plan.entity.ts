@@ -182,33 +182,18 @@ export class BotGroup {
 }
 
 @ObjectType()
-export class BotGroupEdge {
-  @Field(() => Int)
-  cursor: number;
-
-  @Field(() => BotGroup)
-  node: BotGroup;
-}
-
-@ObjectType()
-export class BotGroupPageInfo {
-  @Field(() => Boolean)
-  hasNextPage: boolean;
-
-  @Field(() => Int, { nullable: true })
-  endCursor: number | null;
-}
-
-@ObjectType()
-export class BotGroupConnection {
-  @Field(() => [BotGroupEdge])
-  edges: BotGroupEdge[];
-
-  @Field(() => BotGroupPageInfo)
-  pageInfo: BotGroupPageInfo;
+export class BotGroupPaginatedResponse {
+  @Field(() => [BotGroup])
+  items: BotGroup[];
 
   @Field(() => Int)
   totalGroups: number;
+
+  @Field(() => Int)
+  totalPages: number;
+
+  @Field(() => Int)
+  currentPage: number;
 }
 
 @ObjectType()

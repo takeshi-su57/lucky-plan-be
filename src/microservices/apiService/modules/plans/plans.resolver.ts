@@ -26,7 +26,7 @@ import {
   PlanSummaryConnection,
   PlanForwardDetails,
   ExpertPnlSnapshotV2Connection,
-  BotGroupConnection,
+  BotGroupPaginatedResponse,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -160,7 +160,7 @@ export class PlansResolver {
     );
   }
 
-  @Query(() => PlanForwardDetails, { nullable: true })
+  @Query(() => Plan, { nullable: true })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   getPlanById(
@@ -170,13 +170,13 @@ export class PlansResolver {
     return this.plansService.getPlanById(user.address, id);
   }
 
-  @Query(() => BotGroupConnection)
+  @Query(() => BotGroupPaginatedResponse)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   getPlanBotGroups(
     @Args('planId', { type: () => Int }) planId: number,
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
+    @Args('pageSize', { type: () => Int, defaultValue: 10 }) pageSize: number,
     @Args('hideDead', { type: () => Boolean, defaultValue: true })
     hideDead: boolean,
     @CurrentUser() user: User,
@@ -184,8 +184,8 @@ export class PlansResolver {
     return this.plansService.getPlanBotGroups(
       user.address,
       planId,
-      first,
-      after,
+      page,
+      pageSize,
       hideDead,
     );
   }

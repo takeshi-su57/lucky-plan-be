@@ -232,20 +232,11 @@ type BotGroup {
   platform: Platform!
 }
 
-type BotGroupConnection {
-  edges: [BotGroupEdge!]!
-  pageInfo: BotGroupPageInfo!
+type BotGroupPaginatedResponse {
+  currentPage: Int!
+  items: [BotGroup!]!
   totalGroups: Int!
-}
-
-type BotGroupEdge {
-  cursor: Int!
-  node: BotGroup!
-}
-
-type BotGroupPageInfo {
-  endCursor: Int
-  hasNextPage: Boolean!
+  totalPages: Int!
 }
 
 type BotPageInfo {
@@ -1153,8 +1144,8 @@ type Query {
   getMaxOpenMissions: Int!
   getMicroserviceStatus: [MicroserviceStatus!]!
   getPerpEventLogs(addresses: [String!]!, limit: Int, platform: Platform!): [[PerpTradingEventLog!]!]!
-  getPlanBotGroups(after: Int, first: Int!, hideDead: Boolean! = true, planId: Int!): BotGroupConnection!
-  getPlanById(id: Int!): PlanForwardDetails
+  getPlanBotGroups(hideDead: Boolean! = true, page: Int! = 1, pageSize: Int! = 10, planId: Int!): BotGroupPaginatedResponse!
+  getPlanById(id: Int!): Plan
   getPlanSummariesByStatus(after: Int, first: Int!, status: PlanStatus!): PlanSummaryConnection!
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
