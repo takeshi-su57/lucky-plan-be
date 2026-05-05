@@ -23,8 +23,10 @@ import { PlansService } from './plans.service';
 import {
   Plan,
   PlanConnection,
+  PlanSummaryConnection,
   PlanForwardDetails,
   ExpertPnlSnapshotV2Connection,
+  BotGroupConnection,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -140,6 +142,24 @@ export class PlansResolver {
     );
   }
 
+  @Query(() => PlanSummaryConnection)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getPlanSummariesByStatus(
+    @Args('status', { type: () => PlanStatus })
+    status: PlanStatus,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.getPlanSummariesByStatus(
+      user.address,
+      status,
+      first,
+      after,
+    );
+  }
+
   @Query(() => PlanForwardDetails, { nullable: true })
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -148,6 +168,26 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.getPlanById(user.address, id);
+  }
+
+  @Query(() => BotGroupConnection)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getPlanBotGroups(
+    @Args('planId', { type: () => Int }) planId: number,
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('hideDead', { type: () => Boolean, defaultValue: true })
+    hideDead: boolean,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.getPlanBotGroups(
+      user.address,
+      planId,
+      first,
+      after,
+      hideDead,
+    );
   }
 
   @Query(() => ExpertPnlSnapshotV2Connection)

@@ -710,22 +710,20 @@ export class PnlSnapshotsService {
 
       const upperBound = dayjs(dateStr).endOf('day').toDate();
 
-      let cursorId: number | null = null;
-
       await this.logger.nativeLog({
         severity: 'Debug',
         summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr} ${isForceBuild}`,
       });
 
-      await this.prismaService.pnlSnapshotV2.deleteMany({ where: { dateStr } });
+      await this.prismaService.pnlSnapshotV2.deleteMany({
+        where: { dateStr, platform },
+      });
 
       await this.logger.nativeLog({
         severity: 'Debug',
         summary: `PnlSnapshotsV2Service>buildSnapshots`,
         details: 'deleted old pnl snapshot',
       });
-
-      const testContractIdsMap = new Map<number, boolean>();
 
       const testContracts = await this.prismaService.contract.findMany({
         where: {
@@ -735,11 +733,10 @@ export class PnlSnapshotsService {
 
       const testContractIds = testContracts.map((contract) => contract.id);
 
-      testContracts.forEach((contract) =>
-        testContractIdsMap.set(contract.id, true),
-      );
-
       const tempCache = new Map<string, number>();
+      let lastDate: Date | null = null;
+      let lastBlock: number | null = null;
+      let lastId: number | null = null;
 
       const startedTime = Date.now();
 
@@ -748,62 +745,70 @@ export class PnlSnapshotsService {
         await this.logger.nativeLog({
           severity: 'Debug',
           summary: `PnlSnapshotsV2Service>buildSnapshots`,
-          details: `find many perp trading event logs ${cursorId}`,
+          details: `find many perp trading event logs lastId=${lastId}`,
         });
 
-        const records: PerpTradingEventLog[] = (
-          cursorId
-            ? await this.prismaService.perpTradingEventLog.findMany({
-                skip: 1,
-                take: BATCH_SIZE,
-                cursor: {
-                  id: cursorId,
-                },
-                where: {
-                  platform,
-                  date: {
-                    lte: upperBound,
-                  },
-                },
-                orderBy: [
-                  {
-                    date: 'asc',
-                  },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              })
-            : await this.prismaService.perpTradingEventLog.findMany({
-                take: BATCH_SIZE,
-                where: {
-                  platform,
-                  date: {
-                    lte: upperBound,
-                  },
-                },
-                orderBy: [
-                  {
-                    date: 'asc',
-                  },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              })
-        ).filter((item) => !testContractIds.includes(item.contractId));
+        const chunkRecords: Omit<PerpTradingEventLog, 'jsonLog'>[] =
+          await this.prismaService.perpTradingEventLog.findMany({
+            take: BATCH_SIZE,
+            select: {
+              id: true,
+              contractId: true,
+              usdPnl: true,
+              block: true,
+              logIndex: true,
+              date: true,
+              address: true,
+              platform: true,
+            },
+            where: {
+              platform,
+              date: {
+                lte: upperBound,
+              },
+              contractId: {
+                notIn: testContractIds,
+              },
+              ...(lastDate != null
+                ? {
+                    OR: [
+                      { date: { gt: lastDate } },
+                      {
+                        date: lastDate,
+                        block: { gt: lastBlock! },
+                      },
+                      {
+                        date: lastDate,
+                        block: lastBlock!,
+                        id: { gt: lastId! },
+                      },
+                    ],
+                  }
+                : {}),
+            },
+            orderBy: [
+              {
+                date: 'asc',
+              },
+              {
+                block: 'asc',
+              },
+              {
+                id: 'asc',
+              },
+            ],
+          });
 
-        if (records.length === 0) {
+        if (chunkRecords.length === 0) {
           break;
         }
 
-        for (const record of records) {
+        const lastRecord = chunkRecords[chunkRecords.length - 1];
+        lastDate = lastRecord.date;
+        lastBlock = lastRecord.block;
+        lastId = lastRecord.id;
+
+        for (const record of chunkRecords) {
           for (const kind of availableKinds) {
             const overallKey = getKey(record.address, record.platform, kind);
 
@@ -819,18 +824,16 @@ export class PnlSnapshotsService {
         const storedKeys = Array.from(tempCache.keys());
 
         // we need to clean cache for prevent memory execeed.
-        if (storedKeys.length > 10_0000) {
+        if (storedKeys.length > 100_000) {
           await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
           tempCache.clear();
         }
 
-        this.logger.nativeLog({
+        await this.logger.nativeLog({
           severity: 'Debug',
           summary: `PnlSnapshotsV2Service>buildSnapshots`,
           details: `chunk time ${Date.now() - chunkTime}ms`,
         });
-
-        cursorId = records[records.length - 1].id;
       }
 
       const storedKeys = Array.from(tempCache.keys());
