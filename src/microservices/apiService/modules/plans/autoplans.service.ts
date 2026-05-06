@@ -1180,7 +1180,6 @@ export class AutoPlansService {
               leaderCollateralBaseline: 0,
               leaderContractId: contract.id,
               strategy: {
-                strategyKey: 'ratioCopy',
                 ratio: expert.ratio,
                 lifeTime: 365 * 24 * 60,
                 maxCollateral: expert.maxSize,

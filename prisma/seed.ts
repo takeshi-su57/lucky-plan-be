@@ -12,32 +12,6 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const strategyMetadata = [
-    {
-      key: 'ratioCopy',
-      title: 'Ratio Copy',
-      description:
-        'This strategy copys exactly same ratio with leaders. If you select 1 ratio then it can be a equal copy',
-    },
-    {
-      key: 'scaleCopy',
-      title: 'Scale Copy',
-      description: 'This strategy copys exactly same scale with leaders.',
-    },
-  ];
-
-  for (const data of strategyMetadata) {
-    const result = await prisma.strategyMetadata.upsert({
-      where: {
-        key: data.key,
-      },
-      update: {},
-      create: data,
-    });
-
-    console.log('Strategy Metadata:', result);
-  }
-
   const contractData = [
     {
       platform: Platform.GNS,

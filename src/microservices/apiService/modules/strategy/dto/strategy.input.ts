@@ -4,10 +4,6 @@ import { IsNotEmpty, IsJSON, IsInt, IsNumber } from 'class-validator';
 @InputType()
 export class CreateStrategyInput {
   @IsNotEmpty()
-  @Field()
-  strategyKey: string;
-
-  @IsNotEmpty()
   @IsJSON()
   @Field()
   params: string;

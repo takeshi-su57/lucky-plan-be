@@ -6,9 +6,6 @@ export class Strategy {
   id: number;
 
   @Field()
-  strategyKey: string;
-
-  @Field()
   params: string;
 
   @Field(() => Float)
