@@ -5,6 +5,9 @@ export class Strategy {
   @Field(() => Int)
   id: number;
 
+  @Field()
+  params: string;
+
   @Field(() => Float)
   ratio: number;
 
@@ -18,23 +21,11 @@ export class Strategy {
   maxCollateral: number;
 
   @Field(() => Int)
+  collateralBaseline: number;
+
+  @Field(() => Int)
   maxLeverage: number;
 
   @Field(() => Int)
   minLeverage: number;
-
-  @Field(() => Float)
-  tpPercentage: number;
-
-  @Field(() => Float)
-  slPercentage: number;
-
-  @Field(() => Int)
-  maxOpenMissions: number;
-
-  @Field(() => String)
-  selectedPairs: string;
-
-  @Field(() => String)
-  mode: string;
 }

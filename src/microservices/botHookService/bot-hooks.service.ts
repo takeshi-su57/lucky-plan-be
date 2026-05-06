@@ -71,7 +71,7 @@ export class BotHooksService {
       const existsFlag: Record<number, boolean> = {};
 
       for (const bot of allBots) {
-        const additionalParams = getAdditionalParams(bot.strategy);
+        const additionalParams = getAdditionalParams(bot.strategy.params);
 
         if (additionalParams.mode !== 'hook') {
           continue;

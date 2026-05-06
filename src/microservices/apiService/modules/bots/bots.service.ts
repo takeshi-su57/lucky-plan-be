@@ -272,7 +272,7 @@ export class BotsService {
         const batchBots = bots.slice(i, i + BATCH_SIZE);
 
         const promises = batchBots.map(async (bot) => {
-          const additionalParams = getAdditionalParams(bot.strategy);
+          const additionalParams = getAdditionalParams(bot.strategy.params);
 
           const realMissionsCount = bot.missions.filter(
             (item) => item.mode === MissionMode.Default,
@@ -679,7 +679,10 @@ export class BotsService {
         id: bot.strategyId,
       },
       data: {
-        mode: 'signal',
+        params: JSON.stringify({
+          ...getAdditionalParams(bot.strategy.params),
+          mode: 'signal',
+        }),
       },
     });
 
@@ -859,7 +862,7 @@ export class BotsService {
     });
 
     const bots = allBots.filter((bot) => {
-      const additionalParams = getAdditionalParams(bot.strategy);
+      const additionalParams = getAdditionalParams(bot.strategy.params);
 
       return !shouldHandleHook || additionalParams.mode === 'hook';
     });

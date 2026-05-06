@@ -36,19 +36,34 @@ export function getPositionIncreaseParams(
     };
   }
 
-  const collateralDeltaUSDC = BigInt(
-    Math.floor(
-      ((Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
-        Number(collateral.precision)) *
-        1e6,
-    ),
-  );
+  if (strategy.strategyKey === 'ratioCopy') {
+    const collateralDeltaUSDC = BigInt(
+      Math.floor(
+        ((Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
+          Number(collateral.precision)) *
+          1e6,
+      ),
+    );
 
-  return {
-    collateralDelta: collateralDeltaUSDC,
-    leverageDelta: Number(increaseEventArgs.leverageDelta),
-    expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
-  };
+    return {
+      collateralDelta: collateralDeltaUSDC,
+      leverageDelta: Number(increaseEventArgs.leverageDelta),
+      expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
+    };
+  }
+
+  throw new Error(`Unsupported strategy key: ${strategy.strategyKey}`);
+
+  // return {
+  //   collateralDelta: BigInt(
+  //     Math.floor(
+  //       (Number(trade.collateralAmount) * Number(levF - levL)) /
+  //         Number(levL - 1100),
+  //     ),
+  //   ),
+  //   leverageDelta: 1100,
+  //   expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
+  // };
 }
 
 export function getPositionDecreaseParams(
@@ -110,26 +125,7 @@ export function parsePairKey(key: string) {
   return JSON.parse(key) as { pair: string; isLong: boolean };
 }
 
-function normalizeStrategyMode(mode: string | null | undefined) {
-  if (!mode) {
-    return undefined;
-  }
-
-  const normalizedMode = mode.toLowerCase();
-
-  if (normalizedMode === 'signal' || normalizedMode === 'hook') {
-    return normalizedMode;
-  }
-
-  return undefined;
-}
-
-export function getAdditionalParams(
-  strategy: Pick<
-    Strategy,
-    'maxOpenMissions' | 'tpPercentage' | 'slPercentage' | 'selectedPairs' | 'mode'
-  >,
-): {
+export function getAdditionalParams(strParams: string): {
   maxOpenMissions: number;
   tpPercentage: number;
   slPercentage: number;
@@ -137,23 +133,13 @@ export function getAdditionalParams(
   mode?: 'signal' | 'hook';
 } {
   try {
-    const selectedPairs = JSON.parse(strategy.selectedPairs);
-
-    if (!Array.isArray(selectedPairs)) {
-      return {
-        maxOpenMissions: strategy.maxOpenMissions || 0,
-        tpPercentage: strategy.tpPercentage || 0,
-        slPercentage: strategy.slPercentage || 0,
-        selectedPairs: [],
-        mode: normalizeStrategyMode(strategy.mode),
-      };
-    }
+    const params = JSON.parse(strParams);
 
     return {
-      maxOpenMissions: strategy.maxOpenMissions || 0,
-      tpPercentage: strategy.tpPercentage || 0,
-      slPercentage: strategy.slPercentage || 0,
-      selectedPairs: selectedPairs
+      maxOpenMissions: params.maxOpenMissions || 0,
+      tpPercentage: params.tpPercentage || 0,
+      slPercentage: params.slPercentage || 0,
+      selectedPairs: (params.selectedPairs || [])
         .map((item: { pair: string; isLong: boolean } | string) =>
           typeof item === 'string'
             ? [
@@ -174,15 +160,15 @@ export function getAdditionalParams(
               ],
         )
         .flat(),
-      mode: normalizeStrategyMode(strategy.mode),
+      mode: params.mode || undefined,
     };
   } catch {
     return {
-      maxOpenMissions: strategy.maxOpenMissions || 0,
-      tpPercentage: strategy.tpPercentage || 0,
-      slPercentage: strategy.slPercentage || 0,
+      maxOpenMissions: 0,
+      tpPercentage: 0,
+      slPercentage: 0,
       selectedPairs: [],
-      mode: normalizeStrategyMode(strategy.mode),
+      mode: undefined,
     };
   }
 }
@@ -199,16 +185,31 @@ export function getOpenMissionParams(
     usdcPrice: bigint;
     pairIndex: number;
   },
-  _leaderCollateralBaseline: number,
+  leaderCollateralBaseline: number,
 ) {
   const collateralUSDCAmount = Math.floor(
     (Number(args.collateralAmount) / Number(args.collateral.precision)) *
       (Number(args.collateralPriceUsd) / Number(args.usdcPrice)),
   );
 
-  let ratioAmount = BigInt(
-    Math.floor(collateralUSDCAmount * strategy.ratio * 1e6),
-  );
+  let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
+
+  if (strategy.strategyKey === 'ratioCopy') {
+    ratioAmount = BigInt(
+      Math.floor(collateralUSDCAmount * strategy.ratio * 1e6),
+    );
+  }
+
+  if (strategy.strategyKey === 'scaleCopy') {
+    const collateralRatio =
+      leaderCollateralBaseline > 0
+        ? collateralUSDCAmount / leaderCollateralBaseline
+        : collateralUSDCAmount;
+
+    ratioAmount = BigInt(
+      Math.floor(strategy.collateralBaseline * collateralRatio * 1e6),
+    );
+  }
 
   const maxCollateral = BigInt(strategy.maxCollateral * 1e6);
   const minCollateral = BigInt(strategy.minCollateral * 1e6);
@@ -223,7 +224,7 @@ export function getOpenMissionParams(
         Math.min(strategy.maxLeverage, args.leverage),
       );
 
-  const params = getAdditionalParams(strategy);
+  const params = getAdditionalParams(strategy.params);
 
   const tp =
     params.tpPercentage > 0

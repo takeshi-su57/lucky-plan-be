@@ -1184,16 +1184,13 @@ export class AutoPlansService {
                 lifeTime: 365 * 24 * 60,
                 maxCollateral: expert.maxSize,
                 minCollateral: 5,
+                collateralBaseline: 0,
                 maxLeverage: Math.max(
                   1100,
                   Math.ceil(1.3 * avgLeverage * 1000),
                 ),
                 minLeverage: 1100,
-                tpPercentage: 0,
-                slPercentage: 0,
-                maxOpenMissions: 0,
-                selectedPairs: '[]',
-                mode: 'default',
+                params: '{}',
               },
             });
           }
