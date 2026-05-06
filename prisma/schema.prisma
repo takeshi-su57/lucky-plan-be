@@ -17,14 +17,17 @@ model Metadata {
 
 model Strategy {
   id                 Int              @id @default(autoincrement())
-  params             String
+  tpPercentage       Float            @default(0)
+  slPercentage       Float            @default(0)
+  maxOpenMissions    Int              @default(0)
+  selectedPairs      String           @default("[]")
+  mode               String           @default("default")
   maxLeverage        Int              @default(200000)
   minLeverage        Int              @default(1100)
   ratio              Float            @default(1)
   maxCollateral      Int
   minCollateral      Int
   lifeTime           Int
-  collateralBaseline Int
   bots               Bot[]
 }
 

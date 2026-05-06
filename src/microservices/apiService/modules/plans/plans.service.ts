@@ -22,6 +22,7 @@ import {
   CLOSE_ACTION_TYPES,
 } from './utils/convert-trade-action';
 import { getCollaterals } from 'src/web3/platform/gns/v10/configs';
+import { getAdditionalParams } from '../strategy/strategy-library';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
@@ -532,12 +533,8 @@ export class PlansService {
         });
       }
 
-      try {
-        const params = JSON.parse(bot.strategy.params);
-        if (!params.mode) {
-          groupMap.get(key)!.hasDefault = true;
-        }
-      } catch {
+      const additionalParams = getAdditionalParams(bot.strategy);
+      if (!additionalParams.mode) {
         groupMap.get(key)!.hasDefault = true;
       }
     }

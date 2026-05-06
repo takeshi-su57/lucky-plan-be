@@ -1,30 +1,31 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
-import { IsNotEmpty, IsJSON, IsInt, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsJSON,
+  IsInt,
+  IsNumber,
+  IsString,
+} from 'class-validator';
 
 @InputType()
 export class CreateStrategyInput {
-  @IsNotEmpty()
-  @IsJSON()
-  @Field()
-  params: string;
-
   @IsNotEmpty()
   @Field(() => Float)
   ratio: number;
 
   @IsNotEmpty()
   @IsInt()
-  @Field()
+  @Field(() => Int)
   lifeTime: number;
 
   @IsNotEmpty()
   @IsInt()
-  @Field()
+  @Field(() => Int)
   minCollateral: number;
 
   @IsNotEmpty()
   @IsInt()
-  @Field()
+  @Field(() => Int)
   maxCollateral: number;
 
   @IsNotEmpty()
@@ -35,12 +36,27 @@ export class CreateStrategyInput {
   @IsNotEmpty()
   @IsInt()
   @Field(() => Int)
-  collateralBaseline: number;
-
-  @IsNotEmpty()
-  @IsInt()
-  @Field(() => Int)
   minLeverage: number;
+
+  @IsNumber()
+  @Field(() => Float, { defaultValue: 0 })
+  tpPercentage: number;
+
+  @IsNumber()
+  @Field(() => Float, { defaultValue: 0 })
+  slPercentage: number;
+
+  @IsInt()
+  @Field(() => Int, { defaultValue: 0 })
+  maxOpenMissions: number;
+
+  @IsJSON()
+  @Field(() => String, { defaultValue: '[]' })
+  selectedPairs: string;
+
+  @IsString()
+  @Field(() => String, { defaultValue: 'default' })
+  mode: string;
 }
 
 @InputType()
@@ -72,11 +88,31 @@ export class UpdateStrategyInput {
 
   @IsNotEmpty()
   @IsInt()
-  @Field()
+  @Field(() => Int)
   lifeTime: number;
 
   @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Float)
+  tpPercentage: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Field(() => Float)
+  slPercentage: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Field(() => Int)
+  maxOpenMissions: number;
+
+  @IsNotEmpty()
   @IsJSON()
-  @Field()
-  params: string;
+  @Field(() => String)
+  selectedPairs: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Field(() => String)
+  mode: string;
 }
