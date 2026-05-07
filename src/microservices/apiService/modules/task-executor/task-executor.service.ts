@@ -427,7 +427,7 @@ export class TaskExecutorService {
                   args.values.positionSizeCollateralDelta,
                 ),
                 newLeverage: BigInt(args.values.newLeverage),
-                oraclePrice: BigInt(args.values.existingLiqPrice),
+                oraclePrice: BigInt(args.oraclePrice),
               },
               followerTradeData,
             );

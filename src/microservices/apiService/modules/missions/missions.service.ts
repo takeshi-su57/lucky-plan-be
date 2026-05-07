@@ -702,9 +702,7 @@ export class MissionsService {
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
       .filter((item) => {
-        const additionalParams = getAdditionalParams(
-          item.context.bot.strategy.params,
-        );
+        const additionalParams = getAdditionalParams(item.context.bot.strategy);
 
         // hook missions can be created on only hook handler
         if (!(shouldHandleHook === (additionalParams.mode === 'hook'))) {
@@ -938,7 +936,7 @@ export class MissionsService {
       await this.createMany(
         availableOpenEvents.map((item) => {
           const additionalParams = getAdditionalParams(
-            item.context.bot.strategy.params,
+            item.context.bot.strategy,
           );
 
           const mode =
