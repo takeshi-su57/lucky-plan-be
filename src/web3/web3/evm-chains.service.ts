@@ -17,7 +17,8 @@ import {
   apeChain,
   Chain,
   avalanche,
-  megaeth
+  megaeth,
+  mainnet,
 } from 'viem/chains';
 import { validateMnemonic } from '@scure/bip39';
 import { Mutex, Semaphore } from 'async-mutex';
@@ -34,6 +35,7 @@ export const privateRPCProviders = {
     getWebsocket: (network: string, token: string) =>
       `wss://lb.drpc.live/${network}/${token}`,
     networks: {
+      1: 'ethereum',
       137: 'polygon',
       8453: 'base',
       42161: 'arbitrum',
@@ -58,6 +60,7 @@ export const privateRPCProviders = {
     getWebsocket: (network: string, token: string) =>
       `wss://${network}.g.alchemy.com/v2/${token}`,
     networks: {
+      1: 'ethereum-mainnet',
       137: 'polygon-mainnet',
       8453: 'base-mainnet',
       42161: 'arb-mainnet',
@@ -78,6 +81,11 @@ export const privateRPCProviders = {
 };
 
 const publicRpcProviders = {
+  1: [
+    'https://api.zan.top/eth-mainnet',
+    'https://ethereum-rpc.publicnode.com',
+    'https://eth-mainnet.public.blastapi.io',
+  ],
   137: [
     'https://1rpc.io/matic',
     'https://polygon-bor-rpc.publicnode.com',
@@ -171,6 +179,7 @@ export class EvmChainsService {
       apeChain,
       avalanche,
       megaeth,
+      mainnet,
     ];
     this.freePublicClients = {};
     this.privatePublicClients = {};
