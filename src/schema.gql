@@ -368,8 +368,8 @@ input CreatePlanInput {
 input CreateStrategyInput {
   lifeTime: Int!
   maxCollateral: Int!
-  maxOpenMissions: Int! = 0
   maxLeverage: Int!
+  maxOpenMissions: Int! = 0
   minCollateral: Int!
   minLeverage: Int!
   mode: String! = "default"
@@ -1294,8 +1294,8 @@ type Strategy {
   id: Int!
   lifeTime: Int!
   maxCollateral: Int!
-  maxOpenMissions: Int!
   maxLeverage: Int!
+  maxOpenMissions: Int!
   minCollateral: Int!
   minLeverage: Int!
   mode: String!
@@ -1632,8 +1632,8 @@ input UpdateSlInput {
 input UpdateStrategyInput {
   lifeTime: Int!
   maxCollateral: Int!
-  maxOpenMissions: Int!
   maxLeverage: Int!
+  maxOpenMissions: Int!
   minCollateral: Int!
   minLeverage: Int!
   mode: String!
@@ -1661,12 +1661,12 @@ input UpdateTpInput {
 
 type User {
   address: String!
-  secondAddress: String
   allowAuto: Boolean!
   budget: Float!
   followerContractId: Int!
   permission: UserPermission!
   ratio: Float!
+  secondAddress: String
 }
 
 enum UserPermission {
