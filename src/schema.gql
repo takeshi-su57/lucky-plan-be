@@ -366,15 +366,17 @@ input CreatePlanInput {
 }
 
 input CreateStrategyInput {
-  collateralBaseline: Int!
-  lifeTime: Float!
-  maxCollateral: Float!
+  lifeTime: Int!
+  maxCollateral: Int!
+  maxOpenMissions: Int! = 0
   maxLeverage: Int!
-  minCollateral: Float!
+  minCollateral: Int!
   minLeverage: Int!
-  params: String!
+  mode: String! = "default"
   ratio: Float!
-  strategyKey: String!
+  selectedPairs: String! = "[]"
+  slPercentage: Float! = 0
+  tpPercentage: Float! = 0
 }
 
 input CreateStrategyTemplateInput {
@@ -1122,7 +1124,6 @@ type Query {
   backtestTasks(limit: Int! = 20, offset: Int! = 0, status: BacktestTaskStatus, symbol: String): [BacktestTask!]!
   findContract(id: Int!): Contract!
   findStrategy(id: Int!): Strategy
-  findStrategyMetadata(key: String!): StrategyMetadata!
   getALLSLTPs: [SLTPRequest!]!
   getActiveBots: [BotForwardDetails!]!
   getAdaptionStatus: String!
@@ -1132,7 +1133,6 @@ type Query {
   getAllFollowerDetails(after: Int, contractId: Int!, first: Int!): FollowerConnection!
   getAllFollowers: [Follower!]!
   getAllStrategy: [Strategy!]!
-  getAllStrategyMetadata: [StrategyMetadata!]!
   getAllTags: [Tag!]!
   getAllUsers: [User!]!
   getAllWalletAccounts: [WalletAccount!]!
@@ -1291,16 +1291,18 @@ input StartWfaInput {
 }
 
 type Strategy {
-  collateralBaseline: Int!
   id: Int!
   lifeTime: Int!
   maxCollateral: Int!
+  maxOpenMissions: Int!
   maxLeverage: Int!
   minCollateral: Int!
   minLeverage: Int!
-  params: String!
+  mode: String!
   ratio: Float!
-  strategyKey: String!
+  selectedPairs: String!
+  slPercentage: Float!
+  tpPercentage: Float!
 }
 
 """Category of trading strategy"""
@@ -1313,12 +1315,6 @@ enum StrategyCategory {
   SWING
   TREND_FOLLOWING
   VOLATILITY
-}
-
-type StrategyMetadata {
-  description: String!
-  key: String!
-  title: String!
 }
 
 type StrategyTemplate {
@@ -1634,13 +1630,17 @@ input UpdateSlInput {
 }
 
 input UpdateStrategyInput {
-  lifeTime: Float!
+  lifeTime: Int!
   maxCollateral: Int!
+  maxOpenMissions: Int!
   maxLeverage: Int!
   minCollateral: Int!
   minLeverage: Int!
-  params: String!
+  mode: String!
   ratio: Float!
+  selectedPairs: String!
+  slPercentage: Float!
+  tpPercentage: Float!
 }
 
 input UpdateStrategyTemplateInput {
@@ -1661,6 +1661,7 @@ input UpdateTpInput {
 
 type User {
   address: String!
+  secondAddress: String
   allowAuto: Boolean!
   budget: Float!
   followerContractId: Int!

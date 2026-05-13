@@ -15,26 +15,20 @@ model Metadata {
   updatedAt DateTime @updatedAt
 }
 
-model StrategyMetadata {
-  key         String     @id @db.VarChar(255)
-  title       String     @db.VarChar(255)
-  description String
-  strategies  Strategy[]
-}
-
 model Strategy {
   id                 Int              @id @default(autoincrement())
-  strategyKey        String
-  params             String
+  tpPercentage       Float            @default(0)
+  slPercentage       Float            @default(0)
+  maxOpenMissions    Int              @default(0)
+  selectedPairs      String           @default("[]")
+  mode               String           @default("default")
   maxLeverage        Int              @default(200000)
   minLeverage        Int              @default(1100)
   ratio              Float            @default(1)
   maxCollateral      Int
   minCollateral      Int
   lifeTime           Int
-  collateralBaseline Int
   bots               Bot[]
-  strategyMetadata   StrategyMetadata @relation(fields: [strategyKey], references: [key])
 }
 
 model Contract {
