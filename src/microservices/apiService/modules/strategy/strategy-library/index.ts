@@ -1,6 +1,15 @@
 import { Collateral, Trade } from 'src/web3/platform/gns/v10/types';
 import { Strategy } from '../entities/strategy.entity';
 
+export function clampStrategyLeverage(
+  strategy: Pick<Strategy, 'minLeverage' | 'maxLeverage'>,
+  leverage: number,
+) {
+  return Math.floor(
+    Math.max(strategy.minLeverage, Math.min(strategy.maxLeverage, leverage)),
+  );
+}
+
 export function getPositionIncreaseParams(
   strategy: Strategy,
   increaseEventArgs: {
@@ -13,8 +22,8 @@ export function getPositionIncreaseParams(
   trade: Trade,
 ) {
   const collateralDelta = BigInt(increaseEventArgs.collateralDelta);
-  const newLeverage = Math.min(
-    strategy.maxLeverage,
+  const newLeverage = clampStrategyLeverage(
+    strategy,
     Number(increaseEventArgs.newLeverage),
   );
   const oldLeverage = Number(trade.leverage);
@@ -36,77 +45,84 @@ export function getPositionIncreaseParams(
     };
   }
 
-  if (strategy.strategyKey === 'ratioCopy') {
-    const collateralDeltaUSDC = BigInt(
-      Math.floor(
-        ((Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
-          Number(collateral.precision)) *
-          1e6,
-      ),
-    );
+  const collateralDeltaUSDC = BigInt(
+    Math.floor(
+      ((Number(increaseEventArgs.collateralDelta) * strategy.ratio) /
+        Number(collateral.precision)) *
+        1e6,
+    ),
+  );
 
-    return {
-      collateralDelta: collateralDeltaUSDC,
-      leverageDelta: Number(increaseEventArgs.leverageDelta),
-      expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
-    };
-  }
-
-  throw new Error(`Unsupported strategy key: ${strategy.strategyKey}`);
-
-  // return {
-  //   collateralDelta: BigInt(
-  //     Math.floor(
-  //       (Number(trade.collateralAmount) * Number(levF - levL)) /
-  //         Number(levL - 1100),
-  //     ),
-  //   ),
-  //   leverageDelta: 1100,
-  //   expectedPrice: BigInt(increaseEventArgs.values.newOpenPrice),
-  // };
+  return {
+    collateralDelta: collateralDeltaUSDC,
+    leverageDelta: Number(increaseEventArgs.leverageDelta),
+    expectedPrice: BigInt(increaseEventArgs.newOpenPrice),
+  };
 }
 
 export function getPositionDecreaseParams(
   strategy: Strategy,
   decreaseEventArgs: {
-    leverageDelta: bigint;
+    isLeverageUpdate: boolean;
     existingPositionSizeCollateral: bigint;
     positionSizeCollateralDelta: bigint;
-    newLeverage: bigint;
     oraclePrice: bigint;
   },
   trade: Trade,
 ) {
-  const deltaLevL = Number(decreaseEventArgs.leverageDelta);
   const oldPositionSizeCollateral = BigInt(
     decreaseEventArgs.existingPositionSizeCollateral,
   );
   const positionSizeDeltaCollateral = BigInt(
     decreaseEventArgs.positionSizeCollateralDelta,
   );
+  const oldPositionSizeCollateralNumber = Number(oldPositionSizeCollateral);
 
-  if (deltaLevL > 0) {
+  if (oldPositionSizeCollateralNumber <= 0) {
+    return null;
+  }
+
+  const positionSizeDecreaseRatio = Math.min(
+    1,
+    Number(positionSizeDeltaCollateral) / oldPositionSizeCollateralNumber,
+  );
+
+  if (positionSizeDecreaseRatio <= 0) {
+    return null;
+  }
+
+  if (decreaseEventArgs.isLeverageUpdate) {
+    const currentLeverage = Number(trade.leverage);
+    const targetLeverage = Math.max(
+      strategy.minLeverage,
+      Math.floor(currentLeverage * (1 - positionSizeDecreaseRatio)),
+    );
+
     // no need to decrease position
-    if (Number(decreaseEventArgs.newLeverage) >= Number(trade.leverage)) {
+    if (targetLeverage >= currentLeverage) {
       return null;
     }
 
     return {
       collateralDelta: 0n,
-      leverageDelta:
-        Number(trade.leverage) - Number(decreaseEventArgs.newLeverage),
+      leverageDelta: currentLeverage - targetLeverage,
       expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
     };
   }
 
+  const collateralDelta = Math.floor(
+    Number(trade.collateralAmount) * positionSizeDecreaseRatio,
+  );
+
+  if (
+    collateralDelta <= 0 ||
+    collateralDelta >= Number(trade.collateralAmount)
+  ) {
+    return null;
+  }
+
   return {
-    collateralDelta: BigInt(
-      Math.floor(
-        (Number(positionSizeDeltaCollateral) /
-          Number(oldPositionSizeCollateral)) *
-          Number(trade.collateralAmount),
-      ),
-    ),
+    collateralDelta: BigInt(collateralDelta),
     leverageDelta: 0,
     expectedPrice: BigInt(decreaseEventArgs.oraclePrice),
   };
@@ -125,7 +141,30 @@ export function parsePairKey(key: string) {
   return JSON.parse(key) as { pair: string; isLong: boolean };
 }
 
-export function getAdditionalParams(strParams: string): {
+function normalizeStrategyMode(mode: string | null | undefined) {
+  if (!mode) {
+    return undefined;
+  }
+
+  const normalizedMode = mode.toLowerCase();
+
+  if (normalizedMode === 'signal' || normalizedMode === 'hook') {
+    return normalizedMode;
+  }
+
+  return undefined;
+}
+
+export function getAdditionalParams(
+  strategy: Pick<
+    Strategy,
+    | 'maxOpenMissions'
+    | 'tpPercentage'
+    | 'slPercentage'
+    | 'selectedPairs'
+    | 'mode'
+  >,
+): {
   maxOpenMissions: number;
   tpPercentage: number;
   slPercentage: number;
@@ -133,13 +172,23 @@ export function getAdditionalParams(strParams: string): {
   mode?: 'signal' | 'hook';
 } {
   try {
-    const params = JSON.parse(strParams);
+    const selectedPairs = JSON.parse(strategy.selectedPairs);
+
+    if (!Array.isArray(selectedPairs)) {
+      return {
+        maxOpenMissions: strategy.maxOpenMissions || 0,
+        tpPercentage: strategy.tpPercentage || 0,
+        slPercentage: strategy.slPercentage || 0,
+        selectedPairs: [],
+        mode: normalizeStrategyMode(strategy.mode),
+      };
+    }
 
     return {
-      maxOpenMissions: params.maxOpenMissions || 0,
-      tpPercentage: params.tpPercentage || 0,
-      slPercentage: params.slPercentage || 0,
-      selectedPairs: (params.selectedPairs || [])
+      maxOpenMissions: strategy.maxOpenMissions || 0,
+      tpPercentage: strategy.tpPercentage || 0,
+      slPercentage: strategy.slPercentage || 0,
+      selectedPairs: selectedPairs
         .map((item: { pair: string; isLong: boolean } | string) =>
           typeof item === 'string'
             ? [
@@ -160,15 +209,15 @@ export function getAdditionalParams(strParams: string): {
               ],
         )
         .flat(),
-      mode: params.mode || undefined,
+      mode: normalizeStrategyMode(strategy.mode),
     };
   } catch {
     return {
-      maxOpenMissions: 0,
-      tpPercentage: 0,
-      slPercentage: 0,
+      maxOpenMissions: strategy.maxOpenMissions || 0,
+      tpPercentage: strategy.tpPercentage || 0,
+      slPercentage: strategy.slPercentage || 0,
       selectedPairs: [],
-      mode: undefined,
+      mode: normalizeStrategyMode(strategy.mode),
     };
   }
 }
@@ -185,31 +234,16 @@ export function getOpenMissionParams(
     usdcPrice: bigint;
     pairIndex: number;
   },
-  leaderCollateralBaseline: number,
+  _leaderCollateralBaseline: number,
 ) {
   const collateralUSDCAmount = Math.floor(
     (Number(args.collateralAmount) / Number(args.collateral.precision)) *
       (Number(args.collateralPriceUsd) / Number(args.usdcPrice)),
   );
 
-  let ratioAmount = BigInt(Math.floor(collateralUSDCAmount * 1e6));
-
-  if (strategy.strategyKey === 'ratioCopy') {
-    ratioAmount = BigInt(
-      Math.floor(collateralUSDCAmount * strategy.ratio * 1e6),
-    );
-  }
-
-  if (strategy.strategyKey === 'scaleCopy') {
-    const collateralRatio =
-      leaderCollateralBaseline > 0
-        ? collateralUSDCAmount / leaderCollateralBaseline
-        : collateralUSDCAmount;
-
-    ratioAmount = BigInt(
-      Math.floor(strategy.collateralBaseline * collateralRatio * 1e6),
-    );
-  }
+  let ratioAmount = BigInt(
+    Math.floor(collateralUSDCAmount * strategy.ratio * 1e6),
+  );
 
   const maxCollateral = BigInt(strategy.maxCollateral * 1e6);
   const minCollateral = BigInt(strategy.minCollateral * 1e6);
@@ -224,7 +258,7 @@ export function getOpenMissionParams(
         Math.min(strategy.maxLeverage, args.leverage),
       );
 
-  const params = getAdditionalParams(strategy.params);
+  const params = getAdditionalParams(strategy);
 
   const tp =
     params.tpPercentage > 0

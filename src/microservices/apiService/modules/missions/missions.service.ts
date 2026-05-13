@@ -693,8 +693,9 @@ export class MissionsService {
       .length;
 
     const totalMaxOpenMissions = await this.getMaxOpenMissions();
+    const hasGlobalMissionLimit = totalMaxOpenMissions > 0;
 
-    if (totalMissionCount >= totalMaxOpenMissions) {
+    if (hasGlobalMissionLimit && totalMissionCount >= totalMaxOpenMissions) {
       return;
     }
 
@@ -702,9 +703,7 @@ export class MissionsService {
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
       .filter((item) => {
-        const additionalParams = getAdditionalParams(
-          item.context.bot.strategy.params,
-        );
+        const additionalParams = getAdditionalParams(item.context.bot.strategy);
 
         // hook missions can be created on only hook handler
         if (!(shouldHandleHook === (additionalParams.mode === 'hook'))) {
@@ -718,7 +717,10 @@ export class MissionsService {
         const missionCount =
           missionsByBotMap.get(item.context.bot.id)?.length || 0;
 
-        if (missionCount >= additionalParams.maxOpenMissions) {
+        if (
+          additionalParams.maxOpenMissions > 0 &&
+          missionCount >= additionalParams.maxOpenMissions
+        ) {
           return false;
         }
 
@@ -930,15 +932,18 @@ export class MissionsService {
         return false;
       });
 
-    const availableMissions = totalMaxOpenMissions - totalMissionCount;
-
-    const availableOpenEvents = openEvents.slice(0, availableMissions);
+    const availableMissions = hasGlobalMissionLimit
+      ? totalMaxOpenMissions - totalMissionCount
+      : openEvents.length;
+    const availableOpenEvents = hasGlobalMissionLimit
+      ? openEvents.slice(0, availableMissions)
+      : openEvents;
 
     if (availableOpenEvents.length > 0) {
       await this.createMany(
         availableOpenEvents.map((item) => {
           const additionalParams = getAdditionalParams(
-            item.context.bot.strategy.params,
+            item.context.bot.strategy,
           );
 
           const mode =
