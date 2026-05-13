@@ -37,6 +37,7 @@ import {
 
 import { gnsMultiCollatDiamondAbi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import {
+  clampStrategyLeverage,
   getOpenMissionParams,
   getPositionDecreaseParams,
   getPositionIncreaseParams,
@@ -247,46 +248,25 @@ export class TaskExecutorService {
               leverageUpdateExecutedEventParser.actionParser(action);
 
             const achievePosition = parseGnsPositionKey(achievePositionKey!);
+            const followerTradeData = await this.gnsService.getTrade({
+              contractId: followerContract.id,
+              priority: ChainPriority.HIGH,
+              args: {
+                address: follower.address as Address,
+                index: achievePosition!.index,
+              },
+            });
 
-            if (!args.isIncrease) {
-              // const followerTradeData = await this.gnsService.getTrade({
-              //   contractId: followerContract.id,
-              //   priority: ChainPriority.HIGH,
-              //   args: {
-              //     address: follower.address as Address,
-              //     index: achievePosition!.index,
-              //   },
-              // });
-              // const collateralDelta = BigInt(
-              //   Math.floor(
-              //     (Number(followerTradeData.collateralAmount) *
-              //       Number(followerTradeData.leverage)) /
-              //       Number(args.values.newLeverage) -
-              //       Number(followerTradeData.collateralAmount),
-              //   ),
-              // );
-              // if (collateralDelta > 0n) {
-              //   const result = await this.followerService.depositAsset(
-              //     task.mission.bot.plan.userId,
-              //     {
-              //       address: follower.address,
-              //       contract: followerContract,
-              //       amount: collateralDelta + collateralDelta / 100n,
-              //       kind: 'usdc',
-              //     },
-              //   );
-              //   if (!result) {
-              //     await this.logger.log({
-              //       severity: 'Error',
-              //       summary: 'TaskExecutorService>performTask',
-              //       details: `Failed at borrowing usdc from vault`,
-              //     });
-              //     return {
-              //       success: 'failed',
-              //       message: `Failed at borrowing usdc from vault`,
-              //     };
-              //   }
-              // }
+            const targetLeverage = clampStrategyLeverage(
+              strategy,
+              Number(args.values.newLeverage),
+            );
+
+            if (targetLeverage === Number(followerTradeData.leverage)) {
+              return {
+                success: 'skipped',
+                message: `Skipped leverage update because current leverage already matches target`,
+              };
             }
 
             tx = await this.gnsService.updateLeverage({
@@ -295,7 +275,7 @@ export class TaskExecutorService {
               contractId: followerContract.id,
               args: {
                 index: achievePosition!.index,
-                newLeverage: Number(args.values.newLeverage),
+                newLeverage: targetLeverage,
               },
             });
 
@@ -419,14 +399,13 @@ export class TaskExecutorService {
             const decreaseParams = getPositionDecreaseParams(
               strategy,
               {
-                leverageDelta: BigInt(args.leverageDelta),
+                isLeverageUpdate: Number(args.collateralDelta) === 0,
                 existingPositionSizeCollateral: BigInt(
                   args.values.existingPositionSizeCollateral,
                 ),
                 positionSizeCollateralDelta: BigInt(
                   args.values.positionSizeCollateralDelta,
                 ),
-                newLeverage: BigInt(args.values.newLeverage),
                 oraclePrice: BigInt(args.oraclePrice),
               },
               followerTradeData,
@@ -655,16 +634,21 @@ export class TaskExecutorService {
             Number(gmxEvent.args['collateralTokenPrice.max'])) /
           1e30;
 
-        const leverage = Math.floor((sizeInUsd / collateralInUsd) * 1e3);
+        const leverage =
+          collateralInUsd > 0
+            ? Math.floor((sizeInUsd / collateralInUsd) * 1e3)
+            : 0;
+        const clampedLeverage = clampStrategyLeverage(strategy, leverage);
 
         const sizeDeltaUsd = Number(gmxEvent.args.sizeDeltaUsd) / 1e30;
         const collateralDeltaUsd =
           (Number(gmxEvent.args.collateralDeltaAmount) *
             Number(gmxEvent.args['collateralTokenPrice.max'])) /
           1e30;
-        const leverageDelta = Math.floor(
-          (sizeDeltaUsd / collateralDeltaUsd) * 1e3,
-        );
+        const leverageDelta =
+          collateralDeltaUsd > 0
+            ? Math.floor((sizeDeltaUsd / collateralDeltaUsd) * 1e3)
+            : 0;
 
         switch (action.name) {
           case gmxPositionIncreaseEventParser.eventName: {
@@ -742,7 +726,7 @@ export class TaskExecutorService {
                 contractId: followerContract.id,
                 args: {
                   index: achievePosition!.index,
-                  newLeverage: leverage,
+                  newLeverage: clampedLeverage,
                 },
               });
             } else {
@@ -763,7 +747,7 @@ export class TaskExecutorService {
                 {
                   collateralDelta: BigInt(args.collateralDeltaAmount),
                   leverageDelta: BigInt(leverageDelta),
-                  newLeverage: BigInt(leverage),
+                  newLeverage: BigInt(clampedLeverage),
                   newOpenPrice: BigInt(executionPrice),
                 },
                 {
@@ -867,7 +851,7 @@ export class TaskExecutorService {
                 contractId: followerContract.id,
                 args: {
                   index: achievePosition!.index,
-                  newLeverage: leverage,
+                  newLeverage: clampedLeverage,
                 },
               });
             } else {
@@ -885,10 +869,9 @@ export class TaskExecutorService {
               const decreaseParams = getPositionDecreaseParams(
                 strategy,
                 {
-                  leverageDelta: BigInt(leverageDelta),
+                  isLeverageUpdate: false,
                   existingPositionSizeCollateral: BigInt(args.sizeInTokens),
                   positionSizeCollateralDelta: BigInt(args.sizeDeltaInTokens),
-                  newLeverage: BigInt(leverage),
                   oraclePrice: BigInt(executionPrice),
                 },
                 followerTradeData,
