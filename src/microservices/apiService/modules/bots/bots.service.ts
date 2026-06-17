@@ -141,6 +141,7 @@ export class BotsService {
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
         leaderCollateralBaseline: input.leaderCollateralBaseline,
+        mode: input.mode,
       });
 
       bots.push(bot);

@@ -68,15 +68,6 @@ model PerpTradingEventLog {
   @@index([platform, date, block, id])
 }
 
-model TradingSignalLog {
-  id          Int      @id @default(autoincrement())
-  platform    Platform
-  address     String
-  eventLogIds Int[]
-
-  @@unique([platform, address])
-}
-
 model PnlSnapshotV2 {
   id        Int             @id @default(autoincrement())
   platform  Platform
@@ -146,6 +137,11 @@ model Plan {
   bots           Bot[]
 }
 
+enum BotMode {
+  Default
+  Reversed
+}
+
 model Bot {
   id                       Int       @id @default(autoincrement())
   leaderAddress            String    @db.VarChar(255)
@@ -162,12 +158,14 @@ model Bot {
   startedAt                DateTime?
   leaderCollateralBaseline Int
   planId                   Int       @default(0)
-  follower                 Follower  @relation(fields: [followerAddress], references: [address])
-  followerContract         Contract  @relation("followerBots", fields: [followerContractId], references: [id])
-  leaderContract           Contract  @relation("leaderBots", fields: [leaderContractId], references: [id])
-  plan                     Plan      @relation(fields: [planId], references: [id])
-  strategy                 Strategy  @relation(fields: [strategyId], references: [id])
-  missions                 Mission[]
+  mode                     BotMode   @default(Default)
+
+  follower         Follower  @relation(fields: [followerAddress], references: [address])
+  followerContract Contract  @relation("followerBots", fields: [followerContractId], references: [id])
+  leaderContract   Contract  @relation("leaderBots", fields: [leaderContractId], references: [id])
+  plan             Plan      @relation(fields: [planId], references: [id])
+  strategy         Strategy  @relation(fields: [strategyId], references: [id])
+  missions         Mission[]
 }
 
 model Mission {

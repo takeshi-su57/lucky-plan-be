@@ -40,6 +40,7 @@ type BotBackwardDetails {
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  mode: BotMode!
   plan: Plan!
   planId: Int!
   startedAt: Date
@@ -68,6 +69,7 @@ type BotDetails {
   leaderContractId: Int!
   leaderEndedBlock: Int
   leaderStartedBlock: Int
+  mode: BotMode!
   planId: Int!
   startedAt: Date
   status: BotStatus!
@@ -96,6 +98,7 @@ type BotForwardDetails {
   leaderEndedBlock: Int
   leaderStartedBlock: Int
   missions: [MissionForwardDetails!]!
+  mode: BotMode!
   planId: Int!
   startedAt: Date
   status: BotStatus!
@@ -115,6 +118,11 @@ type BotGroupPaginatedResponse {
   items: [BotGroup!]!
   totalGroups: Int!
   totalPages: Int!
+}
+
+enum BotMode {
+  Default
+  Reversed
 }
 
 type BotPageInfo {
@@ -191,6 +199,7 @@ input CreateBotAndStrategyInput {
   leaderAddress: String!
   leaderCollateralBaseline: Int!
   leaderContractId: Int!
+  mode: BotMode!
   planId: Int!
   strategy: CreateStrategyInput!
 }
@@ -201,6 +210,7 @@ input CreateBotInput {
   leaderAddress: String!
   leaderCollateralBaseline: Int!
   leaderContractId: Int!
+  mode: BotMode!
   planId: Int!
   strategyId: Int!
 }

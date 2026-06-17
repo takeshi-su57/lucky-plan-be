@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { BotStatus } from 'generated/prisma/client';
+import { BotStatus, BotMode } from 'generated/prisma/client';
 
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 import { Follower } from 'src/microservices/apiService/modules/follower/entities/follower.entity';
@@ -9,6 +9,10 @@ import { Strategy } from 'src/microservices/apiService/modules/strategy/entities
 
 registerEnumType(BotStatus, {
   name: 'BotStatus',
+});
+
+registerEnumType(BotMode, {
+  name: 'BotMode',
 });
 
 @ObjectType()
@@ -57,6 +61,9 @@ export class Bot {
 
   @Field(() => BotStatus)
   status: BotStatus;
+
+  @Field(() => BotMode)
+  mode: BotMode;
 }
 
 @ObjectType()

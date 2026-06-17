@@ -2,7 +2,7 @@ import { InputType, Int, Field } from '@nestjs/graphql';
 
 import { IsDate, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
-import { BotStatus } from 'generated/prisma/client';
+import { BotStatus, BotMode } from 'generated/prisma/client';
 import { CreateStrategyInput } from 'src/microservices/apiService/modules/strategy/dto/strategy.input';
 
 @InputType()
@@ -35,6 +35,10 @@ export class CreateBotInput {
   @IsNotEmpty()
   @Field(() => Int)
   followerContractId: number;
+
+  @IsNotEmpty()
+  @Field(() => BotMode)
+  mode: BotMode;
 }
 
 export class BotUpdateInput {
@@ -93,4 +97,8 @@ export class CreateBotAndStrategyInput {
   @IsNotEmpty()
   @Field(() => Int)
   leaderCollateralBaseline: number;
+
+  @IsNotEmpty()
+  @Field(() => BotMode)
+  mode: BotMode;
 }
