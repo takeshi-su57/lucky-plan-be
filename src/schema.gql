@@ -264,7 +264,6 @@ type ExpertPnlSnapshotV2Node {
   avgDuration: Float!
   avgPnlRatio: Float!
   dateStr: String!
-  id: Int!
   kind: PnlSnapshotKind!
   maxSize: Float!
   openedPositions: Int!
@@ -676,7 +675,6 @@ type PnlSnapshotV2 {
   accUSDPnl: Float!
   address: String!
   dateStr: String!
-  id: Int!
   kind: PnlSnapshotKind!
   platform: Platform!
 }
@@ -685,7 +683,6 @@ type PnlSnapshotV2Details {
   accUSDPnl: Float!
   address: String!
   dateStr: String!
-  id: Int!
   kind: PnlSnapshotKind!
   perpTradeHistories: [PerpTradeHistory!]!
   platform: Platform!
@@ -697,7 +694,7 @@ type PnlSnapshotV2DetailsConnection {
 }
 
 type PnlSnapshotV2DetailsEdge {
-  cursor: Int!
+  cursor: String!
   node: PnlSnapshotV2Details!
 }
 
@@ -708,7 +705,7 @@ type PnlSnapshotV2DetailsForPaginationAPIPageInfo {
 }
 
 type PnlSnapshotV2DetailsPageInfo {
-  endCursor: Int
+  endCursor: String
   hasNextPage: Boolean!
 }
 
@@ -734,7 +731,7 @@ type Query {
   getAllUsers: [User!]!
   getBlacklist: [String!]
   getBotsByStatus(after: Int, first: Int!, status: BotStatus!): BotConnection!
-  getExpertPnlSnapshotsV2(after: Int, platform: Platform!): ExpertPnlSnapshotV2Connection!
+  getExpertPnlSnapshotsV2(after: String, platform: Platform!): ExpertPnlSnapshotV2Connection!
   getGnsPrices(fromDate: Date!, pairName: String!, toDate: Date!): [GnsPricingRecord!]!
   getLogsSeverityCounts: [SeverityCount!]!
   getMaxOpenMissions: Int!
@@ -745,7 +742,7 @@ type Query {
   getPlanSummariesByStatus(after: Int, first: Int!, status: PlanStatus!): PlanSummaryConnection!
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
-  getPnlSnapshotsV2(after: Int, dateStr: String!, first: Int!, kind: PnlSnapshotKind!, platform: Platform!): PnlSnapshotV2DetailsConnection!
+  getPnlSnapshotsV2(after: String, dateStr: String!, first: Int!, kind: PnlSnapshotKind!, platform: Platform!): PnlSnapshotV2DetailsConnection!
   getServerTime: ServerTime!
   getWhitelist: [String!]
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag

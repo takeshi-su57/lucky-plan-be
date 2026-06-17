@@ -73,9 +73,6 @@ export class PerpTradingEventLog {
 
 @ObjectType()
 export class PnlSnapshotV2 {
-  @Field(() => Int)
-  id: number;
-
   @Field(() => Platform)
   platform: Platform;
 
@@ -166,14 +163,14 @@ export class PnlSnapshotV2InitializedFlag {
 
 @ObjectType()
 export class PnlSnapshotV2DetailsEdge {
-  @Field(() => Int) cursor: number;
+  @Field(() => String) cursor: string;
   @Field(() => PnlSnapshotV2Details) node: PnlSnapshotV2Details;
 }
 
 @ObjectType()
 export class PnlSnapshotV2DetailsPageInfo {
   @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
+  @Field(() => String, { nullable: true }) endCursor: string | null;
 }
 
 @ObjectType()

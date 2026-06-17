@@ -404,7 +404,7 @@ export class AutoPlansService {
   async filterExperts(
     platform: Platform,
     dateStr: string,
-    after: number | null,
+    after: string | null,
   ): Promise<ExpertPnlSnapshotV2Connection> {
     const expertMap = new Map<
       string,
@@ -419,72 +419,55 @@ export class AutoPlansService {
     const lastPnlRecord = after
       ? await this.prismaService.pnlSnapshotV2.findFirst({
           where: {
-            id: after,
+            platform,
+            dateStr,
+            kind: PnlSnapshotKind.MONTH,
+            address: after,
           },
         })
       : null;
 
     let currentCursor = lastPnlRecord
       ? {
-          id: lastPnlRecord.id,
+          id: lastPnlRecord.address,
           accUSDPnl: lastPnlRecord.accUSDPnl,
         }
       : null;
     const limit = 50;
 
     while (true) {
-      const pnlRecords: PnlSnapshotV2[] = currentCursor
-        ? await this.prismaService.pnlSnapshotV2.findMany({
-            take: limit,
-            where: {
-              dateStr: dateStr,
-              platform,
-              accUSDPnl: {
-                gt: 100,
-              },
-              kind: PnlSnapshotKind.MONTH,
-              OR: [
-                {
-                  accUSDPnl: {
-                    lt: currentCursor.accUSDPnl,
+      const pnlRecords: PnlSnapshotV2[] =
+        await this.prismaService.pnlSnapshotV2.findMany({
+          take: limit,
+          where: {
+            dateStr: dateStr,
+            platform,
+            kind: PnlSnapshotKind.MONTH,
+            OR: currentCursor
+              ? [
+                  {
+                    accUSDPnl: {
+                      lt: currentCursor.accUSDPnl,
+                    },
                   },
-                },
-                {
-                  accUSDPnl: currentCursor.accUSDPnl,
-                  id: {
-                    gt: currentCursor.id,
+                  {
+                    accUSDPnl: currentCursor.accUSDPnl,
+                    id: {
+                      gt: currentCursor.id,
+                    },
                   },
-                },
-              ],
+                ]
+              : undefined,
+          },
+          orderBy: [
+            {
+              accUSDPnl: 'desc',
             },
-            orderBy: [
-              {
-                accUSDPnl: 'desc',
-              },
-              {
-                id: 'asc',
-              },
-            ],
-          })
-        : await this.prismaService.pnlSnapshotV2.findMany({
-            take: limit,
-            where: {
-              dateStr: dateStr,
-              platform,
-              accUSDPnl: {
-                gt: 100,
-              },
-              kind: PnlSnapshotKind.MONTH,
+            {
+              address: 'asc',
             },
-            orderBy: [
-              {
-                accUSDPnl: 'desc',
-              },
-              {
-                id: 'asc',
-              },
-            ],
-          });
+          ],
+        });
 
       if (pnlRecords.length === 0) {
         currentCursor = null;
@@ -612,7 +595,7 @@ export class AutoPlansService {
       });
 
       currentCursor = {
-        id: pnlRecords[pnlRecords.length - 1].id,
+        id: pnlRecords[pnlRecords.length - 1].address,
         accUSDPnl: pnlRecords[pnlRecords.length - 1].accUSDPnl,
       };
 
@@ -680,7 +663,7 @@ export class AutoPlansService {
           totalPositions > 0 ? totalDuration / totalPositions : 0;
 
         return {
-          cursor: expert.id,
+          cursor: expert.address,
           node: {
             ...expert,
             openedPositions,

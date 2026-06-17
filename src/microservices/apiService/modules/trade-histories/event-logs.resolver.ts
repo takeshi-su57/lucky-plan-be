@@ -98,7 +98,7 @@ export class EventLogsResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
     @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('after', { type: () => String, nullable: true }) after: string | null,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,

@@ -188,7 +188,7 @@ export class PlansResolver {
   getExpertPnlSnapshotsV2(
     @CurrentUser() _user: User,
     @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('after', { type: () => String, nullable: true }) after: string | null,
   ) {
     return this.autoplanService.filterExperts(
       platform,

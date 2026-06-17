@@ -69,18 +69,14 @@ model PerpTradingEventLog {
 }
 
 model PnlSnapshotV2 {
-  id        Int             @id @default(autoincrement())
   platform  Platform
   address   String
   dateStr   String
   kind      PnlSnapshotKind
   accUSDPnl Float
 
-  @@unique([address, platform, dateStr, kind])
-  @@index([dateStr, platform, kind, accUSDPnl(sort: Desc), id(sort: Asc)])
-  @@index([platform, kind, accUSDPnl(sort: Desc), id(sort: Asc)])
-  @@index([dateStr, platform, id])
-  @@index([dateStr, platform])
+  @@id([address, platform, dateStr, kind])
+  @@index([dateStr, platform, kind, address(sort), accUSDPnl(sort: Desc)])
 }
 
 model PnlSnapshotV2InitializedFlag {

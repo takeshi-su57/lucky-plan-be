@@ -57,7 +57,7 @@ export class PnlSnapshotsService {
     platform: Platform,
     kind: PnlSnapshotKind,
     first: number,
-    after: number | null,
+    after: string | null,
   ): Promise<PnlSnapshotV2DetailsConnection> {
     const allContractsMap: Record<string, Contract> = {};
     const testContractIds: number[] = [];
@@ -88,13 +88,13 @@ export class PnlSnapshotsService {
     while (edges.length < first) {
       const lastPnlRecord = currentAfter
         ? await this.prismaService.pnlSnapshotV2.findFirst({
-            where: { id: currentAfter },
+            where: { dateStr, platform, kind, address: currentAfter },
           })
         : null;
 
       const currentCursor = lastPnlRecord
         ? {
-            id: lastPnlRecord.id,
+            address: lastPnlRecord.address,
             accUSDPnl: lastPnlRecord.accUSDPnl,
           }
         : null;
@@ -115,8 +115,8 @@ export class PnlSnapshotsService {
                   },
                   {
                     accUSDPnl: currentCursor.accUSDPnl,
-                    id: {
-                      gt: currentCursor.id,
+                    address: {
+                      gt: currentCursor.address,
                     },
                   },
                 ]
@@ -127,7 +127,7 @@ export class PnlSnapshotsService {
               accUSDPnl: 'desc',
             },
             {
-              id: 'asc',
+              address: 'asc',
             },
           ],
         });
@@ -164,7 +164,7 @@ export class PnlSnapshotsService {
         if (historyRecords.length < 2) continue;
 
         edges.push({
-          cursor: pnlRecord.id,
+          cursor: pnlRecord.address,
           node: {
             ...pnlRecord,
             perpTradeHistories: historyRecords
@@ -188,7 +188,7 @@ export class PnlSnapshotsService {
         });
       }
 
-      currentAfter = pnlRecords[pnlRecords.length - 1].id;
+      currentAfter = pnlRecords[pnlRecords.length - 1].address;
 
       if (pnlRecords.length < first) {
         hasNextPage = false;
@@ -269,33 +269,26 @@ export class PnlSnapshotsService {
 
       const testContractIds = testContracts.map((contract) => contract.id);
 
-      let pnlSnapshotCursorId: number | null = null;
+      let pnlSnapshotCursorId: string | null = null;
 
       const cloneTime = Date.now();
 
       // clone last day's pnl snapshot for dynamic snapshot build
       while (true) {
-        const records: PnlSnapshotV2[] = pnlSnapshotCursorId
-          ? await this.prismaService.pnlSnapshotV2.findMany({
-              skip: 1,
-              take: BATCH_SIZE,
-              cursor: {
-                id: pnlSnapshotCursorId,
-              },
-              where: {
-                dateStr: lastDayStr,
-                platform,
-              },
-              orderBy: [{ id: 'asc' }],
-            })
-          : await this.prismaService.pnlSnapshotV2.findMany({
-              take: BATCH_SIZE,
-              where: {
-                dateStr: lastDayStr,
-                platform,
-              },
-              orderBy: [{ id: 'asc' }],
-            });
+        const records: PnlSnapshotV2[] =
+          await this.prismaService.pnlSnapshotV2.findMany({
+            take: BATCH_SIZE,
+            where: {
+              dateStr: lastDayStr,
+              platform,
+              address: pnlSnapshotCursorId
+                ? {
+                    gt: pnlSnapshotCursorId,
+                  }
+                : undefined,
+            },
+            orderBy: [{ address: 'asc' }],
+          });
 
         if (records.length === 0) {
           break;
@@ -315,7 +308,7 @@ export class PnlSnapshotsService {
           data: upsertInputs,
         });
 
-        pnlSnapshotCursorId = records[records.length - 1].id;
+        pnlSnapshotCursorId = records[records.length - 1].address;
       }
 
       await this.logger.nativeLog({
