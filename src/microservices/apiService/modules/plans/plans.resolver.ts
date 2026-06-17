@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'generated/prisma/client';
 import { PubSub } from 'graphql-subscriptions';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -24,7 +24,6 @@ import {
   Plan,
   PlanConnection,
   PlanSummaryConnection,
-  PlanForwardDetails,
   ExpertPnlSnapshotV2Connection,
   BotGroupPaginatedResponse,
 } from './entities/plan.entity';
@@ -51,13 +50,6 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.create(user.address, createPlanInput);
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  createAutoPlan(@CurrentUser() user: User) {
-    return this.autoplanService.createAutoPlansForUser(user.address);
   }
 
   @Mutation(() => Int)

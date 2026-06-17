@@ -8,7 +8,7 @@ import { join } from 'path';
 import { ApiService } from './api.service';
 
 import { GlobalModule } from '../../global/global.module';
-import { WalletAccountsModule } from './modules/wallet-accounts/wallet-accounts.module';
+
 import { FollowerModule } from './modules/follower/follower.module';
 import { StrategyModule } from './modules/strategy/strategy.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
@@ -25,10 +25,8 @@ import { LogsModule } from './modules/loggers/logs.module';
 import { SecurityModule } from './modules/security/security.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
-import { TradingSignalLogsModule } from './modules/trading-signal-logs/trading-signal-logs.module';
 import { PricesModule } from './modules/prices/prices.module';
 import { SLTPModule } from './modules/sltp/sltp.module';
-import { BacktestModule } from './modules/backtest/backtest.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -45,7 +43,6 @@ import { ApiController } from './api.controller';
     }),
     GlobalModule,
     ScheduleModule.forRoot(),
-    WalletAccountsModule,
     AuthModule,
     FollowerModule,
     StrategyModule,
@@ -57,7 +54,6 @@ import { ApiController } from './api.controller';
     FollowerActionsModule,
     TradeHistoriesModule,
     TaskExecutorModule,
-    TradingSignalLogsModule,
     PlansModule,
     LogsModule,
     SecurityModule,
@@ -65,7 +61,6 @@ import { ApiController } from './api.controller';
     AvntModule,
     PricesModule,
     SLTPModule,
-    BacktestModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],

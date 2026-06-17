@@ -54,7 +54,6 @@ import { parseAvntPositionKey } from 'src/web3/platform/avnt/utils';
 import { delay } from 'src/utils';
 
 import { avntGeneralAbi } from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
-import { TradingSignalLogsService } from '../apiService/modules/trading-signal-logs/trading-signal-logs.service';
 
 @Injectable()
 export class LeaderboardService {
@@ -69,7 +68,6 @@ export class LeaderboardService {
     private readonly eventLogsService: EventLogsService,
     private readonly logger: LogsService,
     private readonly prismaService: PrismaService,
-    private readonly tradingSignalLogsService: TradingSignalLogsService,
   ) {
     this.isReceivedKillProcess = false;
   }
@@ -111,12 +109,7 @@ export class LeaderboardService {
         ? BigInt(contract.toBlock)
         : currentBlockNumber;
 
-      await this.cleanLogs(
-        contract.platform,
-        contract.id,
-        Number(fromBlock),
-        Number(endBlock),
-      );
+      await this.cleanLogs(contract.id, Number(fromBlock), Number(endBlock));
 
       this.logger.log({
         severity: 'Info',
@@ -259,18 +252,6 @@ export class LeaderboardService {
           details: `chainId:${contract.chainId} contractId:${contractId} block:${Number(fromBlock)} - ${Number(toBlock)} - ${JSON.stringify(eventNamesMap, null, 2)}`,
         });
 
-        await this.eventLogsService.createManyEventLogs(
-          eventLogs.map((log) => ({
-            contractId: contract.id,
-            jsonLog: JSON.stringify(log.eventLog, (_, v) =>
-              typeof v === 'bigint' ? v.toString() : v,
-            ),
-            block: log.blockNumber,
-            logIndex: log.logIndex,
-            date: new Date(Number(block.timestamp) * 1000),
-          })),
-        );
-
         const perpTradeEventLogs = eventLogs.filter((log) =>
           getWeb3Info(
             contract.platform,
@@ -326,11 +307,6 @@ export class LeaderboardService {
           }
         }
 
-        await this.tradingSignalLogsService.handlePerpTradingEventLogs(
-          contract.platform,
-          perpEntities,
-        );
-
         await this.contractsService.updateLastLeaderboardBlockNumber(
           contract.id,
           Number(toBlock),
@@ -356,21 +332,10 @@ export class LeaderboardService {
   }
 
   private async cleanLogs(
-    platform: Platform,
     contractId: number,
     fromBlock: number,
     endBlock: number,
   ) {
-    await this.prismaService.eventLog.deleteMany({
-      where: {
-        contractId,
-        block: {
-          gte: Number(fromBlock),
-          lte: Number(endBlock),
-        },
-      },
-    });
-
     await this.prismaService.perpTradingEventLog.deleteMany({
       where: {
         contractId,
@@ -380,18 +345,6 @@ export class LeaderboardService {
         },
       },
     });
-
-    if (platform === Platform.GNS) {
-      await this.prismaService.tradeHistory.deleteMany({
-        where: {
-          contractId,
-          block: {
-            gte: Number(fromBlock),
-            lte: Number(endBlock),
-          },
-        },
-      });
-    }
   }
 
   private async handleEventLogForGnsV9({

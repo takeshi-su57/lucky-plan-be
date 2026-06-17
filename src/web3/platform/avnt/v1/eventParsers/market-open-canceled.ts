@@ -2,7 +2,7 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { tradingCallbackAbi } from '../abi/TradingCallback';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getAvntPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export const eventName = 'MarketOpenCanceled';
 
@@ -28,7 +28,7 @@ export function parseMarketOpenCanceledEvent(event: MarketOpenCanceledEvent) {
 
 export function eventToPerpTradeHistory(
   _event: MarketOpenCanceledEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   return null;
 }
 

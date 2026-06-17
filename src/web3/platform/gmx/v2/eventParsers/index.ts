@@ -8,7 +8,7 @@ import type {
   ActionItem,
   Action,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export type EventLog = DecodeEventLogReturnType<
   typeof EventEmitterAbi,
@@ -78,7 +78,7 @@ export function eventToActionParser(
 export function eventToPerpTradeHistory(
   chainId: number,
   event: PositionIncreaseEvent | PositionDecreaseEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   return eventParsersMap[event.eventName].eventToPerpTradeHistory(
     chainId,
     event as any,

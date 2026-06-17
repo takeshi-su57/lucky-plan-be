@@ -3,7 +3,7 @@ import { tradingCallbackAbi } from '../abi/TradingCallback';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getAvntPositionKey } from '../../utils';
 import {
-  PerpTradeHistory,
+  PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getPairName } from '../configs';
@@ -33,7 +33,7 @@ export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
 
 export function eventToPerpTradeHistory(
   event: LimitExecutedEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   const pairName = getPairName(Number(event.args.t.pairIndex));
 
   const operationMap: Record<string, PerpTradeHistoryOperation> = {

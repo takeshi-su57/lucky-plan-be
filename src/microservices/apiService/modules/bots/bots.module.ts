@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { WalletAccountsModule } from 'src/microservices/apiService/modules/wallet-accounts/wallet-accounts.module';
 import { MissionsModule } from 'src/microservices/apiService/modules/missions/missions.module';
 import { ActionsModule } from 'src/microservices/apiService/modules/actions/actions.module';
 import { FollowerModule } from 'src/microservices/apiService/modules/follower/follower.module';
@@ -14,7 +13,6 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 
 @Module({
   imports: [
-    WalletAccountsModule,
     MissionsModule,
     ActionsModule,
     FollowerModule,

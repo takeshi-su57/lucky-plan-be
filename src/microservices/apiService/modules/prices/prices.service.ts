@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import * as WebSocket from 'ws';
+import WebSocket from 'ws';
 import { arbitrum } from 'viem/chains';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -8,7 +8,7 @@ import { LogsService } from 'src/global/logs.service';
 import { CreateGnsPriceInput } from './dto/price.input';
 
 import { getPairName } from 'src/web3/platform/gns/v10/configs';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class PricesService {

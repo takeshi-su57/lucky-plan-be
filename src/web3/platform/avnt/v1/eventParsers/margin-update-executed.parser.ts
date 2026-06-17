@@ -3,7 +3,7 @@ import { tradingAbi } from '../abi/Trading';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getAvntPositionKey } from '../../utils';
 import {
-  PerpTradeHistory,
+  PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getPairName } from '../configs';
@@ -33,7 +33,7 @@ export function parseMarginUpdateEvent(event: MarginUpdateEvent) {
 
 export function eventToPerpTradeHistory(
   event: MarginUpdateEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   const pairName = getPairName(Number(event.args.pairIndex));
 
   if (!pairName) {

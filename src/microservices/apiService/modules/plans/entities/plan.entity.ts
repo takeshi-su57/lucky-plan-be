@@ -10,7 +10,7 @@ import { PlanStatus, Platform } from 'generated/prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 import {
-  PerpTradingEventLog,
+  PerpTradeHistory,
   PnlSnapshotV2,
 } from '../../trade-histories/entities/event-logs.entity';
 
@@ -207,8 +207,8 @@ export class ExpertPnlSnapshotV2 extends PnlSnapshotV2 {
   @Field(() => Float)
   ratio: number;
 
-  @Field(() => [PerpTradingEventLog])
-  histories: PerpTradingEventLog[];
+  @Field(() => [PerpTradeHistory])
+  histories: PerpTradeHistory[];
 
   @Field(() => Float)
   avgDuration: number;

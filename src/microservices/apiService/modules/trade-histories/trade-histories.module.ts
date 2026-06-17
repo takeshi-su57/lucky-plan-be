@@ -5,7 +5,6 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
 import { EventLogsService } from './event-logs.service';
 import { EventLogsResolver } from './event-logs.resolver';
-import { BacktestService } from './backtest.service';
 
 @Module({
   imports: [GnsModule],
@@ -14,13 +13,7 @@ import { BacktestService } from './backtest.service';
     EventLogsService,
     PnlSnapshotsService,
     PnlSnapshotsService,
-    BacktestService,
   ],
-  exports: [
-    EventLogsService,
-    PnlSnapshotsService,
-    PnlSnapshotsService,
-    BacktestService,
-  ],
+  exports: [EventLogsService, PnlSnapshotsService, PnlSnapshotsService],
 })
 export class TradeHistoriesModule {}

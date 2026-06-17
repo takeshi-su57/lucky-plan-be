@@ -2,7 +2,7 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export const eventName = 'MarketOrderInitiated';
 
@@ -29,9 +29,9 @@ export function parseMarketOrderInitiatedEvent(
 }
 
 export function eventToPerpTradeHistory(
-  chainId: number,
-  event: MarketOrderInitiatedEvent,
-): PerpTradeHistory | null {
+  _chainId: number,
+  _event: MarketOrderInitiatedEvent,
+): PurePerpTradeHistory | null {
   return null;
 }
 

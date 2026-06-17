@@ -1,18 +1,6 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { Platform } from 'generated/prisma/client';
 
-export type CreateEventLogInput = {
-  contractId: number;
-
-  jsonLog: string;
-
-  block: number;
-
-  logIndex: number;
-
-  date: Date;
-};
-
 export type CreatePerpTradingEventLogInput = {
   contractId: number;
 

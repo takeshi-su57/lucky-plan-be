@@ -1,6 +1,6 @@
 import { actionToEvent, eventToAction } from 'src/utils';
 import {
-  PerpTradeHistory,
+  PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getMarketInfo } from '../configs';
@@ -56,7 +56,7 @@ export function parsePositionDecreaseEvent(event: PositionDecreaseEvent) {
 export function eventToPerpTradeHistory(
   chainId: number,
   event: PositionDecreaseEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   const usdPnl =
     Number(event.args.basePnlUsd?.toString() || '0') / 1e30 +
     Number(
@@ -85,7 +85,7 @@ export function eventToPerpTradeHistory(
     collateralInUsd > 0
       ? Math.floor((sizeInUsd / collateralInUsd) * 1e3) / 1e3
       : 0;
-      
+
   let operation: PerpTradeHistoryOperation =
     PerpTradeHistoryOperation.DECREASE_SIZE;
 

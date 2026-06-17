@@ -1,11 +1,5 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
-import {
-  IsNotEmpty,
-  IsJSON,
-  IsInt,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, IsJSON, IsInt, IsNumber, IsString } from 'class-validator';
 
 @InputType()
 export class CreateStrategyInput {

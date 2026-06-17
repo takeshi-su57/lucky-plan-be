@@ -93,7 +93,7 @@ export class PnlSnapshotV2 {
 }
 
 @ObjectType()
-export class PerpTradeHistory {
+export class PurePerpTradeHistory {
   @Field(() => String)
   positionKey: string;
 
@@ -135,9 +135,18 @@ export class PerpTradeHistory {
 }
 
 @ObjectType()
+export class PerpTradeHistory extends PurePerpTradeHistory {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Date)
+  date: Date;
+}
+
+@ObjectType()
 export class PnlSnapshotV2Details extends PnlSnapshotV2 {
-  @Field(() => [PerpTradingEventLog])
-  perpTradingEventLogs: PerpTradingEventLog[];
+  @Field(() => [PerpTradeHistory])
+  perpTradeHistories: PerpTradeHistory[];
 }
 
 @ObjectType()

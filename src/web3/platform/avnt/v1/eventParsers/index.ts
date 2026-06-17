@@ -8,7 +8,7 @@ import {
   Action,
   ActionItem,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { LimitOrder, RegisteredEventType } from '../types';
 
 export const missionEventParsers = [
@@ -40,7 +40,7 @@ export function eventToActionParser(event: RegisteredEventType): ActionItem {
 export function eventToPerpTradeHistory(
   _chainId: number,
   event: RegisteredEventType,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   return eventParsersMap[event.eventName].eventToPerpTradeHistory(event as any);
 }
 

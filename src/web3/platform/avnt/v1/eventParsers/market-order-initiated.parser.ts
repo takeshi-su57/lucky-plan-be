@@ -2,7 +2,7 @@ import { DecodeEventLogReturnType, getAbiItem } from 'viem';
 import { tradingAbi } from '../abi/Trading';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getAvntPositionKey } from '../../utils';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export const eventName = 'MarketOrderInitiated';
 
@@ -30,7 +30,7 @@ export function parseMarketOrderInitiatedEvent(
 
 export function eventToPerpTradeHistory(
   _event: MarketOrderInitiatedEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   return null;
 }
 

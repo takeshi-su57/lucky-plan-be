@@ -7,7 +7,7 @@ import {
   Platform,
   MissionMode,
 } from 'generated/prisma/client';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { MissionsService } from 'src/microservices/apiService/modules/missions/missions.service';

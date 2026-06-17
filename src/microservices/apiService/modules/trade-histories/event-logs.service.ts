@@ -1,29 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Platform } from 'generated/prisma/client';
 
-import {
-  CreateEventLogInput,
-  CreatePerpTradingEventLogInput,
-} from './dto/event-logs.input';
+import { CreatePerpTradingEventLogInput } from './dto/event-logs.input';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { PerpTradingEventLog } from './entities/event-logs.entity';
+import { PerpTradeHistory } from './entities/event-logs.entity';
+import { Contract } from '../contracts/entities/contract.entity';
+import { getWeb3Info } from 'src/web3/utils';
 
 @Injectable()
 export class EventLogsService {
   constructor(private prismaService: PrismaService) {}
-
-  async createManyEventLogs(inputs: CreateEventLogInput[]) {
-    if (inputs.length === 0) {
-      return [];
-    }
-
-    return await this.prismaService.eventLog.createManyAndReturn({
-      data: inputs.map((input) => ({
-        ...input,
-      })),
-    });
-  }
 
   async createManyPerpTradingEventLogs(
     inputs: CreatePerpTradingEventLogInput[],
@@ -39,20 +26,23 @@ export class EventLogsService {
     });
   }
 
-  async getPerpEventLogs(
+  async getPerpTradeHistories(
     addresses: string[],
     platform: Platform,
-    limit: number | null,
-  ): Promise<PerpTradingEventLog[][]> {
-    const result: PerpTradingEventLog[][] = [];
+  ): Promise<PerpTradeHistory[][]> {
+    const result: PerpTradeHistory[][] = [];
+    const allContractsMap: Record<string, Contract> = {};
+    const testContractIds: number[] = [];
 
-    const testContracts = await this.prismaService.contract.findMany({
-      where: {
-        isTestnet: true,
-      },
+    const allContracts = await this.prismaService.contract.findMany();
+
+    allContracts.forEach((contract) => {
+      allContractsMap[contract.id] = contract;
+
+      if (contract.isTestnet) {
+        testContractIds.push(contract.id);
+      }
     });
-
-    const testContractIds = testContracts.map((item) => item.id);
 
     for (const address of addresses) {
       const records = (
@@ -76,9 +66,23 @@ export class EventLogsService {
       ).filter((item) => !testContractIds.includes(item.contractId));
 
       result.push(
-        limit
-          ? records.slice(Math.max(0, records.length - limit), records.length)
-          : records,
+        records
+          .map((record) => {
+            const contract = allContractsMap[record.contractId];
+
+            const history = getWeb3Info(
+              contract.platform,
+              contract.version,
+            ).eventToPerpTradeHistory(
+              contract.chainId,
+              JSON.parse(record.jsonLog) as any,
+            );
+
+            return history
+              ? { ...history, id: record.id, date: record.date }
+              : null;
+          })
+          .filter((item) => !!item),
       );
     }
 

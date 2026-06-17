@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { spawn } from 'child_process';
-import * as dayjs from 'dayjs';
-import * as utc from 'dayjs/plugin/utc';
-import * as timezone from 'dayjs/plugin/timezone';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import 'dotenv';
 
 import { ServiceStatus } from 'src/types';
@@ -23,8 +23,6 @@ const microservices = [
   SERVICE_NAMES.LEADERBOARD_SERVICE,
   SERVICE_NAMES.TRADING_SERVICE,
   SERVICE_NAMES.SNAPSHOT_SERVICE,
-  SERVICE_NAMES.BOT_HOOKS_SERVICE,
-  // SERVICE_NAMES.JUP_PERP_EVENT_LOGGER_SERVICE,
 ];
 
 @Injectable()
@@ -234,8 +232,6 @@ export class ApiService {
         },
       },
     });
-
-    await this.prismaService.eventLog.deleteMany();
 
     await this.prismaService.log.deleteMany({
       where: {

@@ -16,7 +16,7 @@ import {
   ActionItem,
 } from 'src/microservices/apiService/modules/actions/entities/action.entity';
 import { tradePositivePnlWithdrawnEventParser } from './trade-positive-pnl-withdrawn.parser';
-import { PerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import { PurePerpTradeHistory } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 export const missionEventParsers = [
   limitExecutedEventParser,
@@ -68,7 +68,7 @@ export function eventToActionParser(event: RegisteredEventType): ActionItem {
 export function eventToPerpTradeHistory(
   chainId: number,
   event: RegisteredEventType,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   return eventParsersMap[event.eventName].eventToPerpTradeHistory(
     chainId,
     event as any,

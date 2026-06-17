@@ -1,0 +1,30 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- PostgreSQL: Application (Prisma / service-core) ---
+  postgresql-app:
+    image: postgres:17-alpine
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_DB: luckyplans
+      POSTGRES_USER: luckyplans
+      POSTGRES_PASSWORD: luckyplans
+    volumes:
+      - postgresql-luckyplans-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U luckyplans']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgresql-luckyplans-data:

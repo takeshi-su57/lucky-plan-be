@@ -1,6 +1,6 @@
 import { actionToEvent, eventToAction } from 'src/utils';
 import {
-  PerpTradeHistory,
+  PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getMarketInfo } from '../configs';
@@ -54,7 +54,7 @@ export function parsePositionIncreaseEvent(event: PositionIncreaseEvent) {
 export function eventToPerpTradeHistory(
   chainId: number,
   event: PositionIncreaseEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   const usdPnl =
     Number(
       event.args.priceImpactUsd?.toString() ||

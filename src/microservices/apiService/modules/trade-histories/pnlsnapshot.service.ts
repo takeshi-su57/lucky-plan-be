@@ -5,10 +5,9 @@ import {
   PnlSnapshotKind,
   PnlSnapshotV2,
 } from 'generated/prisma/client';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { LogsService } from 'src/global/logs.service';
 
-import { SimpleLinearRegression } from 'ml-regression-simple-linear';
 import { PrismaService } from 'src/global/prisma.service';
 import { ServiceStatus } from 'src/types';
 import { getReadableError, getStartOfDay } from 'src/utils';
@@ -16,6 +15,8 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2DetailsEdge,
 } from './entities/event-logs.entity';
+import { Contract } from '../contracts/entities/contract.entity';
+import { getWeb3Info } from 'src/web3/utils';
 
 function parseKey(key: string) {
   return JSON.parse(key) as {
@@ -57,16 +58,19 @@ export class PnlSnapshotsService {
     kind: PnlSnapshotKind,
     first: number,
     after: number | null,
-    minSlope: number,
-    minR2: number,
   ): Promise<PnlSnapshotV2DetailsConnection> {
-    const testContracts = await this.prismaService.contract.findMany({
-      where: {
-        isTestnet: true,
-      },
-    });
+    const allContractsMap: Record<string, Contract> = {};
+    const testContractIds: number[] = [];
 
-    const testContractIds = testContracts.map((item) => item.id);
+    const allContracts = await this.prismaService.contract.findMany();
+
+    allContracts.forEach((contract) => {
+      allContractsMap[contract.id] = contract;
+
+      if (contract.isTestnet) {
+        testContractIds.push(contract.id);
+      }
+    });
 
     const timestampGap =
       timestampGapByPnlSnapshotKind[
@@ -95,58 +99,38 @@ export class PnlSnapshotsService {
           }
         : null;
 
-      const pnlRecords: PnlSnapshotV2[] = currentCursor
-        ? await this.prismaService.pnlSnapshotV2.findMany({
-            take: first,
-            where: {
-              dateStr,
-              kind,
-              platform,
-              accUSDPnl: {
-                gt: 100,
-              },
-              OR: [
-                {
-                  accUSDPnl: {
-                    lt: currentCursor.accUSDPnl,
+      const pnlRecords: PnlSnapshotV2[] =
+        await this.prismaService.pnlSnapshotV2.findMany({
+          take: first,
+          where: {
+            dateStr,
+            kind,
+            platform,
+            OR: currentCursor
+              ? [
+                  {
+                    accUSDPnl: {
+                      lt: currentCursor.accUSDPnl,
+                    },
                   },
-                },
-                {
-                  accUSDPnl: currentCursor.accUSDPnl,
-                  id: {
-                    gt: currentCursor.id,
+                  {
+                    accUSDPnl: currentCursor.accUSDPnl,
+                    id: {
+                      gt: currentCursor.id,
+                    },
                   },
-                },
-              ],
+                ]
+              : undefined,
+          },
+          orderBy: [
+            {
+              accUSDPnl: 'desc',
             },
-            orderBy: [
-              {
-                accUSDPnl: 'desc',
-              },
-              {
-                id: 'asc',
-              },
-            ],
-          })
-        : await this.prismaService.pnlSnapshotV2.findMany({
-            take: first,
-            where: {
-              dateStr,
-              kind,
-              platform,
-              accUSDPnl: {
-                not: 0,
-              },
+            {
+              id: 'asc',
             },
-            orderBy: [
-              {
-                accUSDPnl: 'desc',
-              },
-              {
-                id: 'asc',
-              },
-            ],
-          });
+          ],
+        });
 
       if (pnlRecords.length === 0) {
         hasNextPage = false;
@@ -179,33 +163,27 @@ export class PnlSnapshotsService {
 
         if (historyRecords.length < 2) continue;
 
-        const xs: number[] = [];
-        const pnlArrs: number[] = [];
-        let pnlSum = 0;
-
-        for (let i = 0; i < historyRecords.length; i++) {
-          pnlSum += +historyRecords[i].usdPnl;
-          pnlArrs.push(pnlSum);
-          xs.push(i);
-        }
-
-        const regression = new SimpleLinearRegression(xs, pnlArrs);
-        const score = regression.score(xs, pnlArrs);
-
-        let r2 = score.r2;
-        if (Number.isNaN(r2)) r2 = 1;
-        if (r2 === Infinity) continue;
-
-        if (regression.slope < minSlope || r2 < minR2) continue;
-
         edges.push({
           cursor: pnlRecord.id,
           node: {
             ...pnlRecord,
-            perpTradingEventLogs: historyRecords.slice(
-              Math.max(0, historyRecords.length - 2500),
-              historyRecords.length,
-            ),
+            perpTradeHistories: historyRecords
+              .map((record) => {
+                const contract = allContractsMap[record.contractId];
+
+                const history = getWeb3Info(
+                  contract.platform,
+                  contract.version,
+                ).eventToPerpTradeHistory(
+                  contract.chainId,
+                  JSON.parse(record.jsonLog) as any,
+                );
+
+                return history
+                  ? { ...history, id: record.id, date: record.date }
+                  : null;
+              })
+              .filter((item) => !!item),
           },
         });
       }
@@ -227,19 +205,12 @@ export class PnlSnapshotsService {
     };
   }
 
-  async removeNegativePnlSnapshot(platform: Platform, dateStr: string) {
-    const { count } = await this.prismaService.pnlSnapshotV2.deleteMany({
+  async removePnlSnapshot(platform: Platform, dateStr: string) {
+    await this.prismaService.pnlSnapshotV2.deleteMany({
       where: {
-        accUSDPnl: { lte: 0 },
         platform,
         dateStr,
       },
-    });
-
-    this.logger.log({
-      severity: 'Info',
-      summary: 'PnlSnapshotsV2Service>removeNegativePnlSnapshot',
-      details: `removeNegativePnlSnapshot ${dateStr}: ${count}`,
     });
   }
 
@@ -908,9 +879,9 @@ export class PnlSnapshotsService {
         dayjs(startDate).format('YYYY-MM-DD'),
       );
 
-      await this.removeNegativePnlSnapshot(
+      await this.removePnlSnapshot(
         platform,
-        dayjs(startDate).subtract(3, 'day').format('YYYY-MM-DD'),
+        dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD'),
       );
 
       startDate = dayjs(startDate).add(1, 'day').toDate();

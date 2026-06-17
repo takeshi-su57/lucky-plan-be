@@ -37,8 +37,6 @@ import {
 import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
 import { FollowerService } from 'src/microservices/apiService/modules/follower/follower.service';
 import {
-  MAX_GAS,
-  MIN_GAS,
   PATTERNS,
   SERVICE_NAMES,
   MainCollateralIndex,
@@ -200,43 +198,6 @@ export class BotsService {
     }
 
     return await this._delete(id);
-  }
-
-  private async reBalanceAsset(bot: BotBackwardDetails) {
-    try {
-      await this.logger.log({
-        severity: 'Info',
-        summary: 'BotsService>reBalanceAsset',
-      });
-
-      const {
-        followerContract,
-        follower,
-        plan: { userId },
-      } = bot;
-
-      const ethBalance = await this.evmAdapterService.nativeBalance({
-        chainId: followerContract.chainId,
-        priority: ChainPriority.LOW,
-        address: follower.address as Address,
-      });
-
-      if (ethBalance < MIN_GAS) {
-        await this.followersService.depositAsset(userId, {
-          address: follower.address,
-          contractId: followerContract.id,
-          amount: MAX_GAS - ethBalance,
-          kind: 'eth',
-          collateralIndex: 0,
-        });
-      }
-    } catch (err) {
-      await this.logger.log({
-        severity: 'Error',
-        summary: 'BotsService>reBalanceAsset',
-        details: getReadableError(err),
-      });
-    }
   }
 
   async checkAndUpdateAllBots() {
@@ -654,18 +615,6 @@ export class BotsService {
     if (BotStatus.Live !== bot.status && BotStatus.Stop !== bot.status) {
       throw new Error('Invalid bot status');
     }
-
-    // await this.followersService.withdrawAllUSDC(
-    //   bot.plan.userId,
-    //   bot.followerAddress,
-    //   bot.followerContractId,
-    // );
-
-    // await this.followersService.withdrawAllETH(
-    //   bot.plan.userId,
-    //   bot.followerAddress,
-    //   bot.followerContractId,
-    // );
 
     return await this._update({
       id: bot.id,

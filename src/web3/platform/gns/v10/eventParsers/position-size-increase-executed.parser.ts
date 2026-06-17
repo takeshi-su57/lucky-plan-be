@@ -3,7 +3,7 @@ import { gnsMultiCollatDiamondAbi } from '../abi/GNSMultiCollatDiamond';
 import { actionToEvent, eventToAction } from 'src/utils';
 import { getGnsPositionKey } from '../../utils';
 import {
-  PerpTradeHistory,
+  PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getCollateral, getPairName } from '../configs';
@@ -37,7 +37,7 @@ export function parsePositionSizeIncreaseExecutedEvent(
 export function eventToPerpTradeHistory(
   chainId: number,
   event: PositionSizeIncreaseExecutedEvent,
-): PerpTradeHistory | null {
+): PurePerpTradeHistory | null {
   const collateral = getCollateral(chainId, event.args.collateralIndex);
 
   const pairName = getPairName(chainId, Number(event.args.pairIndex));

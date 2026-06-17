@@ -7,7 +7,7 @@ import {
 } from '@nestjs/microservices';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Platform } from 'generated/prisma/client';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import { ServiceStatus } from 'src/types';
 
@@ -16,7 +16,6 @@ import { getReadableError } from 'src/utils';
 
 import { LogsService } from 'src/global/logs.service';
 import { PnlSnapshotsService } from '../apiService/modules/trade-histories/pnlsnapshot.service';
-import { AutoPlansService } from '../apiService/modules/plans/autoplans.service';
 
 @Controller()
 export class SnapshotController implements OnApplicationBootstrap {
@@ -24,7 +23,6 @@ export class SnapshotController implements OnApplicationBootstrap {
 
   constructor(
     private pnlSnapshotService: PnlSnapshotsService,
-    private autoPlansService: AutoPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly logger: LogsService,
   ) {}
@@ -84,7 +82,6 @@ export class SnapshotController implements OnApplicationBootstrap {
   async dynamicSnapshotV2Build(payload: {
     platform: Platform;
     dateStr: string;
-    isForceBuild: boolean;
   }) {
     this.logger.nativeLog({
       severity: 'Info',
@@ -95,7 +92,6 @@ export class SnapshotController implements OnApplicationBootstrap {
     this.pnlSnapshotService.dynamicSnapshotBuild(
       payload.platform,
       payload.dateStr,
-      // payload.isForceBuild,
     );
 
     return true;
@@ -129,14 +125,10 @@ export class SnapshotController implements OnApplicationBootstrap {
           dayjs(new Date()).format('YYYY-MM-DD'),
         );
 
-        await this.pnlSnapshotService.removeNegativePnlSnapshot(
+        await this.pnlSnapshotService.removePnlSnapshot(
           platform,
-          dayjs(new Date()).subtract(3, 'day').format('YYYY-MM-DD'),
+          dayjs(new Date()).subtract(1, 'week').format('YYYY-MM-DD'),
         );
-      }
-
-      if (this.count % 3 === 0) {
-        await this.autoPlansService.createAutoPlans();
       }
 
       this.count++;

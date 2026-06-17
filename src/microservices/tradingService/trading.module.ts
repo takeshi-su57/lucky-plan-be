@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { GlobalModule } from '../../global/global.module';
-import { WalletAccountsModule } from '../apiService/modules/wallet-accounts/wallet-accounts.module';
 import { FollowerModule } from '../apiService/modules/follower/follower.module';
 import { StrategyModule } from '../apiService/modules/strategy/strategy.module';
 import { ContractsModule } from '../apiService/modules/contracts/contracts.module';
@@ -27,7 +26,6 @@ import { TradingController } from './trading.controller';
   imports: [
     ScheduleModule.forRoot(),
     GlobalModule,
-    WalletAccountsModule,
     FollowerModule,
     StrategyModule,
     ContractsModule,

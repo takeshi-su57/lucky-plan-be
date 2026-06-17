@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { validateMnemonic } from '@scure/bip39';
 import { Address, english, mnemonicToAccount } from 'viem/accounts';
 import { isAddress, maxInt256, erc20Abi } from 'viem';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { BotStatus, MissionStatus } from 'generated/prisma/client';
 
 import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';

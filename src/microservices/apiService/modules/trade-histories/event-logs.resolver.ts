@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Resolver, Query, Args, Int, Float, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import {
   PnlSnapshotKind,
   Platform,
@@ -14,20 +14,17 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
+  PerpTradeHistory,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
 import { PnlSnapshotsService } from './pnlsnapshot.service';
-import { ExportFilter } from './dto/event-logs.input';
-import { WholeCompressedHistoriesV2 } from './entities/trade-history.entity';
-import { BacktestService } from './backtest.service';
 
 @Resolver(() => PerpTradingEventLog)
 export class EventLogsResolver {
   constructor(
     private readonly eventLogsService: EventLogsService,
     private readonly pnlSnapshotsService: PnlSnapshotsService,
-    private readonly backtestService: BacktestService,
   ) {}
 
   @Mutation(() => Boolean)
@@ -50,11 +47,7 @@ export class EventLogsResolver {
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('dateStr', { type: () => String }) dateStr: string,
   ) {
-    this.pnlSnapshotsService.dynamicSnapshotBuild(
-      platform,
-      dateStr,
-      // payload.isForceBuild,
-    );
+    this.pnlSnapshotsService.dynamicSnapshotBuild(platform, dateStr);
 
     return true;
   }
@@ -91,13 +84,12 @@ export class EventLogsResolver {
     return this.pnlSnapshotsService.getAllPnlSnapshotInitializedFlag(platform);
   }
 
-  @Query(() => [[PerpTradingEventLog]])
-  getPerpEventLogs(
+  @Query(() => [[PerpTradeHistory]])
+  getPerpTradeHistories(
     @Args('addresses', { type: () => [String] }) addresses: string[],
     @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('limit', { type: () => Int, nullable: true }) limit: number | null,
   ) {
-    return this.eventLogsService.getPerpEventLogs(addresses, platform, limit);
+    return this.eventLogsService.getPerpTradeHistories(addresses, platform);
   }
 
   @Query(() => PnlSnapshotV2DetailsConnection)
@@ -107,8 +99,6 @@ export class EventLogsResolver {
     @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
-    @Args('minSlope', { type: () => Float }) minSlope: number,
-    @Args('minR2', { type: () => Float }) minR2: number,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
@@ -116,26 +106,6 @@ export class EventLogsResolver {
       kind,
       first,
       after,
-      minSlope,
-      minR2,
-    );
-  }
-
-  @Query(() => WholeCompressedHistoriesV2)
-  getWholeCompressedHistoriesV2(
-    @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('startDate', { type: () => String }) startDate: string,
-    @Args('filterParams', { type: () => [ExportFilter] })
-    filterParams: ExportFilter[],
-  ) {
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-
-    return this.backtestService.getWholeCompressedHistories(
-      platform,
-      startDate,
-      filterParams,
     );
   }
 }
