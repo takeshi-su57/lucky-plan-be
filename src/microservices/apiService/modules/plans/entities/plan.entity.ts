@@ -227,14 +227,14 @@ export class ExpertPnlSnapshotV2Node extends OmitType(ExpertPnlSnapshotV2, [
 
 @ObjectType()
 export class ExpertPnlSnapshotV2Edge {
-  @Field(() => Int) cursor: string;
+  @Field(() => String) cursor: string;
   @Field(() => ExpertPnlSnapshotV2Node) node: ExpertPnlSnapshotV2Node;
 }
 
 @ObjectType()
 export class ExpertPnlSnapshotV2PageInfo {
   @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: string | null;
+  @Field(() => String, { nullable: true }) endCursor: string | null;
 }
 
 @ObjectType()

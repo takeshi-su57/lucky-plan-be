@@ -254,7 +254,7 @@ type ExpertPnlSnapshotV2Connection {
 }
 
 type ExpertPnlSnapshotV2Edge {
-  cursor: Int!
+  cursor: String!
   node: ExpertPnlSnapshotV2Node!
 }
 
@@ -273,7 +273,7 @@ type ExpertPnlSnapshotV2Node {
 }
 
 type ExpertPnlSnapshotV2PageInfo {
-  endCursor: Int
+  endCursor: String
   hasNextPage: Boolean!
 }
 
