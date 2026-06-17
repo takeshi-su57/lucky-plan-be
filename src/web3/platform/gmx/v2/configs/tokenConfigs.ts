@@ -246,7 +246,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'ARB',
       decimals: 18,
       address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-      categories: ['layer2', 'defi'],
+      categories: ['layer2'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21.47.00.jpeg?1680097630',
       explorerUrl:
@@ -293,7 +293,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0',
       isStable: false,
       isShortable: true,
-      categories: ['layer2', 'defi'],
+      categories: ['defi'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/12504/thumb/uniswap-uni.png?1600306604',
       explorerUrl:
@@ -475,7 +475,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       assetSymbol: 'NEAR',
       address: '0x1FF7F3EFBb9481Cbd7db4F932cBCD4467144237C',
       decimals: 24,
-      categories: ['layer1'],
+      categories: ['layer1', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/10365/standard/near.jpg?1696510367',
       isSynthetic: true,
@@ -543,7 +543,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'ORDI',
       address: '0x1E15d08f3CA46853B692EE28AE9C7a0b88a9c994',
       decimals: 18,
-      categories: ['defi'],
+      categories: ['meme'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/30162/standard/ordi.png?1696529082',
       isSynthetic: true,
@@ -603,7 +603,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'EIGEN',
       address: '0x606C3e5075e5555e79Aa15F1E9FACB776F96C248',
       decimals: 18,
-      categories: ['layer2'],
+      categories: ['ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/37441/standard/eigen.jpg?1728023974',
       isPermitSupported: false,
@@ -626,7 +626,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'POL',
       decimals: 18,
       address: '0x9c74772b713a1B032aEB173E28683D937E51921c',
-      categories: ['layer1', 'layer2'],
+      categories: ['layer2'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/32440/standard/polygon.png?1698233684',
       isSynthetic: true,
@@ -636,6 +636,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'APE',
       address: '0x7f9FBf9bDd3F4105C478b996B648FE6e828a1e98',
       decimals: 18,
+      categories: ['meme'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/24383/standard/apecoin.jpg?1696523566',
     },
@@ -704,6 +705,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'WLD',
       address: '0x75B9AdD873641b253718810E6c65dB6d72311FD0',
       decimals: 18,
+      categories: ['layer2'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/31069/standard/worldcoin.jpeg?1696529903',
       isSynthetic: true,
@@ -725,6 +727,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'TAO',
       address: '0x938aef36CAaFbcB37815251B602168087eC14648',
       decimals: 9,
+      categories: ['layer1', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/28452/standard/ARUsPeNQ_400x400.jpeg?1696527447',
       isSynthetic: true,
@@ -756,6 +759,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'MEME',
       address: '0xaF770F03518686a365300ab35AD860e99967B2f0',
       decimals: 18,
+      categories: ['meme'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/32528/standard/memecoin_%282%29.png?1698912168',
       isSynthetic: true,
@@ -817,7 +821,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'ICP',
       address: '0xdaf0A71608938F762e37eC5F72F670Cc44703454',
       decimals: 8,
-      categories: ['layer1'],
+      categories: ['layer1', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/14495/standard/Internet_Computer_logo.png?1696514180',
       isSynthetic: true,
@@ -827,6 +831,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XLM',
       address: '0xc5dbD52Ae5a927Cf585B884011d0C7631C9974c6',
       decimals: 7,
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/100/standard/Stellar_symbol_black_RGB.png?1696501482',
       isSynthetic: true,
@@ -836,6 +841,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'RENDER',
       address: '0x82BB89fcc64c5d4016C5Ed1AB016bB0D1C20D6C3',
       decimals: 18,
+      categories: ['ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/11636/standard/rndr.png?1696511529',
       isSynthetic: true,
@@ -865,7 +871,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'INJ',
       address: '0xfdE73EddbE6c5712A12B72c470F8FE5c77A7fF17',
       decimals: 18,
-      categories: ['layer1'],
+      categories: ['layer1', 'defi'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/12882/standard/Secondary_Symbol.png?1696512670',
       isSynthetic: true,
@@ -905,7 +911,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'AI16Z',
       address: '0xBb69bd9dc152C2c0F083507641a46193d2B61EBb',
       decimals: 9,
-      categories: ['meme'],
+      categories: ['meme', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/51090/standard/AI16Z.jpg?1730027175',
       isSynthetic: true,
@@ -955,6 +961,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'VIRTUAL',
       address: '0xB6672496214C90134A9223894e709F26A5eED362',
       decimals: 18,
+      categories: ['ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/34057/standard/LOGOMARK.png?1708356054',
       isSynthetic: true,
@@ -974,6 +981,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'FET',
       address: '0x83D5944E7f5EF1d8432002d3cb062e1012f6F8e6',
       decimals: 18,
+      categories: ['ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/5681/standard/ASI.png?1719827289',
       isSynthetic: true,
@@ -993,7 +1001,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'AIXBT',
       address: '0xcA543Cb8bCC76e4E0A034F56EB40a1029bDFd70E',
       decimals: 18,
-      categories: ['meme'],
+      categories: ['meme', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/51784/standard/3.png?1731981138',
       isSynthetic: true,
@@ -1023,7 +1031,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'HYPE',
       address: '0xfDFA0A749dA3bCcee20aE0B4AD50E39B26F58f7C',
       decimals: 8,
-      categories: ['defi'],
+      categories: ['layer1', 'defi'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/50882/standard/hyperliquid.jpg?1729431300',
       isSynthetic: true,
@@ -1053,7 +1061,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'OM',
       address: '0x1f3407Ea067DfBDF6dEb6bBFdA4869215fB0ab77',
       decimals: 18,
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/12151/standard/OM_Token.png?1696511991',
       isSynthetic: true,
@@ -1096,7 +1104,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       isSynthetic: true,
       imageUrl:
         'https://assets.coingecko.com/coins/images/69/standard/monero_logo.png?1696501460',
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
     },
     '0xd1738d37401a0a71f7e382d2cfecd3ab69687017': {
       name: 'Pi Network',
@@ -1146,7 +1154,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       imageUrl:
         'https://assets.coingecko.com/coins/images/30980/standard/token-logo.png?1696529819',
       isSynthetic: true,
-      categories: ['layer2', 'defi'],
+      categories: ['layer2'],
     },
     '0x4277f8f2c384827b5273592ff7cebd9f2c1ac258': {
       name: 'GMX LP',
@@ -1182,7 +1190,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0x72Cd3a21aA7A898028d9501868Fbe6dED0020434',
       decimals: 6,
       isSynthetic: true,
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/4380/standard/download.png?1696504978',
     },
@@ -1202,7 +1210,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xEb2A83b973f4dbB9511D92dd40d2ba4C683f0971',
       decimals: 8,
       isSynthetic: true,
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/3688/standard/hbar.png?1696504364',
     },
@@ -1282,7 +1290,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xB79Eb5BA64A167676694bB41bc1640F95d309a2F',
       decimals: 18,
       isSynthetic: true,
-      categories: ['defi'],
+      categories: ['ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/54023/standard/VVV_Token_Transparent.png?1741856877',
     },
@@ -1321,7 +1329,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XPL',
       address: '0x2e73bDBee83D91623736D514b0BB41f2afd9C7Fd',
       decimals: 18,
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/66489/standard/Plasma-symbol-green-1.png?1755142558',
       isSynthetic: true,
@@ -1341,7 +1349,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: '0G',
       address: '0x95c317066CF214b2E6588B2685D949384504F51e',
       decimals: 18,
-      categories: ['layer1'],
+      categories: ['layer1', 'ai'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/69096/standard/0G_1024x1024_Circular_Outlined.png?1758637574',
       isSynthetic: true,
@@ -1371,7 +1379,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'MON',
       address: '0xB96e60CA3a7677b29f1e10dd109E952B275038Be',
       decimals: 18,
-      categories: ['layer1', 'defi'],
+      categories: ['layer1'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/38927/standard/mon.png?1766029057',
       isSynthetic: true,
@@ -1454,7 +1462,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0x7624cccCc59361D583F28BEC40D37e7771d2ef5D',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
     },
@@ -1508,7 +1516,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xc48d782c5C54157d37d2Fa4E6BA27E8cf57Da956',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/69746/standard/1000023657.jpg?1759482216',
       explorerUrl:
@@ -1520,7 +1528,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xE41902f9aD379A8CC34A34efa00F5c3EE5112bC8',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39343.png',
       explorerUrl:
         'https://arbiscan.io/token/0xE41902f9aD379A8CC34A34efa00F5c3EE5112bC8',
@@ -1531,7 +1539,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0xa8Ffb545d5cBF1F44E3eBA123D60372cD267D73c',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       searchAliases: ['CL'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39487.png',
       explorerUrl:
@@ -1543,7 +1551,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0x9C5C4b9BA1fEBA72186f50d8Ae7C58b1D7f0B12F',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       searchAliases: ['BZ'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39804.png',
       explorerUrl:
@@ -1555,10 +1563,21 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       address: '0x620aC65BE29066Bb9D1E92C65b35B9fD321Fb963',
       isSynthetic: true,
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39464.png',
       explorerUrl:
         'https://arbiscan.io/token/0x620aC65BE29066Bb9D1E92C65b35B9fD321Fb963',
+    },
+    '0x8cbd0d5d81e7957123e6d8ffae657a40bdc5691b': {
+      name: 'SpaceX',
+      symbol: 'SPCX',
+      address: '0x8CBd0d5d81e7957123E6D8fFaE657a40bDC5691b',
+      isSynthetic: true,
+      decimals: 18,
+      categories: ['tradfi', 'pre-ipo'],
+      searchAliases: ['Space', 'X'],
+      explorerUrl:
+        'https://arbiscan.io/token/0x8CBd0d5d81e7957123E6D8fFaE657a40bDC5691b',
     },
     '0x13983f27ce9365055a6a553233c49fe28e70103e': {
       name: 'MegaETH',
@@ -1718,7 +1737,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       decimals: 18,
       address: '0xF62dC1d2452d0893735D22945Af53C290b158eAF',
       isSynthetic: true,
-      categories: ['layer2', 'defi'],
+      categories: ['defi'],
     },
     '0x2265f317ea5f47a684e5b26c50948617c945d986': {
       name: 'Dogecoin',
@@ -1983,6 +2002,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XAUt0',
       address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32',
       decimals: 6,
+      categories: ['tradfi', 'commodities'],
       imageUrl:
         'https://assets.coingecko.com/coins/images/10481/standard/Tether_Gold.png?1696510471',
       explorerUrl:
@@ -2145,7 +2165,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XAU',
       address: '0x0f16dFBA0242F23F4a5faDE95Cd138139DD7592F',
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39344.png',
       isSynthetic: true,
     },
@@ -2154,7 +2174,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XAG',
       address: '0xAc0CeE37770FdC16732C1f591a6B90A4Ea580643',
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39343.png',
       isSynthetic: true,
     },
@@ -2163,7 +2183,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XPT',
       address: '0xF3a3486de22725d8d762671AC4479d8ab9C21173',
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39460.png',
       isSynthetic: true,
     },
@@ -2172,7 +2192,7 @@ export const gmxTokenConfigs: Record<string, Record<string, Token>> = {
       symbol: 'XPD',
       address: '0xC371020838605F2150b0C3C8E2f872c13C3F1d5b',
       decimals: 18,
-      categories: ['rwa'],
+      categories: ['tradfi', 'commodities'],
       imageUrl: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39481.png',
       isSynthetic: true,
     },

@@ -1,4 +1,13 @@
-export type TokenCategory = 'meme' | 'layer1' | 'layer2' | 'defi' | 'rwa';
+export type TokenCategory =
+  | 'meme'
+  | 'layer1'
+  | 'layer2'
+  | 'defi'
+  | 'rwa'
+  | 'ai'
+  | 'tradfi'
+  | 'commodities'
+  | 'pre-ipo';
 
 export type Token = {
   name: string;

@@ -104,9 +104,6 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "optionalDependencies": {
     "bufferutil": "^4.1.0"
   },
