@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import compression from 'compression';
 
 import { SERVICE_NAMES } from './utils/constants';
 
@@ -67,6 +68,12 @@ async function bootstrap() {
 
       app.useGlobalPipes(new ValidationPipe());
       app.enableCors();
+
+      app.use(
+        compression({
+          threshold: '1kb',
+        }),
+      );
 
       await app.startAllMicroservices();
 

@@ -83,13 +83,14 @@ export class PnlSnapshotsService {
     let hasNextPage = true;
 
     while (edges.length < first) {
-      const lastPnlRecord = currentAfter
+      const cursorAddress = currentAfter;
+      const lastPnlRecord = cursorAddress
         ? await this.prismaService.pnlSnapshotV2.findFirst({
             where: {
               dateStr,
               platform,
               kind: PnlSnapshotKind.MONTH,
-              address: currentAfter,
+              address: cursorAddress,
             },
           })
         : null;
@@ -143,53 +144,95 @@ export class PnlSnapshotsService {
         break;
       }
 
+      const pnlRecordAddresses = pnlRecords.map((record) =>
+        record.address.toLowerCase(),
+      );
+      const rawHistoryRecords =
+        await this.prismaService.perpTradingEventLog.findMany({
+          where: {
+            address: {
+              in: pnlRecordAddresses,
+            },
+            contractId:
+              testContractIds.length > 0
+                ? {
+                    notIn: testContractIds,
+                  }
+                : undefined,
+            platform,
+            date: {
+              gt: startDate,
+              lte: endDate,
+            },
+          },
+          orderBy: [
+            {
+              address: 'asc',
+            },
+            {
+              date: 'asc',
+            },
+            {
+              block: 'asc',
+            },
+          ],
+          select: {
+            id: true,
+            address: true,
+            contractId: true,
+            jsonLog: true,
+            date: true,
+          },
+        });
+
+      const historyRecordsByAddress = new Map<
+        string,
+        typeof rawHistoryRecords
+      >();
+
+      rawHistoryRecords.forEach((record) => {
+        const recordAddress = record.address.toLowerCase();
+        const records = historyRecordsByAddress.get(recordAddress);
+
+        if (records) {
+          records.push(record);
+          return;
+        }
+
+        historyRecordsByAddress.set(recordAddress, [record]);
+      });
+
       for (const pnlRecord of pnlRecords) {
         if (edges.length >= first) break;
 
-        const historyRecords = (
-          await this.prismaService.perpTradingEventLog.findMany({
-            where: {
-              address: pnlRecord.address.toLowerCase(),
-              platform,
-              date: {
-                gt: startDate,
-                lte: endDate,
-              },
-            },
-            orderBy: [
-              {
-                date: 'asc',
-              },
-              {
-                block: 'asc',
-              },
-            ],
-          })
-        ).filter((item) => !testContractIds.includes(item.contractId));
+        const historyRecords =
+          historyRecordsByAddress.get(pnlRecord.address.toLowerCase()) ?? [];
 
         if (historyRecords.length < 2) continue;
+
+        const perpTradeHistories = historyRecords
+          .map((record) => {
+            const contract = allContractsMap[record.contractId];
+
+            const history = getWeb3Info(
+              contract.platform,
+              contract.version,
+            ).eventToPerpTradeHistory(
+              contract.chainId,
+              JSON.parse(record.jsonLog) as any,
+            );
+
+            return history
+              ? { ...history, id: record.id, date: record.date }
+              : null;
+          })
+          .filter((item) => !!item);
 
         edges.push({
           cursor: pnlRecord.address,
           node: {
             ...pnlRecord,
-            perpTradeHistories: historyRecords
-              .map((record) => {
-                const contract = allContractsMap[record.contractId];
-
-                const history = getWeb3Info(
-                  contract.platform,
-                  contract.version,
-                ).eventToPerpTradeHistory(
-                  contract.chainId,
-                  JSON.parse(record.jsonLog) as any,
-                );
-
-                return history
-                  ? { ...history, id: record.id, date: record.date }
-                  : null;
-              })
-              .filter((item) => !!item),
+            perpTradeHistories,
           },
         });
       }
