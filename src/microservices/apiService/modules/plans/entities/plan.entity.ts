@@ -4,15 +4,10 @@ import {
   Int,
   registerEnumType,
   Float,
-  OmitType,
 } from '@nestjs/graphql';
 import { PlanStatus, Platform } from 'generated/prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
-import {
-  PerpTradeHistory,
-  PnlSnapshotV2,
-} from '../../trade-histories/entities/event-logs.entity';
 
 registerEnumType(PlanStatus, {
   name: 'PlanStatus',
@@ -140,12 +135,6 @@ export class PlanSummary {
 
   @Field(() => Int)
   botCount: number;
-
-  @Field(() => [ContractPnlSummary])
-  leaderPnl: ContractPnlSummary[];
-
-  @Field(() => [ContractPnlSummary])
-  followerPnl: ContractPnlSummary[];
 }
 
 @ObjectType()
@@ -194,53 +183,4 @@ export class BotGroupPaginatedResponse {
 
   @Field(() => Int)
   currentPage: number;
-}
-
-@ObjectType()
-export class ExpertPnlSnapshotV2 extends PnlSnapshotV2 {
-  @Field(() => Float)
-  score: number;
-
-  @Field(() => Float)
-  maxSize: number;
-
-  @Field(() => Float)
-  ratio: number;
-
-  @Field(() => [PerpTradeHistory])
-  histories: PerpTradeHistory[];
-
-  @Field(() => Float)
-  avgDuration: number;
-
-  @Field(() => Float)
-  avgPnlRatio: number;
-
-  @Field(() => Int)
-  openedPositions: number;
-}
-
-@ObjectType()
-export class ExpertPnlSnapshotV2Node extends OmitType(ExpertPnlSnapshotV2, [
-  'histories',
-]) {}
-
-@ObjectType()
-export class ExpertPnlSnapshotV2Edge {
-  @Field(() => Int) cursor: string;
-  @Field(() => ExpertPnlSnapshotV2Node) node: ExpertPnlSnapshotV2Node;
-}
-
-@ObjectType()
-export class ExpertPnlSnapshotV2PageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: string | null;
-}
-
-@ObjectType()
-export class ExpertPnlSnapshotV2Connection {
-  @Field(() => [ExpertPnlSnapshotV2Edge])
-  edges: ExpertPnlSnapshotV2Edge[];
-  @Field(() => ExpertPnlSnapshotV2PageInfo)
-  pageInfo: ExpertPnlSnapshotV2PageInfo;
 }

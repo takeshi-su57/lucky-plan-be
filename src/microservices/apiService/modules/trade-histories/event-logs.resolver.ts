@@ -1,10 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
-import {
-  PnlSnapshotKind,
-  Platform,
-  UserPermission,
-} from 'generated/prisma/client';
+import { Platform, UserPermission } from 'generated/prisma/client';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
@@ -96,14 +92,14 @@ export class EventLogsResolver {
   getPnlSnapshotsV2(
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('kind', { type: () => PnlSnapshotKind }) kind: PnlSnapshotKind,
+    @Args('isDesc', { type: () => Boolean }) isDesc: boolean,
     @Args('first', { type: () => Int }) first: number,
     @Args('after', { type: () => String, nullable: true }) after: string | null,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
       platform,
-      kind,
+      isDesc,
       first,
       after,
     );

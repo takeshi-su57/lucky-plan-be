@@ -55,7 +55,7 @@ export class PnlSnapshotsService {
   async getPnlSnapshots(
     dateStr: string,
     platform: Platform,
-    kind: PnlSnapshotKind,
+    isDesc: boolean,
     first: number,
     after: string | null,
   ): Promise<PnlSnapshotV2DetailsConnection> {
@@ -72,10 +72,7 @@ export class PnlSnapshotsService {
       }
     });
 
-    const timestampGap =
-      timestampGapByPnlSnapshotKind[
-        kind as keyof typeof timestampGapByPnlSnapshotKind
-      ];
+    const timestampGap = timestampGapByPnlSnapshotKind[PnlSnapshotKind.MONTH];
     const startDate = new Date(
       getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
@@ -88,7 +85,12 @@ export class PnlSnapshotsService {
     while (edges.length < first) {
       const lastPnlRecord = currentAfter
         ? await this.prismaService.pnlSnapshotV2.findFirst({
-            where: { dateStr, platform, kind, address: currentAfter },
+            where: {
+              dateStr,
+              platform,
+              kind: PnlSnapshotKind.MONTH,
+              address: currentAfter,
+            },
           })
         : null;
 
@@ -104,14 +106,18 @@ export class PnlSnapshotsService {
           take: first,
           where: {
             dateStr,
-            kind,
+            kind: PnlSnapshotKind.MONTH,
             platform,
             OR: currentCursor
               ? [
                   {
-                    accUSDPnl: {
-                      lt: currentCursor.accUSDPnl,
-                    },
+                    accUSDPnl: isDesc
+                      ? {
+                          lt: currentCursor.accUSDPnl,
+                        }
+                      : {
+                          gt: currentCursor.accUSDPnl,
+                        },
                   },
                   {
                     accUSDPnl: currentCursor.accUSDPnl,
@@ -124,7 +130,7 @@ export class PnlSnapshotsService {
           },
           orderBy: [
             {
-              accUSDPnl: 'desc',
+              accUSDPnl: isDesc ? 'desc' : 'asc',
             },
             {
               address: 'asc',
@@ -242,12 +248,7 @@ export class PnlSnapshotsService {
         summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr} lowerBound: ${lowerBound} upperBound: ${upperBound} gap: ${upperBound - lowerBound}`,
       });
 
-      await this.prismaService.pnlSnapshotV2.deleteMany({
-        where: {
-          platform,
-          dateStr,
-        },
-      });
+      await this.removePnlSnapshot(platform, dateStr);
 
       await this.logger.nativeLog({
         severity: 'Debug',

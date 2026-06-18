@@ -7,14 +7,8 @@ import {
   Int,
   Subscription,
 } from '@nestjs/graphql';
-import {
-  PlanStatus,
-  User,
-  UserPermission,
-  Platform,
-} from 'generated/prisma/client';
+import { PlanStatus, User, UserPermission } from 'generated/prisma/client';
 import { PubSub } from 'graphql-subscriptions';
-import dayjs from 'dayjs';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -24,7 +18,6 @@ import {
   Plan,
   PlanConnection,
   PlanSummaryConnection,
-  ExpertPnlSnapshotV2Connection,
   BotGroupPaginatedResponse,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
@@ -32,13 +25,11 @@ import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth
 import { CurrentUser } from 'src/microservices/apiService/modules/auth/user.decorator';
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
 import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.guard';
-import { AutoPlansService } from './autoplans.service';
 
 @Resolver()
 export class PlansResolver {
   constructor(
     private readonly plansService: PlansService,
-    private readonly autoplanService: AutoPlansService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
@@ -180,74 +171,5 @@ export class PlansResolver {
       pageSize,
       hideDead,
     );
-  }
-
-  @Query(() => ExpertPnlSnapshotV2Connection)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getExpertPnlSnapshotsV2(
-    @CurrentUser() _user: User,
-    @Args('platform', { type: () => Platform }) platform: Platform,
-    @Args('after', { type: () => String, nullable: true }) after: string | null,
-  ) {
-    return this.autoplanService.filterExperts(
-      platform,
-      dayjs().format('YYYY-MM-DD'),
-      after,
-    );
-  }
-
-  @Query(() => [String], { nullable: true })
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getBlacklist(@CurrentUser() _user: User) {
-    return this.autoplanService.getBlacklist();
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  addToBlacklist(
-    @Args('address', { type: () => String }) address: string,
-    @CurrentUser() _user: User,
-  ) {
-    return this.autoplanService.addToBlacklist(address);
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  removeFromBlacklist(
-    @Args('address', { type: () => String }) address: string,
-    @CurrentUser() _user: User,
-  ) {
-    return this.autoplanService.removeFromBlacklist(address);
-  }
-
-  @Query(() => [String], { nullable: true })
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getWhitelist(@CurrentUser() _user: User) {
-    return this.autoplanService.getWhitelist();
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  addToWhitelist(
-    @Args('params', { type: () => String }) params: string,
-    @CurrentUser() _user: User,
-  ) {
-    return this.autoplanService.addToWhitelist(params);
-  }
-
-  @Mutation(() => Boolean)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  removeFromWhitelist(
-    @Args('address', { type: () => String }) address: string,
-    @CurrentUser() _user: User,
-  ) {
-    return this.autoplanService.removeFromWhitelist(address);
   }
 }

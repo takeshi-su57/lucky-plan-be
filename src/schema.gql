@@ -180,14 +180,6 @@ type ContractExecutionResult {
   success: Boolean!
 }
 
-type ContractPnlSummary {
-  chainId: Int!
-  contractId: Int!
-  openPositions: [OpenPosition!]!
-  realizedCount: Int!
-  realizedPnl: Float!
-}
-
 enum ContractStatus {
   Dead
   Live
@@ -246,35 +238,6 @@ input DecreasePositionSizeInput {
   index: Int!
   leverageDelta: Int!
   pairIndex: Int!
-}
-
-type ExpertPnlSnapshotV2Connection {
-  edges: [ExpertPnlSnapshotV2Edge!]!
-  pageInfo: ExpertPnlSnapshotV2PageInfo!
-}
-
-type ExpertPnlSnapshotV2Edge {
-  cursor: Int!
-  node: ExpertPnlSnapshotV2Node!
-}
-
-type ExpertPnlSnapshotV2Node {
-  accUSDPnl: Float!
-  address: String!
-  avgDuration: Float!
-  avgPnlRatio: Float!
-  dateStr: String!
-  kind: PnlSnapshotKind!
-  maxSize: Float!
-  openedPositions: Int!
-  platform: Platform!
-  ratio: Float!
-  score: Float!
-}
-
-type ExpertPnlSnapshotV2PageInfo {
-  endCursor: Int
-  hasNextPage: Boolean!
 }
 
 type Follower {
@@ -477,8 +440,6 @@ enum MissionStatus {
 }
 
 type Mutation {
-  addToBlacklist(address: String!): Boolean!
-  addToWhitelist(params: String!): Boolean!
   allowAuto(address: String!, allowAuto: Boolean!, budget: Float!, followerContractId: Int!, ratio: Float!): User!
   batchCreateBots(input: [CreateBotAndStrategyInput!]!): [BotBackwardDetails!]!
   buildPnlSnapshotsV2(dateStr: String!, isForceBuild: Boolean!, platform: Platform!): Boolean!
@@ -515,8 +476,6 @@ type Mutation {
   openTradeMarket(input: OpenTradeInput!): ContractExecutionResult!
   pauseSystem: Boolean!
   performTask(id: Int!): Boolean!
-  removeFromBlacklist(address: String!): Boolean!
-  removeFromWhitelist(address: String!): Boolean!
   resumeSystem(password: String): Boolean!
   startAdaption(contractId: Int!, shouldRestart: Boolean!): Boolean!
   startPlan(id: Int!): Boolean!
@@ -636,9 +595,7 @@ type PlanSummary {
   botCount: Int!
   description: String!
   endedAt: Date
-  followerPnl: [ContractPnlSummary!]!
   id: Int!
-  leaderPnl: [ContractPnlSummary!]!
   scheduledEnd: Date!
   scheduledStart: Date!
   startedAt: Date
@@ -729,9 +686,7 @@ type Query {
   getAllFollowers: [Follower!]!
   getAllStrategy: [Strategy!]!
   getAllUsers: [User!]!
-  getBlacklist: [String!]
   getBotsByStatus(after: Int, first: Int!, status: BotStatus!): BotConnection!
-  getExpertPnlSnapshotsV2(after: String, platform: Platform!): ExpertPnlSnapshotV2Connection!
   getGnsPrices(fromDate: Date!, pairName: String!, toDate: Date!): [GnsPricingRecord!]!
   getLogsSeverityCounts: [SeverityCount!]!
   getMaxOpenMissions: Int!
@@ -742,9 +697,8 @@ type Query {
   getPlanSummariesByStatus(after: Int, first: Int!, status: PlanStatus!): PlanSummaryConnection!
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
-  getPnlSnapshotsV2(after: String, dateStr: String!, first: Int!, kind: PnlSnapshotKind!, platform: Platform!): PnlSnapshotV2DetailsConnection!
+  getPnlSnapshotsV2(after: String, dateStr: String!, first: Int!, isDesc: Boolean!, platform: Platform!): PnlSnapshotV2DetailsConnection!
   getServerTime: ServerTime!
-  getWhitelist: [String!]
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   systemStatus: Boolean!
