@@ -1248,14 +1248,11 @@ export class TaskExecutorService {
     return true;
   }
 
-  private async performAvailableTasksByUser(
-    userId: string,
-    shouldHandleHook: boolean,
-  ) {
+  private async performAvailableTasksByUser(userId: string) {
     try {
       await this.logger.log({
         severity: 'Info',
-        summary: `TaskExecutorService>performAvailableTasksByUser?shouldHandleHook: ${shouldHandleHook}`,
+        summary: `TaskExecutorService>performAvailableTasksByUser`,
       });
 
       const allTasks = await this.prismaService.task.findMany({
@@ -1267,7 +1264,7 @@ export class TaskExecutorService {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
             },
-            mode: shouldHandleHook ? MissionMode.Hook : MissionMode.Default,
+            mode: MissionMode.Default,
             bot: {
               plan: {
                 userId,
@@ -1578,7 +1575,7 @@ export class TaskExecutorService {
     }
   }
 
-  async performAvailableTasks(shouldHandleHook: boolean) {
+  async performAvailableTasks() {
     this.status = ServiceStatus.PROCESS;
 
     try {
@@ -1591,15 +1588,12 @@ export class TaskExecutorService {
       });
 
       for (const user of allUsers) {
-        await this.performAvailableTasksByUser(
-          user.address.toLowerCase(),
-          shouldHandleHook,
-        );
+        await this.performAvailableTasksByUser(user.address.toLowerCase());
       }
     } catch (err) {
       await this.logger.log({
         severity: 'Error',
-        summary: `TaskExecutorService>performAvailableTasks?shouldHandleHook: ${shouldHandleHook}`,
+        summary: `TaskExecutorService>performAvailableTasks`,
         details: getReadableError(err),
       });
     }

@@ -220,7 +220,7 @@ input CreateStrategyInput {
   maxOpenMissions: Int! = 0
   minCollateral: Int!
   minLeverage: Int!
-  mode: String! = "default"
+  mode: StrategyMode! = Default
   ratio: Float!
   selectedPairs: String! = "[]"
   slPercentage: Float! = 0
@@ -409,7 +409,6 @@ type MissionForwardDetails {
 
 enum MissionMode {
   Default
-  Hook
   Signal
 }
 
@@ -727,11 +726,16 @@ type Strategy {
   maxOpenMissions: Int!
   minCollateral: Int!
   minLeverage: Int!
-  mode: String!
+  mode: StrategyMode!
   ratio: Float!
   selectedPairs: String!
   slPercentage: Float!
   tpPercentage: Float!
+}
+
+enum StrategyMode {
+  Default
+  Signal
 }
 
 type Subscription {
@@ -810,7 +814,7 @@ input UpdateStrategyInput {
   maxOpenMissions: Int!
   minCollateral: Int!
   minLeverage: Int!
-  mode: String!
+  mode: StrategyMode!
   ratio: Float!
   selectedPairs: String!
   slPercentage: Float!

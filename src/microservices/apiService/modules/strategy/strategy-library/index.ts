@@ -141,87 +141,6 @@ export function parsePairKey(key: string) {
   return JSON.parse(key) as { pair: string; isLong: boolean };
 }
 
-function normalizeStrategyMode(mode: string | null | undefined) {
-  if (!mode) {
-    return undefined;
-  }
-
-  const normalizedMode = mode.toLowerCase();
-
-  if (normalizedMode === 'signal' || normalizedMode === 'hook') {
-    return normalizedMode;
-  }
-
-  return undefined;
-}
-
-export function getAdditionalParams(
-  strategy: Pick<
-    Strategy,
-    | 'maxOpenMissions'
-    | 'tpPercentage'
-    | 'slPercentage'
-    | 'selectedPairs'
-    | 'mode'
-  >,
-): {
-  maxOpenMissions: number;
-  tpPercentage: number;
-  slPercentage: number;
-  selectedPairs: { pair: string; isLong: boolean }[];
-  mode?: 'signal' | 'hook';
-} {
-  try {
-    const selectedPairs = JSON.parse(strategy.selectedPairs);
-
-    if (!Array.isArray(selectedPairs)) {
-      return {
-        maxOpenMissions: strategy.maxOpenMissions || 0,
-        tpPercentage: strategy.tpPercentage || 0,
-        slPercentage: strategy.slPercentage || 0,
-        selectedPairs: [],
-        mode: normalizeStrategyMode(strategy.mode),
-      };
-    }
-
-    return {
-      maxOpenMissions: strategy.maxOpenMissions || 0,
-      tpPercentage: strategy.tpPercentage || 0,
-      slPercentage: strategy.slPercentage || 0,
-      selectedPairs: selectedPairs
-        .map((item: { pair: string; isLong: boolean } | string) =>
-          typeof item === 'string'
-            ? [
-                {
-                  pair: item.toLowerCase(),
-                  isLong: true,
-                },
-                {
-                  pair: item.toLowerCase(),
-                  isLong: false,
-                },
-              ]
-            : [
-                {
-                  pair: item.pair.toLowerCase(),
-                  isLong: item.isLong,
-                },
-              ],
-        )
-        .flat(),
-      mode: normalizeStrategyMode(strategy.mode),
-    };
-  } catch {
-    return {
-      maxOpenMissions: strategy.maxOpenMissions || 0,
-      tpPercentage: strategy.tpPercentage || 0,
-      slPercentage: strategy.slPercentage || 0,
-      selectedPairs: [],
-      mode: normalizeStrategyMode(strategy.mode),
-    };
-  }
-}
-
 export function getOpenMissionParams(
   strategy: Strategy,
   args: {
@@ -258,23 +177,21 @@ export function getOpenMissionParams(
         Math.min(strategy.maxLeverage, args.leverage),
       );
 
-  const params = getAdditionalParams(strategy);
-
   const tp =
-    params.tpPercentage > 0
+    strategy.tpPercentage > 0
       ? BigInt(
           Math.floor(
             Number(args.openPrice) *
-              (1 + ((args.isLong ? 1 : -1) * params.tpPercentage) / 100),
+              (1 + ((args.isLong ? 1 : -1) * strategy.tpPercentage) / 100),
           ),
         )
       : 0n;
   const sl =
-    params.slPercentage > 0
+    strategy.slPercentage > 0
       ? BigInt(
           Math.floor(
             Number(args.openPrice) *
-              (1 - ((args.isLong ? 1 : -1) * params.slPercentage) / 100),
+              (1 - ((args.isLong ? 1 : -1) * strategy.slPercentage) / 100),
           ),
         )
       : 0n;

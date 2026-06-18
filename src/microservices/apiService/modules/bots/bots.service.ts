@@ -5,6 +5,7 @@ import {
   Contract,
   MissionStatus,
   MissionMode,
+  StrategyMode,
 } from 'generated/prisma/client';
 import { Address, isAddressEqual, maxInt256 } from 'viem';
 
@@ -48,7 +49,6 @@ import { StrategyService } from 'src/microservices/apiService/modules/strategy/s
 import { LogsService } from 'src/global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { getCollateral } from 'src/web3/platform/gns/v10/configs';
-import { getAdditionalParams } from '../strategy/strategy-library';
 
 @Injectable()
 export class BotsService {
@@ -234,8 +234,6 @@ export class BotsService {
         const batchBots = bots.slice(i, i + BATCH_SIZE);
 
         const promises = batchBots.map(async (bot) => {
-          const additionalParams = getAdditionalParams(bot.strategy);
-
           const realMissionsCount = bot.missions.filter(
             (item) => item.mode === MissionMode.Default,
           ).length;
@@ -253,11 +251,10 @@ export class BotsService {
             updatedBots.push(updatedBot);
           } else if (
             bot.status === BotStatus.Live &&
-            !additionalParams.mode &&
+            bot.strategy.mode === StrategyMode.Default &&
             realMissionsCount >= bot.strategy.lifeTime
           ) {
             // handle for default bot mode.
-
             const updatedBot = await this._turnoffDefaultMode(bot);
 
             updatedBots.push(updatedBot);
@@ -629,7 +626,7 @@ export class BotsService {
         id: bot.strategyId,
       },
       data: {
-        mode: 'signal',
+        mode: StrategyMode.Signal,
       },
     });
 
@@ -786,9 +783,8 @@ export class BotsService {
   async handleActionItems(
     contract: Contract,
     actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
-    shouldHandleHook: boolean,
   ) {
-    const allBots = await this.prismaService.bot.findMany({
+    const bots = await this.prismaService.bot.findMany({
       where: {
         status: {
           notIn: [BotStatus.Created, BotStatus.Dead],
@@ -806,12 +802,6 @@ export class BotsService {
         plan: true,
         missions: true,
       },
-    });
-
-    const bots = allBots.filter((bot) => {
-      const additionalParams = getAdditionalParams(bot.strategy);
-
-      return !shouldHandleHook || additionalParams.mode === 'hook';
     });
 
     const filteredActionItems = this.filterBotActions(
@@ -842,10 +832,6 @@ export class BotsService {
       actions,
     );
 
-    await this.missionsService.handleActions(
-      followerActions,
-      leaderActions,
-      shouldHandleHook,
-    );
+    await this.missionsService.handleActions(followerActions, leaderActions);
   }
 }

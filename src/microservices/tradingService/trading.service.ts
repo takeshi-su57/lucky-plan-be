@@ -148,11 +148,7 @@ export class TradingService {
           }));
 
         if (actionItems.length > 0) {
-          await this.botsService.handleActionItems(
-            contract,
-            actionItems,
-            false,
-          );
+          await this.botsService.handleActionItems(contract, actionItems);
         }
 
         await this.contractsService.updateLastBlockNumber(

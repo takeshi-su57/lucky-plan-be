@@ -1,5 +1,6 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { IsNotEmpty, IsJSON, IsInt, IsNumber, IsString } from 'class-validator';
+import { StrategyMode } from 'generated/prisma/enums';
 
 @InputType()
 export class CreateStrategyInput {
@@ -49,8 +50,8 @@ export class CreateStrategyInput {
   selectedPairs: string;
 
   @IsString()
-  @Field(() => String, { defaultValue: 'default' })
-  mode: string;
+  @Field(() => StrategyMode, { defaultValue: StrategyMode.Default })
+  mode: StrategyMode;
 }
 
 @InputType()
@@ -107,6 +108,6 @@ export class UpdateStrategyInput {
 
   @IsNotEmpty()
   @IsString()
-  @Field(() => String)
-  mode: string;
+  @Field(() => StrategyMode)
+  mode: StrategyMode;
 }

@@ -5,6 +5,7 @@ import {
   MissionMode,
   MissionStatus,
   Platform,
+  StrategyMode,
 } from 'generated/prisma/client';
 
 import {
@@ -41,7 +42,6 @@ import { TasksService } from 'src/microservices/apiService/modules/tasks/tasks.s
 import { LogsService } from 'src/global/logs.service';
 
 import {
-  getAdditionalParams,
   getOpenMissionParams,
   getPairKey,
 } from 'src/microservices/apiService/modules/strategy/strategy-library';
@@ -61,6 +61,42 @@ import { getPairName as getAvntPairName } from 'src/web3/platform/avnt/v1/config
 import { GnsService } from 'src/web3/platform/gns/gns.service';
 
 const MAX_OPEN_MISSIONS_KEY = 'max_open_missions';
+
+export function parseSelectedPairs(
+  str: string,
+): { pair: string; isLong: boolean }[] {
+  try {
+    const selectedPairs = JSON.parse(str);
+
+    if (!Array.isArray(selectedPairs)) {
+      return [];
+    }
+
+    return selectedPairs
+      .map((item: { pair: string; isLong: boolean } | string) =>
+        typeof item === 'string'
+          ? [
+              {
+                pair: item.toLowerCase(),
+                isLong: true,
+              },
+              {
+                pair: item.toLowerCase(),
+                isLong: false,
+              },
+            ]
+          : [
+              {
+                pair: item.pair.toLowerCase(),
+                isLong: item.isLong,
+              },
+            ],
+      )
+      .flat();
+  } catch {
+    return [];
+  }
+}
 
 @Injectable()
 export class MissionsService {
@@ -687,7 +723,6 @@ export class MissionsService {
   private async handleMissionLeaderActions(
     actions: ActionContext<BotContext>[],
     missionsByBotMap: Map<number, Mission[]>,
-    shouldHandleHook: boolean,
   ) {
     const totalMissionCount = Array.from(missionsByBotMap.values()).flat()
       .length;
@@ -703,14 +738,10 @@ export class MissionsService {
       .filter((item) => item.context.bot.status === BotStatus.Live)
       // block leader action register if there is no pair ready
       .filter((item) => {
-        const additionalParams = getAdditionalParams(item.context.bot.strategy);
-
-        // hook missions can be created on only hook handler
-        if (!(shouldHandleHook === (additionalParams.mode === 'hook'))) {
-          return false;
-        }
-
-        const selectedPairKeys = additionalParams.selectedPairs.map((item) =>
+        const selectedPairs = parseSelectedPairs(
+          item.context.bot.strategy.selectedPairs,
+        );
+        const selectedPairKeys = selectedPairs.map((item) =>
           getPairKey(item.pair, item.isLong),
         );
 
@@ -718,8 +749,8 @@ export class MissionsService {
           missionsByBotMap.get(item.context.bot.id)?.length || 0;
 
         if (
-          additionalParams.maxOpenMissions > 0 &&
-          missionCount >= additionalParams.maxOpenMissions
+          item.context.bot.strategy.maxOpenMissions > 0 &&
+          missionCount >= item.context.bot.strategy.maxOpenMissions
         ) {
           return false;
         }
@@ -942,16 +973,10 @@ export class MissionsService {
     if (availableOpenEvents.length > 0) {
       await this.createMany(
         availableOpenEvents.map((item) => {
-          const additionalParams = getAdditionalParams(
-            item.context.bot.strategy,
-          );
-
           const mode =
-            additionalParams.mode === 'hook'
-              ? MissionMode.Hook
-              : additionalParams.mode === 'signal'
-                ? MissionMode.Signal
-                : MissionMode.Default;
+            item.context.bot.strategy.mode === StrategyMode.Signal
+              ? MissionMode.Signal
+              : MissionMode.Default;
 
           return {
             botId: item.context.bot.id,
@@ -1125,7 +1150,6 @@ export class MissionsService {
   private async handleLeaderActions(
     missionsByBotMap: Map<number, Mission[]>,
     leaderActions: ActionContext<BotContext>[],
-    shouldHandleHook: boolean,
   ) {
     await this.handleMissionLeaderActions(
       leaderActions.filter((item) =>
@@ -1135,7 +1159,6 @@ export class MissionsService {
         ).isOpenMissionAction(item.action),
       ),
       missionsByBotMap,
-      shouldHandleHook,
     );
 
     const missionActions = this.getLeaderMissionActions(
@@ -1145,28 +1168,12 @@ export class MissionsService {
 
     if (missionActions.length > 0) {
       await this.tasksService.handleLeaderActions(
-        missionActions
-          .filter(
-            (item) =>
-              item.context.mission.status !== MissionStatus.Closing &&
-              item.context.mission.status !== MissionStatus.Closed &&
-              item.context.mission.status !== MissionStatus.Ignored,
-          )
-          .filter((item) => {
-            const isOpenAction = getWeb3Info(
-              item.context.bot.leaderContract.platform,
-              item.context.bot.leaderContract.version,
-            ).isOpenMissionAction(item.action);
-
-            if (
-              isOpenAction &&
-              item.context.mission.mode === MissionMode.Hook
-            ) {
-              return shouldHandleHook;
-            } else {
-              return true;
-            }
-          }),
+        missionActions.filter(
+          (item) =>
+            item.context.mission.status !== MissionStatus.Closing &&
+            item.context.mission.status !== MissionStatus.Closed &&
+            item.context.mission.status !== MissionStatus.Ignored,
+        ),
         async (missionIds) => {
           // handle close mission follower actions
           await this.closeMany(
@@ -1183,7 +1190,6 @@ export class MissionsService {
   async handleActions(
     followerActions: ActionContext<BotContext>[],
     leaderActions: ActionContext<BotContext>[],
-    shouldHandleHook: boolean,
   ) {
     const missionsByBotMap = await this.loadMissions();
 
@@ -1192,11 +1198,7 @@ export class MissionsService {
     }
 
     if (leaderActions.length > 0) {
-      await this.handleLeaderActions(
-        missionsByBotMap,
-        leaderActions,
-        shouldHandleHook,
-      );
+      await this.handleLeaderActions(missionsByBotMap, leaderActions);
     }
   }
 }

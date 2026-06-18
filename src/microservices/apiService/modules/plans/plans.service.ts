@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BotStatus, Platform, PlanStatus } from 'generated/prisma/client';
+import {
+  BotStatus,
+  Platform,
+  PlanStatus,
+  StrategyMode,
+} from 'generated/prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
@@ -9,7 +14,6 @@ import {
   Plan,
   BotGroupPaginatedResponse,
 } from './entities/plan.entity';
-import { getAdditionalParams } from '../strategy/strategy-library';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
@@ -316,8 +320,7 @@ export class PlansService {
         });
       }
 
-      const additionalParams = getAdditionalParams(bot.strategy);
-      if (!additionalParams.mode) {
+      if (bot.strategy.mode === StrategyMode.Default) {
         groupMap.get(key)!.hasDefault = true;
       }
     }

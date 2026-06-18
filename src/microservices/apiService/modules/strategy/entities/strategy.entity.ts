@@ -1,4 +1,15 @@
-import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  Float,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { StrategyMode } from 'generated/prisma/enums';
+
+registerEnumType(StrategyMode, {
+  name: 'StrategyMode',
+});
 
 @ObjectType()
 export class Strategy {
@@ -35,6 +46,6 @@ export class Strategy {
   @Field(() => String)
   selectedPairs: string;
 
-  @Field(() => String)
-  mode: string;
+  @Field(() => StrategyMode)
+  mode: StrategyMode;
 }

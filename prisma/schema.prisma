@@ -15,20 +15,26 @@ model Metadata {
   updatedAt DateTime @updatedAt
 }
 
+enum StrategyMode {
+  Default
+  Signal
+}
+
 model Strategy {
-  id              Int    @id @default(autoincrement())
-  tpPercentage    Float  @default(0)
-  slPercentage    Float  @default(0)
-  maxOpenMissions Int    @default(0)
-  selectedPairs   String @default("[]")
-  mode            String @default("default")
-  maxLeverage     Int    @default(200000)
-  minLeverage     Int    @default(1100)
-  ratio           Float  @default(1)
+  id              Int          @id @default(autoincrement())
+  tpPercentage    Float        @default(0)
+  slPercentage    Float        @default(0)
+  maxOpenMissions Int          @default(0)
+  selectedPairs   String       @default("[]")
+  mode            StrategyMode @default(Default)
+  maxLeverage     Int          @default(200000)
+  minLeverage     Int          @default(1100)
+  ratio           Float        @default(1)
   maxCollateral   Int
   minCollateral   Int
   lifeTime        Int
-  bots            Bot[]
+
+  bots Bot[]
 }
 
 model Contract {
@@ -118,6 +124,11 @@ model Follower {
   @@unique([userId, accountIndex])
 }
 
+enum PlanMode {
+  Live
+  Simulation
+}
+
 model Plan {
   id             Int        @id @default(autoincrement())
   title          String
@@ -128,6 +139,7 @@ model Plan {
   scheduledEnd   DateTime
   status         PlanStatus
   userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
+  mode           PlanMode   @default(Live)
   bots           Bot[]
 }
 
@@ -310,7 +322,6 @@ enum MissionStatus {
 enum MissionMode {
   Default
   Signal
-  Hook
 }
 
 enum TaskStatus {

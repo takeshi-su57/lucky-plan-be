@@ -32,7 +32,6 @@ export const PATTERNS = {
   killProcessEvent: 'KILL_PROCESS_EVENT',
   ProcessStatus: 'PROCESS_STATUS',
   AskProcessStatus: 'ASK_PROCESS_STATUS',
-  BotHook: {},
   Security: {
     IsValidPassword: 'IS_VALID_PASSWORD',
     IsSafeApp: 'IS_SAFE_APP',
