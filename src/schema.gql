@@ -163,7 +163,6 @@ type Contract {
   description: String!
   fromBlock: Int!
   id: Int!
-  isTestnet: Boolean!
   lastBlockNumber: Int!
   lastLeaderboardBlockNumber: Int!
   platform: Platform!
@@ -620,19 +619,10 @@ enum Platform {
   GNS
 }
 
-enum PnlSnapshotKind {
-  ALL_TIME
-  DAY
-  MONTH
-  THREE_MONTH
-  WEEK
-}
-
 type PnlSnapshotV2 {
   accUSDPnl: Float!
   address: String!
   dateStr: String!
-  kind: PnlSnapshotKind!
   platform: Platform!
 }
 
@@ -640,7 +630,6 @@ type PnlSnapshotV2Details {
   accUSDPnl: Float!
   address: String!
   dateStr: String!
-  kind: PnlSnapshotKind!
   perpTradeHistories: [PerpTradeHistory!]!
   platform: Platform!
 }

@@ -40,7 +40,6 @@ model Contract {
   status                     ContractStatus @default(Live)
   lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
-  isTestnet                  Boolean        @default(false)
   fromBlock                  Int            @default(0)
   platform                   Platform       @default(GNS)
   toBlock                    Int?
@@ -72,11 +71,10 @@ model PnlSnapshotV2 {
   platform  Platform
   address   String
   dateStr   String
-  kind      PnlSnapshotKind
   accUSDPnl Float
 
-  @@id([address, platform, dateStr, kind])
-  @@index([dateStr, platform, kind, address(sort), accUSDPnl(sort: Desc)])
+  @@id([address, platform, dateStr])
+  @@index([dateStr, platform, accUSDPnl(sort: Desc), address(sort: Asc)])
 }
 
 model PnlSnapshotV2InitializedFlag {
@@ -253,14 +251,6 @@ enum Version {
 enum ContractStatus {
   Live
   Dead
-}
-
-enum PnlSnapshotKind {
-  DAY
-  WEEK
-  MONTH
-  THREE_MONTH
-  ALL_TIME
 }
 
 enum TradeActionType {

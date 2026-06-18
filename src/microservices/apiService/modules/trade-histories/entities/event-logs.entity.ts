@@ -5,19 +5,10 @@ import {
   registerEnumType,
   Float,
 } from '@nestjs/graphql';
-import {
-  Platform,
-  PnlSnapshotKind,
-  TradeActionType,
-  Version,
-} from 'generated/prisma/client';
+import { Platform, TradeActionType, Version } from 'generated/prisma/client';
 
 registerEnumType(TradeActionType, {
   name: 'TradeActionType',
-});
-
-registerEnumType(PnlSnapshotKind, {
-  name: 'PnlSnapshotKind',
 });
 
 export enum PerpTradeHistoryOperation {
@@ -81,9 +72,6 @@ export class PnlSnapshotV2 {
 
   @Field(() => String)
   dateStr: string;
-
-  @Field(() => PnlSnapshotKind)
-  kind: PnlSnapshotKind;
 
   @Field(() => Float)
   accUSDPnl: number;

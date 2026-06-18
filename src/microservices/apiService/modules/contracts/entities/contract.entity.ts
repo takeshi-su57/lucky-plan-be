@@ -22,9 +22,6 @@ export class Contract {
   @Field()
   address: string;
 
-  @Field(() => Boolean)
-  isTestnet: boolean;
-
   @Field(() => String, { nullable: true })
   backendUrl: string | null;
 

@@ -32,38 +32,31 @@ export class EventLogsService {
   ): Promise<PerpTradeHistory[][]> {
     const result: PerpTradeHistory[][] = [];
     const allContractsMap: Record<string, Contract> = {};
-    const testContractIds: number[] = [];
 
     const allContracts = await this.prismaService.contract.findMany();
 
     allContracts.forEach((contract) => {
       allContractsMap[contract.id] = contract;
-
-      if (contract.isTestnet) {
-        testContractIds.push(contract.id);
-      }
     });
 
     for (const address of addresses) {
-      const records = (
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            address: address.toLowerCase(),
-            platform,
+      const records = await this.prismaService.perpTradingEventLog.findMany({
+        where: {
+          address: address.toLowerCase(),
+          platform,
+        },
+        orderBy: [
+          {
+            date: 'asc',
           },
-          orderBy: [
-            {
-              date: 'asc',
-            },
-            {
-              block: 'asc',
-            },
-            {
-              id: 'asc',
-            },
-          ],
-        })
-      ).filter((item) => !testContractIds.includes(item.contractId));
+          {
+            block: 'asc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
+      });
 
       result.push(
         records

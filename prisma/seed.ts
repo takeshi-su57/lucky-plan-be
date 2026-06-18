@@ -25,7 +25,6 @@ async function main() {
       lastLeaderboardBlockNumber: 62908499,
       backendUrl: 'https://backend-polygon.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -39,7 +38,6 @@ async function main() {
       lastLeaderboardBlockNumber: 23360263,
       backendUrl: 'https://backend-base.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -53,22 +51,6 @@ async function main() {
       lastLeaderboardBlockNumber: 262719377,
       backendUrl: 'https://backend-arbitrum.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
-    },
-    {
-      platform: Platform.GNS,
-      version: Version.V9,
-      chainId: 421614,
-      address: '0xd659a15812064c79e189fd950a189b15c75d3186',
-      description:
-        'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
-      fromBlock: 104095908,
-      toBlock: 179251082,
-      lastBlockNumber: 104095908,
-      lastLeaderboardBlockNumber: 104095908,
-      backendUrl: 'https://backend-sepolia.gains.trade',
-      status: ContractStatus.Dead,
-      isTestnet: true,
     },
     {
       platform: Platform.GNS,
@@ -83,7 +65,6 @@ async function main() {
       lastLeaderboardBlockNumber: 4810548,
       backendUrl: 'https://backend-apechain.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -97,7 +78,6 @@ async function main() {
       lastLeaderboardBlockNumber: 74793870,
       backendUrl: 'https://backend-polygon.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -111,7 +91,6 @@ async function main() {
       lastLeaderboardBlockNumber: 33765881,
       backendUrl: 'https://backend-base.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -125,22 +104,6 @@ async function main() {
       lastLeaderboardBlockNumber: 364917633,
       backendUrl: 'https://backend-arbitrum.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
-    },
-    {
-      platform: Platform.GNS,
-      version: Version.V10,
-      chainId: 421614,
-      address: '0xd659a15812064c79e189fd950a189b15c75d3186',
-      description:
-        'This is a gains arbitrum sepolia chain gnsDiamondContract address.',
-      fromBlock: 179251083,
-      toBlock: 0,
-      lastBlockNumber: 179251083,
-      lastLeaderboardBlockNumber: 179251083,
-      backendUrl: 'https://backend-sepolia.gains.trade',
-      status: ContractStatus.Dead,
-      isTestnet: true,
     },
     {
       platform: Platform.GNS,
@@ -155,7 +118,6 @@ async function main() {
       lastLeaderboardBlockNumber: 20196286,
       backendUrl: 'https://backend-apechain.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GNS,
@@ -170,7 +132,6 @@ async function main() {
       lastLeaderboardBlockNumber: 7584314,
       backendUrl: 'https://backend-megaeth.gains.trade',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GMX,
@@ -184,7 +145,6 @@ async function main() {
       lastLeaderboardBlockNumber: 107737756,
       backendUrl: '',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.GMX,
@@ -198,7 +158,6 @@ async function main() {
       lastLeaderboardBlockNumber: 32162455,
       backendUrl: '',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
     {
       platform: Platform.AVNT,
@@ -212,7 +171,6 @@ async function main() {
       lastLeaderboardBlockNumber: 26677638,
       backendUrl: '',
       status: ContractStatus.Dead,
-      isTestnet: false,
     },
   ];
 

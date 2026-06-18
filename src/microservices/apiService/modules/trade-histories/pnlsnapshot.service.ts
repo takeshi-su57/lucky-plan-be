@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   PerpTradingEventLog,
   Platform,
-  PnlSnapshotKind,
   PnlSnapshotV2,
 } from 'generated/prisma/client';
 import dayjs from 'dayjs';
@@ -22,24 +21,18 @@ function parseKey(key: string) {
   return JSON.parse(key) as {
     address: string;
     platform: Platform;
-    kind: PnlSnapshotKind;
   };
 }
 
-function getKey(address: string, platform: Platform, kind: PnlSnapshotKind) {
+function getKey(address: string, platform: Platform) {
   return JSON.stringify({
     address: address.toLowerCase(),
     platform,
-    kind,
   });
 }
 
-const timestampGapByPnlSnapshotKind = {
-  [PnlSnapshotKind.MONTH]: 30 * 24 * 60 * 60 * 1000,
-  [PnlSnapshotKind.ALL_TIME]: 10 * 365 * 24 * 60 * 60 * 1000,
-};
+const timestampGapByThreeMonthPnlSnapshot = 3 * 30 * 24 * 60 * 60 * 1000;
 
-const availableKinds = [PnlSnapshotKind.MONTH, PnlSnapshotKind.ALL_TIME];
 const BATCH_SIZE = 10000;
 @Injectable()
 export class PnlSnapshotsService {
@@ -66,13 +59,9 @@ export class PnlSnapshotsService {
 
     allContracts.forEach((contract) => {
       allContractsMap[contract.id] = contract;
-
-      if (contract.isTestnet) {
-        testContractIds.push(contract.id);
-      }
     });
 
-    const timestampGap = timestampGapByPnlSnapshotKind[PnlSnapshotKind.MONTH];
+    const timestampGap = timestampGapByThreeMonthPnlSnapshot;
     const startDate = new Date(
       getStartOfDay(new Date(dateStr)).getTime() - timestampGap,
     );
@@ -89,7 +78,6 @@ export class PnlSnapshotsService {
             where: {
               dateStr,
               platform,
-              kind: PnlSnapshotKind.MONTH,
               address: cursorAddress,
             },
           })
@@ -107,7 +95,6 @@ export class PnlSnapshotsService {
           take: first,
           where: {
             dateStr,
-            kind: PnlSnapshotKind.MONTH,
             platform,
             OR: currentCursor
               ? [
@@ -261,6 +248,23 @@ export class PnlSnapshotsService {
         dateStr,
       },
     });
+
+    await this.prismaService.pnlSnapshotV2InitializedFlag.upsert({
+      where: {
+        platform_dateStr: {
+          platform,
+          dateStr,
+        },
+      },
+      update: {
+        isInit: false,
+      },
+      create: {
+        platform,
+        dateStr,
+        isInit: false,
+      },
+    });
   }
 
   async dynamicSnapshotBuild(platform: Platform, dateStr: string) {
@@ -299,20 +303,6 @@ export class PnlSnapshotsService {
         details: 'deleted many',
       });
 
-      const testContractIdsMap = new Map<number, boolean>();
-
-      const testContracts = await this.prismaService.contract.findMany({
-        where: {
-          isTestnet: true,
-        },
-      });
-
-      testContracts.forEach((contract) =>
-        testContractIdsMap.set(contract.id, true),
-      );
-
-      const testContractIds = testContracts.map((contract) => contract.id);
-
       let pnlSnapshotCursorId: string | null = null;
 
       const cloneTime = Date.now();
@@ -342,7 +332,6 @@ export class PnlSnapshotsService {
           return {
             address: record.address,
             platform: record.platform,
-            kind: record.kind,
             accUSDPnl: record.accUSDPnl,
             dateStr,
           };
@@ -364,99 +353,95 @@ export class PnlSnapshotsService {
       const substractTime = Date.now();
 
       // substract pnl by outdated pnl snapshot
-      for (const kind of availableKinds) {
-        let cursorId: number | null = null;
+      let cursorId: number | null = null;
 
-        const pastLowerBound = lowerBound - timestampGapByPnlSnapshotKind[kind];
-        const pastUpperBound = upperBound - timestampGapByPnlSnapshotKind[kind];
+      const pastLowerBound = lowerBound - timestampGapByThreeMonthPnlSnapshot;
+      const pastUpperBound = upperBound - timestampGapByThreeMonthPnlSnapshot;
 
-        const tempCache = new Map<string, number>();
+      const tempCache1 = new Map<string, number>();
 
-        while (true) {
-          await this.logger.nativeLog({
-            severity: 'Debug',
-            summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
-            details: `substract pnl by outdated pnl snapshot ${cursorId}`,
-          });
+      while (true) {
+        await this.logger.nativeLog({
+          severity: 'Debug',
+          summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
+          details: `substract pnl by outdated pnl snapshot ${cursorId}`,
+        });
 
-          const records: PerpTradingEventLog[] = (
-            cursorId
-              ? await this.prismaService.perpTradingEventLog.findMany({
-                  skip: 1,
-                  take: BATCH_SIZE,
-                  cursor: {
-                    id: cursorId,
-                  },
-                  where: {
-                    platform,
-                    date: {
-                      gte: new Date(pastLowerBound),
-                      lte: new Date(pastUpperBound),
-                    },
-                  },
-                  orderBy: [
-                    {
-                      date: 'asc',
-                    },
-                    {
-                      block: 'asc',
-                    },
-                    {
-                      id: 'asc',
-                    },
-                  ],
-                })
-              : await this.prismaService.perpTradingEventLog.findMany({
-                  take: BATCH_SIZE,
-                  where: {
-                    date: {
-                      gte: new Date(pastLowerBound),
-                      lte: new Date(pastUpperBound),
-                    },
-                    platform,
-                  },
-                  orderBy: [
-                    {
-                      date: 'asc',
-                    },
-                    {
-                      block: 'asc',
-                    },
-                    {
-                      id: 'asc',
-                    },
-                  ],
-                })
-          ).filter((item) => !testContractIds.includes(item.contractId));
+        const records: PerpTradingEventLog[] = cursorId
+          ? await this.prismaService.perpTradingEventLog.findMany({
+              skip: 1,
+              take: BATCH_SIZE,
+              cursor: {
+                id: cursorId,
+              },
+              where: {
+                platform,
+                date: {
+                  gte: new Date(pastLowerBound),
+                  lte: new Date(pastUpperBound),
+                },
+              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+                {
+                  id: 'asc',
+                },
+              ],
+            })
+          : await this.prismaService.perpTradingEventLog.findMany({
+              take: BATCH_SIZE,
+              where: {
+                date: {
+                  gte: new Date(pastLowerBound),
+                  lte: new Date(pastUpperBound),
+                },
+                platform,
+              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+                {
+                  id: 'asc',
+                },
+              ],
+            });
 
-          if (records.length === 0) {
-            break;
-          }
-
-          for (const record of records) {
-            const overallKey = getKey(record.address, record.platform, kind);
-
-            const prevOverallValue = tempCache.get(overallKey) || 0;
-
-            tempCache.set(overallKey, prevOverallValue - +record.usdPnl);
-          }
-
-          const historiesPnlMapKeys = Array.from(tempCache.keys());
-
-          if (historiesPnlMapKeys.length > 10_0000) {
-            await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
-            tempCache.clear();
-          }
-
-          cursorId = records[records.length - 1].id;
+        if (records.length === 0) {
+          break;
         }
 
-        const cachedKeys = Array.from(tempCache.keys());
+        for (const record of records) {
+          const overallKey = getKey(record.address, record.platform);
 
-        if (cachedKeys.length > 0) {
-          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
-          tempCache.clear();
+          const prevOverallValue = tempCache1.get(overallKey) || 0;
+
+          tempCache1.set(overallKey, prevOverallValue - +record.usdPnl);
         }
+
+        const historiesPnlMapKeys = Array.from(tempCache1.keys());
+
+        if (historiesPnlMapKeys.length > 10_0000) {
+          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache1);
+          tempCache1.clear();
+        }
+
+        cursorId = records[records.length - 1].id;
+      }
+
+      const cachedKeys1 = Array.from(tempCache1.keys());
+
+      if (cachedKeys1.length > 0) {
+        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache1);
+        tempCache1.clear();
       }
 
       this.logger.nativeLog({
@@ -477,68 +462,64 @@ export class PnlSnapshotsService {
           details: `add pnl by perp trading event logs ${currentCursorId}`,
         });
 
-        const records: PerpTradingEventLog[] = (
-          currentCursorId
-            ? await this.prismaService.perpTradingEventLog.findMany({
-                skip: 1,
-                take: BATCH_SIZE,
-                cursor: {
-                  id: currentCursorId,
+        const records: PerpTradingEventLog[] = currentCursorId
+          ? await this.prismaService.perpTradingEventLog.findMany({
+              skip: 1,
+              take: BATCH_SIZE,
+              cursor: {
+                id: currentCursorId,
+              },
+              where: {
+                platform,
+                date: {
+                  gte: new Date(lowerBound),
+                  lte: new Date(upperBound),
                 },
-                where: {
-                  platform,
-                  date: {
-                    gte: new Date(lowerBound),
-                    lte: new Date(upperBound),
-                  },
+              },
+              orderBy: [
+                {
+                  date: 'asc',
                 },
-                orderBy: [
-                  {
-                    date: 'asc',
-                  },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              })
-            : await this.prismaService.perpTradingEventLog.findMany({
-                take: BATCH_SIZE,
-                where: {
-                  platform,
-                  date: {
-                    gte: new Date(lowerBound),
-                    lte: new Date(upperBound),
-                  },
+                {
+                  block: 'asc',
                 },
-                orderBy: [
-                  {
-                    date: 'asc',
-                  },
-                  {
-                    block: 'asc',
-                  },
-                  {
-                    id: 'asc',
-                  },
-                ],
-              })
-        ).filter((item) => !testContractIds.includes(item.contractId));
+                {
+                  id: 'asc',
+                },
+              ],
+            })
+          : await this.prismaService.perpTradingEventLog.findMany({
+              take: BATCH_SIZE,
+              where: {
+                platform,
+                date: {
+                  gte: new Date(lowerBound),
+                  lte: new Date(upperBound),
+                },
+              },
+              orderBy: [
+                {
+                  date: 'asc',
+                },
+                {
+                  block: 'asc',
+                },
+                {
+                  id: 'asc',
+                },
+              ],
+            });
 
         if (records.length === 0) {
           break;
         }
 
         for (const record of records) {
-          for (const kind of availableKinds) {
-            const overallKey = getKey(record.address, record.platform, kind);
+          const overallKey = getKey(record.address, record.platform);
 
-            const prevOverallValue = tempCache.get(overallKey) || 0;
+          const prevOverallValue = tempCache.get(overallKey) || 0;
 
-            tempCache.set(overallKey, prevOverallValue + +record.usdPnl);
-          }
+          tempCache.set(overallKey, prevOverallValue + +record.usdPnl);
         }
 
         const cachedKeys = Array.from(tempCache.keys());
@@ -614,13 +595,12 @@ export class PnlSnapshotsService {
         where: {
           OR: [
             ...chunk.map((key) => {
-              const { address, platform, kind } = parseKey(key);
+              const { address, platform } = parseKey(key);
 
               return {
                 dateStr,
                 address: address.toLowerCase(),
                 platform,
-                kind,
               };
             }),
           ],
@@ -636,13 +616,13 @@ export class PnlSnapshotsService {
       const pnlRecordsMap = new Map<string, number>();
 
       pnlRecords.forEach((record) => {
-        const key = getKey(record.address, record.platform, record.kind);
+        const key = getKey(record.address, record.platform);
 
         pnlRecordsMap.set(key, record.accUSDPnl);
       });
 
       const upsertInputs = chunk.map((key) => {
-        const { address, platform, kind } = parseKey(key);
+        const { address, platform } = parseKey(key);
 
         const accValue = tempCache.get(key) || 0;
         const prevValue = pnlRecordsMap.get(key) || 0;
@@ -650,7 +630,6 @@ export class PnlSnapshotsService {
         return {
           address: address.toLowerCase(),
           platform,
-          kind,
           accUSDPnl: prevValue + accValue,
           dateStr,
         };
@@ -666,11 +645,10 @@ export class PnlSnapshotsService {
         upsertInputs.map((input) => {
           return this.prismaService.pnlSnapshotV2.upsert({
             where: {
-              address_platform_dateStr_kind: {
+              address_platform_dateStr: {
                 address: input.address.toLowerCase(),
                 dateStr: input.dateStr,
                 platform: input.platform,
-                kind: input.kind,
               },
             },
             update: {
@@ -733,14 +711,6 @@ export class PnlSnapshotsService {
         details: 'deleted old pnl snapshot',
       });
 
-      const testContracts = await this.prismaService.contract.findMany({
-        where: {
-          isTestnet: true,
-        },
-      });
-
-      const testContractIds = testContracts.map((contract) => contract.id);
-
       const tempCache = new Map<string, number>();
       let lastDate: Date | null = null;
       let lastBlock: number | null = null;
@@ -773,9 +743,6 @@ export class PnlSnapshotsService {
               platform,
               date: {
                 lte: upperBound,
-              },
-              contractId: {
-                notIn: testContractIds,
               },
               ...(lastDate != null
                 ? {
@@ -817,15 +784,13 @@ export class PnlSnapshotsService {
         lastId = lastRecord.id;
 
         for (const record of chunkRecords) {
-          for (const kind of availableKinds) {
-            const overallKey = getKey(record.address, record.platform, kind);
+          const overallKey = getKey(record.address, record.platform);
 
-            const timestampGap = timestampGapByPnlSnapshotKind[kind];
-            const prevOverallValue = tempCache.get(overallKey) || 0;
+          const timestampGap = timestampGapByThreeMonthPnlSnapshot;
+          const prevOverallValue = tempCache.get(overallKey) || 0;
 
-            if (upperBound.getTime() - timestampGap < record.date.getTime()) {
-              tempCache.set(overallKey, prevOverallValue + +record.usdPnl);
-            }
+          if (upperBound.getTime() - timestampGap < record.date.getTime()) {
+            tempCache.set(overallKey, prevOverallValue + +record.usdPnl);
           }
         }
 
@@ -918,7 +883,7 @@ export class PnlSnapshotsService {
 
       await this.removePnlSnapshot(
         platform,
-        dayjs(startDate).subtract(1, 'week').format('YYYY-MM-DD'),
+        dayjs(startDate).subtract(30, 'days').format('YYYY-MM-DD'),
       );
 
       startDate = dayjs(startDate).add(1, 'day').toDate();
