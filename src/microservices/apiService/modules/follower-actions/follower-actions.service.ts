@@ -13,15 +13,23 @@ export class FollowerActionsService {
       return [];
     }
 
-    const actions = await this.prismaService.followerAction.createManyAndReturn(
-      {
-        data: inputs,
-        include: {
-          action: true,
-          task: true,
-        },
+    await this.prismaService.followerAction.createMany({
+      data: inputs,
+      skipDuplicates: true,
+    });
+
+    const actions = await this.prismaService.followerAction.findMany({
+      where: {
+        OR: inputs.map((input) => ({
+          actionId: input.actionId,
+          taskId: input.taskId,
+        })),
       },
-    );
+      include: {
+        action: true,
+        task: true,
+      },
+    });
 
     return actions;
   }

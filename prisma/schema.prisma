@@ -53,6 +53,7 @@ model Contract {
   followerBots               Bot[]          @relation("followerBots")
   leaderBots                 Bot[]          @relation("leaderBots")
   sltprequests               SLTPRequest[]
+  actions                    Action[]
 
   @@unique([chainId, address, version, platform])
 }
@@ -206,16 +207,42 @@ model Task {
 }
 
 model Action {
-  id              Int              @id @default(autoincrement())
+  id              Int                @id @default(autoincrement())
+  contractId      Int?
+  origin          ActionOrigin       @default(Chain)
+  status          ActionStatus       @default(Observed)
   name            String
   args            String
   blockNumber     Int
   orderInBlock    Int
-  createdAt       DateTime         @default(now())
+  blockHash       String?
+  txHash          String?
+  dedupeKey       String?
+  createdAt       DateTime           @default(now())
   positionKey     String
   address         String
+  contract        Contract?          @relation(fields: [contractId], references: [id])
+  processings     ActionProcessing[]
   followerActions FollowerAction[]
   tasks           Task[]
+
+  @@unique([contractId, blockNumber, orderInBlock])
+  @@unique([dedupeKey])
+  @@index([contractId, address, blockNumber, orderInBlock])
+}
+
+model ActionProcessing {
+  actionId    Int
+  processor   String
+  status      ActionProcessingStatus @default(Pending)
+  error       String?
+  processedAt DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  action      Action                 @relation(fields: [actionId], references: [id])
+
+  @@id([actionId, processor])
+  @@index([processor, status, updatedAt])
 }
 
 model FollowerAction {
@@ -263,6 +290,27 @@ enum Version {
 enum ContractStatus {
   Live
   Dead
+}
+
+enum ActionOrigin {
+  Chain
+  Manual
+  System
+  Clone
+  Simulation
+}
+
+enum ActionStatus {
+  Observed
+  Confirmed
+  Orphaned
+}
+
+enum ActionProcessingStatus {
+  Pending
+  Processing
+  Processed
+  Failed
 }
 
 enum TradeActionType {

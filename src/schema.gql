@@ -9,12 +9,18 @@ type AccessToken {
 type Action {
   address: String!
   args: String!
+  blockHash: String
   blockNumber: Int!
+  contractId: Int
   createdAt: Date!
+  dedupeKey: String
   id: Int!
   name: String!
   orderInBlock: Int!
+  origin: String!
   positionKey: String!
+  status: String!
+  txHash: String
 }
 
 input AssetInput {

@@ -1,8 +1,13 @@
 import { IsNotEmpty, IsString, IsIn, IsNumber, IsJSON } from 'class-validator';
+import { ActionOrigin } from 'generated/prisma/client';
 
 import { eventParsers } from '../../../../../web3/platform/gns/v10/eventParsers';
 
 export class CreateActionInput {
+  contractId?: number;
+
+  origin?: ActionOrigin;
+
   @IsNotEmpty()
   @IsString()
   @IsIn(eventParsers.map((item) => item.eventName))
@@ -28,4 +33,10 @@ export class CreateActionInput {
   @IsNotEmpty()
   @IsNumber()
   orderInBlock: number;
+
+  blockHash?: string;
+
+  txHash?: string;
+
+  dedupeKey?: string;
 }

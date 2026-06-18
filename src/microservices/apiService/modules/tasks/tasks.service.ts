@@ -296,12 +296,23 @@ export class TasksService {
       return [];
     }
 
-    const newTasks = await this.prismaService.task.createManyAndReturn({
+    await this.prismaService.task.createMany({
       data: inputs,
+      skipDuplicates: true,
+    });
+
+    const newTasks = await this.prismaService.task.findMany({
+      where: {
+        OR: inputs.map((input) => ({
+          missionId: input.missionId,
+          actionId: input.actionId,
+        })),
+      },
       include: {
         action: true,
         mission: true,
       },
+      orderBy: [{ actionId: 'asc' }, { id: 'asc' }],
     });
 
     const tasks = await this.getTasks(newTasks.map((task) => task.id));

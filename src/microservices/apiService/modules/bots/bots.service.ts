@@ -53,6 +53,7 @@ import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 @Injectable()
 export class BotsService {
   status: ServiceStatus = ServiceStatus.READY;
+  private readonly actionProcessor = 'copy-trading-router';
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
@@ -683,12 +684,20 @@ export class BotsService {
   private filterBotActions(
     bots: BotBackwardDetails[],
     contractId: number,
-    actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
+    actionItems: {
+      item: ActionItem;
+      blockNumber: number;
+      logIndex: number;
+      blockHash?: string | null;
+      txHash?: string | null;
+    }[],
   ) {
     const filteredActionItems: {
       item: ActionItem;
       blockNumber: number;
       logIndex: number;
+      blockHash?: string | null;
+      txHash?: string | null;
     }[] = [];
 
     for (let i = 0; i < actionItems.length; ) {
@@ -782,7 +791,13 @@ export class BotsService {
 
   async handleActionItems(
     contract: Contract,
-    actionItems: { item: ActionItem; blockNumber: number; logIndex: number }[],
+    actionItems: {
+      item: ActionItem;
+      blockNumber: number;
+      logIndex: number;
+      blockHash?: string | null;
+      txHash?: string | null;
+    }[],
   ) {
     const bots = await this.prismaService.bot.findMany({
       where: {
@@ -815,23 +830,52 @@ export class BotsService {
       return;
     }
 
-    const actions = await this.actionsService.createMany(
-      filteredActionItems.map(({ item, blockNumber, logIndex }) => ({
-        name: item.name,
-        positionKey: item.positionKey,
-        address: item.address.toLowerCase(),
-        args: item.args,
-        blockNumber,
-        orderInBlock: logIndex,
-      })),
+    const actions = await this.actionsService.createManyForContract(
+      contract.id,
+      filteredActionItems.map(
+        ({ item, blockNumber, logIndex, blockHash, txHash }) => ({
+          name: item.name,
+          positionKey: item.positionKey,
+          address: item.address.toLowerCase(),
+          args: item.args,
+          blockNumber,
+          orderInBlock: logIndex,
+          blockHash: blockHash || undefined,
+          txHash: txHash || undefined,
+        }),
+      ),
     );
+
+    const pendingActions = await this.actionsService.getUnprocessedActions(
+      actions,
+      this.actionProcessor,
+    );
+
+    if (pendingActions.length === 0) {
+      return;
+    }
 
     const { leaderActions, followerActions } = this.getBotContextActions(
       bots,
       contract.id,
-      actions,
+      pendingActions,
     );
 
-    await this.missionsService.handleActions(followerActions, leaderActions);
+    try {
+      await this.missionsService.handleActions(followerActions, leaderActions);
+
+      await this.actionsService.markActionsProcessed(
+        pendingActions.map((action) => action.id),
+        this.actionProcessor,
+      );
+    } catch (err) {
+      await this.actionsService.markActionsFailed(
+        pendingActions.map((action) => action.id),
+        this.actionProcessor,
+        getReadableError(err),
+      );
+
+      throw err;
+    }
   }
 }

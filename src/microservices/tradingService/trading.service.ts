@@ -21,6 +21,7 @@ export class TradingService {
   status: ServiceStatus;
 
   static BATCH_SIZE = 4000n;
+  static DEFAULT_RECHECK_BLOCKS = 100;
 
   constructor(
     private evmAdapterService: EvmAdapterService,
@@ -35,15 +36,25 @@ export class TradingService {
   async checkContractsForBots() {
     this.status = ServiceStatus.PROCESS;
 
-    const contracts = await this.contractsService.findAll();
+    try {
+      const contracts = await this.contractsService.findAll();
 
-    const promises = contracts
-      .filter((contract) => contract.status === ContractStatus.Live)
-      .map((contract) => this.checkContractForBots(contract));
+      const promises = contracts
+        .filter((contract) => contract.status === ContractStatus.Live)
+        .map((contract) => this.checkContractForBots(contract));
 
-    await Promise.allSettled(promises);
+      await Promise.allSettled(promises);
+    } finally {
+      this.status = ServiceStatus.READY;
+    }
+  }
 
-    this.status = ServiceStatus.READY;
+  private getRecheckBlocks() {
+    const value = Number(process.env.TRADING_RECHECK_BLOCKS);
+
+    return Number.isFinite(value) && value >= 0
+      ? Math.floor(value)
+      : TradingService.DEFAULT_RECHECK_BLOCKS;
   }
 
   async checkContractForBots(contract: Contract) {
@@ -53,7 +64,12 @@ export class TradingService {
         priority: ChainPriority.HIGH,
       });
 
-      let fromBlock = BigInt(contract.lastBlockNumber) + 1n;
+      const recheckBlocks = this.getRecheckBlocks();
+      const replayStartBlock = Math.max(
+        contract.fromBlock,
+        contract.lastBlockNumber - recheckBlocks + 1,
+      );
+      let fromBlock = BigInt(replayStartBlock);
 
       while (fromBlock <= currentBlockNumber) {
         if (this.isReceivedKillProcess) {
@@ -76,7 +92,7 @@ export class TradingService {
         ).filter((log) => log.topics.length > 0);
 
         if (contract.platform === Platform.AVNT) {
-          delay(1_000);
+          await delay(1_000);
           const additionalLogs = (
             await this.evmAdapterService.getLogs({
               chainId: contract.chainId,
@@ -119,6 +135,10 @@ export class TradingService {
                 eventLog,
                 blockNumber: Number(log.blockNumber),
                 logIndex: Number(log.logIndex),
+                blockHash: log.blockHash ? String(log.blockHash) : null,
+                txHash: log.transactionHash
+                  ? String(log.transactionHash)
+                  : null,
               };
             } catch {
               return null;
@@ -145,6 +165,8 @@ export class TradingService {
             ).eventToActionParser(log.eventLog as any),
             blockNumber: log.blockNumber,
             logIndex: log.logIndex,
+            blockHash: log.blockHash,
+            txHash: log.txHash,
           }));
 
         if (actionItems.length > 0) {

@@ -151,14 +151,60 @@ export class MissionsService {
       return [];
     }
 
-    const newMissions = await this.prismaService.mission.createManyAndReturn({
-      data: inputs.map((input) => ({
-        ...input,
-        status: MissionStatus.Created,
-      })),
+    const existingMissions = await this.prismaService.mission.findMany({
+      where: {
+        OR: inputs.map((input) => ({
+          botId: input.botId,
+          targetPositionBlockNumber: input.targetPositionBlockNumber,
+          targetPositionLogIndex: input.targetPositionLogIndex,
+        })),
+      },
+      select: {
+        botId: true,
+        targetPositionBlockNumber: true,
+        targetPositionLogIndex: true,
+      },
+    });
+
+    const existingKeys = new Set(
+      existingMissions.map(
+        (mission) =>
+          `${mission.botId}:${mission.targetPositionBlockNumber}:${mission.targetPositionLogIndex}`,
+      ),
+    );
+
+    const createInputs = inputs.filter(
+      (input) =>
+        !existingKeys.has(
+          `${input.botId}:${input.targetPositionBlockNumber}:${input.targetPositionLogIndex}`,
+        ),
+    );
+
+    if (createInputs.length > 0) {
+      await this.prismaService.mission.createMany({
+        data: createInputs.map((input) => ({
+          ...input,
+          status: MissionStatus.Created,
+        })),
+      });
+    }
+
+    const newMissions = await this.prismaService.mission.findMany({
+      where: {
+        OR: inputs.map((input) => ({
+          botId: input.botId,
+          targetPositionBlockNumber: input.targetPositionBlockNumber,
+          targetPositionLogIndex: input.targetPositionLogIndex,
+        })),
+      },
       include: {
         bot: true,
       },
+      orderBy: [
+        { targetPositionBlockNumber: 'asc' },
+        { targetPositionLogIndex: 'asc' },
+        { id: 'asc' },
+      ],
     });
 
     newMissions.forEach((mission) => {
