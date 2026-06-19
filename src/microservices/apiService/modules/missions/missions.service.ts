@@ -781,7 +781,7 @@ export class MissionsService {
     }
 
     const openEvents = actions
-      .filter((item) => item.context.bot.status === BotStatus.Live)
+      .filter((item) => item.context.bot.status !== BotStatus.Dead)
       // block leader action register if there is no pair ready
       .filter((item) => {
         const selectedPairs = parseSelectedPairs(
@@ -1104,12 +1104,12 @@ export class MissionsService {
 
         let actionPositionKey = actionItem.action.positionKey;
 
-        if (
-          getWeb3Info(
-            actionItem.context.bot.followerContract.platform,
-            actionItem.context.bot.followerContract.version,
-          ).isOpenMissionAction(actionItem.action)
-        ) {
+        const isOpenAction = getWeb3Info(
+          actionItem.context.bot.followerContract.platform,
+          actionItem.context.bot.followerContract.version,
+        ).isOpenMissionAction(actionItem.action);
+
+        if (isOpenAction) {
           const orderId = getOrderIdFromMissionAction(actionItem.action);
 
           if (!orderId) {
@@ -1122,9 +1122,16 @@ export class MissionsService {
           );
         }
 
-        const filteredMissions = missions.filter(
+        let filteredMissions = missions.filter(
           (missionItem) => missionItem.achievePositionKey === actionPositionKey,
         );
+
+        if (filteredMissions.length === 0 && isOpenAction) {
+          filteredMissions = missions.filter(
+            (missionItem) =>
+              missionItem.targetPositionKey === actionPositionKey,
+          );
+        }
 
         return filteredMissions.map((mission) => ({
           ...actionItem,

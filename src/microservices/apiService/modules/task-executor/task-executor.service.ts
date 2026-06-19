@@ -6,6 +6,7 @@ import {
   UserPermission,
   Platform,
   MissionMode,
+  PlanMode,
 } from 'generated/prisma/client';
 import dayjs from 'dayjs';
 
@@ -117,6 +118,10 @@ export class TaskExecutorService {
       const { action, mission } = task;
       const { bot, achievePositionKey } = mission;
       const { follower, followerContract, leaderContract, strategy } = bot;
+
+      if (bot.plan.mode === PlanMode.Simulation) {
+        throw new Error('Simulation task cannot be executed by live executor');
+      }
 
       if (
         task.status !== TaskStatus.Created &&
@@ -1184,6 +1189,7 @@ export class TaskExecutorService {
           bot: {
             plan: {
               userId,
+              mode: PlanMode.Live,
             },
           },
         },
@@ -1234,7 +1240,12 @@ export class TaskExecutorService {
     await this.tasksService.updateMany([
       {
         id: task.id,
-        status: success ? TaskStatus.Await : TaskStatus.Failed,
+        status:
+          success === 'success'
+            ? TaskStatus.Await
+            : success === 'skipped'
+              ? TaskStatus.Stopped
+              : TaskStatus.Failed,
         logs: [
           ...task.logs,
           JSON.stringify({
@@ -1268,6 +1279,7 @@ export class TaskExecutorService {
             bot: {
               plan: {
                 userId,
+                mode: PlanMode.Live,
               },
             },
           },
@@ -1425,6 +1437,11 @@ export class TaskExecutorService {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
             },
+            bot: {
+              plan: {
+                mode: PlanMode.Live,
+              },
+            },
           },
         },
         include: {
@@ -1515,6 +1532,11 @@ export class TaskExecutorService {
           mission: {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
+            },
+            bot: {
+              plan: {
+                mode: PlanMode.Live,
+              },
             },
           },
         },

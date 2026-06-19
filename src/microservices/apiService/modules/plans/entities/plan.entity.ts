@@ -5,12 +5,16 @@ import {
   registerEnumType,
   Float,
 } from '@nestjs/graphql';
-import { PlanStatus, Platform } from 'generated/prisma/client';
+import { PlanMode, PlanStatus, Platform } from 'generated/prisma/client';
 
 import { BotForwardDetails } from 'src/microservices/apiService/modules/bots/entities/bot.entity';
 
 registerEnumType(PlanStatus, {
   name: 'PlanStatus',
+});
+
+registerEnumType(PlanMode, {
+  name: 'PlanMode',
 });
 
 @ObjectType()
@@ -41,6 +45,48 @@ export class Plan {
 
   @Field(() => PlanStatus)
   status: PlanStatus;
+
+  @Field(() => PlanMode)
+  mode: PlanMode;
+
+  @Field(() => Date, { nullable: true })
+  simulationCursor: Date | null;
+}
+
+@ObjectType()
+export class SimulationResumeResult {
+  @Field(() => Boolean)
+  accepted: boolean;
+
+  @Field(() => String)
+  message: string;
+
+  @Field(() => Date, { nullable: true })
+  windowStart: Date | null;
+
+  @Field(() => Date, { nullable: true })
+  windowEnd: Date | null;
+
+  @Field(() => Int)
+  leaderActionCount: number;
+
+  @Field(() => Int)
+  virtualActionCount: number;
+
+  @Field(() => Int)
+  virtualTaskCount: number;
+
+  @Field(() => Int)
+  finalizedTaskCount: number;
+
+  @Field(() => Int)
+  stoppedTaskCount: number;
+
+  @Field(() => Int)
+  executionIterations: number;
+
+  @Field(() => Plan)
+  plan: Plan;
 }
 
 @ObjectType()
@@ -132,6 +178,12 @@ export class PlanSummary {
 
   @Field(() => PlanStatus)
   status: PlanStatus;
+
+  @Field(() => PlanMode)
+  mode: PlanMode;
+
+  @Field(() => Date, { nullable: true })
+  simulationCursor: Date | null;
 
   @Field(() => Int)
   botCount: number;

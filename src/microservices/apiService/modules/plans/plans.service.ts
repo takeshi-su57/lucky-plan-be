@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import {
   BotStatus,
   Platform,
+  PlanMode,
   PlanStatus,
   StrategyMode,
 } from 'generated/prisma/client';
@@ -22,6 +23,7 @@ import { LogsService } from 'src/global/logs.service';
 
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { ServiceStatus } from 'src/types';
+import { PlanSimulationService } from './plan-simulation.service';
 
 @Injectable()
 export class PlansService {
@@ -31,6 +33,7 @@ export class PlansService {
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prisma: PrismaService,
     private readonly botService: BotsService,
+    private readonly planSimulationService: PlanSimulationService,
     private logger: LogsService,
   ) {}
 
@@ -41,6 +44,10 @@ export class PlansService {
     const plan = await this.prisma.plan.create({
       data: {
         ...createPlanInput,
+        simulationCursor:
+          createPlanInput.mode === PlanMode.Simulation
+            ? createPlanInput.simulationCursor || createPlanInput.scheduledStart
+            : createPlanInput.simulationCursor,
         userId,
         status: PlanStatus.Created,
       },
@@ -228,6 +235,8 @@ export class PlansService {
           scheduledStart: record.scheduledStart,
           scheduledEnd: record.scheduledEnd,
           status: record.status,
+          mode: record.mode,
+          simulationCursor: record.simulationCursor,
           botCount: record.bots.length,
         },
       };
@@ -362,6 +371,10 @@ export class PlansService {
       throw new Error('Plan is not in created status');
     }
 
+    if (plan.mode !== PlanMode.Live) {
+      throw new Error('Simulation plans must be started with resumeSimulation');
+    }
+
     await this.botService.batchLiveBots(
       plan.bots.filter((bot) => bot.status === BotStatus.Created),
     );
@@ -401,6 +414,10 @@ export class PlansService {
       throw new Error('Plan is not in started status');
     }
 
+    if (plan.mode !== PlanMode.Live) {
+      throw new Error('Simulation plans must be controlled by simulation flow');
+    }
+
     await this.botService.batchStopBots(
       plan.bots.filter((bot) => bot.status === BotStatus.Live),
     );
@@ -420,12 +437,23 @@ export class PlansService {
     return await this._end(id);
   }
 
+  async resumeSimulation(userId: string, id: number, speed: number) {
+    await this.checkAuthorization(userId, id);
+
+    const result = await this.planSimulationService.resume(userId, id, speed);
+
+    await this.redisClient.emit(PATTERNS.Plans.PlanUpdated, result.plan);
+
+    return result;
+  }
+
   async checkAndUpdateAllPlans() {
     this.status = ServiceStatus.PROCESS;
 
     try {
       const plans = await this.prisma.plan.findMany({
         where: {
+          mode: PlanMode.Live,
           status: {
             not: PlanStatus.Finished,
           },

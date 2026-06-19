@@ -125,6 +125,23 @@ export class ActionsService {
     );
   }
 
+  async createManyForSimulation(
+    planId: number,
+    contractId: number,
+    inputs: CreateActionInput[],
+  ) {
+    return await this.createMany(
+      inputs.map((input) => ({
+        ...input,
+        contractId: undefined,
+        origin: ActionOrigin.Simulation,
+        dedupeKey:
+          input.dedupeKey ||
+          `simulation:${planId}:${contractId}:${input.name}:${input.positionKey}:${input.blockNumber}:${input.orderInBlock}`,
+      })),
+    );
+  }
+
   async getUnprocessedActions<T extends { id: number }>(
     actions: T[],
     processor: string,

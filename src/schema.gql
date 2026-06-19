@@ -214,8 +214,10 @@ input CreateBotInput {
 
 input CreatePlanInput {
   description: String!
+  mode: PlanMode! = Live
   scheduledEnd: Date!
   scheduledStart: Date!
+  simulationCursor: Date
   title: String!
 }
 
@@ -480,6 +482,7 @@ type Mutation {
   openTradeMarket(input: OpenTradeInput!): ContractExecutionResult!
   pauseSystem: Boolean!
   performTask(id: Int!): Boolean!
+  resumeSimulation(id: Int!, speed: Int! = 1): SimulationResumeResult!
   resumeSystem(password: String): Boolean!
   startAdaption(contractId: Int!, shouldRestart: Boolean!): Boolean!
   startPlan(id: Int!): Boolean!
@@ -552,8 +555,10 @@ type Plan {
   description: String!
   endedAt: Date
   id: Int!
+  mode: PlanMode!
   scheduledEnd: Date!
   scheduledStart: Date!
+  simulationCursor: Date
   startedAt: Date
   status: PlanStatus!
   title: String!
@@ -575,12 +580,19 @@ type PlanForwardDetails {
   description: String!
   endedAt: Date
   id: Int!
+  mode: PlanMode!
   scheduledEnd: Date!
   scheduledStart: Date!
+  simulationCursor: Date
   startedAt: Date
   status: PlanStatus!
   title: String!
   userId: String!
+}
+
+enum PlanMode {
+  Live
+  Simulation
 }
 
 type PlanPageInfo {
@@ -600,8 +612,10 @@ type PlanSummary {
   description: String!
   endedAt: Date
   id: Int!
+  mode: PlanMode!
   scheduledEnd: Date!
   scheduledStart: Date!
+  simulationCursor: Date
   startedAt: Date
   status: PlanStatus!
   title: String!
@@ -724,6 +738,20 @@ type SeverityCount {
   severity: LogSeverity!
 }
 
+type SimulationResumeResult {
+  accepted: Boolean!
+  executionIterations: Int!
+  finalizedTaskCount: Int!
+  leaderActionCount: Int!
+  message: String!
+  plan: Plan!
+  stoppedTaskCount: Int!
+  virtualActionCount: Int!
+  virtualTaskCount: Int!
+  windowEnd: Date
+  windowStart: Date
+}
+
 type Strategy {
   id: Int!
   lifeTime: Int!
@@ -799,8 +827,10 @@ input UpdatePlanInput {
   description: String
   endedAt: Date
   id: Int!
+  mode: PlanMode = Live
   scheduledEnd: Date
   scheduledStart: Date
+  simulationCursor: Date
   startedAt: Date
   status: PlanStatus!
   title: String

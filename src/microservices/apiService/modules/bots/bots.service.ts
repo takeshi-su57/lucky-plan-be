@@ -6,6 +6,7 @@ import {
   MissionStatus,
   MissionMode,
   StrategyMode,
+  PlanMode,
 } from 'generated/prisma/client';
 import { Address, isAddressEqual, maxInt256 } from 'viem';
 
@@ -636,32 +637,74 @@ export class BotsService {
     });
   }
 
+  private getActionProcessor(options?: HandleActionItemsOptions) {
+    if (options?.planMode === PlanMode.Simulation) {
+      return `${this.actionProcessor}:simulation:${options.planId}`;
+    }
+
+    return `${this.actionProcessor}:live`;
+  }
+
+  private isBotAvailableForRoute(
+    bot: BotBackwardDetails,
+    contractId: number,
+    blockNumber: number,
+    options?: HandleActionItemsOptions,
+  ) {
+    if (options?.planMode === PlanMode.Simulation) {
+      return bot.leaderContractId === contractId;
+    }
+
+    return (
+      bot.status !== BotStatus.Created &&
+      bot.status !== BotStatus.Dead &&
+      bot.leaderContractId === contractId &&
+      !!bot.leaderStartedBlock &&
+      bot.leaderStartedBlock < blockNumber
+    );
+  }
+
+  private isFollowerBotAvailableForRoute(
+    bot: BotBackwardDetails,
+    contractId: number,
+    blockNumber: number,
+    options?: HandleActionItemsOptions,
+  ) {
+    if (options?.planMode === PlanMode.Simulation) {
+      return bot.followerContractId === contractId;
+    }
+
+    return (
+      bot.status !== BotStatus.Created &&
+      bot.status !== BotStatus.Dead &&
+      bot.followerContractId === contractId &&
+      !!bot.followerStartedBlock &&
+      bot.followerStartedBlock < blockNumber
+    );
+  }
+
   private filterBots(
     bots: BotBackwardDetails[],
     contractId: number,
     blockNumber: number,
+    options?: HandleActionItemsOptions,
   ) {
     const leaderBots: BotDetails[] = [];
     const followerBots: BotDetails[] = [];
     const totalAddresses: string[] = [];
 
     bots.forEach((bot) => {
-      if (bot.status === BotStatus.Created || bot.status === BotStatus.Dead) {
-        return;
-      }
-
-      if (
-        bot.leaderContractId === contractId &&
-        bot.leaderStartedBlock &&
-        bot.leaderStartedBlock < blockNumber
-      ) {
+      if (this.isBotAvailableForRoute(bot, contractId, blockNumber, options)) {
         leaderBots.push(bot);
       }
 
       if (
-        bot.followerContractId === contractId &&
-        bot.followerStartedBlock &&
-        bot.followerStartedBlock < blockNumber
+        this.isFollowerBotAvailableForRoute(
+          bot,
+          contractId,
+          blockNumber,
+          options,
+        )
       ) {
         followerBots.push(bot);
       }
@@ -691,6 +734,7 @@ export class BotsService {
       blockHash?: string | null;
       txHash?: string | null;
     }[],
+    options?: HandleActionItemsOptions,
   ) {
     const filteredActionItems: {
       item: ActionItem;
@@ -705,6 +749,7 @@ export class BotsService {
         bots,
         contractId,
         actionItems[i].blockNumber,
+        options,
       );
 
       let j = i;
@@ -729,6 +774,7 @@ export class BotsService {
     bots: BotBackwardDetails[],
     contractId: number,
     actions: Action[],
+    options?: HandleActionItemsOptions,
   ) {
     const leaderActions: ActionContext<BotContext>[] = [];
     const followerActions: ActionContext<BotContext>[] = [];
@@ -738,6 +784,7 @@ export class BotsService {
         bots,
         contractId,
         actions[i].blockNumber,
+        options,
       );
 
       let j = i;
@@ -798,12 +845,20 @@ export class BotsService {
       blockHash?: string | null;
       txHash?: string | null;
     }[],
+    options?: HandleActionItemsOptions,
   ) {
     const bots = await this.prismaService.bot.findMany({
       where: {
-        status: {
-          notIn: [BotStatus.Created, BotStatus.Dead],
-        },
+        ...(options?.planMode === PlanMode.Simulation
+          ? { planId: options.planId }
+          : {
+              status: {
+                notIn: [BotStatus.Created, BotStatus.Dead],
+              },
+              plan: {
+                mode: PlanMode.Live,
+              },
+            }),
         OR: [
           { followerContractId: contract.id },
           { leaderContractId: contract.id },
@@ -823,6 +878,7 @@ export class BotsService {
       bots,
       contract.id,
       actionItems,
+      options,
     );
 
     // no need to proceed further steps
@@ -830,25 +886,35 @@ export class BotsService {
       return;
     }
 
-    const actions = await this.actionsService.createManyForContract(
-      contract.id,
-      filteredActionItems.map(
-        ({ item, blockNumber, logIndex, blockHash, txHash }) => ({
-          name: item.name,
-          positionKey: item.positionKey,
-          address: item.address.toLowerCase(),
-          args: item.args,
-          blockNumber,
-          orderInBlock: logIndex,
-          blockHash: blockHash || undefined,
-          txHash: txHash || undefined,
-        }),
-      ),
+    const actionInputs = filteredActionItems.map(
+      ({ item, blockNumber, logIndex, blockHash, txHash }) => ({
+        name: item.name,
+        positionKey: item.positionKey,
+        address: item.address.toLowerCase(),
+        args: item.args,
+        blockNumber,
+        orderInBlock: logIndex,
+        blockHash: blockHash || undefined,
+        txHash: txHash || undefined,
+      }),
     );
 
+    const actions =
+      options?.planMode === PlanMode.Simulation
+        ? await this.actionsService.createManyForSimulation(
+            options.planId,
+            contract.id,
+            actionInputs,
+          )
+        : await this.actionsService.createManyForContract(
+            contract.id,
+            actionInputs,
+          );
+
+    const actionProcessor = this.getActionProcessor(options);
     const pendingActions = await this.actionsService.getUnprocessedActions(
       actions,
-      this.actionProcessor,
+      actionProcessor,
     );
 
     if (pendingActions.length === 0) {
@@ -859,6 +925,7 @@ export class BotsService {
       bots,
       contract.id,
       pendingActions,
+      options,
     );
 
     try {
@@ -866,12 +933,12 @@ export class BotsService {
 
       await this.actionsService.markActionsProcessed(
         pendingActions.map((action) => action.id),
-        this.actionProcessor,
+        actionProcessor,
       );
     } catch (err) {
       await this.actionsService.markActionsFailed(
         pendingActions.map((action) => action.id),
-        this.actionProcessor,
+        actionProcessor,
         getReadableError(err),
       );
 
@@ -879,3 +946,13 @@ export class BotsService {
     }
   }
 }
+
+export type HandleActionItemsOptions =
+  | {
+      planMode: typeof PlanMode.Live;
+      planId?: never;
+    }
+  | {
+      planMode: typeof PlanMode.Simulation;
+      planId: number;
+    };

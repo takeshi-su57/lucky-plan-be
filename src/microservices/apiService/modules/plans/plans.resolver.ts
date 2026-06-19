@@ -19,6 +19,7 @@ import {
   PlanConnection,
   PlanSummaryConnection,
   BotGroupPaginatedResponse,
+  SimulationResumeResult,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -81,6 +82,17 @@ export class PlansResolver {
     @CurrentUser() user: User,
   ) {
     return this.plansService.end(user.address, id);
+  }
+
+  @Mutation(() => SimulationResumeResult)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  resumeSimulation(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('speed', { type: () => Int, defaultValue: 1 }) speed: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.resumeSimulation(user.address, id, speed);
   }
 
   @Subscription(() => Plan, {

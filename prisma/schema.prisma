@@ -141,6 +141,7 @@ model Plan {
   status         PlanStatus
   userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
   mode           PlanMode   @default(Live)
+  simulationCursor DateTime?
   bots           Bot[]
 }
 
