@@ -707,6 +707,7 @@ type Query {
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
   getPnlSnapshotsV2(after: String, dateStr: String!, first: Int!, isDesc: Boolean!, platform: Platform!): PnlSnapshotV2DetailsConnection!
   getServerTime: ServerTime!
+  getSimulationProgressLogs(after: Int, first: Int! = 50, planId: Int!): SimulationProgressLogConnection!
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   systemStatus: Boolean!
@@ -736,6 +737,37 @@ type ServerTime {
 type SeverityCount {
   counts: Int!
   severity: LogSeverity!
+}
+
+type SimulationProgressLog {
+  createdAt: Date!
+  details: String
+  executionIterations: Int!
+  finalizedTaskCount: Int!
+  id: Int!
+  leaderActionCount: Int!
+  message: String!
+  percent: Float!
+  phase: String!
+  planId: Int!
+  runId: String!
+  status: String!
+  stoppedTaskCount: Int!
+  userId: String!
+  virtualActionCount: Int!
+  virtualTaskCount: Int!
+  windowEnd: Date
+  windowStart: Date
+}
+
+type SimulationProgressLogConnection {
+  edges: [SimulationProgressLogEdge!]!
+  pageInfo: PlanPageInfo!
+}
+
+type SimulationProgressLogEdge {
+  cursor: Int!
+  node: SimulationProgressLog!
 }
 
 type SimulationResumeResult {
@@ -780,6 +812,7 @@ type Subscription {
   newLog(checked: Boolean!, severity: LogSeverity): Log!
   planCreated(userId: String!): Plan!
   planUpdated(userId: String!): Plan!
+  simulationProgressUpdated(planId: Int!, userId: String!): SimulationProgressLog!
   taskCreated(userId: String!): [TaskBackwardDetails!]!
   taskUpdated(userId: String!): [TaskBackwardDetails!]!
 }

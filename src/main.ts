@@ -72,6 +72,13 @@ async function bootstrap() {
       app.use(
         compression({
           threshold: '1kb',
+          filter: (req, res) => {
+            if (req.headers.upgrade?.toLowerCase() === 'websocket') {
+              return false;
+            }
+
+            return compression.filter(req, res);
+          },
         }),
       );
 

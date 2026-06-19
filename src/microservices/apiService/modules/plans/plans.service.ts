@@ -14,6 +14,7 @@ import {
   PlanSummaryConnection,
   Plan,
   BotGroupPaginatedResponse,
+  SimulationProgressLogConnection,
 } from './entities/plan.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -349,6 +350,48 @@ export class PlansService {
     };
   }
 
+  async getSimulationProgressLogs(
+    userId: string,
+    planId: number,
+    first: number,
+    after: number | null,
+  ): Promise<SimulationProgressLogConnection> {
+    await this.checkAuthorization(userId, planId);
+
+    const records = await this.prisma.simulationProgressLog.findMany({
+      skip: after ? 1 : undefined,
+      take: first,
+      cursor: after
+        ? {
+            id: after,
+          }
+        : undefined,
+      where: {
+        planId,
+        userId,
+      },
+      orderBy: [
+        { createdAt: 'desc' },
+        {
+          id: 'desc',
+        },
+      ],
+    });
+
+    const edges = records.map((record) => ({
+      cursor: record.id,
+      node: record,
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage: edges.length > 0,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      },
+    };
+  }
+
   private async _start(id: number): Promise<boolean> {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
@@ -438,11 +481,7 @@ export class PlansService {
   async resumeSimulation(userId: string, id: number, speed: number) {
     await this.checkAuthorization(userId, id);
 
-    const result = await this.planSimulationService.resume(userId, id, speed);
-
-    await this.redisClient.emit(PATTERNS.Plans.PlanUpdated, result.plan);
-
-    return result;
+    return await this.planSimulationService.resume(userId, id, speed);
   }
 
   async checkAndUpdateAllPlans() {

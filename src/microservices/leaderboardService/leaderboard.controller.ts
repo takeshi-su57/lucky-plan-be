@@ -117,7 +117,7 @@ export class LeaderboardController implements OnApplicationBootstrap {
 
         await this.pnlSnapshotService.removePnlSnapshot(
           platform,
-          dayjs(new Date()).subtract(30, 'days').format('YYYY-MM-DD'),
+          dayjs(new Date()).subtract(90, 'days').format('YYYY-MM-DD'),
         );
       }
 

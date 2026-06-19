@@ -143,6 +143,33 @@ model Plan {
   mode           PlanMode   @default(Live)
   simulationCursor DateTime?
   bots           Bot[]
+  simulationProgressLogs SimulationProgressLog[]
+}
+
+model SimulationProgressLog {
+  id                  Int      @id @default(autoincrement())
+  planId              Int
+  userId              String
+  runId               String
+  phase               String
+  status              String
+  message             String
+  details             String?
+  percent             Float    @default(0)
+  windowStart         DateTime?
+  windowEnd           DateTime?
+  leaderActionCount   Int      @default(0)
+  virtualActionCount  Int      @default(0)
+  virtualTaskCount    Int      @default(0)
+  finalizedTaskCount  Int      @default(0)
+  stoppedTaskCount    Int      @default(0)
+  executionIterations Int      @default(0)
+  createdAt           DateTime @default(now())
+  plan                Plan     @relation(fields: [planId], references: [id])
+
+  @@index([planId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([runId, createdAt(sort: Asc), id(sort: Asc)])
+  @@index([userId, planId, createdAt(sort: Desc)])
 }
 
 enum BotMode {

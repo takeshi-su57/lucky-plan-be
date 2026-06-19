@@ -140,22 +140,22 @@ export class ApiService {
       await this.securityService.loadPassword(password);
     }
 
-    // for (const service of microservices) {
-    // this.startSubService(service);
-    // }
+    for (const service of microservices) {
+      this.startSubService(service);
+    }
 
     // wait for all services to be ready
-    // while (true) {
-    //   await delay(10000);
+    while (true) {
+      await delay(10000);
 
-    //   const killedServices = microservices.filter(
-    //     (service) => this.serviceStatus[service].length === 0,
-    //   );
+      const killedServices = microservices.filter(
+        (service) => this.serviceStatus[service].length === 0,
+      );
 
-    //   if (killedServices.length === 0) {
-    //     break;
-    //   }
-    // }
+      if (killedServices.length === 0) {
+        break;
+      }
+    }
 
     this.isPaused = false;
 

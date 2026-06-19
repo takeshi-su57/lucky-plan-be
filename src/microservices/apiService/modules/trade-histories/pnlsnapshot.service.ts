@@ -883,7 +883,7 @@ export class PnlSnapshotsService {
 
       await this.removePnlSnapshot(
         platform,
-        dayjs(startDate).subtract(30, 'days').format('YYYY-MM-DD'),
+        dayjs(startDate).subtract(90, 'days').format('YYYY-MM-DD'),
       );
 
       startDate = dayjs(startDate).add(1, 'day').toDate();

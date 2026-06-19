@@ -20,6 +20,8 @@ import {
   PlanSummaryConnection,
   BotGroupPaginatedResponse,
   SimulationResumeResult,
+  SimulationProgressLog,
+  SimulationProgressLogConnection,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -119,6 +121,24 @@ export class PlansResolver {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
   }
 
+  @Subscription(() => SimulationProgressLog, {
+    name: SUBSCRIPTION_TOKEN.simulationProgressUpdated,
+    filter: (payload, variables) => {
+      return (
+        payload.simulationProgressUpdated.userId === variables.userId &&
+        payload.simulationProgressUpdated.planId === variables.planId
+      );
+    },
+  })
+  subscribeToSimulationProgressUpdated(
+    @Args('userId', { type: () => String }) _userId: string,
+    @Args('planId', { type: () => Int }) _planId: number,
+  ) {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.simulationProgressUpdated,
+    );
+  }
+
   @Query(() => PlanConnection)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -179,6 +199,23 @@ export class PlansResolver {
       planId,
       page,
       pageSize,
+    );
+  }
+
+  @Query(() => SimulationProgressLogConnection)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  getSimulationProgressLogs(
+    @Args('planId', { type: () => Int }) planId: number,
+    @Args('first', { type: () => Int, defaultValue: 50 }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @CurrentUser() user: User,
+  ) {
+    return this.plansService.getSimulationProgressLogs(
+      user.address,
+      planId,
+      first,
+      after,
     );
   }
 }
