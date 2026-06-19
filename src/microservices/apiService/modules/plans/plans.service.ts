@@ -353,6 +353,7 @@ export class PlansService {
   async getSimulationProgressLogs(
     userId: string,
     planId: number,
+    contractId: number | null,
     first: number,
     after: number | null,
   ): Promise<SimulationProgressLogConnection> {
@@ -369,6 +370,7 @@ export class PlansService {
       where: {
         planId,
         userId,
+        ...(contractId ? { contractId } : {}),
       },
       orderBy: [
         { createdAt: 'desc' },

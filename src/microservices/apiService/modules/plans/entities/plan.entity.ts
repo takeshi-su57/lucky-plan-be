@@ -118,6 +118,24 @@ export class SimulationProgressLog {
   @Field(() => Float)
   percent: number;
 
+  @Field(() => Int, { nullable: true })
+  contractId: number | null;
+
+  @Field(() => String, { nullable: true })
+  contractAddress: string | null;
+
+  @Field(() => String, { nullable: true })
+  contractPlatform: string | null;
+
+  @Field(() => Int, { nullable: true })
+  contractIndex: number | null;
+
+  @Field(() => Int, { nullable: true })
+  contractCount: number | null;
+
+  @Field(() => Float, { nullable: true })
+  contractPercent: number | null;
+
   @Field(() => Date, { nullable: true })
   windowStart: Date | null;
 

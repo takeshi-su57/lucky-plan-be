@@ -124,15 +124,28 @@ export class PlansResolver {
   @Subscription(() => SimulationProgressLog, {
     name: SUBSCRIPTION_TOKEN.simulationProgressUpdated,
     filter: (payload, variables) => {
-      return (
-        payload.simulationProgressUpdated.userId === variables.userId &&
-        payload.simulationProgressUpdated.planId === variables.planId
-      );
+      if (payload.simulationProgressUpdated.userId !== variables.userId) {
+        return false;
+      }
+
+      if (payload.simulationProgressUpdated.planId !== variables.planId) {
+        return false;
+      }
+
+      if (variables.contractId) {
+        return (
+          payload.simulationProgressUpdated.contractId === variables.contractId
+        );
+      }
+
+      return true;
     },
   })
   subscribeToSimulationProgressUpdated(
     @Args('userId', { type: () => String }) _userId: string,
     @Args('planId', { type: () => Int }) _planId: number,
+    @Args('contractId', { type: () => Int, nullable: true })
+    _contractId: number | null,
   ) {
     return this.pubSub.asyncIterableIterator(
       SUBSCRIPTION_TOKEN.simulationProgressUpdated,
@@ -207,6 +220,8 @@ export class PlansResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   getSimulationProgressLogs(
     @Args('planId', { type: () => Int }) planId: number,
+    @Args('contractId', { type: () => Int, nullable: true })
+    contractId: number | null,
     @Args('first', { type: () => Int, defaultValue: 50 }) first: number,
     @Args('after', { type: () => Int, nullable: true }) after: number | null,
     @CurrentUser() user: User,
@@ -214,6 +229,7 @@ export class PlansResolver {
     return this.plansService.getSimulationProgressLogs(
       user.address,
       planId,
+      contractId,
       first,
       after,
     );

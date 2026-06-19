@@ -139,8 +139,6 @@ export class PlanSimulationService {
     await this.publishPlanUpdated(runningPlan);
     const stats = this.emptyStats();
 
-    void this.runResumeTask(runId, context, window, speed, runningPlan.id);
-
     await this.debug(runId, planId, 'background-task-started', {
       userId,
       status: 'Running',
@@ -150,6 +148,8 @@ export class PlanSimulationService {
       windowEnd: window.end,
       speed,
     });
+
+    void this.runResumeTask(runId, context, window, speed, runningPlan.id);
 
     return {
       accepted: true,
@@ -356,16 +356,30 @@ export class PlanSimulationService {
     const contracts = this.getLeaderContracts(context);
     let actionCount = 0;
 
-    for (const contract of contracts) {
+    for (
+      let contractIndex = 0;
+      contractIndex < contracts.length;
+      contractIndex++
+    ) {
+      const contract = contracts[contractIndex];
+      const progressContext = this.getContractProgressContext(
+        contract,
+        contractIndex,
+        contracts.length,
+      );
+
       await this.debug(runId, context.plan.id, 'leader-contract-started', {
         status: 'Running',
         message: `Scanning ${contract.platform} leader contract ${contract.id}`,
-        percent: 12,
-        contractId: contract.id,
-        platform: contract.platform,
-        version: contract.version,
-        chainId: contract.chainId,
-        address: contract.address,
+        percent: this.getLeaderGlobalPercent(
+          contractIndex,
+          contracts.length,
+          0,
+        ),
+        contractPercent: 0,
+        ...progressContext,
+        contractVersion: contract.version,
+        contractChainId: contract.chainId,
         fromBlock: contract.fromBlock,
       });
       const fromBlock = await this.findBlockByTimestamp(contract, window.start);
@@ -384,8 +398,13 @@ export class PlanSimulationService {
           {
             status: 'Running',
             message: `No block range to scan for leader contract ${contract.id}`,
-            percent: 25,
-            contractId: contract.id,
+            percent: this.getLeaderGlobalPercent(
+              contractIndex,
+              contracts.length,
+              100,
+            ),
+            contractPercent: 100,
+            ...progressContext,
             fromBlock: fromBlock.toString(),
             toBlock: toBlock.toString(),
           },
@@ -396,8 +415,13 @@ export class PlanSimulationService {
       await this.debug(runId, context.plan.id, 'leader-contract-block-range', {
         status: 'Running',
         message: `Resolved scan block range for leader contract ${contract.id}`,
-        percent: 20,
-        contractId: contract.id,
+        percent: this.getLeaderGlobalPercent(
+          contractIndex,
+          contracts.length,
+          5,
+        ),
+        contractPercent: 5,
+        ...progressContext,
         fromBlock: fromBlock.toString(),
         exclusiveEndBlock: exclusiveEndBlock.toString(),
         toBlock: toBlock.toString(),
@@ -405,18 +429,34 @@ export class PlanSimulationService {
 
       let chunkFromBlock = fromBlock;
       const chunkBlockSize = PlanSimulationService.SIMULATION_CHUNK_BLOCKSIZE;
+      const totalBlocks = Number(toBlock - fromBlock + 1n);
 
       while (chunkFromBlock <= toBlock) {
         const chunkToBlock =
           chunkFromBlock + chunkBlockSize - 1n < toBlock
             ? chunkFromBlock + chunkBlockSize - 1n
             : toBlock;
+        const chunkStartPercent = this.getContractBlockPercent(
+          fromBlock,
+          chunkFromBlock - 1n,
+          totalBlocks,
+        );
+        const chunkEndPercent = this.getContractBlockPercent(
+          fromBlock,
+          chunkToBlock,
+          totalBlocks,
+        );
 
         await this.debug(runId, context.plan.id, 'leader-chunk-scan-started', {
           status: 'Running',
           message: `Scanning chain logs for blocks ${chunkFromBlock.toString()}-${chunkToBlock.toString()}`,
-          percent: 30,
-          contractId: contract.id,
+          percent: this.getLeaderGlobalPercent(
+            contractIndex,
+            contracts.length,
+            chunkStartPercent,
+          ),
+          contractPercent: chunkStartPercent,
+          ...progressContext,
           fromBlock: chunkFromBlock.toString(),
           toBlock: chunkToBlock.toString(),
         });
@@ -430,8 +470,13 @@ export class PlanSimulationService {
         await this.debug(runId, context.plan.id, 'leader-chunk-scan-finished', {
           status: 'Running',
           message: `Scanned chain chunk with ${actionItems.length} action items`,
-          percent: 45,
-          contractId: contract.id,
+          percent: this.getLeaderGlobalPercent(
+            contractIndex,
+            contracts.length,
+            chunkEndPercent,
+          ),
+          contractPercent: chunkEndPercent,
+          ...progressContext,
           fromBlock: chunkFromBlock.toString(),
           toBlock: chunkToBlock.toString(),
           actionItemCount: actionItems.length,
@@ -464,8 +509,13 @@ export class PlanSimulationService {
           await this.debug(runId, context.plan.id, 'leader-actions-handled', {
             status: 'Running',
             message: `Handled ${actionItems.length} leader action items`,
-            percent: 55,
-            contractId: contract.id,
+            percent: this.getLeaderGlobalPercent(
+              contractIndex,
+              contracts.length,
+              chunkEndPercent,
+            ),
+            contractPercent: chunkEndPercent,
+            ...progressContext,
             actionItemCount: actionItems.length,
             cumulativeLeaderActionCount: actionCount,
           });
@@ -477,7 +527,13 @@ export class PlanSimulationService {
           await this.debug(runId, context.plan.id, 'leader-chunk-delay', {
             status: 'Running',
             message: 'Waiting before scanning the next simulation chunk',
-            percent: 58,
+            percent: this.getLeaderGlobalPercent(
+              contractIndex,
+              contracts.length,
+              chunkEndPercent,
+            ),
+            contractPercent: chunkEndPercent,
+            ...progressContext,
             speed,
             nextFromBlock: chunkFromBlock.toString(),
           });
@@ -765,6 +821,18 @@ export class PlanSimulationService {
         windowStart:
           details.windowStart instanceof Date ? details.windowStart : null,
         windowEnd: details.windowEnd instanceof Date ? details.windowEnd : null,
+        contractId: this.toNullableStatNumber(details.contractId),
+        contractAddress:
+          typeof details.contractAddress === 'string'
+            ? details.contractAddress
+            : null,
+        contractPlatform:
+          typeof details.contractPlatform === 'string'
+            ? details.contractPlatform
+            : null,
+        contractIndex: this.toNullableStatNumber(details.contractIndex),
+        contractCount: this.toNullableStatNumber(details.contractCount),
+        contractPercent: this.toNullableStatNumber(details.contractPercent),
         ...stats,
       },
     });
@@ -790,11 +858,68 @@ export class PlanSimulationService {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
+  private toNullableStatNumber(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
   private humanizePhase(phase: string) {
     return phase
       .split('-')
       .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
       .join(' ');
+  }
+
+  private getContractProgressContext(
+    contract: Contract,
+    contractIndex: number,
+    contractCount: number,
+  ) {
+    return {
+      contractId: contract.id,
+      contractAddress: contract.address,
+      contractPlatform: contract.platform,
+      contractIndex: contractIndex + 1,
+      contractCount,
+    };
+  }
+
+  private getContractBlockPercent(
+    fromBlock: bigint,
+    processedToBlock: bigint,
+    totalBlocks: number,
+  ) {
+    if (totalBlocks <= 0 || processedToBlock < fromBlock) {
+      return 0;
+    }
+
+    const processedBlocks = Number(processedToBlock - fromBlock + 1n);
+
+    return Math.max(
+      0,
+      Math.min(100, Math.round((processedBlocks / totalBlocks) * 100)),
+    );
+  }
+
+  private getLeaderGlobalPercent(
+    contractIndex: number,
+    contractCount: number,
+    contractPercent: number,
+  ) {
+    if (contractCount <= 0) {
+      return 65;
+    }
+
+    const leaderStartPercent = 10;
+    const leaderEndPercent = 65;
+    const contractSpan =
+      (leaderEndPercent - leaderStartPercent) / contractCount;
+    const completedContractsPercent = contractIndex * contractSpan;
+    const currentContractPercent =
+      (Math.max(0, Math.min(100, contractPercent)) / 100) * contractSpan;
+
+    return Math.round(
+      leaderStartPercent + completedContractsPercent + currentContractPercent,
+    );
   }
 
   private getLeaderContracts(context: SimulationPlanContext) {

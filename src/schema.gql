@@ -707,7 +707,7 @@ type Query {
   getPnlSnapshotV2InitializedFlag(platform: Platform!): [PnlSnapshotV2InitializedFlag!]!
   getPnlSnapshotsV2(after: String, dateStr: String!, first: Int!, isDesc: Boolean!, platform: Platform!): PnlSnapshotV2DetailsConnection!
   getServerTime: ServerTime!
-  getSimulationProgressLogs(after: Int, first: Int! = 50, planId: Int!): SimulationProgressLogConnection!
+  getSimulationProgressLogs(after: Int, contractId: Int, first: Int! = 50, planId: Int!): SimulationProgressLogConnection!
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   systemStatus: Boolean!
@@ -740,6 +740,12 @@ type SeverityCount {
 }
 
 type SimulationProgressLog {
+  contractAddress: String
+  contractCount: Int
+  contractId: Int
+  contractIndex: Int
+  contractPercent: Float
+  contractPlatform: String
   createdAt: Date!
   details: String
   executionIterations: Int!
@@ -812,7 +818,7 @@ type Subscription {
   newLog(checked: Boolean!, severity: LogSeverity): Log!
   planCreated(userId: String!): Plan!
   planUpdated(userId: String!): Plan!
-  simulationProgressUpdated(planId: Int!, userId: String!): SimulationProgressLog!
+  simulationProgressUpdated(contractId: Int, planId: Int!, userId: String!): SimulationProgressLog!
   taskCreated(userId: String!): [TaskBackwardDetails!]!
   taskUpdated(userId: String!): [TaskBackwardDetails!]!
 }

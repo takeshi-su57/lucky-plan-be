@@ -156,6 +156,12 @@ model SimulationProgressLog {
   message             String
   details             String?
   percent             Float    @default(0)
+  contractId          Int?
+  contractAddress     String?
+  contractPlatform    String?
+  contractIndex       Int?
+  contractCount       Int?
+  contractPercent     Float?
   windowStart         DateTime?
   windowEnd           DateTime?
   leaderActionCount   Int      @default(0)
@@ -168,6 +174,7 @@ model SimulationProgressLog {
   plan                Plan     @relation(fields: [planId], references: [id])
 
   @@index([planId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([planId, contractId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([runId, createdAt(sort: Asc), id(sort: Asc)])
   @@index([userId, planId, createdAt(sort: Desc)])
 }

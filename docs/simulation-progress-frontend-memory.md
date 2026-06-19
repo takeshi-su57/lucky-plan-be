@@ -9,12 +9,13 @@ Backend now treats `resumeSimulation` as an async trigger. The mutation returns 
 3. Subscribe to `simulationProgressUpdated(userId, planId)` for live progress events.
 4. Also subscribe to existing `planUpdated(userId)` if the page needs plan status/cursor changes.
 5. On page load or refresh, call `getSimulationProgressLogs(planId, first: 50)` to rebuild the recent progress timeline.
+6. Group progress rows by `contractId` when rendering contract scan details.
 
 ## Live Subscription
 
 ```graphql
-subscription SimulationProgress($userId: String!, $planId: Int!) {
-  simulationProgressUpdated(userId: $userId, planId: $planId) {
+subscription SimulationProgress($userId: String!, $planId: Int!, $contractId: Int) {
+  simulationProgressUpdated(userId: $userId, planId: $planId, contractId: $contractId) {
     id
     planId
     userId
@@ -24,6 +25,12 @@ subscription SimulationProgress($userId: String!, $planId: Int!) {
     message
     details
     percent
+    contractId
+    contractAddress
+    contractPlatform
+    contractIndex
+    contractCount
+    contractPercent
     windowStart
     windowEnd
     leaderActionCount
@@ -40,8 +47,8 @@ subscription SimulationProgress($userId: String!, $planId: Int!) {
 ## Refresh/History Query
 
 ```graphql
-query SimulationProgressHistory($planId: Int!, $first: Int = 50, $after: Int) {
-  getSimulationProgressLogs(planId: $planId, first: $first, after: $after) {
+query SimulationProgressHistory($planId: Int!, $contractId: Int, $first: Int = 50, $after: Int) {
+  getSimulationProgressLogs(planId: $planId, contractId: $contractId, first: $first, after: $after) {
     edges {
       cursor
       node {
@@ -52,6 +59,12 @@ query SimulationProgressHistory($planId: Int!, $first: Int = 50, $after: Int) {
         message
         details
         percent
+        contractId
+        contractAddress
+        contractPlatform
+        contractIndex
+        contractCount
+        contractPercent
         windowStart
         windowEnd
         leaderActionCount
@@ -73,12 +86,16 @@ query SimulationProgressHistory($planId: Int!, $first: Int = 50, $after: Int) {
 
 History is newest-first. Use the first edge as the latest widget state, and render the rest as a recent activity timeline.
 
+`percent` is global run progress and should be monotonic for the whole simulation window. `contractPercent` is per-contract scan progress and should be used inside contract-specific panels. Some non-contract phases have `contractId: null`.
+
 ## Widget Model
 
 Recommended top-level widget state:
 
 - `status`: `Accepted`, `Running`, `Completed`, `Failed`, `Finished`, or `Rejected`
 - `percent`: approximate progress from 0 to 100
+- `contractPercent`: approximate progress for the current contract scan
+- `contractId`, `contractIndex`, `contractCount`: use these to group and label contract progress
 - `message`: human-readable current step
 - `phase`: machine-friendly step key, such as `leader-chunk-scan-started`
 - `runId`: groups all events from one resume request
@@ -88,6 +105,7 @@ Recommended top-level widget state:
 Suggested UI:
 
 - Progress bar from `percent`.
+- Per-contract progress bars from `contractPercent`, grouped by `contractId`.
 - Status badge from `status`.
 - Current text from `message`.
 - Small secondary line from `phase`.
