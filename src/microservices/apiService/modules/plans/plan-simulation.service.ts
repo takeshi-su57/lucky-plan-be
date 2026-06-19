@@ -58,8 +58,8 @@ type SimulationRunStats = {
 export class PlanSimulationService {
   private static readonly DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
   private static readonly MAX_EXECUTION_ITERATIONS = 20;
-  private static readonly ACTION_SCAN_CHUNK_MS = 60 * 60 * 1000;
-  private static readonly SIMULATION_CHUNK_DELAY_MS = 1_000;
+  private static readonly SIMULATION_CHUNK_BLOCKSIZE = 400n;
+  private static readonly SIMULATION_CHUNK_DELAY_MS = 4_000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -256,11 +256,7 @@ export class PlanSimulationService {
       }
 
       let chunkFromBlock = fromBlock;
-      const chunkBlockSize = this.getSimulationChunkBlockSize(
-        fromBlock,
-        toBlock,
-        window,
-      );
+      const chunkBlockSize = PlanSimulationService.SIMULATION_CHUNK_BLOCKSIZE;
 
       while (chunkFromBlock <= toBlock) {
         const chunkToBlock =
@@ -292,25 +288,6 @@ export class PlanSimulationService {
     }
 
     return actionCount;
-  }
-
-  private getSimulationChunkBlockSize(
-    fromBlock: bigint,
-    toBlock: bigint,
-    window: SimulationWindow,
-  ) {
-    const blockCount = toBlock - fromBlock + 1n;
-    const windowDurationMs = BigInt(
-      Math.max(1, window.end.getTime() - window.start.getTime()),
-    );
-    const chunkDurationMs = BigInt(
-      PlanSimulationService.ACTION_SCAN_CHUNK_MS,
-    );
-    const chunkBlockSize =
-      (blockCount * chunkDurationMs + windowDurationMs - 1n) /
-      windowDurationMs;
-
-    return chunkBlockSize > 0n ? chunkBlockSize : 1n;
   }
 
   private async delaySimulationChunk(speed: number) {
