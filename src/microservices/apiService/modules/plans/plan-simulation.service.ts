@@ -53,8 +53,8 @@ type SimulationRunStats = {
 export class PlanSimulationService {
   private static readonly DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
   private static readonly MAX_EXECUTION_ITERATIONS = 20;
-  private static readonly SIMULATION_CHUNK_BLOCKSIZE = 400n;
-  private static readonly SIMULATION_CHUNK_DELAY_MS = 4_000;
+  private static readonly SIMULATION_CHUNK_BLOCKSIZE = 1200n;
+  private static readonly SIMULATION_CHUNK_DELAY_MS = 1_000;
   private readonly runUsers = new Map<string, string>();
 
   constructor(
