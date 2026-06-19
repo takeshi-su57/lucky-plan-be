@@ -700,7 +700,7 @@ type Query {
   getMaxOpenMissions: Int!
   getMicroserviceStatus: [MicroserviceStatus!]!
   getPerpTradeHistories(addresses: [String!]!, platform: Platform!): [[PerpTradeHistory!]!]!
-  getPlanBotGroups(hideDead: Boolean! = true, page: Int! = 1, pageSize: Int! = 10, planId: Int!): BotGroupPaginatedResponse!
+  getPlanBotGroups(page: Int! = 1, pageSize: Int! = 10, planId: Int!): BotGroupPaginatedResponse!
   getPlanById(id: Int!): Plan
   getPlanSummariesByStatus(after: Int, first: Int!, status: PlanStatus!): PlanSummaryConnection!
   getPlansByStatus(after: Int, first: Int!, status: PlanStatus!): PlanConnection!

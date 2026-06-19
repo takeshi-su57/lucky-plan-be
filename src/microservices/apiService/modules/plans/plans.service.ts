@@ -272,14 +272,12 @@ export class PlansService {
     planId: number,
     page: number,
     pageSize: number,
-    hideDead: boolean,
   ): Promise<BotGroupPaginatedResponse> {
     await this.checkAuthorization(userId, planId);
 
     const bots = await this.prisma.bot.findMany({
       where: {
         planId,
-        ...(hideDead && { status: { not: BotStatus.Dead } }),
       },
       orderBy: { id: 'asc' },
       include: {

@@ -4,7 +4,6 @@ import {
   BotStatus,
   Contract,
   MissionStatus,
-  MissionMode,
   StrategyMode,
   PlanMode,
 } from 'generated/prisma/client';
@@ -236,10 +235,6 @@ export class BotsService {
         const batchBots = bots.slice(i, i + BATCH_SIZE);
 
         const promises = batchBots.map(async (bot) => {
-          const realMissionsCount = bot.missions.filter(
-            (item) => item.mode === MissionMode.Default,
-          ).length;
-
           if (
             bot.status === BotStatus.Stop &&
             !bot.missions.find(
@@ -254,7 +249,7 @@ export class BotsService {
           } else if (
             bot.status === BotStatus.Live &&
             bot.strategy.mode === StrategyMode.Default &&
-            realMissionsCount >= bot.strategy.lifeTime
+            bot.strategy.lifeTime <= 0
           ) {
             // handle for default bot mode.
             const updatedBot = await this._turnoffDefaultMode(bot);

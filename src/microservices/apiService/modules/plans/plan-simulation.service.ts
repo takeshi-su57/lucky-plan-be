@@ -58,6 +58,8 @@ type SimulationRunStats = {
 export class PlanSimulationService {
   private static readonly DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
   private static readonly MAX_EXECUTION_ITERATIONS = 20;
+  private static readonly ACTION_SCAN_CHUNK_MS = 60 * 60 * 1000;
+  private static readonly SIMULATION_CHUNK_DELAY_MS = 1_000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -94,7 +96,11 @@ export class PlanSimulationService {
     const stats = this.emptyStats();
 
     try {
-      stats.leaderActionCount = await this.replayLeaderEvents(context, window);
+      stats.leaderActionCount = await this.replayLeaderEvents(
+        context,
+        window,
+        speed,
+      );
       const executionStats = await this.executeVirtualFollowerActions(
         context,
         window,
@@ -231,6 +237,7 @@ export class PlanSimulationService {
   private async replayLeaderEvents(
     context: SimulationPlanContext,
     window: SimulationWindow,
+    speed: number,
   ) {
     const contracts = this.getLeaderContracts(context);
     let actionCount = 0;
@@ -248,25 +255,72 @@ export class PlanSimulationService {
         continue;
       }
 
-      const actionItems = await this.scanActionItems(
-        contract,
+      let chunkFromBlock = fromBlock;
+      const chunkBlockSize = this.getSimulationChunkBlockSize(
         fromBlock,
         toBlock,
+        window,
       );
 
-      if (actionItems.length === 0) {
-        continue;
+      while (chunkFromBlock <= toBlock) {
+        const chunkToBlock =
+          chunkFromBlock + chunkBlockSize - 1n < toBlock
+            ? chunkFromBlock + chunkBlockSize - 1n
+            : toBlock;
+
+        const actionItems = await this.scanActionItems(
+          contract,
+          chunkFromBlock,
+          chunkToBlock,
+        );
+
+        if (actionItems.length > 0) {
+          actionCount += actionItems.length;
+
+          await this.botsService.handleActionItems(contract, actionItems, {
+            planMode: PlanMode.Simulation,
+            planId: context.plan.id,
+          });
+        }
+
+        chunkFromBlock = chunkToBlock + 1n;
+
+        if (chunkFromBlock <= toBlock) {
+          await this.delaySimulationChunk(speed);
+        }
       }
-
-      actionCount += actionItems.length;
-
-      await this.botsService.handleActionItems(contract, actionItems, {
-        planMode: PlanMode.Simulation,
-        planId: context.plan.id,
-      });
     }
 
     return actionCount;
+  }
+
+  private getSimulationChunkBlockSize(
+    fromBlock: bigint,
+    toBlock: bigint,
+    window: SimulationWindow,
+  ) {
+    const blockCount = toBlock - fromBlock + 1n;
+    const windowDurationMs = BigInt(
+      Math.max(1, window.end.getTime() - window.start.getTime()),
+    );
+    const chunkDurationMs = BigInt(
+      PlanSimulationService.ACTION_SCAN_CHUNK_MS,
+    );
+    const chunkBlockSize =
+      (blockCount * chunkDurationMs + windowDurationMs - 1n) /
+      windowDurationMs;
+
+    return chunkBlockSize > 0n ? chunkBlockSize : 1n;
+  }
+
+  private async delaySimulationChunk(speed: number) {
+    const delayMs = Math.floor(
+      PlanSimulationService.SIMULATION_CHUNK_DELAY_MS / speed,
+    );
+
+    if (delayMs > 0) {
+      await delay(delayMs);
+    }
   }
 
   private async executeVirtualFollowerActions(

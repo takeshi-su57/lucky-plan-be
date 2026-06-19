@@ -319,6 +319,126 @@ export class MissionsService {
     return missionsByBotMap;
   }
 
+  private async createOpenMissionWithLifetime(item: ActionContext<BotContext>) {
+    return await this.prismaService.$transaction(async (tx) => {
+      const existingMission = await tx.mission.findFirst({
+        where: {
+          botId: item.context.bot.id,
+          targetPositionBlockNumber: item.action.blockNumber,
+          targetPositionLogIndex: item.action.orderInBlock,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingMission) {
+        return {
+          missionId: existingMission.id,
+          created: false,
+          strategyUpdated: false,
+        };
+      }
+
+      let mode: MissionMode = MissionMode.Signal;
+      let strategyUpdated = false;
+
+      if (item.context.bot.strategy.mode === StrategyMode.Default) {
+        const consumed = await tx.strategy.updateMany({
+          where: {
+            id: item.context.bot.strategy.id,
+            mode: StrategyMode.Default,
+            lifeTime: {
+              gt: 0,
+            },
+          },
+          data: {
+            lifeTime: {
+              decrement: 1,
+            },
+          },
+        });
+
+        if (consumed.count > 0) {
+          mode = MissionMode.Default;
+          strategyUpdated = true;
+
+          await tx.strategy.updateMany({
+            where: {
+              id: item.context.bot.strategy.id,
+              mode: StrategyMode.Default,
+              lifeTime: {
+                lte: 0,
+              },
+            },
+            data: {
+              mode: StrategyMode.Signal,
+            },
+          });
+        } else {
+          const turnedOff = await tx.strategy.updateMany({
+            where: {
+              id: item.context.bot.strategy.id,
+              mode: StrategyMode.Default,
+              lifeTime: {
+                lte: 0,
+              },
+            },
+            data: {
+              mode: StrategyMode.Signal,
+            },
+          });
+
+          strategyUpdated = turnedOff.count > 0;
+        }
+      }
+
+      const mission = await tx.mission.create({
+        data: {
+          botId: item.context.bot.id,
+          targetPositionKey: item.action.positionKey,
+          targetPositionBlockNumber: item.action.blockNumber,
+          targetPositionLogIndex: item.action.orderInBlock,
+          mode,
+          status: MissionStatus.Created,
+        },
+      });
+
+      return {
+        missionId: mission.id,
+        created: true,
+        strategyUpdated,
+      };
+    });
+  }
+
+  private async emitStrategyBotUpdates(strategyIds: number[]) {
+    const uniqueStrategyIds = [...new Set(strategyIds)];
+
+    if (uniqueStrategyIds.length === 0) {
+      return;
+    }
+
+    const bots = await this.prismaService.bot.findMany({
+      where: {
+        strategyId: {
+          in: uniqueStrategyIds,
+        },
+      },
+      include: {
+        follower: true,
+        strategy: true,
+        leaderContract: true,
+        followerContract: true,
+        plan: true,
+      },
+    });
+
+    if (bots.length > 0) {
+      await this.redisClient.emit(PATTERNS.Bots.BotUpdated, bots);
+    }
+  }
+
   async closeMission(
     userId: string,
     id: number,
@@ -1017,23 +1137,39 @@ export class MissionsService {
       : openEvents;
 
     if (availableOpenEvents.length > 0) {
-      await this.createMany(
-        availableOpenEvents.map((item) => {
-          const mode =
-            item.context.bot.strategy.mode === StrategyMode.Signal
-              ? MissionMode.Signal
-              : MissionMode.Default;
+      const missionIds: number[] = [];
+      const updatedStrategyIds: number[] = [];
 
-          return {
-            botId: item.context.bot.id,
-            targetPositionKey: item.action.positionKey,
-            targetPositionBlockNumber: item.action.blockNumber,
-            targetPositionLogIndex: item.action.orderInBlock,
-            mode,
-          };
-        }),
-        missionsByBotMap,
-      );
+      for (const item of availableOpenEvents) {
+        const { missionId, created, strategyUpdated } =
+          await this.createOpenMissionWithLifetime(item);
+
+        if (created) {
+          missionIds.push(missionId);
+        }
+
+        if (strategyUpdated) {
+          updatedStrategyIds.push(item.context.bot.strategy.id);
+        }
+      }
+
+      const missions = await this.getMissions(missionIds);
+
+      missions.forEach((mission) => {
+        const arr = missionsByBotMap.get(mission.botId);
+
+        if (arr) {
+          arr.push(mission);
+        } else {
+          missionsByBotMap.set(mission.botId, [mission]);
+        }
+      });
+
+      if (missions.length > 0) {
+        await this.redisClient.emit(PATTERNS.Missions.MissionCreated, missions);
+      }
+
+      await this.emitStrategyBotUpdates(updatedStrategyIds);
     }
   }
 

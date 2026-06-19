@@ -172,8 +172,6 @@ export class PlansResolver {
     @Args('planId', { type: () => Int }) planId: number,
     @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
     @Args('pageSize', { type: () => Int, defaultValue: 10 }) pageSize: number,
-    @Args('hideDead', { type: () => Boolean, defaultValue: true })
-    hideDead: boolean,
     @CurrentUser() user: User,
   ) {
     return this.plansService.getPlanBotGroups(
@@ -181,7 +179,6 @@ export class PlansResolver {
       planId,
       page,
       pageSize,
-      hideDead,
     );
   }
 }
