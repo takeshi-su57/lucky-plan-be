@@ -16,6 +16,7 @@ import {
   GetLogsPayload,
   EstimateFeesPerGasPayload,
   GetBlockNumberPayload,
+  GetLatestFinalizedBlock,
 } from './types';
 import { ChainPriority } from 'src/types';
 
@@ -226,6 +227,18 @@ export class EvmAdapterService {
       async (publicClient) => {
         return await publicClient.getBlock({
           blockNumber: payload.blockNumber,
+        });
+      },
+    );
+  }
+
+  async getLatestFinalizedBlock(payload: GetLatestFinalizedBlock) {
+    return await this.chainsService.readWithSemaphore(
+      payload.chainId,
+      payload.priority,
+      async (publicClient) => {
+        return await publicClient.getBlock({
+          blockTag: 'finalized',
         });
       },
     );

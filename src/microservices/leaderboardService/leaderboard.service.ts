@@ -96,10 +96,12 @@ export class LeaderboardService {
     try {
       const contract = await this.contractsService.findOne(contractId);
 
-      const currentBlockNumber = await this.evmAdapterService.getBlockNumber({
-        chainId: contract.chainId,
-        priority: ChainPriority.HIGH,
-      });
+      const currentBlock = await this.evmAdapterService.getLatestFinalizedBlock(
+        {
+          chainId: contract.chainId,
+          priority: ChainPriority.HIGH,
+        },
+      );
 
       let fromBlock = shouldRestart
         ? BigInt(contract.fromBlock)
@@ -107,7 +109,7 @@ export class LeaderboardService {
 
       const endBlock = contract.toBlock
         ? BigInt(contract.toBlock)
-        : currentBlockNumber;
+        : currentBlock.number;
 
       await this.cleanLogs(contract.id, Number(fromBlock), Number(endBlock));
 

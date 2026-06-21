@@ -159,7 +159,7 @@ export class ActionsService {
       skipDuplicates: true,
     });
 
-    const processings = await this.prismaService.actionProcessing.findMany({
+    const unprocessings = await this.prismaService.actionProcessing.findMany({
       where: {
         actionId: {
           in: actions.map((action) => action.id),
@@ -174,7 +174,7 @@ export class ActionsService {
       },
     });
 
-    const actionIds = new Set(processings.map((item) => item.actionId));
+    const actionIds = new Set(unprocessings.map((item) => item.actionId));
 
     return actions.filter((action) => actionIds.has(action.id));
   }

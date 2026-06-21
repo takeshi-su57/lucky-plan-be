@@ -7,27 +7,25 @@ import { ServiceStatus } from 'src/types';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 import { BotsService } from 'src/microservices/apiService/modules/bots/bots.service';
-import { TradingService } from './trading.service';
-import { TaskExecutorService } from '../apiService/modules/task-executor/task-executor.service';
 import { LogsService } from 'src/global/logs.service';
 import { PlansService } from '../apiService/modules/plans/plans.service';
 import { SLTPService } from '../apiService/modules/sltp/sltp.service';
+import { CopyTradingService } from './copy-trading.service';
 
 @Controller()
 export class TradingController implements OnApplicationBootstrap {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
-    private readonly tradingService: TradingService,
     private readonly botsService: BotsService,
     private readonly plansService: PlansService,
-    private readonly taskExecutorService: TaskExecutorService,
     private readonly sltpService: SLTPService,
+    private readonly copyTradingService: CopyTradingService,
     private readonly logger: LogsService,
   ) {}
 
   async onApplicationBootstrap() {
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.TRADING_SERVICE,
+      service: SERVICE_NAMES.COPY_TRADING_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
     });
@@ -36,7 +34,7 @@ export class TradingController implements OnApplicationBootstrap {
   @EventPattern(PATTERNS.AskProcessStatus)
   async askProcessStatus() {
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.TRADING_SERVICE,
+      service: SERVICE_NAMES.COPY_TRADING_SERVICE,
       pid: process.pid,
       status: ServiceStatus.READY,
     });
@@ -44,11 +42,12 @@ export class TradingController implements OnApplicationBootstrap {
 
   @EventPattern(PATTERNS.killProcessEvent)
   async killProcess(@Payload() payload?: { service?: string }) {
-    if (payload?.service && payload.service !== SERVICE_NAMES.TRADING_SERVICE) {
+    if (
+      payload?.service &&
+      payload.service !== SERVICE_NAMES.COPY_TRADING_SERVICE
+    ) {
       return;
     }
-
-    this.tradingService.isReceivedKillProcess = true;
 
     this.logger.nativeLog({
       severity: 'Info',
@@ -57,7 +56,7 @@ export class TradingController implements OnApplicationBootstrap {
     });
 
     await this.client.emit(PATTERNS.ProcessStatus, {
-      service: SERVICE_NAMES.TRADING_SERVICE,
+      service: SERVICE_NAMES.COPY_TRADING_SERVICE,
       pid: process.pid,
       status: ServiceStatus.KILLED,
     });
@@ -69,26 +68,15 @@ export class TradingController implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async executeCronForBotMonitor() {
-    if (
-      this.tradingService.isReceivedKillProcess ||
-      this.tradingService.status !== ServiceStatus.READY ||
-      this.taskExecutorService.status !== ServiceStatus.READY
-    ) {
+    if (this.copyTradingService.status !== ServiceStatus.READY) {
       return;
     }
 
-    await this.tradingService.checkContractsForBots();
-    await this.taskExecutorService.performAvailableTasks();
-    await this.taskExecutorService.handleFailedTasks();
-    await this.taskExecutorService.handleAwaitTasks();
+    await this.copyTradingService.run();
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async checkAndUpdateAllBots() {
-    if (this.tradingService.isReceivedKillProcess) {
-      return;
-    }
-
     if (this.botsService.status === ServiceStatus.READY) {
       await this.botsService.checkAndUpdateAllBots();
     }

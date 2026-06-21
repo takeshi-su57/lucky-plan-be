@@ -83,6 +83,7 @@ import {
   missionEventNames as avntMissionEventNames,
 } from 'src/web3/platform/avnt/v1/eventParsers';
 import { getPairName as getAvntPairName } from 'src/web3/platform/avnt/v1/configs';
+import { CopyTradingTaskExecutor } from '../copy-trading.components';
 
 const expectedEventSignatures: Record<string, string> = Object.fromEntries(
   gnsMultiCollatDiamondAbi
@@ -93,7 +94,7 @@ const expectedEventSignatures: Record<string, string> = Object.fromEntries(
 const registeredEventNames = eventParsers.map((item) => item.eventName);
 
 @Injectable()
-export class TaskExecutorService {
+export class TaskExecutorService extends CopyTradingTaskExecutor {
   status: ServiceStatus = ServiceStatus.READY;
 
   constructor(
@@ -106,6 +107,8 @@ export class TaskExecutorService {
     private readonly evmAdapterService: EvmAdapterService,
     private readonly gnsService: GnsService,
   ) {
+    super();
+
     this.status = ServiceStatus.READY;
   }
 
@@ -1181,84 +1184,6 @@ export class TaskExecutorService {
     }
   }
 
-  async performTaskById(userId: string, taskId: number): Promise<boolean> {
-    const task = await this.prismaService.task.findUnique({
-      where: {
-        id: taskId,
-        mission: {
-          bot: {
-            plan: {
-              userId,
-              mode: PlanMode.Live,
-            },
-          },
-        },
-      },
-      include: {
-        action: true,
-        followerActions: {
-          include: {
-            action: true,
-          },
-        },
-        mission: {
-          include: {
-            bot: {
-              include: {
-                follower: true,
-                strategy: true,
-                leaderContract: true,
-                followerContract: true,
-                plan: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!task) {
-      throw new Error(
-        'Invalid taskId!, there is no such task which has give taskId',
-      );
-    }
-
-    if (task.status === TaskStatus.Await) {
-      throw new Error('Invalid task status, current Task is in progress');
-    }
-
-    if (task.status === TaskStatus.Stopped) {
-      throw new Error('This task is stopped');
-    }
-
-    if (task.status === TaskStatus.Completed) {
-      throw new Error('This task is completed');
-    }
-
-    const { success, message } = await this.performTask(task);
-
-    await this.tasksService.updateMany([
-      {
-        id: task.id,
-        status:
-          success === 'success'
-            ? TaskStatus.Await
-            : success === 'skipped'
-              ? TaskStatus.Stopped
-              : TaskStatus.Failed,
-        logs: [
-          ...task.logs,
-          JSON.stringify({
-            timestamp: Date.now(),
-            message,
-          }),
-        ],
-      },
-    ]);
-
-    return true;
-  }
-
   private async performAvailableTasksByUser(userId: string) {
     try {
       await this.logger.log({
@@ -1423,7 +1348,7 @@ export class TaskExecutorService {
     }
   }
 
-  async handleFailedTasks() {
+  async reconcileFailedTasks() {
     try {
       await this.logger.log({
         severity: 'Info',
@@ -1519,7 +1444,7 @@ export class TaskExecutorService {
     }
   }
 
-  async handleAwaitTasks() {
+  async reconcileAwaitTasks() {
     try {
       await this.logger.log({
         severity: 'Info',
@@ -1597,7 +1522,7 @@ export class TaskExecutorService {
     }
   }
 
-  async performAvailableTasks() {
+  async executeAvailableTasks() {
     this.status = ServiceStatus.PROCESS;
 
     try {

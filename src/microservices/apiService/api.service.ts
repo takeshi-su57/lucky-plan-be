@@ -21,7 +21,7 @@ dayjs.extend(timezone);
 
 const microservices = [
   SERVICE_NAMES.LEADERBOARD_SERVICE,
-  SERVICE_NAMES.TRADING_SERVICE,
+  SERVICE_NAMES.COPY_TRADING_SERVICE,
 ];
 
 @Injectable()

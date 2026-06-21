@@ -25,8 +25,11 @@ export class ContractsService {
   }
 
   updateLastBlockNumber(id: number, lastBlockNumber: number) {
-    return this.prismaService.contract.update({
-      where: { id },
+    return this.prismaService.contract.updateMany({
+      where: {
+        id,
+        lastBlockNumber: { lt: lastBlockNumber },
+      },
       data: {
         lastBlockNumber,
       },

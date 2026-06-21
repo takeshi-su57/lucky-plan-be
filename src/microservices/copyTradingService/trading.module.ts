@@ -11,16 +11,20 @@ import { TasksModule } from '../apiService/modules/tasks/tasks.module';
 import { ActionsModule } from '../apiService/modules/actions/actions.module';
 import { FollowerActionsModule } from '../apiService/modules/follower-actions/follower-actions.module';
 import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trade-histories.module';
-import { TaskExecutorModule } from '../apiService/modules/task-executor/task-executor.module';
 import { PlansModule } from '../apiService/modules/plans/plans.module';
 import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 import { PricesModule } from '../apiService/modules/prices/prices.module';
 import { SLTPModule } from '../apiService/modules/sltp/sltp.module';
 
-import { TradingService } from './trading.service';
-
 import { TradingController } from './trading.controller';
+
+import { ActionRouterService } from './components/action-router.service';
+import { CopyTradingService } from './copy-trading.service';
+import { ContractMonitorService } from './components/contract-monitor.service';
+import { MissionRouterService } from './components/mission-router.service';
+import { TaskExecutorService } from './components/task-executor.service';
+import { TaskLifecycleService } from './components/task-lifecycle.service';
 
 @Module({
   imports: [
@@ -35,14 +39,20 @@ import { TradingController } from './trading.controller';
     ActionsModule,
     FollowerActionsModule,
     TradeHistoriesModule,
-    TaskExecutorModule,
     PlansModule,
     GnsModule,
     Web3Module,
     SLTPModule,
     PricesModule,
   ],
+  providers: [
+    ContractMonitorService,
+    ActionRouterService,
+    MissionRouterService,
+    TaskLifecycleService,
+    TaskExecutorService,
+    CopyTradingService,
+  ],
   controllers: [TradingController],
-  providers: [TradingService],
 })
 export class TradingModule {}

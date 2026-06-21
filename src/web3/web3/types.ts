@@ -69,6 +69,11 @@ export type GetBlockPayload = {
   blockNumber: bigint;
 };
 
+export type GetLatestFinalizedBlock = {
+  chainId: number;
+  priority: ChainPriority;
+};
+
 export type GetLogsPayload = {
   chainId: number;
   priority: ChainPriority;

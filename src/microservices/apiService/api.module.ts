@@ -18,7 +18,6 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { ActionsModule } from './modules/actions/actions.module';
 import { FollowerActionsModule } from './modules/follower-actions/follower-actions.module';
 import { TradeHistoriesModule } from './modules/trade-histories/trade-histories.module';
-import { TaskExecutorModule } from './modules/task-executor/task-executor.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LogsModule } from './modules/loggers/logs.module';
@@ -53,7 +52,6 @@ import { ApiController } from './api.controller';
     ActionsModule,
     FollowerActionsModule,
     TradeHistoriesModule,
-    TaskExecutorModule,
     PlansModule,
     LogsModule,
     SecurityModule,
