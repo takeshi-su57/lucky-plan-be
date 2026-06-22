@@ -17,7 +17,7 @@ import { ContractActionBatch, ContractActionItem } from '../copy-trading.types';
 @Injectable()
 export class ContractMonitorService extends ContractMonitor {
   static BATCH_SIZE = 4000n;
-  static DEFAULT_RECHECK_BLOCKS = 100;
+  static DEFAULT_RECHECK_BLOCKS = 5;
 
   constructor(
     private readonly contractsService: ContractsService,
