@@ -34,6 +34,11 @@ export class SimulationsResolver {
     return this.simulationsService.playSimulationPlan(id);
   }
 
+  @Mutation(() => SimulationBot)
+  stopSimulationBot(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.stopSimulationBot(id);
+  }
+
   @Query(() => SimulationPlanConnection)
   getSimulationPlans(
     @Args('first', { type: () => Int }) first: number,

@@ -122,6 +122,33 @@ export class SimulationsService {
     });
   }
 
+  async stopSimulationBot(id: number): Promise<SimulationBot> {
+    const simulationBot = await this.prisma.simulationBot.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        simulationPlan: true,
+      },
+    });
+
+    if (!simulationBot) {
+      throw new Error('Invalid bot id');
+    }
+
+    return await this.prisma.simulationBot.update({
+      where: {
+        id,
+      },
+      data: {
+        stoppedAt: simulationBot.simulationPlan.cursor,
+      },
+      include: {
+        leaderContract: true,
+      },
+    });
+  }
+
   async getSimulationPlans(
     first: number,
     after: number | null,

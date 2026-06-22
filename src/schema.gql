@@ -497,6 +497,7 @@ type Mutation {
   startPlan(id: Int!): Boolean!
   startSubService(service: String!): Boolean!
   stopBot(id: Int!): Boolean!
+  stopSimulationBot(id: Int!): SimulationBot!
   stopTask(id: Int!): Boolean!
   updateLeverage(input: UpdateLeverageInput!): ContractExecutionResult!
   updateMaxOpenMissions(maxCount: Int!): Boolean!
