@@ -31,6 +31,12 @@ export class SimulationsService {
     const simulationPlan = await this.prisma.simulationPlan.create({
       data: {
         ...createSimulationPlanInput,
+        startAt: new Date(
+          dayjs(createSimulationPlanInput.startAt).format('YYYY-MM-DD'),
+        ),
+        endAt: new Date(
+          dayjs(createSimulationPlanInput.endAt).format('YYYY-MM-DD'),
+        ),
         cursor: createSimulationPlanInput.startAt,
       },
       include: {
@@ -268,6 +274,7 @@ export class SimulationsService {
             leader: history,
             follower: {
               ...history,
+              id: -history.id,
               usdPnl: history.usdPnl * signer * bot.ratio,
               sizeInUsd: history.sizeInUsd * bot.ratio,
               collateralInUsd: history.collateralInUsd * bot.ratio,
