@@ -6,7 +6,6 @@ import {
   UserPermission,
   Platform,
   MissionMode,
-  PlanMode,
 } from 'generated/prisma/client';
 import dayjs from 'dayjs';
 
@@ -121,10 +120,6 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
       const { action, mission } = task;
       const { bot, achievePositionKey } = mission;
       const { follower, followerContract, leaderContract, strategy } = bot;
-
-      if (bot.plan.mode === PlanMode.Simulation) {
-        throw new Error('Simulation task cannot be executed by live executor');
-      }
 
       if (
         task.status !== TaskStatus.Created &&
@@ -502,20 +497,16 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
                       tp: 0n,
                       sl: 0n,
                     }
-                  : getOpenMissionParams(
-                      strategy,
-                      {
-                        leverage: t.leverage,
-                        collateralAmount: BigInt(t.collateralAmount),
-                        collateralPriceUsd: BigInt(collateralPriceUsd),
-                        collateral: leaderCollateral,
-                        isLong: t.long,
-                        openPrice: BigInt(t.openPrice),
-                        usdcPrice: 100_000_000n,
-                        pairIndex: t.pairIndex,
-                      },
-                      bot.leaderCollateralBaseline,
-                    );
+                  : getOpenMissionParams(strategy, {
+                      leverage: t.leverage,
+                      collateralAmount: BigInt(t.collateralAmount),
+                      collateralPriceUsd: BigInt(collateralPriceUsd),
+                      collateral: leaderCollateral,
+                      isLong: t.long,
+                      openPrice: BigInt(t.openPrice),
+                      usdcPrice: 100_000_000n,
+                      pairIndex: t.pairIndex,
+                    });
 
                 tx = await this.gnsService.openTrade({
                   mnemonic,
@@ -665,32 +656,28 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
 
             // it's a open position event
             if (args.sizeInUsd === args.sizeDeltaUsd) {
-              const openMissionParams = getOpenMissionParams(
-                strategy,
-                {
-                  leverage,
-                  collateralAmount: BigInt(args.collateralAmount),
-                  collateralPriceUsd: BigInt(
-                    Math.floor(
-                      Number(args['collateralTokenPrice.max']) /
-                        Math.pow(10, 30 - collateral.decimals - 8),
-                    ),
+              const openMissionParams = getOpenMissionParams(strategy, {
+                leverage,
+                collateralAmount: BigInt(args.collateralAmount),
+                collateralPriceUsd: BigInt(
+                  Math.floor(
+                    Number(args['collateralTokenPrice.max']) /
+                      Math.pow(10, 30 - collateral.decimals - 8),
                   ),
-                  collateral: {
-                    collateralIndex: 0,
-                    isActive: true,
-                    collateral: collateral.address as `0x${string}`,
-                    precision: BigInt(Math.pow(10, collateral.decimals)),
-                    precisionDelta: 0n,
-                    __placeholder: 0n,
-                  },
-                  isLong: args.isLong,
-                  openPrice: executionPrice,
-                  usdcPrice: 100_000_000n,
-                  pairIndex: pairIndex,
+                ),
+                collateral: {
+                  collateralIndex: 0,
+                  isActive: true,
+                  collateral: collateral.address as `0x${string}`,
+                  precision: BigInt(Math.pow(10, collateral.decimals)),
+                  precisionDelta: 0n,
+                  __placeholder: 0n,
                 },
-                bot.leaderCollateralBaseline,
-              );
+                isLong: args.isLong,
+                openPrice: executionPrice,
+                usdcPrice: 100_000_000n,
+                pairIndex: pairIndex,
+              });
 
               tx = await this.gnsService.openTrade({
                 mnemonic,
@@ -992,28 +979,24 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
                   leaderContract.version,
                 ).isOpenMissionAction(action)
               ) {
-                const openMissionParams = getOpenMissionParams(
-                  strategy,
-                  {
-                    leverage: Math.floor(Number(t.leverage) / 1e7),
-                    collateralAmount: BigInt(t.initialPosToken),
-                    collateralPriceUsd: 100_000_000n,
-                    collateral: {
-                      collateralIndex: 0,
-                      isActive: true,
-                      collateral:
-                        `0x0000000000000000000000000000000000000000` as `0x${string}`,
-                      precision: 1000_000n,
-                      precisionDelta: 0n,
-                      __placeholder: 0n,
-                    },
-                    isLong: t.buy,
-                    openPrice: BigInt(t.openPrice),
-                    usdcPrice: 100_000_000n,
-                    pairIndex,
+                const openMissionParams = getOpenMissionParams(strategy, {
+                  leverage: Math.floor(Number(t.leverage) / 1e7),
+                  collateralAmount: BigInt(t.initialPosToken),
+                  collateralPriceUsd: 100_000_000n,
+                  collateral: {
+                    collateralIndex: 0,
+                    isActive: true,
+                    collateral:
+                      `0x0000000000000000000000000000000000000000` as `0x${string}`,
+                    precision: 1000_000n,
+                    precisionDelta: 0n,
+                    __placeholder: 0n,
                   },
-                  bot.leaderCollateralBaseline,
-                );
+                  isLong: t.buy,
+                  openPrice: BigInt(t.openPrice),
+                  usdcPrice: 100_000_000n,
+                  pairIndex,
+                });
 
                 tx = await this.gnsService.openTrade({
                   mnemonic,
@@ -1204,7 +1187,6 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
             bot: {
               plan: {
                 userId,
-                mode: PlanMode.Live,
               },
             },
           },
@@ -1362,11 +1344,6 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
             },
-            bot: {
-              plan: {
-                mode: PlanMode.Live,
-              },
-            },
           },
         },
         include: {
@@ -1457,11 +1434,6 @@ export class TaskExecutorService extends CopyTradingTaskExecutor {
           mission: {
             status: {
               notIn: [MissionStatus.Closed, MissionStatus.Ignored],
-            },
-            bot: {
-              plan: {
-                mode: PlanMode.Live,
-              },
             },
           },
         },

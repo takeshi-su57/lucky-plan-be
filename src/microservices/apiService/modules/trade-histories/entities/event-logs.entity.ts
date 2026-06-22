@@ -126,12 +126,69 @@ export class PerpTradeHistory extends PurePerpTradeHistory {
 
   @Field(() => Date)
   date: Date;
+
+  @Field(() => Int)
+  contractId: number;
+
+  @Field(() => Platform)
+  platform: Platform;
+}
+
+@ObjectType()
+export class PerpTradePosition {
+  @Field(() => [PerpTradeHistory])
+  histories: PerpTradeHistory[];
+}
+
+@ObjectType()
+export class PerpTradePositionsWithSummary {
+  @Field(() => [PerpTradePosition])
+  positions: PerpTradePosition[];
+
+  @Field(() => Int)
+  openedPositions: number;
+
+  @Field(() => Int)
+  totalPositions: number;
+
+  @Field(() => Float)
+  totalPnl: number;
+
+  @Field(() => Float)
+  maxDuration: number;
+
+  @Field(() => Float)
+  avgDuration: number;
+
+  @Field(() => Float)
+  avgPnl: number;
+
+  @Field(() => Float)
+  avgPositivePnl: number;
+
+  @Field(() => Float)
+  avgNegativePnl: number;
+
+  @Field(() => Float)
+  avgSize: number;
+
+  @Field(() => Float)
+  avgCollateral: number;
+
+  @Field(() => Float)
+  avgPnlPercentageBySize: number;
+
+  @Field(() => Float)
+  avgPnlPercentageByCollateral: number;
+
+  @Field(() => Float)
+  avgLeverage: number;
 }
 
 @ObjectType()
 export class PnlSnapshotV2Details extends PnlSnapshotV2 {
-  @Field(() => [PerpTradeHistory])
-  perpTradeHistories: PerpTradeHistory[];
+  @Field(() => PerpTradePositionsWithSummary)
+  positionsWithSummary: PerpTradePositionsWithSummary;
 }
 
 @ObjectType()

@@ -4,7 +4,7 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PATTERNS, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
-import { Plan, SimulationProgressLog } from './entities/plan.entity';
+import { Plan } from './entities/plan.entity';
 
 @Controller()
 export class PlansController {
@@ -21,15 +21,6 @@ export class PlansController {
   async handlePlanUpdated(@Payload() plan: Plan) {
     await this.pubSub.publish(SUBSCRIPTION_TOKEN.planUpdated, {
       [SUBSCRIPTION_TOKEN.planUpdated]: plan,
-    });
-  }
-
-  @EventPattern(PATTERNS.Plans.SimulationProgressUpdated)
-  async handleSimulationProgressUpdated(
-    @Payload() progress: SimulationProgressLog,
-  ) {
-    await this.pubSub.publish(SUBSCRIPTION_TOKEN.simulationProgressUpdated, {
-      [SUBSCRIPTION_TOKEN.simulationProgressUpdated]: progress,
     });
   }
 }

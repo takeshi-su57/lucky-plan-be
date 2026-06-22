@@ -26,6 +26,7 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
 import { PricesModule } from './modules/prices/prices.module';
 import { SLTPModule } from './modules/sltp/sltp.module';
+import { SimulationsModule } from './modules/simulations/simulations.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -59,6 +60,7 @@ import { ApiController } from './api.controller';
     AvntModule,
     PricesModule,
     SLTPModule,
+    SimulationsModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],

@@ -1,12 +1,6 @@
 import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
-import { PlanMode, PlanStatus } from 'generated/prisma/client';
-import {
-  IsDate,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { PlanStatus } from 'generated/prisma/client';
+import { IsDate, IsNotEmpty, IsString } from 'class-validator';
 
 @InputType()
 export class CreatePlanInput {
@@ -29,15 +23,6 @@ export class CreatePlanInput {
   @IsDate()
   @Field(() => Date)
   scheduledEnd: Date;
-
-  @IsEnum(PlanMode)
-  @Field(() => PlanMode, { defaultValue: PlanMode.Live })
-  mode: PlanMode;
-
-  @IsOptional()
-  @IsDate()
-  @Field(() => Date, { nullable: true })
-  simulationCursor?: Date | null;
 }
 
 @InputType()

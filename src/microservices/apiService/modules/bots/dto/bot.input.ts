@@ -30,10 +30,6 @@ export class CreateBotInput {
 
   @IsNotEmpty()
   @Field(() => Int)
-  leaderCollateralBaseline: number;
-
-  @IsNotEmpty()
-  @Field(() => Int)
   followerContractId: number;
 
   @IsNotEmpty()
@@ -93,10 +89,6 @@ export class CreateBotAndStrategyInput {
 
   @Field(() => CreateStrategyInput)
   strategy: CreateStrategyInput;
-
-  @IsNotEmpty()
-  @Field(() => Int)
-  leaderCollateralBaseline: number;
 
   @IsNotEmpty()
   @Field(() => BotMode)

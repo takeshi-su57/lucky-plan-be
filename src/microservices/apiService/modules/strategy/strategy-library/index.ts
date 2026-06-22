@@ -153,7 +153,6 @@ export function getOpenMissionParams(
     usdcPrice: bigint;
     pairIndex: number;
   },
-  _leaderCollateralBaseline: number,
 ) {
   const collateralUSDCAmount = Math.floor(
     (Number(args.collateralAmount) / Number(args.collateral.precision)) *

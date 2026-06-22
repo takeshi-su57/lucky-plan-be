@@ -38,22 +38,23 @@ model Strategy {
 }
 
 model Contract {
-  id                         Int            @id @default(autoincrement())
+  id                         Int             @id @default(autoincrement())
   chainId                    Int
   address                    String
   description                String
   lastBlockNumber            Int
-  status                     ContractStatus @default(Live)
-  lastLeaderboardBlockNumber Int            @default(0)
+  status                     ContractStatus  @default(Live)
+  lastLeaderboardBlockNumber Int             @default(0)
   backendUrl                 String?
-  fromBlock                  Int            @default(0)
-  platform                   Platform       @default(GNS)
+  fromBlock                  Int             @default(0)
+  platform                   Platform        @default(GNS)
   toBlock                    Int?
-  version                    Version        @default(V9)
-  followerBots               Bot[]          @relation("followerBots")
-  leaderBots                 Bot[]          @relation("leaderBots")
+  version                    Version         @default(V9)
+  followerBots               Bot[]           @relation("followerBots")
+  leaderBots                 Bot[]           @relation("leaderBots")
   sltprequests               SLTPRequest[]
   actions                    Action[]
+  simulationBots             SimulationBot[] @relation("leaderSimulationBots")
 
   @@unique([chainId, address, version, platform])
 }
@@ -125,11 +126,6 @@ model Follower {
   @@unique([userId, accountIndex])
 }
 
-enum PlanMode {
-  Live
-  Simulation
-}
-
 model Plan {
   id             Int        @id @default(autoincrement())
   title          String
@@ -140,43 +136,23 @@ model Plan {
   scheduledEnd   DateTime
   status         PlanStatus
   userId         String     @default("0x104b4e127b9a6c82044c972caff88e75f41ae8cc")
-  mode           PlanMode   @default(Live)
-  simulationCursor DateTime?
   bots           Bot[]
-  simulationProgressLogs SimulationProgressLog[]
 }
 
-model SimulationProgressLog {
-  id                  Int      @id @default(autoincrement())
-  planId              Int
-  userId              String
-  runId               String
-  phase               String
-  status              String
-  message             String
-  details             String?
-  percent             Float    @default(0)
-  contractId          Int?
-  contractAddress     String?
-  contractPlatform    String?
-  contractIndex       Int?
-  contractCount       Int?
-  contractPercent     Float?
-  windowStart         DateTime?
-  windowEnd           DateTime?
-  leaderActionCount   Int      @default(0)
-  virtualActionCount  Int      @default(0)
-  virtualTaskCount    Int      @default(0)
-  finalizedTaskCount  Int      @default(0)
-  stoppedTaskCount    Int      @default(0)
-  executionIterations Int      @default(0)
-  createdAt           DateTime @default(now())
-  plan                Plan     @relation(fields: [planId], references: [id])
+model SimulationPlan {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  startAt     DateTime
+  endAt       DateTime
+  cursor      DateTime
 
-  @@index([planId, createdAt(sort: Desc), id(sort: Desc)])
-  @@index([planId, contractId, createdAt(sort: Desc), id(sort: Desc)])
-  @@index([runId, createdAt(sort: Asc), id(sort: Asc)])
-  @@index([userId, planId, createdAt(sort: Desc)])
+  openedPositions  Int   @default(0)
+  totalPositions   Int   @default(0)
+  totalLeaderPnl   Float @default(0)
+  totalFollowerPnl Float @default(0)
+
+  simulationBots SimulationBot[]
 }
 
 enum BotMode {
@@ -185,22 +161,21 @@ enum BotMode {
 }
 
 model Bot {
-  id                       Int       @id @default(autoincrement())
-  leaderAddress            String    @db.VarChar(255)
-  followerAddress          String    @db.VarChar(255)
-  strategyId               Int
-  status                   BotStatus @default(Created)
-  leaderContractId         Int
-  followerContractId       Int
-  followerEndedBlock       Int?
-  followerStartedBlock     Int?
-  leaderEndedBlock         Int?
-  leaderStartedBlock       Int?
-  endedAt                  DateTime?
-  startedAt                DateTime?
-  leaderCollateralBaseline Int
-  planId                   Int       @default(0)
-  mode                     BotMode   @default(Default)
+  id                   Int       @id @default(autoincrement())
+  leaderAddress        String    @db.VarChar(255)
+  followerAddress      String    @db.VarChar(255)
+  strategyId           Int
+  status               BotStatus @default(Created)
+  leaderContractId     Int
+  followerContractId   Int
+  followerEndedBlock   Int?
+  followerStartedBlock Int?
+  leaderEndedBlock     Int?
+  leaderStartedBlock   Int?
+  endedAt              DateTime?
+  startedAt            DateTime?
+  planId               Int       @default(0)
+  mode                 BotMode   @default(Default)
 
   follower         Follower  @relation(fields: [followerAddress], references: [address])
   followerContract Contract  @relation("followerBots", fields: [followerContractId], references: [id])
@@ -208,6 +183,34 @@ model Bot {
   plan             Plan      @relation(fields: [planId], references: [id])
   strategy         Strategy  @relation(fields: [strategyId], references: [id])
   missions         Mission[]
+}
+
+model SimulationBot {
+  id               Int       @id @default(autoincrement())
+  leaderAddress    String    @db.VarChar(255)
+  leaderContractId Int
+  stoppedAt        DateTime?
+  startedAt        DateTime
+  simulationPlanId Int       @default(0)
+  mode             BotMode   @default(Default)
+  ratio            Float     @default(1)
+
+  openedPositions              Int   @default(0)
+  totalPositions               Int   @default(0)
+  totalPnl                     Float @default(0)
+  maxDuration                  Float @default(0)
+  avgDuration                  Float @default(0)
+  avgPnl                       Float @default(0)
+  avgPositivePnl               Float @default(0)
+  avgNegativePnl               Float @default(0)
+  avgSize                      Float @default(0)
+  avgCollateral                Float @default(0)
+  avgPnlPercentageBySize       Float @default(0)
+  avgPnlPercentageByCollateral Float @default(0)
+  avgLeverage                  Float @default(0)
+
+  leaderContract Contract       @relation("leaderSimulationBots", fields: [leaderContractId], references: [id])
+  simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id])
 }
 
 model Mission {

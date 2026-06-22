@@ -16,6 +16,7 @@ import {
 } from './entities/event-logs.entity';
 import { Contract } from '../contracts/entities/contract.entity';
 import { getWeb3Info } from 'src/web3/utils';
+import { EventLogsService } from './event-logs.service';
 
 function parseKey(key: string) {
   return JSON.parse(key) as {
@@ -40,6 +41,7 @@ export class PnlSnapshotsService {
 
   constructor(
     private readonly prismaService: PrismaService,
+    private readonly eventLogService: EventLogsService,
     private readonly logger: LogsService,
   ) {
     this.status = ServiceStatus.READY;
@@ -53,7 +55,6 @@ export class PnlSnapshotsService {
     after: string | null,
   ): Promise<PnlSnapshotV2DetailsConnection> {
     const allContractsMap: Record<string, Contract> = {};
-    const testContractIds: number[] = [];
 
     const allContracts = await this.prismaService.contract.findMany();
 
@@ -140,12 +141,6 @@ export class PnlSnapshotsService {
             address: {
               in: pnlRecordAddresses,
             },
-            contractId:
-              testContractIds.length > 0
-                ? {
-                    notIn: testContractIds,
-                  }
-                : undefined,
             platform,
             date: {
               gt: startDate,
@@ -210,7 +205,13 @@ export class PnlSnapshotsService {
             );
 
             return history
-              ? { ...history, id: record.id, date: record.date }
+              ? {
+                  ...history,
+                  id: record.id,
+                  date: record.date,
+                  contractId: record.contractId,
+                  platform: contract.platform,
+                }
               : null;
           })
           .filter((item) => !!item);
@@ -219,7 +220,12 @@ export class PnlSnapshotsService {
           cursor: pnlRecord.address,
           node: {
             ...pnlRecord,
-            perpTradeHistories,
+            positionsWithSummary:
+              this.eventLogService.convertToPerpTradePositionsWithSummary(
+                platform,
+                perpTradeHistories,
+                null,
+              ),
           },
         });
       }

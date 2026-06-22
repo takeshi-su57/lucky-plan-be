@@ -19,9 +19,6 @@ import {
   PlanConnection,
   PlanSummaryConnection,
   BotGroupPaginatedResponse,
-  SimulationResumeResult,
-  SimulationProgressLog,
-  SimulationProgressLogConnection,
 } from './entities/plan.entity';
 import { CreatePlanInput, UpdatePlanInput } from './dto/plan.input';
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -86,17 +83,6 @@ export class PlansResolver {
     return this.plansService.end(user.address, id);
   }
 
-  @Mutation(() => SimulationResumeResult)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  resumeSimulation(
-    @Args('id', { type: () => Int }) id: number,
-    @Args('speed', { type: () => Int, defaultValue: 1 }) speed: number,
-    @CurrentUser() user: User,
-  ) {
-    return this.plansService.resumeSimulation(user.address, id, speed);
-  }
-
   @Subscription(() => Plan, {
     name: SUBSCRIPTION_TOKEN.planCreated,
     filter: (payload, variables) => {
@@ -119,37 +105,6 @@ export class PlansResolver {
     @Args('userId', { type: () => String }) _userId: string,
   ) {
     return this.pubSub.asyncIterableIterator(SUBSCRIPTION_TOKEN.planUpdated);
-  }
-
-  @Subscription(() => SimulationProgressLog, {
-    name: SUBSCRIPTION_TOKEN.simulationProgressUpdated,
-    filter: (payload, variables) => {
-      if (payload.simulationProgressUpdated.userId !== variables.userId) {
-        return false;
-      }
-
-      if (payload.simulationProgressUpdated.planId !== variables.planId) {
-        return false;
-      }
-
-      if (variables.contractId) {
-        return (
-          payload.simulationProgressUpdated.contractId === variables.contractId
-        );
-      }
-
-      return true;
-    },
-  })
-  subscribeToSimulationProgressUpdated(
-    @Args('userId', { type: () => String }) _userId: string,
-    @Args('planId', { type: () => Int }) _planId: number,
-    @Args('contractId', { type: () => Int, nullable: true })
-    _contractId: number | null,
-  ) {
-    return this.pubSub.asyncIterableIterator(
-      SUBSCRIPTION_TOKEN.simulationProgressUpdated,
-    );
   }
 
   @Query(() => PlanConnection)
@@ -212,26 +167,6 @@ export class PlansResolver {
       planId,
       page,
       pageSize,
-    );
-  }
-
-  @Query(() => SimulationProgressLogConnection)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  getSimulationProgressLogs(
-    @Args('planId', { type: () => Int }) planId: number,
-    @Args('contractId', { type: () => Int, nullable: true })
-    contractId: number | null,
-    @Args('first', { type: () => Int, defaultValue: 50 }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
-    @CurrentUser() user: User,
-  ) {
-    return this.plansService.getSimulationProgressLogs(
-      user.address,
-      planId,
-      contractId,
-      first,
-      after,
     );
   }
 }

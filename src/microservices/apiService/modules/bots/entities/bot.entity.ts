@@ -36,9 +36,6 @@ export class Bot {
   leaderContractId: number;
 
   @Field(() => Int)
-  leaderCollateralBaseline: number;
-
-  @Field(() => Int)
   followerContractId: number;
 
   @Field(() => Int, { nullable: true })

@@ -10,7 +10,7 @@ import {
   PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
-  PerpTradeHistory,
+  PerpTradePositionsWithSummary,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
@@ -80,12 +80,23 @@ export class EventLogsResolver {
     return this.pnlSnapshotsService.getAllPnlSnapshotInitializedFlag(platform);
   }
 
-  @Query(() => [[PerpTradeHistory]])
-  getPerpTradeHistories(
-    @Args('addresses', { type: () => [String] }) addresses: string[],
+  @Query(() => PerpTradePositionsWithSummary)
+  getPerpTradePositions(
+    @Args('address', { type: () => String }) address: string,
     @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('startedAt', { type: () => Date, nullable: true })
+    startedAt: Date | null,
+    @Args('stoppedAt', { type: () => Date, nullable: true })
+    stoppedAt: Date | null,
+    @Args('endedAt', { type: () => Date, nullable: true }) endedAt: Date | null,
   ) {
-    return this.eventLogsService.getPerpTradeHistories(addresses, platform);
+    return this.eventLogsService.getPerpTradePositionsWithSummary(
+      address,
+      platform,
+      startedAt,
+      stoppedAt,
+      endedAt,
+    );
   }
 
   @Query(() => PnlSnapshotV2DetailsConnection)

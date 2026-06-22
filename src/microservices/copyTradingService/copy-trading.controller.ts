@@ -13,7 +13,7 @@ import { SLTPService } from '../apiService/modules/sltp/sltp.service';
 import { CopyTradingService } from './copy-trading.service';
 
 @Controller()
-export class TradingController implements OnApplicationBootstrap {
+export class CopyTradingController implements OnApplicationBootstrap {
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private client: ClientProxy,
     private readonly botsService: BotsService,

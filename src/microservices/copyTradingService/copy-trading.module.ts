@@ -17,7 +17,7 @@ import { Web3Module } from 'src/web3/web3/web3.module';
 import { PricesModule } from '../apiService/modules/prices/prices.module';
 import { SLTPModule } from '../apiService/modules/sltp/sltp.module';
 
-import { TradingController } from './trading.controller';
+import { CopyTradingController } from './copy-trading.controller';
 
 import { ActionRouterService } from './components/action-router.service';
 import { CopyTradingService } from './copy-trading.service';
@@ -53,6 +53,6 @@ import { TaskLifecycleService } from './components/task-lifecycle.service';
     TaskExecutorService,
     CopyTradingService,
   ],
-  controllers: [TradingController],
+  controllers: [CopyTradingController],
 })
-export class TradingModule {}
+export class CopyTradingModule {}

@@ -8,7 +8,7 @@ import { SERVICE_NAMES } from './utils/constants';
 
 import { ApiModule } from './microservices/apiService/api.module';
 import { LeaderboardModule } from './microservices/leaderboardService/leaderboard.module';
-import { TradingModule } from './microservices/copyTradingService/trading.module';
+import { CopyTradingModule } from './microservices/copyTradingService/copy-trading.module';
 
 import 'dotenv';
 
@@ -33,7 +33,7 @@ async function bootstrap() {
     }
     case SERVICE_NAMES.COPY_TRADING_SERVICE: {
       const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-        TradingModule,
+        CopyTradingModule,
         {
           transport: Transport.REDIS,
           options: {

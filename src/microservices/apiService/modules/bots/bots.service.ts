@@ -8,7 +8,6 @@ import {
 import { Address, maxInt256 } from 'viem';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { MissionsService } from 'src/microservices/apiService/modules/missions/missions.service';
 
 import {
   BotUpdateInput,
@@ -22,7 +21,7 @@ import {
   BotBackwardDetails,
   BotForwardDetails,
 } from './entities/bot.entity';
-import { ActionsService } from 'src/microservices/apiService/modules/actions/actions.service';
+
 import { FollowerService } from 'src/microservices/apiService/modules/follower/follower.service';
 import {
   PATTERNS,
@@ -40,15 +39,12 @@ import { getCollateral } from 'src/web3/platform/gns/v10/configs';
 @Injectable()
 export class BotsService {
   status: ServiceStatus = ServiceStatus.READY;
-  private readonly actionProcessor = 'copy-trading-router';
 
   constructor(
     @Inject(SERVICE_NAMES.REDIS_SERVICE) private redisClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly evmAdapterService: EvmAdapterService,
-    private readonly missionsService: MissionsService,
     private readonly followersService: FollowerService,
-    private readonly actionsService: ActionsService,
     private readonly strategyService: StrategyService,
     private readonly logger: LogsService,
   ) {}
@@ -128,7 +124,6 @@ export class BotsService {
           : masterFollower.address.toLowerCase(),
         leaderContractId: input.leaderContractId,
         followerContractId: input.followerContractId,
-        leaderCollateralBaseline: input.leaderCollateralBaseline,
         mode: input.mode,
       });
 

@@ -558,20 +558,16 @@ export class MissionsService {
                 tp: 0n.toString(),
               }
             : {
-                ...getOpenMissionParams(
-                  bot.strategy,
-                  {
-                    leverage: t.leverage,
-                    collateralAmount: BigInt(t.collateralAmount),
-                    collateralPriceUsd: BigInt(collateralPriceUsd),
-                    collateral,
-                    isLong: t.long,
-                    openPrice: currentPrice,
-                    usdcPrice: 100_000_000n,
-                    pairIndex: t.pairIndex,
-                  },
-                  bot.leaderCollateralBaseline,
-                ),
+                ...getOpenMissionParams(bot.strategy, {
+                  leverage: t.leverage,
+                  collateralAmount: BigInt(t.collateralAmount),
+                  collateralPriceUsd: BigInt(collateralPriceUsd),
+                  collateral,
+                  isLong: t.long,
+                  openPrice: currentPrice,
+                  usdcPrice: 100_000_000n,
+                  pairIndex: t.pairIndex,
+                }),
               };
 
           openArgs = {
@@ -648,32 +644,28 @@ export class MissionsService {
                 sl: 0n.toString(),
                 tp: 0n.toString(),
               }
-            : getOpenMissionParams(
-                bot.strategy,
-                {
-                  leverage,
-                  collateralAmount: BigInt(gmxEvent.args.collateralAmount),
-                  collateralPriceUsd: BigInt(
-                    Math.floor(
-                      Number(gmxEvent.args['collateralTokenPrice.max']) /
-                        Math.pow(10, 30 - collateral.decimals - 8),
-                    ),
+            : getOpenMissionParams(bot.strategy, {
+                leverage,
+                collateralAmount: BigInt(gmxEvent.args.collateralAmount),
+                collateralPriceUsd: BigInt(
+                  Math.floor(
+                    Number(gmxEvent.args['collateralTokenPrice.max']) /
+                      Math.pow(10, 30 - collateral.decimals - 8),
                   ),
-                  collateral: {
-                    collateralIndex: 0,
-                    isActive: true,
-                    collateral: collateral.address as `0x${string}`,
-                    precision: BigInt(Math.pow(10, collateral.decimals)),
-                    precisionDelta: 0n,
-                    __placeholder: 0n,
-                  },
-                  isLong: gmxEvent.args.isLong,
-                  openPrice: currentPrice,
-                  usdcPrice: 100_000_000n,
-                  pairIndex: pairIndex,
+                ),
+                collateral: {
+                  collateralIndex: 0,
+                  isActive: true,
+                  collateral: collateral.address as `0x${string}`,
+                  precision: BigInt(Math.pow(10, collateral.decimals)),
+                  precisionDelta: 0n,
+                  __placeholder: 0n,
                 },
-                bot.leaderCollateralBaseline,
-              );
+                isLong: gmxEvent.args.isLong,
+                openPrice: currentPrice,
+                usdcPrice: 100_000_000n,
+                pairIndex: pairIndex,
+              });
 
           openArgs = {
             pairIndex,
@@ -723,28 +715,24 @@ export class MissionsService {
                 sl: 0n.toString(),
                 tp: 0n.toString(),
               }
-            : getOpenMissionParams(
-                bot.strategy,
-                {
-                  leverage: Math.floor(Number(t.leverage) / 1e7),
-                  collateralAmount: BigInt(t.initialPosToken),
-                  collateralPriceUsd: 100_000_000n,
-                  collateral: {
-                    collateralIndex: 0,
-                    isActive: true,
-                    collateral:
-                      `0x0000000000000000000000000000000000000000` as `0x${string}`,
-                    precision: 1000_000n,
-                    precisionDelta: 0n,
-                    __placeholder: 0n,
-                  },
-                  isLong: t.buy,
-                  openPrice: currentPrice,
-                  usdcPrice: 100_000_000n,
-                  pairIndex,
+            : getOpenMissionParams(bot.strategy, {
+                leverage: Math.floor(Number(t.leverage) / 1e7),
+                collateralAmount: BigInt(t.initialPosToken),
+                collateralPriceUsd: 100_000_000n,
+                collateral: {
+                  collateralIndex: 0,
+                  isActive: true,
+                  collateral:
+                    `0x0000000000000000000000000000000000000000` as `0x${string}`,
+                  precision: 1000_000n,
+                  precisionDelta: 0n,
+                  __placeholder: 0n,
                 },
-                bot.leaderCollateralBaseline,
-              );
+                isLong: t.buy,
+                openPrice: currentPrice,
+                usdcPrice: 100_000_000n,
+                pairIndex,
+              });
 
           openArgs = {
             pairIndex,

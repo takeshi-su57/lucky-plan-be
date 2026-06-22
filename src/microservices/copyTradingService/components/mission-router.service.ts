@@ -119,7 +119,6 @@ export class MissionRouterService extends MissionRouter {
               usdcPrice: 100_000_000n,
               pairIndex: t.pairIndex,
             },
-            item.context.bot.leaderCollateralBaseline,
           );
 
           // block leader action register if collateral is less than 25 USDC
@@ -210,7 +209,6 @@ export class MissionRouterService extends MissionRouter {
               usdcPrice: 100_000_000n,
               pairIndex: pairIndex,
             },
-            item.context.bot.leaderCollateralBaseline,
           );
 
           // block leader action register if collateral is less than 25 USDC
@@ -270,7 +268,6 @@ export class MissionRouterService extends MissionRouter {
               usdcPrice: 100_000_000n,
               pairIndex: Number(event.args.t.pairIndex),
             },
-            item.context.bot.leaderCollateralBaseline,
           );
 
           // block leader action register if collateral is less than 25 USDC

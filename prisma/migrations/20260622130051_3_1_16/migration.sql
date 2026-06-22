@@ -1,0 +1,19 @@
+-- AlterTable
+ALTER TABLE "SimulationBot" ALTER COLUMN "avgCollateral" SET DEFAULT 0,
+ALTER COLUMN "avgDuration" SET DEFAULT 0,
+ALTER COLUMN "avgLeverage" SET DEFAULT 0,
+ALTER COLUMN "avgNegativePnl" SET DEFAULT 0,
+ALTER COLUMN "avgPnl" SET DEFAULT 0,
+ALTER COLUMN "avgPnlPercentageByCollateral" SET DEFAULT 0,
+ALTER COLUMN "avgPnlPercentageBySize" SET DEFAULT 0,
+ALTER COLUMN "avgPositivePnl" SET DEFAULT 0,
+ALTER COLUMN "avgSize" SET DEFAULT 0,
+ALTER COLUMN "maxDuration" SET DEFAULT 0,
+ALTER COLUMN "openedPositions" SET DEFAULT 0,
+ALTER COLUMN "totalPnl" SET DEFAULT 0,
+ALTER COLUMN "totalPositions" SET DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "SimulationPlan" ALTER COLUMN "openedPositions" SET DEFAULT 0,
+ALTER COLUMN "totalPnl" SET DEFAULT 0,
+ALTER COLUMN "totalPositions" SET DEFAULT 0;

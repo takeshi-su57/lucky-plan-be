@@ -56,6 +56,10 @@ export const PATTERNS = {
     PlanUpdated: 'PLAN_UPDATED',
     SimulationProgressUpdated: 'SIMULATION_PROGRESS_UPDATED',
   },
+  Simulations: {
+    SimulationPlanCreated: 'SIMULATION_PLAN_CREATED',
+    SimulationBotCreated: 'SIMULATION_BOT_CREATED',
+  },
   Tasks: {
     TaskCreated: 'TASK_CREATED',
     TaskUpdated: 'TASK_UPDATED',
