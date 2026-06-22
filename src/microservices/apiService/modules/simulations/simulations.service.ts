@@ -162,7 +162,6 @@ export class SimulationsService {
       include: {
         simulationBots: {
           include: {
-            strategy: true,
             leaderContract: true,
           },
         },
