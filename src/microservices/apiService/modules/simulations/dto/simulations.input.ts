@@ -51,3 +51,18 @@ export class CreateSimulationBotInput {
   @Field(() => Float)
   maxLeverage: number;
 }
+
+@InputType()
+export class UpdateSimulationBotInput {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => BotMode, { nullable: true })
+  mode?: BotMode | null;
+
+  @Field(() => Float, { nullable: true })
+  ratio?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  maxLeverage?: number | null;
+}

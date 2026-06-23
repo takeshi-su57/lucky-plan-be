@@ -10,6 +10,7 @@ import {
 import {
   CreateSimulationPlanInput,
   CreateSimulationBotInput,
+  UpdateSimulationBotInput,
 } from './dto/simulations.input';
 
 @Resolver()
@@ -19,6 +20,11 @@ export class SimulationsResolver {
   @Mutation(() => SimulationPlan)
   createSimulationPlan(@Args('input') input: CreateSimulationPlanInput) {
     return this.simulationsService.createSimulationPlan(input);
+  }
+
+  @Mutation(() => SimulationPlan)
+  updateSimulationBot(@Args('input') input: UpdateSimulationBotInput) {
+    return this.simulationsService.updateSimulationBot(input);
   }
 
   @Mutation(() => [SimulationBot])

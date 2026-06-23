@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import {
   CreateSimulationPlanInput,
   CreateSimulationBotInput,
+  UpdateSimulationBotInput,
 } from './dto/simulations.input';
 import {
   SimulationBot,
@@ -87,6 +88,24 @@ export class SimulationsService {
     }
 
     return simulationBots;
+  }
+
+  async updateSimulationBot(
+    input: UpdateSimulationBotInput,
+  ): Promise<SimulationBot> {
+    return await this.prisma.simulationBot.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        ratio: input.ratio ?? undefined,
+        maxLeverage: input.maxLeverage ?? undefined,
+        mode: input.mode ?? undefined,
+      },
+      include: {
+        leaderContract: true,
+      },
+    });
   }
 
   async playSimulationPlan(id: number): Promise<SimulationPlan> {
