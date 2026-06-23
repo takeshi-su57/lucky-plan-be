@@ -15,6 +15,9 @@ export class SimulationBot {
   @Field(() => Float)
   ratio: number;
 
+  @Field(() => Float)
+  maxLeverage: number;
+
   @Field(() => Int)
   simulationPlanId: number;
 

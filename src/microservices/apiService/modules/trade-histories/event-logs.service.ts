@@ -97,14 +97,17 @@ export class EventLogsService {
             : null;
         })
         .filter((item) => !!item),
-      stoppedAt,
+      { stoppedAt: stoppedAt || undefined },
     );
   }
 
   convertToPerpTradePositionsWithSummary(
     platform: Platform,
     histories: PerpTradeHistory[],
-    stoppedAt: Date | null,
+    filters: {
+      stoppedAt?: Date;
+      maxLeverage?: number;
+    },
   ): PerpTradePositionsWithSummary {
     const sortedHistories = [...histories]
       .filter((history) => history.platform === platform)
@@ -153,7 +156,11 @@ export class EventLogsService {
           continue;
         }
 
-        if (stoppedAt && history.date > stoppedAt) {
+        if (filters.stoppedAt && history.date > filters.stoppedAt) {
+          break;
+        }
+
+        if (filters.maxLeverage && history.leverage > filters.maxLeverage) {
           break;
         }
 

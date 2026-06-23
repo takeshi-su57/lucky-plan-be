@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "SimulationBot" ADD COLUMN     "maxLeverage" DOUBLE PRECISION NOT NULL DEFAULT 50;

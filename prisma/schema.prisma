@@ -194,6 +194,7 @@ model SimulationBot {
   simulationPlanId Int       @default(0)
   mode             BotMode   @default(Default)
   ratio            Float     @default(1)
+  maxLeverage      Float     @default(50)
 
   openedPositions              Int   @default(0)
   totalPositions               Int   @default(0)

@@ -47,4 +47,7 @@ export class CreateSimulationBotInput {
 
   @Field(() => Float)
   ratio: number;
+
+  @Field(() => Float)
+  maxLeverage: number;
 }

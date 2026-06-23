@@ -259,7 +259,10 @@ export class SimulationsService {
                 : null;
             })
             .filter((item) => !!item),
-          bot.stoppedAt,
+          {
+            stoppedAt: bot.stoppedAt || undefined,
+            maxLeverage: bot.maxLeverage,
+          },
         );
 
       const signer = bot.mode === BotMode.Reversed ? -1 : 1;

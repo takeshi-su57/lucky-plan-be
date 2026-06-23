@@ -217,6 +217,7 @@ input CreatePlanInput {
 input CreateSimulationBotInput {
   leaderAddress: String!
   leaderContractId: Int!
+  maxLeverage: Float!
   mode: BotMode!
   ratio: Float!
   simulationPlanId: Int!
@@ -755,6 +756,7 @@ type SimulationBot {
   leaderContract: Contract!
   leaderContractId: Int!
   maxDuration: Float!
+  maxLeverage: Float!
   mode: BotMode!
   openedPositions: Int!
   ratio: Float!
@@ -780,6 +782,7 @@ type SimulationBotDetails {
   leaderContract: Contract!
   leaderContractId: Int!
   maxDuration: Float!
+  maxLeverage: Float!
   mode: BotMode!
   openedPositions: Int!
   positions: [SimulationTradePosition!]!

@@ -186,7 +186,7 @@ export class PnlSnapshotsService {
             this.eventLogService.convertToPerpTradePositionsWithSummary(
               platform,
               perpTradeHistories,
-              null,
+              {},
             ),
         };
       })
