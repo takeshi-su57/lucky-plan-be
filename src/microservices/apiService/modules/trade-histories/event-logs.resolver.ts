@@ -7,10 +7,10 @@ import { RolesGuard } from 'src/microservices/apiService/modules/auth/gql-role.g
 import { Roles } from 'src/microservices/apiService/modules/auth/roles.decorator';
 
 import {
-  PnlSnapshotV2DetailsConnection,
   PnlSnapshotV2InitializedFlag,
   PerpTradingEventLog,
   PerpTradePositionsWithSummary,
+  PnlSnapshotV2DetailsPaginatedResponse,
 } from './entities/event-logs.entity';
 
 import { EventLogsService } from './event-logs.service';
@@ -99,20 +99,20 @@ export class EventLogsResolver {
     );
   }
 
-  @Query(() => PnlSnapshotV2DetailsConnection)
+  @Query(() => PnlSnapshotV2DetailsPaginatedResponse)
   getPnlSnapshotsV2(
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('isDesc', { type: () => Boolean }) isDesc: boolean,
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => String, nullable: true }) after: string | null,
+    @Args('page', { type: () => Int }) page: number,
+    @Args('pageSize', { type: () => Int }) pageSize: number,
   ) {
     return this.pnlSnapshotsService.getPnlSnapshots(
       dateStr,
       platform,
       isDesc,
-      first,
-      after,
+      page,
+      pageSize,
     );
   }
 }

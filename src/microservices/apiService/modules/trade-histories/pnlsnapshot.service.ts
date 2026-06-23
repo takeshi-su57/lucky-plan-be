@@ -10,10 +10,7 @@ import { LogsService } from 'src/global/logs.service';
 import { PrismaService } from 'src/global/prisma.service';
 import { ServiceStatus } from 'src/types';
 import { getReadableError, getStartOfDay } from 'src/utils';
-import {
-  PnlSnapshotV2DetailsConnection,
-  PnlSnapshotV2DetailsEdge,
-} from './entities/event-logs.entity';
+import { PnlSnapshotV2DetailsPaginatedResponse } from './entities/event-logs.entity';
 import { Contract } from '../contracts/entities/contract.entity';
 import { getWeb3Info } from 'src/web3/utils';
 import { EventLogsService } from './event-logs.service';
@@ -51,9 +48,12 @@ export class PnlSnapshotsService {
     dateStr: string,
     platform: Platform,
     isDesc: boolean,
-    first: number,
-    after: string | null,
-  ): Promise<PnlSnapshotV2DetailsConnection> {
+    page: number,
+    pageSize: number,
+  ): Promise<PnlSnapshotV2DetailsPaginatedResponse> {
+    const safePage = Math.max(page, 0);
+    const safePageSize = Math.max(pageSize, 1);
+
     const allContractsMap: Record<string, Contract> = {};
 
     const allContracts = await this.prismaService.contract.findMany();
@@ -68,133 +68,95 @@ export class PnlSnapshotsService {
     );
     const endDate = new Date(dateStr);
 
-    const edges: PnlSnapshotV2DetailsEdge[] = [];
-    let currentAfter = after;
-    let hasNextPage = true;
+    const total = await this.prismaService.pnlSnapshotV2.count({
+      where: { dateStr, platform },
+    });
 
-    while (edges.length < first) {
-      const cursorAddress = currentAfter;
-      const lastPnlRecord = cursorAddress
-        ? await this.prismaService.pnlSnapshotV2.findFirst({
-            where: {
-              dateStr,
-              platform,
-              address: cursorAddress,
-            },
-          })
-        : null;
-
-      const currentCursor = lastPnlRecord
-        ? {
-            address: lastPnlRecord.address,
-            accUSDPnl: lastPnlRecord.accUSDPnl,
-          }
-        : null;
-
-      const pnlRecords: PnlSnapshotV2[] =
-        await this.prismaService.pnlSnapshotV2.findMany({
-          take: first,
-          where: {
-            dateStr,
-            platform,
-            OR: currentCursor
-              ? [
-                  {
-                    accUSDPnl: isDesc
-                      ? {
-                          lt: currentCursor.accUSDPnl,
-                        }
-                      : {
-                          gt: currentCursor.accUSDPnl,
-                        },
-                  },
-                  {
-                    accUSDPnl: currentCursor.accUSDPnl,
-                    address: {
-                      gt: currentCursor.address,
-                    },
-                  },
-                ]
-              : undefined,
+    const pnlRecords: PnlSnapshotV2[] =
+      await this.prismaService.pnlSnapshotV2.findMany({
+        take: safePageSize,
+        skip: safePage * safePageSize,
+        where: {
+          dateStr,
+          platform,
+        },
+        orderBy: [
+          {
+            accUSDPnl: isDesc ? 'desc' : 'asc',
           },
-          orderBy: [
-            {
-              accUSDPnl: isDesc ? 'desc' : 'asc',
-            },
-            {
-              address: 'asc',
-            },
-          ],
-        });
-
-      if (pnlRecords.length === 0) {
-        hasNextPage = false;
-        break;
-      }
-
-      const pnlRecordAddresses = pnlRecords.map((record) =>
-        record.address.toLowerCase(),
-      );
-      const rawHistoryRecords =
-        await this.prismaService.perpTradingEventLog.findMany({
-          where: {
-            address: {
-              in: pnlRecordAddresses,
-            },
-            platform,
-            date: {
-              gt: startDate,
-              lte: endDate,
-            },
+          {
+            address: 'asc',
           },
-          orderBy: [
-            {
-              address: 'asc',
-            },
-            {
-              date: 'asc',
-            },
-            {
-              block: 'asc',
-            },
-          ],
-          select: {
-            id: true,
-            address: true,
-            contractId: true,
-            jsonLog: true,
-            date: true,
-          },
-        });
-
-      const historyRecordsByAddress = new Map<
-        string,
-        typeof rawHistoryRecords
-      >();
-
-      rawHistoryRecords.forEach((record) => {
-        const recordAddress = record.address.toLowerCase();
-        const records = historyRecordsByAddress.get(recordAddress);
-
-        if (records) {
-          records.push(record);
-          return;
-        }
-
-        historyRecordsByAddress.set(recordAddress, [record]);
+        ],
       });
 
-      for (const pnlRecord of pnlRecords) {
-        if (edges.length >= first) break;
+    const pnlRecordAddresses = pnlRecords.map((record) =>
+      record.address.toLowerCase(),
+    );
+    const rawHistoryRecords =
+      pnlRecordAddresses.length === 0
+        ? []
+        : await this.prismaService.perpTradingEventLog.findMany({
+            where: {
+              address: {
+                in: pnlRecordAddresses,
+              },
+              platform,
+              date: {
+                gt: startDate,
+                lte: endDate,
+              },
+            },
+            orderBy: [
+              {
+                address: 'asc',
+              },
+              {
+                date: 'asc',
+              },
+              {
+                block: 'asc',
+              },
+            ],
+            select: {
+              id: true,
+              address: true,
+              contractId: true,
+              jsonLog: true,
+              date: true,
+            },
+          });
 
+    const historyRecordsByAddress = new Map<string, typeof rawHistoryRecords>();
+
+    rawHistoryRecords.forEach((record) => {
+      const recordAddress = record.address.toLowerCase();
+      const records = historyRecordsByAddress.get(recordAddress);
+
+      if (records) {
+        records.push(record);
+        return;
+      }
+
+      historyRecordsByAddress.set(recordAddress, [record]);
+    });
+
+    const records = pnlRecords
+      .map((pnlRecord) => {
         const historyRecords =
           historyRecordsByAddress.get(pnlRecord.address.toLowerCase()) ?? [];
 
-        if (historyRecords.length < 2) continue;
+        if (historyRecords.length < 2) {
+          return null;
+        }
 
         const perpTradeHistories = historyRecords
           .map((record) => {
             const contract = allContractsMap[record.contractId];
+
+            if (!contract) {
+              return null;
+            }
 
             const history = getWeb3Info(
               contract.platform,
@@ -204,46 +166,37 @@ export class PnlSnapshotsService {
               JSON.parse(record.jsonLog) as any,
             );
 
-            return history
-              ? {
-                  ...history,
-                  id: record.id,
-                  date: record.date,
-                  contractId: record.contractId,
-                  platform: contract.platform,
-                }
-              : null;
+            if (!history) {
+              return null;
+            }
+
+            return {
+              ...history,
+              id: record.id,
+              date: record.date,
+              contractId: record.contractId,
+              platform: contract.platform,
+            };
           })
           .filter((item) => !!item);
 
-        edges.push({
-          cursor: pnlRecord.address,
-          node: {
-            ...pnlRecord,
-            positionsWithSummary:
-              this.eventLogService.convertToPerpTradePositionsWithSummary(
-                platform,
-                perpTradeHistories,
-                null,
-              ),
-          },
-        });
-      }
-
-      currentAfter = pnlRecords[pnlRecords.length - 1].address;
-
-      if (pnlRecords.length < first) {
-        hasNextPage = false;
-        break;
-      }
-    }
+        return {
+          ...pnlRecord,
+          positionsWithSummary:
+            this.eventLogService.convertToPerpTradePositionsWithSummary(
+              platform,
+              perpTradeHistories,
+              null,
+            ),
+        };
+      })
+      .filter((item) => !!item);
 
     return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      },
+      items: records,
+      total,
+      currentPage: safePage,
+      totalPages: Math.ceil(total / safePageSize),
     };
   }
 

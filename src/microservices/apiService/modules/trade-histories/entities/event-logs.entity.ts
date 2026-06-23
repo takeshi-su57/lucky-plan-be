@@ -207,36 +207,9 @@ export class PnlSnapshotV2InitializedFlag {
 }
 
 @ObjectType()
-export class PnlSnapshotV2DetailsEdge {
-  @Field(() => String) cursor: string;
-  @Field(() => PnlSnapshotV2Details) node: PnlSnapshotV2Details;
-}
-
-@ObjectType()
-export class PnlSnapshotV2DetailsPageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => String, { nullable: true }) endCursor: string | null;
-}
-
-@ObjectType()
-export class PnlSnapshotV2DetailsConnection {
-  @Field(() => [PnlSnapshotV2DetailsEdge])
-  edges: PnlSnapshotV2DetailsEdge[];
-  @Field(() => PnlSnapshotV2DetailsPageInfo)
-  pageInfo: PnlSnapshotV2DetailsPageInfo;
-}
-
-@ObjectType()
-export class PnlSnapshotV2DetailsForPaginationAPIPageInfo {
+export class PnlSnapshotV2DetailsPaginatedResponse {
+  @Field(() => [PnlSnapshotV2Details]) items: PnlSnapshotV2Details[];
   @Field(() => Int) total: number;
-  @Field(() => Int) page: number;
+  @Field(() => Int) currentPage: number;
   @Field(() => Int) totalPages: number;
-}
-
-@ObjectType()
-export class PnlSnapshotV2DetailsForPagination {
-  @Field(() => [PnlSnapshotV2Details])
-  data: PnlSnapshotV2Details[];
-  @Field(() => PnlSnapshotV2DetailsForPaginationAPIPageInfo)
-  pageInfo: PnlSnapshotV2DetailsForPaginationAPIPageInfo;
 }
