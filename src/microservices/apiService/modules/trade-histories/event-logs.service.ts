@@ -34,6 +34,7 @@ export class EventLogsService {
   async getPerpTradePositionsWithSummary(
     address: string,
     platform: Platform,
+    maxLeverage: number | null,
     startedAt: Date | null,
     stoppedAt: Date | null,
     endedAt: Date | null,
@@ -97,7 +98,10 @@ export class EventLogsService {
             : null;
         })
         .filter((item) => !!item),
-      { stoppedAt: stoppedAt || undefined },
+      {
+        stoppedAt: stoppedAt || undefined,
+        maxLeverage: maxLeverage || undefined,
+      },
     );
   }
 
@@ -161,6 +165,13 @@ export class EventLogsService {
         }
 
         if (filters.maxLeverage && history.leverage > filters.maxLeverage) {
+          break;
+        }
+
+        if (
+          filters.maxLeverage &&
+          history.pair.toLowerCase().includes('degen')
+        ) {
           break;
         }
 

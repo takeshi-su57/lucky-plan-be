@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation, Float } from '@nestjs/graphql';
 import { Platform, UserPermission } from 'generated/prisma/client';
 
 import { GqlAuthGuard } from 'src/microservices/apiService/modules/auth/gql-auth.guard';
@@ -84,6 +84,8 @@ export class EventLogsResolver {
   getPerpTradePositions(
     @Args('address', { type: () => String }) address: string,
     @Args('platform', { type: () => Platform }) platform: Platform,
+    @Args('maxLeverage', { type: () => Float, nullable: true })
+    maxLeverage: number,
     @Args('startedAt', { type: () => Date, nullable: true })
     startedAt: Date | null,
     @Args('stoppedAt', { type: () => Date, nullable: true })
@@ -93,6 +95,7 @@ export class EventLogsResolver {
     return this.eventLogsService.getPerpTradePositionsWithSummary(
       address,
       platform,
+      maxLeverage || null,
       startedAt,
       stoppedAt,
       endedAt,
@@ -104,6 +107,8 @@ export class EventLogsResolver {
     @Args('dateStr', { type: () => String }) dateStr: string,
     @Args('platform', { type: () => Platform }) platform: Platform,
     @Args('isDesc', { type: () => Boolean }) isDesc: boolean,
+    @Args('maxLeverage', { type: () => Float, nullable: true })
+    maxLeverage: number,
     @Args('page', { type: () => Int }) page: number,
     @Args('pageSize', { type: () => Int }) pageSize: number,
   ) {
@@ -111,6 +116,7 @@ export class EventLogsResolver {
       dateStr,
       platform,
       isDesc,
+      maxLeverage || null,
       page,
       pageSize,
     );

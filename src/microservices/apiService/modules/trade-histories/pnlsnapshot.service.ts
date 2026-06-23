@@ -48,6 +48,7 @@ export class PnlSnapshotsService {
     dateStr: string,
     platform: Platform,
     isDesc: boolean,
+    maxLeverage: number | null,
     page: number,
     pageSize: number,
   ): Promise<PnlSnapshotV2DetailsPaginatedResponse> {
@@ -186,7 +187,7 @@ export class PnlSnapshotsService {
             this.eventLogService.convertToPerpTradePositionsWithSummary(
               platform,
               perpTradeHistories,
-              {},
+              { maxLeverage: maxLeverage ?? undefined },
             ),
         };
       })
