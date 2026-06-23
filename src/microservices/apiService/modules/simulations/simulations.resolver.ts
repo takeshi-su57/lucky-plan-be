@@ -22,7 +22,7 @@ export class SimulationsResolver {
     return this.simulationsService.createSimulationPlan(input);
   }
 
-  @Mutation(() => SimulationPlan)
+  @Mutation(() => SimulationBot)
   updateSimulationBot(@Args('input') input: UpdateSimulationBotInput) {
     return this.simulationsService.updateSimulationBot(input);
   }

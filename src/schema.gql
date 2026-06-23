@@ -503,7 +503,7 @@ type Mutation {
   updateLeverage(input: UpdateLeverageInput!): ContractExecutionResult!
   updateMaxOpenMissions(maxCount: Int!): Boolean!
   updatePlan(updatePlanInput: UpdatePlanInput!): Plan!
-  updateSimulationBot(input: UpdateSimulationBotInput!): SimulationPlan!
+  updateSimulationBot(input: UpdateSimulationBotInput!): SimulationBot!
   updateSl(input: UpdateSlInput!): ContractExecutionResult!
   updateStrategy(id: Int!, input: UpdateStrategyInput!): Strategy!
   updateTp(input: UpdateTpInput!): ContractExecutionResult!
