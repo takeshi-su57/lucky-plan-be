@@ -84,6 +84,7 @@ export function eventToPerpTradeHistory(
     leverageDelta,
     isLong: true,
     price: Number(event.args.oraclePrice) / 1e10,
+    collateralUsdPrice,
   };
 }
 

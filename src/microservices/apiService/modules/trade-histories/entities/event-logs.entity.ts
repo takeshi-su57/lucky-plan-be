@@ -123,6 +123,9 @@ export class PurePerpTradeHistory {
 
   @Field(() => Float)
   price: number;
+
+  @Field(() => Float)
+  collateralUsdPrice: number;
 }
 
 @ObjectType()

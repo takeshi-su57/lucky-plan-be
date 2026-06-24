@@ -90,6 +90,7 @@ export function eventToPerpTradeHistory(
     leverageDelta,
     isLong: event.args.t.buy,
     price: Number(event.args.price) / 1e10,
+    collateralUsdPrice: 1,
   };
 }
 

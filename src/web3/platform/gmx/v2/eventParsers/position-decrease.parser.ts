@@ -71,6 +71,10 @@ export function eventToPerpTradeHistory(
     (Number(event.args.collateralAmount) *
       Number(event.args['collateralTokenPrice.max'])) /
     1e30;
+
+  const collateralUsdPrice =
+    (collateralInUsd * 1e30) / Number(event.args.collateralAmount);
+
   const sizeDeltaUsd = Number(event.args.sizeDeltaUsd) / 1e30;
   const collateralDeltaUsd =
     (Number(event.args.collateralDeltaAmount) *
@@ -121,6 +125,7 @@ export function eventToPerpTradeHistory(
     price:
       Number(event.args.executionPrice) /
       Math.pow(10, 30 - (marketInfo?.indexToken.decimals || 0)),
+    collateralUsdPrice,
   };
 }
 
