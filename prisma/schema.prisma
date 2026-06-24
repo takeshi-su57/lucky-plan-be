@@ -140,12 +140,12 @@ model Plan {
 }
 
 model SimulationPlan {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  startAt     DateTime
-  endAt       DateTime
-  cursor      DateTime
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String
+  startAt      DateTime
+  endAt        DateTime
+  cursor       DateTime
   simulationId Int?
 
   openedPositions  Int   @default(0)
@@ -153,9 +153,9 @@ model SimulationPlan {
   totalLeaderPnl   Float @default(0)
   totalFollowerPnl Float @default(0)
 
-  simulationBots      SimulationBot[]
-  simulation          Simulation?                 @relation(fields: [simulationId], references: [id])
-  leaderSelections    SimulationLeaderSelection[]
+  simulationBots   SimulationBot[]
+  simulation       Simulation?                 @relation(fields: [simulationId], references: [id])
+  leaderSelections SimulationLeaderSelection[]
 
   @@index([simulationId, startAt])
 }
@@ -175,11 +175,11 @@ enum SimulationStatus {
 }
 
 model Simulation {
-  id          Int      @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   title       String
   description String
 
-  platform   Platform
+  platform Platform
 
   startAt         DateTime
   endAt           DateTime
@@ -196,7 +196,7 @@ model Simulation {
   standardCollateralUsd Float @default(100)
   minCollateralUsd      Float @default(10)
   maxCollateralUsd      Float @default(500)
-  minRatio              Float @default(0.05)
+  minRatio              Float @default(0)
   maxRatio              Float @default(3)
   maxLeverage           Float @default(50)
 

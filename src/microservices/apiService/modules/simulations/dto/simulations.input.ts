@@ -110,7 +110,7 @@ export class CreateSimulationInput {
   @Field(() => Float, { defaultValue: 500 })
   maxCollateralUsd: number;
 
-  @Field(() => Float, { defaultValue: 0.05 })
+  @Field(() => Float, { defaultValue: 0 })
   minRatio: number;
 
   @Field(() => Float, { defaultValue: 3 })
@@ -134,10 +134,10 @@ export class UpdateSimulationInput {
   @Field(() => Int)
   id: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   title?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   description?: string | null;
 
   @Field(() => Int, { nullable: true })

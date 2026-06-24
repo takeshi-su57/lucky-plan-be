@@ -20,7 +20,7 @@ export class SimulationBot {
   @Field(() => Int)
   id: number;
 
-  @Field()
+  @Field(() => String)
   leaderAddress: string;
 
   @Field(() => Float)
@@ -92,10 +92,10 @@ export class SimulationPlan {
   @Field(() => Int)
   id: number;
 
-  @Field()
+  @Field(() => String)
   title: string;
 
-  @Field()
+  @Field(() => String)
   description: string;
 
   @Field(() => Date)
@@ -185,10 +185,10 @@ export class Simulation {
   @Field(() => Int)
   id: number;
 
-  @Field()
+  @Field(() => String)
   title: string;
 
-  @Field()
+  @Field(() => String)
   description: string;
 
   @Field(() => Platform)
@@ -206,10 +206,10 @@ export class Simulation {
   @Field(() => SimulationStatus)
   status: SimulationStatus;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   progressPhase: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   progressMessage: string | null;
 
   @Field(() => Float)
@@ -281,7 +281,7 @@ export class Simulation {
   @Field(() => Float)
   profitFactor: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   error: string | null;
 
   @Field(() => Date)
@@ -302,7 +302,7 @@ export class SimulationLeaderSelection {
   @Field(() => Int, { nullable: true })
   simulationPlanId: number | null;
 
-  @Field()
+  @Field(() => String)
   leaderAddress: string;
 
   @Field(() => Date)

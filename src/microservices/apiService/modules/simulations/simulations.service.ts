@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 
 import {
@@ -85,10 +85,36 @@ const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
 
 @Injectable()
 export class SimulationsService {
+  private readonly logger = new Logger(SimulationsService.name);
+  private readonly activeAutoSimulationRunIds = new Set<number>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
   ) {}
+
+  private logDebug(message: string, metadata?: Record<string, unknown>) {
+    this.logger.debug(
+      metadata ? `${message} ${JSON.stringify(metadata)}` : message,
+    );
+  }
+
+  private logWarn(message: string, metadata?: Record<string, unknown>) {
+    this.logger.warn(
+      metadata ? `${message} ${JSON.stringify(metadata)}` : message,
+    );
+  }
+
+  private logError(
+    message: string,
+    error: unknown,
+    metadata?: Record<string, unknown>,
+  ) {
+    this.logger.error(
+      metadata ? `${message} ${JSON.stringify(metadata)}` : message,
+      error instanceof Error ? error.stack : undefined,
+    );
+  }
 
   private buildDailyRanges(startAt: Date, endAt: Date): WindowRange[] {
     const ranges: WindowRange[] = [];
@@ -128,6 +154,18 @@ export class SimulationsService {
     if (input.maxLeverage <= 0) {
       throw new Error('maxLeverage must be greater than 0');
     }
+
+    if (input.minTrades <= 0) {
+      throw new Error('minTrades must be greater than 0');
+    }
+
+    if (input.minNegativeR2 < 0 || input.minNegativeR2 > 1) {
+      throw new Error('minNegativeR2 must be between 0 and 1');
+    }
+
+    if (input.minRatio < 0) {
+      throw new Error('minRatio cannot be negative');
+    }
   }
 
   private validateSimulationUpdate(input: UpdateSimulationInput) {
@@ -150,6 +188,30 @@ export class SimulationsService {
     ) {
       throw new Error('minRatio must be lower than maxRatio');
     }
+
+    if (
+      input.minTrades !== undefined &&
+      input.minTrades !== null &&
+      input.minTrades <= 0
+    ) {
+      throw new Error('minTrades must be greater than 0');
+    }
+
+    if (
+      input.minNegativeR2 !== undefined &&
+      input.minNegativeR2 !== null &&
+      (input.minNegativeR2 < 0 || input.minNegativeR2 > 1)
+    ) {
+      throw new Error('minNegativeR2 must be between 0 and 1');
+    }
+
+    if (
+      input.minRatio !== undefined &&
+      input.minRatio !== null &&
+      input.minRatio < 0
+    ) {
+      throw new Error('minRatio cannot be negative');
+    }
   }
 
   async createSimulation(input: CreateSimulationInput): Promise<Simulation> {
@@ -160,7 +222,21 @@ export class SimulationsService {
       input.endAt,
     ).length;
 
-    return await this.prisma.simulation.create({
+    this.logDebug('Creating auto simulation', {
+      title: input.title,
+      platform: input.platform,
+      startAt: input.startAt,
+      endAt: input.endAt,
+      totalSimulationPlans,
+      selectedLeaderCount: input.selectedLeaderCount,
+      minTrades: input.minTrades,
+      minNegativeR2: input.minNegativeR2,
+      minRatio: input.minRatio,
+      maxRatio: input.maxRatio,
+      maxLeverage: input.maxLeverage,
+    });
+
+    const simulation = await this.prisma.simulation.create({
       data: {
         ...input,
         startAt: dayjs(input.startAt).startOf('day').toDate(),
@@ -172,6 +248,15 @@ export class SimulationsService {
         totalSimulationPlans,
       },
     });
+
+    this.logDebug('Created auto simulation', {
+      simulationId: simulation.id,
+      startAt: simulation.startAt,
+      endAt: simulation.endAt,
+      totalSimulationPlans: simulation.totalSimulationPlans,
+    });
+
+    return simulation;
   }
 
   async updateSimulation(input: UpdateSimulationInput): Promise<Simulation> {
@@ -291,7 +376,9 @@ export class SimulationsService {
   }
 
   async cancelSimulation(id: number): Promise<Simulation> {
-    return await this.prisma.simulation.update({
+    this.logWarn('Cancelling auto simulation', { simulationId: id });
+
+    const simulation = await this.prisma.simulation.update({
       where: { id },
       data: {
         status: SimulationStatus.Cancelled,
@@ -299,9 +386,15 @@ export class SimulationsService {
         progressMessage: 'Simulation cancellation requested',
       },
     });
+
+    this.logWarn('Auto simulation cancelled', { simulationId: id });
+
+    return simulation;
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {
+    this.logDebug('Play auto simulation requested', { simulationId: id });
+
     const simulation = await this.prisma.simulation.findUnique({
       where: { id },
     });
@@ -310,14 +403,35 @@ export class SimulationsService {
       throw new Error('Simulation not found');
     }
 
-    if (simulation.status === SimulationStatus.Running) {
+    if (
+      simulation.status === SimulationStatus.Running &&
+      this.activeAutoSimulationRunIds.has(id)
+    ) {
       throw new Error('Simulation is already running');
+    }
+
+    if (simulation.status === SimulationStatus.Running) {
+      this.logWarn('Recovering running auto simulation without active worker', {
+        simulationId: id,
+        cursor: simulation.cursor,
+        completedPlans: simulation.completedPlans,
+      });
     }
 
     const totalSimulationPlans = this.buildDailyRanges(
       simulation.startAt,
       simulation.endAt,
     ).length;
+
+    this.logDebug('Accepting auto simulation run', {
+      simulationId: id,
+      status: simulation.status,
+      cursor: simulation.cursor,
+      startAt: simulation.startAt,
+      endAt: simulation.endAt,
+      completedPlans: simulation.completedPlans,
+      totalSimulationPlans,
+    });
 
     const updatedSimulation = await this.prisma.simulation.update({
       where: { id },
@@ -334,7 +448,12 @@ export class SimulationsService {
       },
     });
 
+    this.activeAutoSimulationRunIds.add(id);
+
     setTimeout(() => {
+      this.logDebug('Scheduling auto simulation background run', {
+        simulationId: id,
+      });
       void this.runAutoSimulation(id);
     }, 0);
 
@@ -342,12 +461,33 @@ export class SimulationsService {
   }
 
   private async runAutoSimulation(id: number) {
+    if (this.activeAutoSimulationRunIds.has(id)) {
+      this.logDebug('Auto simulation worker confirmed active run', {
+        simulationId: id,
+      });
+    } else {
+      this.activeAutoSimulationRunIds.add(id);
+      this.logWarn(
+        'Auto simulation worker started without pre-registered run',
+        {
+          simulationId: id,
+        },
+      );
+    }
+
+    this.logDebug('Auto simulation background run started', {
+      simulationId: id,
+    });
+
     try {
       const simulation = await this.prisma.simulation.findUnique({
         where: { id },
       });
 
       if (!simulation) {
+        this.logWarn('Auto simulation run aborted: simulation not found', {
+          simulationId: id,
+        });
         return;
       }
 
@@ -360,9 +500,28 @@ export class SimulationsService {
         (range) => range.endedAt.getTime() > startedAt.getTime(),
       );
 
+      this.logDebug('Auto simulation ranges resolved', {
+        simulationId: id,
+        startAt: simulation.startAt,
+        endAt: simulation.endAt,
+        cursor: simulation.cursor,
+        resumedFrom: startedAt,
+        allRangeCount: allRanges.length,
+        remainingRangeCount: ranges.length,
+        firstRemainingStartAt: ranges[0]?.startedAt,
+        firstRemainingEndAt: ranges[0]?.endedAt,
+      });
+
       const platformContracts = await this.prisma.contract.findMany({
         where: { platform: simulation.platform },
         orderBy: [{ chainId: 'asc' }, { id: 'asc' }],
+      });
+
+      this.logDebug('Auto simulation platform contracts loaded', {
+        simulationId: id,
+        platform: simulation.platform,
+        contractCount: platformContracts.length,
+        contractIds: platformContracts.map((contract) => contract.id),
       });
 
       if (platformContracts.length === 0) {
@@ -381,8 +540,21 @@ export class SimulationsService {
         });
 
         if (!current || current.status === SimulationStatus.Cancelled) {
+          this.logWarn('Auto simulation run stopped before daily range', {
+            simulationId: id,
+            rangeStartAt: range.startedAt,
+            currentStatus: current?.status,
+          });
           return;
         }
+
+        this.logDebug('Auto simulation daily range started', {
+          simulationId: id,
+          rangeStartAt: range.startedAt,
+          rangeEndAt: range.endedAt,
+          currentCursor: current.cursor,
+          completedPlans: current.completedPlans,
+        });
 
         await this.prisma.simulation.update({
           where: { id },
@@ -404,6 +576,21 @@ export class SimulationsService {
           contractById,
         );
 
+        this.logDebug('Auto simulation daily leaders selected', {
+          simulationId: id,
+          simulationPlanId: simulationPlan.id,
+          rangeStartAt: range.startedAt,
+          selectedCount: selectedCandidates.length,
+          topCandidates: selectedCandidates.slice(0, 5).map((candidate) => ({
+            leaderAddress: candidate.leaderAddress,
+            score: candidate.score,
+            suggestedRatio: candidate.suggestedRatio,
+            rawTradeCount: candidate.rawTradeCount,
+            rawTotalPnlUsd: candidate.rawTotalPnlUsd,
+            reverseNetPnlUsd: candidate.reverseNetPnlUsd,
+          })),
+        });
+
         await this.persistLeaderSelections(
           current.id,
           simulationPlan.id,
@@ -418,6 +605,11 @@ export class SimulationsService {
           selectedCandidates,
           platformContracts,
         );
+
+        this.logDebug('Auto simulation calculating daily plan details', {
+          simulationId: id,
+          simulationPlanId: simulationPlan.id,
+        });
 
         await this.calculateSimulationPlanDetails(simulationPlan.id);
 
@@ -440,9 +632,28 @@ export class SimulationsService {
                 : 100,
           },
         });
+
+        this.logDebug('Auto simulation daily range completed', {
+          simulationId: id,
+          simulationPlanId: simulationPlan.id,
+          rangeStartAt: range.startedAt,
+          rangeEndAt: range.endedAt,
+          completedPlans,
+          totalPlans: allRanges.length,
+        });
       }
+
+      this.logDebug('Auto simulation aggregating final results', {
+        simulationId: id,
+      });
+
       await this.aggregateSimulation(id);
     } catch (error) {
+      this.logError('Auto simulation failed', error, {
+        simulationId: id,
+        error: getReadableError(error),
+      });
+
       await this.prisma.simulation.update({
         where: { id },
         data: {
@@ -452,6 +663,11 @@ export class SimulationsService {
           error: getReadableError(error),
         },
       });
+    } finally {
+      this.activeAutoSimulationRunIds.delete(id);
+      this.logDebug('Auto simulation worker released active run', {
+        simulationId: id,
+      });
     }
   }
 
@@ -459,7 +675,27 @@ export class SimulationsService {
     simulation: Simulation,
     range: WindowRange,
   ) {
-    return await this.prisma.simulationPlan.create({
+    const existingSimulationPlan = await this.prisma.simulationPlan.findFirst({
+      where: {
+        simulationId: simulation.id,
+        startAt: range.startedAt,
+        endAt: range.endedAt,
+      },
+    });
+
+    if (existingSimulationPlan) {
+      this.logWarn('Reusing existing daily simulation plan', {
+        simulationId: simulation.id,
+        simulationPlanId: existingSimulationPlan.id,
+        startAt: existingSimulationPlan.startAt,
+        endAt: existingSimulationPlan.endAt,
+        cursor: existingSimulationPlan.cursor,
+      });
+
+      return existingSimulationPlan;
+    }
+
+    const simulationPlan = await this.prisma.simulationPlan.create({
       data: {
         title: `${simulation.title} ${dayjs(range.startedAt).format(
           'YYYY-MM-DD',
@@ -467,18 +703,35 @@ export class SimulationsService {
         description: simulation.description,
         startAt: range.startedAt,
         endAt: range.endedAt,
-        cursor: new Date(),
+        cursor: range.startedAt,
         simulationId: simulation.id,
       },
     });
+
+    this.logDebug('Created daily simulation plan', {
+      simulationId: simulation.id,
+      simulationPlanId: simulationPlan.id,
+      startAt: simulationPlan.startAt,
+      endAt: simulationPlan.endAt,
+      cursor: simulationPlan.cursor,
+    });
+
+    return simulationPlan;
   }
 
   private async findCandidateLeaders(
     simulation: Simulation,
     range: WindowRange,
-    contractById: Map<number, ContractContext>,
   ) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    this.logDebug('Finding auto simulation candidate leaders', {
+      simulationId: simulation.id,
+      platform: simulation.platform,
+      dateStr,
+      minTrades: simulation.minTrades,
+      recentActivityDays: CANDIDATE_RECENT_ACTIVITY_DAYS,
+    });
+
     const records = await this.prisma.pnlSnapshotV2.findMany({
       where: {
         platform: simulation.platform,
@@ -496,10 +749,20 @@ export class SimulationsService {
     const candidateAddresses = records.map((record) =>
       record.address.toLowerCase(),
     );
+
+    this.logDebug('Auto simulation candidate snapshot records loaded', {
+      simulationId: simulation.id,
+      dateStr,
+      snapshotRecordCount: records.length,
+      uniqueCandidateCount: new Set(candidateAddresses).size,
+    });
+
     const recentActivityCutoff = dayjs(range.startedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
     const prefilteredAddresses: string[] = [];
+    let noRecentTradeHistoryCount = 0;
+    let lowRecentTradeHistoryCount = 0;
 
     for (
       let offset = 0;
@@ -510,52 +773,59 @@ export class SimulationsService {
         offset,
         offset + CANDIDATE_PREFILTER_BATCH_SIZE,
       );
-      const recentLogsByAddress = await Promise.all(
-        addressBatch.map(async (address) => {
-          const logs = await this.prisma.perpTradingEventLog.findMany({
-            where: {
-              platform: simulation.platform,
-              address,
-              date: {
-                lt: range.startedAt,
-              },
-            },
-            orderBy: [{ date: 'desc' }, { block: 'desc' }, { id: 'desc' }],
-            take: simulation.minTrades,
-          });
 
-          return {
-            address,
-            logs,
-          };
-        }),
+      const activeLeaderGroups = await this.prisma.perpTradingEventLog.groupBy({
+        by: ['address'],
+        where: {
+          platform: simulation.platform,
+          address: {
+            in: addressBatch,
+          },
+          date: {
+            gte: recentActivityCutoff,
+            lt: range.startedAt,
+          },
+        },
+        _count: {
+          address: true,
+        },
+      });
+      const eventCountByAddress = new Map(
+        activeLeaderGroups.map((group) => [
+          group.address.toLowerCase(),
+          group._count.address,
+        ]),
       );
 
-      recentLogsByAddress.forEach(({ address, logs }) => {
-        const latestLog = logs[0];
-        const sampledPositions =
-          this.eventLogsService.convertToPerpTradePositionsWithSummary(
-            simulation.platform,
-            this.eventLogsToHistories(logs, contractById),
-            {
-              maxLeverage: simulation.maxLeverage,
-            },
-          ).positions;
-        const closedPositionCount = sampledPositions.filter((position) =>
-          this.isClosedPosition(position),
-        ).length;
+      addressBatch.forEach((address) => {
+        // Cheap prefilter only: count recent raw trade-history events.
+        // Position reconstruction and closed-position minTrades checks happen
+        // later in evaluateLeaderForReverseCopy.
+        const recentTradeHistoryCount = eventCountByAddress.get(address) || 0;
 
-        if (closedPositionCount < simulation.minTrades) {
+        if (recentTradeHistoryCount === 0) {
+          noRecentTradeHistoryCount += 1;
           return;
         }
 
-        if (!latestLog || latestLog.date < recentActivityCutoff) {
+        if (recentTradeHistoryCount < simulation.minTrades) {
+          lowRecentTradeHistoryCount += 1;
           return;
         }
 
         prefilteredAddresses.push(address);
       });
     }
+
+    this.logDebug('Auto simulation candidate prefilter completed', {
+      simulationId: simulation.id,
+      dateStr,
+      snapshotCandidateCount: candidateAddresses.length,
+      prefilteredCount: prefilteredAddresses.length,
+      noRecentTradeHistoryCount,
+      lowRecentTradeHistoryCount,
+      minRecentTradeHistoryCount: simulation.minTrades,
+    });
 
     return prefilteredAddresses;
   }
@@ -565,12 +835,14 @@ export class SimulationsService {
     range: WindowRange,
     contractById: Map<number, ContractContext>,
   ) {
-    const candidateLeaders = await this.findCandidateLeaders(
-      simulation,
-      range,
-      contractById,
-    );
+    const candidateLeaders = await this.findCandidateLeaders(simulation, range);
     const evaluated: CandidateEvaluation[] = [];
+
+    this.logDebug('Evaluating auto simulation candidate leaders', {
+      simulationId: simulation.id,
+      rangeStartAt: range.startedAt,
+      candidateCount: candidateLeaders.length,
+    });
 
     for (const leaderAddress of candidateLeaders) {
       evaluated.push(
@@ -583,10 +855,29 @@ export class SimulationsService {
       );
     }
 
-    return evaluated
+    const rejectedByReason = evaluated.reduce<Record<string, number>>(
+      (acc, item) => {
+        const reason = item.rejectedReason || 'ACCEPTED';
+        acc[reason] = (acc[reason] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+    const selected = evaluated
       .filter((item) => !item.rejectedReason && item.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, simulation.selectedLeaderCount);
+
+    this.logDebug('Auto simulation candidate evaluation completed', {
+      simulationId: simulation.id,
+      rangeStartAt: range.startedAt,
+      evaluatedCount: evaluated.length,
+      selectedCount: selected.length,
+      rejectedByReason,
+      selectedLeaderCountLimit: simulation.selectedLeaderCount,
+    });
+
+    return selected;
   }
 
   private async evaluateLeaderForReverseCopy(
@@ -870,6 +1161,14 @@ export class SimulationsService {
     selectedCandidates: CandidateEvaluation[],
   ) {
     if (selectedCandidates.length === 0) {
+      this.logWarn(
+        'No leader selections to persist for daily simulation plan',
+        {
+          simulationId,
+          simulationPlanId,
+          date,
+        },
+      );
       return;
     }
 
@@ -891,6 +1190,13 @@ export class SimulationsService {
       })),
       skipDuplicates: true,
     });
+
+    this.logDebug('Persisted auto simulation leader selections', {
+      simulationId,
+      simulationPlanId,
+      date,
+      selectedCount: selectedCandidates.length,
+    });
   }
 
   private async createSimulationBotsForSelections(
@@ -902,8 +1208,31 @@ export class SimulationsService {
     contracts: { id: number }[],
   ) {
     if (selectedCandidates.length === 0 || contracts.length === 0) {
+      this.logWarn('Skipping auto simulation bot creation', {
+        simulationId: simulation.id,
+        simulationPlanId,
+        selectedCount: selectedCandidates.length,
+        contractCount: contracts.length,
+      });
       return;
     }
+
+    const existingBotCount = await this.prisma.simulationBot.count({
+      where: { simulationPlanId },
+    });
+
+    if (existingBotCount > 0) {
+      this.logWarn('Skipping auto simulation bot creation for existing plan', {
+        simulationId: simulation.id,
+        simulationPlanId,
+        existingBotCount,
+        selectedCount: selectedCandidates.length,
+        contractCount: contracts.length,
+      });
+      return;
+    }
+
+    const botCount = selectedCandidates.length * contracts.length;
 
     await this.prisma.simulationBot.createMany({
       data: selectedCandidates.flatMap((candidate) =>
@@ -919,19 +1248,47 @@ export class SimulationsService {
         })),
       ),
     });
+
+    this.logDebug('Created auto simulation bots for daily plan', {
+      simulationId: simulation.id,
+      simulationPlanId,
+      selectedCount: selectedCandidates.length,
+      contractCount: contracts.length,
+      botCount,
+      startedAt,
+      stoppedAt,
+    });
   }
 
   private async aggregateSimulation(id: number) {
+    this.logDebug('Aggregating auto simulation', { simulationId: id });
+
     const plans = await this.prisma.simulationPlan.findMany({
       where: { simulationId: id },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
+
+    this.logDebug('Auto simulation plans loaded for aggregation', {
+      simulationId: id,
+      planCount: plans.length,
+      planIds: plans.map((plan) => plan.id),
+    });
+
     const followerPositionPnls: number[] = [];
     let totalLeaderPnl = 0;
 
     for (const plan of plans) {
       const details = await this.calculateSimulationPlanDetails(plan.id);
       totalLeaderPnl += details.totalLeaderPnl;
+
+      this.logDebug('Aggregated daily simulation plan details', {
+        simulationId: id,
+        simulationPlanId: plan.id,
+        botCount: details.simulationBots.length,
+        totalLeaderPnl: details.totalLeaderPnl,
+        totalFollowerPnl: details.totalFollowerPnl,
+        totalPositions: details.totalPositions,
+      });
 
       details.simulationBots.forEach((bot) => {
         bot.positions.forEach((position) => {
@@ -945,6 +1302,17 @@ export class SimulationsService {
     const positiveTrades = followerPositionPnls.filter(
       (item) => item > 0,
     ).length;
+
+    this.logDebug('Auto simulation aggregate totals calculated', {
+      simulationId: id,
+      totalLeaderPnl,
+      totalFollowerPnl,
+      tradeCount,
+      positiveTrades,
+      winRate: tradeCount > 0 ? positiveTrades / tradeCount : 0,
+      profitFactor: calculateProfitFactor(followerPositionPnls),
+      maxDrawdownUsd: calculateMaxDrawdown(cumulative(followerPositionPnls)),
+    });
 
     await this.prisma.simulation.update({
       where: { id },
@@ -963,6 +1331,13 @@ export class SimulationsService {
         profitFactor: calculateProfitFactor(followerPositionPnls),
         maxDrawdownUsd: calculateMaxDrawdown(cumulative(followerPositionPnls)),
       },
+    });
+
+    this.logDebug('Auto simulation completed', {
+      simulationId: id,
+      completedPlans: plans.length,
+      tradeCount,
+      totalFollowerPnl,
     });
   }
 
@@ -1113,6 +1488,9 @@ export class SimulationsService {
     after: number | null,
   ): Promise<SimulationPlanConnection> {
     const records = await this.prisma.simulationPlan.findMany({
+      where: {
+        simulationId: null,
+      },
       skip: after ? 1 : undefined,
       take: first,
       cursor: after
@@ -1142,7 +1520,7 @@ export class SimulationsService {
     return {
       edges,
       pageInfo: {
-        hasNextPage: edges.length > 0,
+        hasNextPage: edges.length === first,
         endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
       },
     };
