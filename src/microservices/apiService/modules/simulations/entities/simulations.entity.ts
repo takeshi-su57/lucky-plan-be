@@ -1,8 +1,19 @@
-import { ObjectType, Field, Int, Float, OmitType } from '@nestjs/graphql';
-import { BotMode } from 'generated/prisma/client';
+import {
+  ObjectType,
+  Field,
+  Int,
+  Float,
+  OmitType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { BotMode, Platform, SimulationStatus } from 'generated/prisma/client';
 
 import { Contract } from '../../contracts/entities/contract.entity';
 import { PerpTradeHistory } from '../../trade-histories/entities/event-logs.entity';
+
+registerEnumType(SimulationStatus, {
+  name: 'SimulationStatus',
+});
 
 @ObjectType()
 export class SimulationBot {
@@ -96,6 +107,9 @@ export class SimulationPlan {
   @Field(() => Date)
   cursor: Date;
 
+  @Field(() => Int, { nullable: true })
+  simulationId: number | null;
+
   @Field(() => Int)
   openedPositions: number;
 
@@ -164,4 +178,185 @@ export class SimulationPlanConnection {
   @Field(() => [SimulationPlanEdge])
   edges: SimulationPlanEdge[];
   @Field(() => SimulationPlanPageInfo) pageInfo: SimulationPlanPageInfo;
+}
+
+@ObjectType()
+export class Simulation {
+  @Field(() => Int)
+  id: number;
+
+  @Field()
+  title: string;
+
+  @Field()
+  description: string;
+
+  @Field(() => Platform)
+  platform: Platform;
+
+  @Field(() => Date)
+  startAt: Date;
+
+  @Field(() => Date)
+  endAt: Date;
+
+  @Field(() => Date, { nullable: true })
+  cursor: Date | null;
+
+  @Field(() => SimulationStatus)
+  status: SimulationStatus;
+
+  @Field({ nullable: true })
+  progressPhase: string | null;
+
+  @Field({ nullable: true })
+  progressMessage: string | null;
+
+  @Field(() => Float)
+  progressPercent: number;
+
+  @Field(() => Int)
+  selectedLeaderCount: number;
+
+  @Field(() => Int)
+  minTrades: number;
+
+  @Field(() => Float)
+  minNegativeR2: number;
+
+  @Field(() => Float)
+  standardCollateralUsd: number;
+
+  @Field(() => Float)
+  minCollateralUsd: number;
+
+  @Field(() => Float)
+  maxCollateralUsd: number;
+
+  @Field(() => Float)
+  minRatio: number;
+
+  @Field(() => Float)
+  maxRatio: number;
+
+  @Field(() => Float)
+  maxLeverage: number;
+
+  @Field(() => Float)
+  openFeeRate: number;
+
+  @Field(() => Float)
+  closeFeeRate: number;
+
+  @Field(() => Float)
+  slippageRate: number;
+
+  @Field(() => Int)
+  totalSimulationPlans: number;
+
+  @Field(() => Int)
+  completedPlans: number;
+
+  @Field(() => Float)
+  totalLeaderPnl: number;
+
+  @Field(() => Float)
+  totalFollowerPnl: number;
+
+  @Field(() => Float)
+  totalNetPnlUsd: number;
+
+  @Field(() => Float)
+  totalCostUsd: number;
+
+  @Field(() => Float)
+  maxDrawdownUsd: number;
+
+  @Field(() => Int)
+  tradeCount: number;
+
+  @Field(() => Float)
+  winRate: number;
+
+  @Field(() => Float)
+  profitFactor: number;
+
+  @Field({ nullable: true })
+  error: string | null;
+
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Field(() => Date)
+  updatedAt: Date;
+}
+
+@ObjectType()
+export class SimulationLeaderSelection {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => Int)
+  simulationId: number;
+
+  @Field(() => Int, { nullable: true })
+  simulationPlanId: number | null;
+
+  @Field()
+  leaderAddress: string;
+
+  @Field(() => Date)
+  date: Date;
+
+  @Field(() => Float)
+  score: number;
+
+  @Field(() => Float)
+  suggestedRatio: number;
+
+  @Field(() => Float)
+  suggestedCollateralUsd: number;
+
+  @Field(() => Float)
+  rawTotalPnlUsd: number;
+
+  @Field(() => Float)
+  rawSlope: number;
+
+  @Field(() => Float)
+  rawR2: number;
+
+  @Field(() => Int)
+  rawTradeCount: number;
+
+  @Field(() => Float)
+  reverseNetPnlUsd: number;
+
+  @Field(() => Float)
+  reverseDrawdownUsd: number;
+
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Field(() => Date)
+  updatedAt: Date;
+}
+
+@ObjectType()
+export class SimulationEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => Simulation) node: Simulation;
+}
+
+@ObjectType()
+export class SimulationPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class SimulationConnection {
+  @Field(() => [SimulationEdge])
+  edges: SimulationEdge[];
+  @Field(() => SimulationPageInfo) pageInfo: SimulationPageInfo;
 }

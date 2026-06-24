@@ -146,18 +146,112 @@ model SimulationPlan {
   startAt     DateTime
   endAt       DateTime
   cursor      DateTime
+  simulationId Int?
 
   openedPositions  Int   @default(0)
   totalPositions   Int   @default(0)
   totalLeaderPnl   Float @default(0)
   totalFollowerPnl Float @default(0)
 
-  simulationBots SimulationBot[]
+  simulationBots      SimulationBot[]
+  simulation          Simulation?                 @relation(fields: [simulationId], references: [id])
+  leaderSelections    SimulationLeaderSelection[]
+
+  @@index([simulationId, startAt])
 }
 
 enum BotMode {
   Default
   Reversed
+}
+
+enum SimulationStatus {
+  Created
+  Running
+  Paused
+  Completed
+  Failed
+  Cancelled
+}
+
+model Simulation {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+
+  platform   Platform
+
+  startAt         DateTime
+  endAt           DateTime
+  cursor          DateTime?
+  status          SimulationStatus @default(Created)
+  progressPhase   String?
+  progressMessage String?
+  progressPercent Float            @default(0)
+
+  selectedLeaderCount Int   @default(10)
+  minTrades           Int   @default(3)
+  minNegativeR2       Float @default(0.25)
+
+  standardCollateralUsd Float @default(100)
+  minCollateralUsd      Float @default(10)
+  maxCollateralUsd      Float @default(500)
+  minRatio              Float @default(0.05)
+  maxRatio              Float @default(3)
+  maxLeverage           Float @default(50)
+
+  openFeeRate  Float @default(0)
+  closeFeeRate Float @default(0)
+  slippageRate Float @default(0)
+
+  totalSimulationPlans Int   @default(0)
+  completedPlans       Int   @default(0)
+  totalLeaderPnl       Float @default(0)
+  totalFollowerPnl     Float @default(0)
+  totalNetPnlUsd       Float @default(0)
+  totalCostUsd         Float @default(0)
+  maxDrawdownUsd       Float @default(0)
+  tradeCount           Int   @default(0)
+  winRate              Float @default(0)
+  profitFactor         Float @default(0)
+
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  simulationPlans  SimulationPlan[]
+  leaderSelections SimulationLeaderSelection[]
+
+  @@index([status, createdAt])
+  @@index([platform, startAt, endAt])
+}
+
+model SimulationLeaderSelection {
+  id               Int      @id @default(autoincrement())
+  simulationId     Int
+  simulationPlanId Int?
+  leaderAddress    String   @db.VarChar(255)
+  date             DateTime
+
+  score                  Float @default(0)
+  suggestedRatio         Float @default(0)
+  suggestedCollateralUsd Float @default(0)
+  rawTotalPnlUsd         Float @default(0)
+  rawSlope               Float @default(0)
+  rawR2                  Float @default(0)
+  rawTradeCount          Int   @default(0)
+  reverseNetPnlUsd       Float @default(0)
+  reverseDrawdownUsd     Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  simulation     Simulation      @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  simulationPlan SimulationPlan? @relation(fields: [simulationPlanId], references: [id])
+
+  @@unique([simulationPlanId, leaderAddress])
+  @@index([simulationId, date])
+  @@index([leaderAddress])
 }
 
 model Bot {
