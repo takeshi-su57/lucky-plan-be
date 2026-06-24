@@ -300,8 +300,8 @@ export class SimulationsService {
                 ? Math.min(-0.5, history.usdFee * bot.ratio)
                 : 0;
             const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
-            let followerUsdPnl = Math.max(
-              -history.collateralInUsd * bot.ratio,
+            const followerUsdPnl = Math.max(
+              -history.collateralDeltaUsd * bot.ratio,
               followerUsdBasePnl + followerUsdFee,
             );
 

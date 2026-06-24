@@ -74,12 +74,14 @@ export function eventToPerpTradeHistory(
     usdFee = usdPnl - usdBasePnl;
   }
 
-  const collateralInUsd = operation === 'open' ? collateralUsd : 0;
+  const collateralInUsd =
+    operation === PerpTradeHistoryOperation.OPEN ? collateralUsd : 0;
   const leverage = Number(event.args.t.leverage) / 1e3;
 
   const sizeInUsd = collateralInUsd * leverage;
 
-  const collateralDeltaUsd = operation === 'open' ? 0 : collateralUsd;
+  const collateralDeltaUsd =
+    operation === PerpTradeHistoryOperation.OPEN ? 0 : collateralUsd;
   const leverageDelta = Number(event.args.t.leverage) / 1e3;
   const sizeDeltaUsd = collateralDeltaUsd * leverageDelta;
 
