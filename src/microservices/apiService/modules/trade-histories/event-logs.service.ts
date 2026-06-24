@@ -183,11 +183,24 @@ export class EventLogsService {
         let maxCollaterals = 0;
         let maxLeverages = 0;
         let tempPnl = 0;
+        let prevCollateralUsdPrice = history.collateralUsdPrice;
 
         const tempHistories: PerpTradeHistory[] = [];
 
         for (let j = i; j < histories.length; j++) {
           const nextHistory = histories[j];
+
+          if (
+            platform === Platform.GNS &&
+            (nextHistory.operation ===
+              PerpTradeHistoryOperation.INCREASE_LEVERAGE ||
+              nextHistory.operation ===
+                PerpTradeHistoryOperation.DECREASE_LEVERAGE)
+          ) {
+            nextHistory.collateralUsdPrice = prevCollateralUsdPrice;
+          } else {
+            prevCollateralUsdPrice = nextHistory.collateralUsdPrice;
+          }
 
           tempPnl += +nextHistory.usdPnl;
 
