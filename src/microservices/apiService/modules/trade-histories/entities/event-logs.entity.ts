@@ -95,6 +95,12 @@ export class PurePerpTradeHistory {
   usdPnl: number;
 
   @Field(() => Float)
+  usdBasePnl: number;
+
+  @Field(() => Float)
+  usdFee: number;
+
+  @Field(() => Float)
   sizeInUsd: number;
 
   @Field(() => Float)

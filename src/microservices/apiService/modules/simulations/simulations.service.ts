@@ -12,6 +12,7 @@ import {
   SimulationPlanDetails,
   SimulationPlanConnection,
   SimulationBotDetails,
+  SimulationTradeHistory,
 } from './entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -286,10 +287,60 @@ export class SimulationsService {
 
       const signer = bot.mode === BotMode.Reversed ? -1 : 1;
 
+      const simulationPositions = positionsWithSummary.positions.map(
+        ({ histories }) => {
+          let leaderPnl = 0;
+          let followerPnl = 0;
+
+          const simulationHistories: SimulationTradeHistory[] = [];
+
+          for (const history of histories) {
+            const followerUsdFee =
+              history.usdFee !== 0
+                ? Math.min(-0.5, history.usdFee * bot.ratio)
+                : 0;
+            const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
+            const followerUsdPnl = followerUsdBasePnl + followerUsdFee;
+
+            const follower = {
+              ...history,
+              id: -history.id,
+              usdPnl: followerUsdPnl,
+              usdBasePnl: followerUsdBasePnl,
+              usdFee: followerUsdFee,
+              sizeInUsd: history.sizeInUsd * bot.ratio,
+              collateralInUsd: history.collateralInUsd * bot.ratio,
+              collateralDeltaUsd: history.collateralDeltaUsd * bot.ratio,
+              sizeDeltaUsd: history.sizeDeltaUsd * bot.ratio,
+              isLong:
+                bot.mode === BotMode.Reversed
+                  ? !history.isLong
+                  : history.isLong,
+            };
+
+            leaderPnl += history.usdPnl;
+            followerPnl += follower.usdPnl;
+
+            simulationHistories.push({
+              leader: history,
+              follower,
+            });
+          }
+
+          return {
+            histories: simulationHistories,
+            leaderPnl,
+            followerPnl,
+          };
+        },
+      );
+
       totalPositions += positionsWithSummary.totalPositions;
       openedPositions += positionsWithSummary.openedPositions;
       totalLeaderPnl += positionsWithSummary.totalPnl;
-      totalFollowerPnl += positionsWithSummary.totalPnl * signer * bot.ratio;
+      totalFollowerPnl += simulationPositions
+        .map((position) => position.followerPnl)
+        .reduce((acc, item) => acc + item, 0);
 
       const updatedSimuationBot = await this.prisma.simulationBot.update({
         where: {
@@ -318,24 +369,7 @@ export class SimulationsService {
 
       simulationBotDetails.push({
         ...updatedSimuationBot,
-        positions: positionsWithSummary.positions.map(({ histories }) => ({
-          histories: histories.map((history) => ({
-            leader: history,
-            follower: {
-              ...history,
-              id: -history.id,
-              usdPnl: history.usdPnl * signer * bot.ratio,
-              sizeInUsd: history.sizeInUsd * bot.ratio,
-              collateralInUsd: history.collateralInUsd * bot.ratio,
-              collateralDeltaUsd: history.collateralDeltaUsd * bot.ratio,
-              sizeDeltaUsd: history.sizeDeltaUsd * bot.ratio,
-              isLong:
-                bot.mode === BotMode.Reversed
-                  ? !history.isLong
-                  : history.isLong,
-            },
-          })),
-        })),
+        positions: simulationPositions,
       });
     }
 

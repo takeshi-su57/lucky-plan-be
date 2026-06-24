@@ -52,12 +52,25 @@ export function eventToPerpTradeHistory(
 
   const collateralUsdPrice = Number(event.args.collateralPriceUsd) / 1e8;
 
-  const usdPnl =
-    Number(
-      (Number(event.args.values.partialNetPnlCollateral) -
-        Number(event.args.values.closingFeeCollateral)) /
-        Number(collateral.precision),
+  let usdBasePnl = 0;
+  let usdPnl = 0;
+  const usdFee =
+    -(
+      Number(event.args.values.closingFeeCollateral) /
+      Number(collateral.precision)
     ) * collateralUsdPrice;
+
+  if (Number(event.args.collateralDelta) > 0) {
+    usdBasePnl =
+      Number(
+        Number(event.args.values.partialNetPnlCollateral) /
+          Number(collateral.precision),
+      ) * collateralUsdPrice;
+
+    usdPnl = usdBasePnl + usdFee;
+  } else {
+    usdPnl = usdFee;
+  }
 
   const collateralInUsd =
     Number(
@@ -80,6 +93,8 @@ export function eventToPerpTradeHistory(
     pair: pairName,
     operation: PerpTradeHistoryOperation.DECREASE_SIZE,
     usdPnl,
+    usdBasePnl,
+    usdFee,
     sizeInUsd,
     leverage,
     collateralInUsd,

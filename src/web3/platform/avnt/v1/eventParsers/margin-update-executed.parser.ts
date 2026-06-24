@@ -41,6 +41,8 @@ export function eventToPerpTradeHistory(
   }
 
   const usdPnl = 0;
+  const usdBasePnl = 0;
+  const usdFee = 0;
 
   const collateralInUsd = Number(event.args.newTrade.initialPosToken) / 1e6;
   const leverage = Number(event.args.newTrade.leverage) / 1e10;
@@ -63,6 +65,8 @@ export function eventToPerpTradeHistory(
         ? PerpTradeHistoryOperation.INCREASE_LEVERAGE
         : PerpTradeHistoryOperation.DECREASE_LEVERAGE,
     usdPnl,
+    usdBasePnl,
+    usdFee,
     sizeInUsd,
     leverage,
     collateralInUsd,

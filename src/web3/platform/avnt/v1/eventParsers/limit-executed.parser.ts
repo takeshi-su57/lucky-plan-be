@@ -49,12 +49,20 @@ export function eventToPerpTradeHistory(
 
   const operation = operationMap[event.args.orderType];
 
-  const usdPnl =
-    operation === PerpTradeHistoryOperation.OPEN
-      ? 0
-      : (Number(event.args.usdcSentToTrader) -
-          Number(event.args.positionSizeUSDC)) /
-        1e6;
+  let usdPnl = 0;
+  let usdBasePnl = 0;
+  let usdFee = 0;
+
+  if (operation !== PerpTradeHistoryOperation.OPEN) {
+    usdPnl =
+      (Number(event.args.usdcSentToTrader) -
+        Number(event.args.positionSizeUSDC)) /
+      1e6;
+    usdBasePnl =
+      (Number(event.args.percentProfit) * Number(event.args.positionSizeUSDC)) /
+      1e18;
+    usdFee = usdPnl - usdBasePnl;
+  }
 
   const collateralUsd = Number(event.args.positionSizeUSDC) / 1e6;
 
@@ -78,6 +86,8 @@ export function eventToPerpTradeHistory(
     pair: pairName,
     operation,
     usdPnl,
+    usdBasePnl,
+    usdFee,
     sizeInUsd,
     leverage,
     collateralInUsd,

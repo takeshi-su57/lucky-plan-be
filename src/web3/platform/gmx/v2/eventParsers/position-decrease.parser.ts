@@ -57,14 +57,14 @@ export function eventToPerpTradeHistory(
   chainId: number,
   event: PositionDecreaseEvent,
 ): PurePerpTradeHistory | null {
-  const usdPnl =
-    Number(event.args.basePnlUsd?.toString() || '0') / 1e30 +
+  const usdBasePnl = Number(event.args.basePnlUsd?.toString() || '0') / 1e30;
+  const usdFee =
     Number(
       event.args.totalImpactUsd?.toString() ||
         event.args.priceImpactUsd?.toString() ||
         '0',
-    ) /
-      1e30;
+    ) / 1e30;
+  const usdPnl = usdBasePnl + usdFee;
 
   const sizeInUsd = Number(event.args.sizeInUsd) / 1e30;
   const collateralInUsd =
@@ -109,6 +109,8 @@ export function eventToPerpTradeHistory(
     pair,
     operation,
     usdPnl,
+    usdBasePnl,
+    usdFee,
     sizeInUsd,
     leverage,
     collateralInUsd,

@@ -545,6 +545,8 @@ type PerpTradeHistory {
   price: Float!
   sizeDeltaUsd: Float!
   sizeInUsd: Float!
+  usdBasePnl: Float!
+  usdFee: Float!
   usdPnl: Float!
 }
 
@@ -844,7 +846,9 @@ type SimulationTradeHistory {
 }
 
 type SimulationTradePosition {
+  followerPnl: Float!
   histories: [SimulationTradeHistory!]!
+  leaderPnl: Float!
 }
 
 type Strategy {

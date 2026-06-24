@@ -125,6 +125,12 @@ export class SimulationTradeHistory {
 export class SimulationTradePosition {
   @Field(() => [SimulationTradeHistory])
   histories: SimulationTradeHistory[];
+
+  @Field(() => Float)
+  leaderPnl: number;
+
+  @Field(() => Float)
+  followerPnl: number;
 }
 
 @ObjectType()

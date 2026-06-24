@@ -46,6 +46,8 @@ export function eventToPerpTradeHistory(
   }
 
   const usdPnl = 0;
+  const usdBasePnl = 0;
+  const usdFee = 0;
 
   const collateralUsdPrice = 0;
 
@@ -72,6 +74,8 @@ export function eventToPerpTradeHistory(
       ? PerpTradeHistoryOperation.INCREASE_LEVERAGE
       : PerpTradeHistoryOperation.DECREASE_LEVERAGE,
     usdPnl,
+    usdBasePnl,
+    usdFee,
     sizeInUsd,
     leverage,
     collateralInUsd,
