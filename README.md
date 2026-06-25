@@ -1,85 +1,217 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Lucky Plans Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Lucky Plans is a NestJS backend for automated perp copy-trading, leaderboard indexing, and strategy simulation. The same codebase can boot as the public API service or as Redis-backed workers, selected by the `SERVICE` environment variable.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## What This System Does
 
-## Description
+The backend tracks on-chain perp trading events from supported venues, stores normalized actions and trade history in Postgres, exposes product workflows through GraphQL, and runs worker loops that turn leader activity into follower missions and tasks.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The current implementation supports:
 
-## Project setup
+- API, copy-trading, and leaderboard services from one Nest entry point.
+- GraphQL queries, mutations, and subscriptions for plans, bots, missions, tasks, logs, contracts, simulations, auth, followers, strategies, SL/TP requests, prices, and trade histories.
+- Redis transport for service status, process control, logging, and internal microservice messages.
+- Prisma 7 with Postgres and a generated client in `generated/prisma`.
+- EVM chain reads/writes through `viem`, with semaphore-controlled reads and mutex-controlled wallet writes.
+- Platform adapters for GNS V9/V10, GMX V2, and AVNT V1.
+- Walk-forward simulation tooling that selects leaders from historical PnL, builds daily simulation plans, and evaluates reversed/default follower performance.
 
-```bash
-$ yarn install
+## Runtime Architecture
+
+`src/main.ts` chooses one of three service modes:
+
+- `API_SERVICE`: starts the HTTP Nest app, GraphQL API, GraphQL subscriptions, global validation, CORS, compression, and a Redis microservice listener.
+- `COPY_TRADING_SERVICE`: starts a Redis microservice that scans configured live contracts, routes observed actions into missions/tasks, and executes available follower tasks on a schedule.
+- `LEADERBOARD_SERVICE`: starts a Redis microservice that indexes historical/finalized on-chain trade logs into `PerpTradingEventLog` records and PnL snapshots.
+
+Redis is used as the Nest microservice transport, not as the primary database. Postgres is the source of truth for domain state.
+
+```text
+Clients / frontend
+        |
+        v
+API_SERVICE (HTTP + GraphQL + subscriptions)
+        |
+        | Prisma
+        v
+Postgres <------------------------------+
+        ^                               |
+        | Prisma                        |
+        |                               |
+COPY_TRADING_SERVICE ---- Redis ---- API_SERVICE
+        |                               |
+        v                               |
+EVM RPC providers                       |
+                                        |
+LEADERBOARD_SERVICE ---- Redis --------+
+        |
+        v
+EVM RPC providers
 ```
 
-## Compile and run the project
+## Main Code Paths
+
+### API Surface
+
+The API service is assembled in `src/microservices/apiService/api.module.ts`.
+
+Important modules:
+
+- `auth`: wallet/user auth and JWT issuing.
+- `contracts`: configured trading contracts by platform, chain, version, status, and block cursors.
+- `plans`, `bots`, `missions`, `tasks`, `actions`, `follower-actions`: the core copy-trading workflow state machine.
+- `trade-histories`: indexed perp logs, PnL snapshots, leader positions, and summary calculations.
+- `simulations`: manual and auto simulation workflows, daily simulation plans, leader selection, and aggregate metrics.
+- `loggers`: persisted logs plus GraphQL subscriptions for operational events.
+- `security`: Redis message handlers for password checks, app safety checks, encryption, and decryption.
+- `follower`, `strategy`, `prices`, `sltp`: supporting account, strategy, pricing, and stop-loss/take-profit workflows.
+
+GraphQL schema generation writes to `src/schema.gql`.
+
+### Copy-Trading Worker
+
+The copy-trading worker is assembled in `src/microservices/copyTradingService/copy-trading.module.ts`.
+
+The main flow is:
+
+1. `ContractMonitorService` scans every live contract from its saved cursor in block batches.
+2. Platform-specific event parsers normalize raw logs into action items.
+3. `ActionRouterService` routes follower and leader action items into persistent `Action`, `Mission`, `Task`, and `FollowerAction` records.
+4. `TaskExecutorService` executes available tasks and reconciles failed or awaiting tasks.
+5. Contract cursors advance only after a block batch is handled successfully.
+
+The scanner intentionally rechecks a small block window (`TRADING_RECHECK_BLOCKS`, default `5`) to reduce reorg risk.
+
+### Leaderboard Worker
+
+The leaderboard worker is assembled in `src/microservices/leaderboardService/leaderboard.module.ts`.
+
+It indexes finalized logs for live contracts, normalizes platform-specific trade events, calculates USD PnL per event, and stores those rows in `PerpTradingEventLog`. This is the historical data source for leaderboards, trade history views, and simulations.
+
+### Web3 Layer
+
+The shared EVM layer lives in `src/web3`.
+
+- `web3/evm-chains.service.ts` configures supported chains, public/private/paid RPC fallbacks, read semaphores, websocket clients, and write mutexes.
+- `web3/evm-adapter.service.ts` provides higher-level operations for balances, approvals, transfers, gas estimation, blocks, receipts, and logs.
+- `platform/gns`, `platform/gmx`, and `platform/avnt` hold ABI files, config maps, event parsers, and conversion helpers.
+
+Supported chain IDs currently include Ethereum mainnet, Polygon, Base, Arbitrum, Arbitrum Sepolia, ApeChain, Avalanche, and MegaETH.
+
+### Data Model
+
+The Prisma schema is in `prisma/schema.prisma`.
+
+Core groups:
+
+- Configuration and users: `Metadata`, `User`, `Follower`, `Strategy`, `Contract`.
+- Product workflow: `Plan`, `Bot`, `Mission`, `Task`, `Action`, `ActionProcessing`, `FollowerAction`, `SLTPRequest`.
+- Historical analytics: `PerpTradingEventLog`, `PnlSnapshotV2`, `PnlSnapshotV2InitializedFlag`, `GnsPricingRecord`.
+- Simulations: `Simulation`, `SimulationPlan`, `SimulationBot`, `SimulationLeaderSelection`.
+- Operations: `Log`.
+
+The Prisma client is generated to `generated/prisma`, so imports use paths like `generated/prisma/client` and `generated/prisma/enums`.
+
+## Local Setup
+
+Install dependencies:
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+npm install
 ```
 
-## Run tests
+Start local infrastructure:
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+docker compose up -d
 ```
 
-## Resources
+Create a `.env` from `.env.sample`, then set at least:
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+DATABASE_URL=postgresql://luckyplans:luckyplans@localhost:5434/luckyplans
+JWT_SECRET=replace-me
+JWT_EXPIRES_IN=7d
+PORT=3000
+ENV=local
+SERVICE=API_SERVICE
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Generate Prisma client and apply migrations:
 
-## Support
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Seed known contracts:
 
-## Stay in touch
+```bash
+npx prisma db seed
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Running Services
 
-## License
+Run the API:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+$env:SERVICE="API_SERVICE"; npm run start:dev
+```
+
+Run the copy-trading worker:
+
+```bash
+$env:SERVICE="COPY_TRADING_SERVICE"; npm run start:dev
+```
+
+Run the leaderboard worker:
+
+```bash
+$env:SERVICE="LEADERBOARD_SERVICE"; npm run start:dev
+```
+
+On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
+
+## Useful Commands
+
+```bash
+npm run build
+npm run lint
+npm run test
+npm run test:e2e
+npm run test:cov
+npx prisma generate
+npx prisma migrate dev
+npx prisma studio
+```
+
+Notes:
+
+- `npm run lint` currently runs ESLint with `--fix`.
+- `test/app.e2e-spec.ts` appears to be stale: it imports `AppModule` from `api.module`, but the exported class is `ApiModule`.
+- RPC-heavy worker commands can hit public provider rate limits unless private/paid RPC tokens are configured.
+
+## Environment Variables
+
+The sample file lists the expected variables:
+
+- `DATABASE_URL`: Postgres connection string used by Prisma and the Prisma PG adapter.
+- `SERVICE`: one of `API_SERVICE`, `COPY_TRADING_SERVICE`, or `LEADERBOARD_SERVICE`.
+- `PORT`: API HTTP port.
+- `REDIS_HOST`, `REDIS_PORT`: Redis transport endpoint.
+- `JWT_SECRET`, `JWT_EXPIRES_IN`: auth token settings.
+- `BOT_HOOK_ADDRESS`, `API_URL`, `BACKTEST_INTERNAL_SECRET`, `OPTUNA_POSTGRES_URL`: integration/backtest settings used by surrounding workflows.
+- `DRPC_TOKENS`, `DRPC_PAID_TOKENS`, `ALCHEMY_TOKENS`: comma-separated RPC tokens.
+- `ALCHEMY_PAID_TOENS`: currently misspelled in code and sample; keep that spelling unless the code is fixed at the same time.
+- `TRADING_RECHECK_BLOCKS`: optional copy-trading scanner replay window.
+
+## Implementation Rules Of Thumb
+
+- Keep API-facing types in each module's `dto` and `entities` folders.
+- Keep platform-specific ABI/config/parser logic under `src/web3/platform/<platform>/<version>`.
+- When changing database shape, add a Prisma migration and regenerate the client.
+- When changing generated GraphQL shape, rebuild or run the API once so `src/schema.gql` reflects the current decorators.
+- Treat copy-trading task execution and wallet writes as high-risk paths. Prefer small, testable changes and verify idempotency through database constraints such as `Action.dedupeKey`, `ActionProcessing`, and unique task/action pairs.
+- Do not assume all contracts are live. Many seeded contracts are `Dead`; workers filter by `ContractStatus.Live`.
