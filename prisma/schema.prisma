@@ -194,15 +194,7 @@ model Simulation {
   minNegativeR2       Float @default(0.25)
 
   standardCollateralUsd Float @default(100)
-  minCollateralUsd      Float @default(10)
-  maxCollateralUsd      Float @default(500)
-  minRatio              Float @default(0)
-  maxRatio              Float @default(3)
   maxLeverage           Float @default(50)
-
-  openFeeRate  Float @default(0)
-  closeFeeRate Float @default(0)
-  slippageRate Float @default(0)
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)

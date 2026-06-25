@@ -1,4 +1,6 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { UserPermission } from 'generated/prisma/client';
 
 import { SimulationsService } from './simulations.service';
 import {
@@ -17,6 +19,9 @@ import {
   CreateSimulationInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
+import { Roles } from '../auth/roles.decorator';
+import { GqlAuthGuard } from '../auth/gql-auth.guard';
+import { RolesGuard } from '../auth/gql-role.guard';
 
 @Resolver()
 export class SimulationsResolver {
@@ -43,8 +48,17 @@ export class SimulationsResolver {
   }
 
   @Mutation(() => Int)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   deleteSimulation(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.deleteSimulation(id);
+  }
+
+  @Mutation(() => Int)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  deleteSimulationPlan(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.deleteSimulationPlan(id);
   }
 
   @Mutation(() => SimulationPlan)
@@ -106,6 +120,15 @@ export class SimulationsResolver {
     @Args('simulationId', { type: () => Int }) simulationId: number,
   ) {
     return this.simulationsService.getSimulationPlansBySimulation(simulationId);
+  }
+
+  @Query(() => [SimulationPlanDetails])
+  simulationPlanDetailsBySimulation(
+    @Args('simulationId', { type: () => Int }) simulationId: number,
+  ) {
+    return this.simulationsService.getSimulationPlanDetailsBySimulation(
+      simulationId,
+    );
   }
 
   @Query(() => [SimulationLeaderSelection])

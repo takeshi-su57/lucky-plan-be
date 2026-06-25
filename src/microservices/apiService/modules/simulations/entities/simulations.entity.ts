@@ -228,28 +228,7 @@ export class Simulation {
   standardCollateralUsd: number;
 
   @Field(() => Float)
-  minCollateralUsd: number;
-
-  @Field(() => Float)
-  maxCollateralUsd: number;
-
-  @Field(() => Float)
-  minRatio: number;
-
-  @Field(() => Float)
-  maxRatio: number;
-
-  @Field(() => Float)
   maxLeverage: number;
-
-  @Field(() => Float)
-  openFeeRate: number;
-
-  @Field(() => Float)
-  closeFeeRate: number;
-
-  @Field(() => Float)
-  slippageRate: number;
 
   @Field(() => Int)
   totalSimulationPlans: number;

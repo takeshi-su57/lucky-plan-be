@@ -104,29 +104,8 @@ export class CreateSimulationInput {
   @Field(() => Float, { defaultValue: 100 })
   standardCollateralUsd: number;
 
-  @Field(() => Float, { defaultValue: 10 })
-  minCollateralUsd: number;
-
-  @Field(() => Float, { defaultValue: 500 })
-  maxCollateralUsd: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  minRatio: number;
-
-  @Field(() => Float, { defaultValue: 3 })
-  maxRatio: number;
-
   @Field(() => Float, { defaultValue: 50 })
   maxLeverage: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  openFeeRate: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  closeFeeRate: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  slippageRate: number;
 }
 
 @InputType()
@@ -153,26 +132,5 @@ export class UpdateSimulationInput {
   standardCollateralUsd?: number | null;
 
   @Field(() => Float, { nullable: true })
-  minCollateralUsd?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxCollateralUsd?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  minRatio?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxRatio?: number | null;
-
-  @Field(() => Float, { nullable: true })
   maxLeverage?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  openFeeRate?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  closeFeeRate?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  slippageRate?: number | null;
 }
