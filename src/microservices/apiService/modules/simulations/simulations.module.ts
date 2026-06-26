@@ -6,6 +6,7 @@ import { TradeHistoriesModule } from '../trade-histories/trade-histories.module'
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 import { SimulationPlansService } from './simulation-plans.service';
+import { SimulationCacheService } from './simulation-cache.service';
 
 @Module({
   imports: [TradeHistoriesModule],
@@ -15,6 +16,7 @@ import { SimulationPlansService } from './simulation-plans.service';
     SimulationAutoRunnerService,
     SimulationLeaderEvaluatorService,
     SimulationPlansService,
+    SimulationCacheService,
   ],
   exports: [SimulationsService],
 })

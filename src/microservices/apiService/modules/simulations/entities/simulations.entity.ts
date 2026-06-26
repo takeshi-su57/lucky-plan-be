@@ -148,7 +148,28 @@ export class SimulationTradePosition {
 }
 
 @ObjectType()
+export class SimulationBotCacheState {
+  @Field(() => Boolean)
+  completed: boolean;
+
+  @Field(() => Boolean)
+  rebuilding: boolean;
+
+  @Field(() => Boolean)
+  rebuildRequested: boolean;
+
+  @Field(() => String, { nullable: true })
+  lastError: string | null;
+
+  @Field(() => Date, { nullable: true })
+  lastFetchedAt: Date | null;
+}
+
+@ObjectType()
 export class SimulationBotDetails extends SimulationBot {
+  @Field(() => SimulationBotCacheState, { nullable: true })
+  cacheState?: SimulationBotCacheState | null;
+
   @Field(() => [SimulationTradePosition])
   positions: SimulationTradePosition[];
 }

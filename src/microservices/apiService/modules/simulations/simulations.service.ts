@@ -218,18 +218,8 @@ export class SimulationsService {
   async getSimulationPlanDetailsBySimulation(
     simulationId: number,
   ): Promise<SimulationPlanDetails[]> {
-    const plans = await this.prisma.simulationPlan.findMany({
-      where: { simulationId },
-      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
-      select: { id: true, cursor: true },
-    });
-
-    return await Promise.all(
-      plans.map((plan) =>
-        this.simulationPlansService.calculateSimulationPlanDetails(plan.id, {
-          persistSummary: false,
-        }),
-      ),
+    return await this.simulationPlansService.getSimulationPlanDetailsBySimulation(
+      simulationId,
     );
   }
 

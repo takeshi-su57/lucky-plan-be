@@ -14,6 +14,10 @@ import {
   SimulationPlanDetails,
   SimulationTradeHistory,
 } from './entities/simulations.entity';
+import {
+  mapSimulationBotWithCache,
+  mapSimulationPlanWithCache,
+} from './simulation-cache.mapper';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { EventLogsService } from '../trade-histories/event-logs.service';
@@ -21,6 +25,7 @@ import { getWeb3Info } from 'src/web3/utils';
 import { BotMode, SimulationStatus } from 'generated/prisma/enums';
 import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
 import { sum } from './simulation-automation.utils';
+import { SimulationCacheService } from './simulation-cache.service';
 
 export type SimulationPlanDetailsOptions = {
   persistSummary?: boolean;
@@ -31,6 +36,7 @@ export class SimulationPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
+    private readonly simulationCacheService: SimulationCacheService,
   ) {}
 
   async createSimulationPlan(
@@ -55,6 +61,10 @@ export class SimulationPlansService {
         },
       },
     });
+
+    await this.simulationCacheService.ensureSimulationPlanCache(
+      simulationPlan.id,
+    );
 
     return simulationPlan;
   }
@@ -165,6 +175,7 @@ export class SimulationPlansService {
         },
       });
 
+      await this.simulationCacheService.ensureSimulationBotCache(bot.id);
       simulationBots.push(bot);
     }
 
@@ -515,6 +526,89 @@ export class SimulationPlansService {
   }
 
   async getSimulationPlanById(id: number): Promise<SimulationPlanDetails> {
-    return await this.calculateSimulationPlanDetails(id);
+    const simulationPlan = await this.prisma.simulationPlan.findUnique({
+      where: { id },
+      include: {
+        cache: true,
+        simulationBots: {
+          include: {
+            leaderContract: true,
+            cache: true,
+          },
+        },
+      },
+    });
+
+    if (!simulationPlan) {
+      throw new Error('SimulationPlan not found');
+    }
+
+    if (!simulationPlan.cache) {
+      return await this.calculateSimulationPlanDetails(id);
+    }
+
+    void this.simulationCacheService.refreshIncompleteBotsForPlan(id);
+
+    return {
+      ...mapSimulationPlanWithCache(simulationPlan),
+      simulationBots: simulationPlan.simulationBots.map((bot) => ({
+        ...mapSimulationBotWithCache(bot),
+        cacheState: bot.cache
+          ? {
+              completed: bot.cache.completed,
+              rebuilding: bot.cache.rebuilding,
+              rebuildRequested: bot.cache.rebuildRequested,
+              lastError: bot.cache.lastError,
+              lastFetchedAt: bot.cache.lastFetchedAt,
+            }
+          : null,
+        positions: [],
+      })),
+    };
+  }
+
+  async getSimulationPlanDetailsBySimulation(
+    simulationId: number,
+  ): Promise<SimulationPlanDetails[]> {
+    const plans = await this.prisma.simulationPlan.findMany({
+      where: { simulationId },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+      include: {
+        cache: true,
+        simulationBots: {
+          include: {
+            leaderContract: true,
+            cache: true,
+          },
+        },
+      },
+    });
+
+    return await Promise.all(
+      plans.map(async (plan) => {
+        if (!plan.cache) {
+          return await this.calculateSimulationPlanDetails(plan.id);
+        }
+
+        void this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
+
+        return {
+          ...mapSimulationPlanWithCache(plan),
+          simulationBots: plan.simulationBots.map((bot) => ({
+            ...mapSimulationBotWithCache(bot),
+            cacheState: bot.cache
+              ? {
+                  completed: bot.cache.completed,
+                  rebuilding: bot.cache.rebuilding,
+                  rebuildRequested: bot.cache.rebuildRequested,
+                  lastError: bot.cache.lastError,
+                  lastFetchedAt: bot.cache.lastFetchedAt,
+                }
+              : null,
+            positions: [],
+          })),
+        };
+      }),
+    );
   }
 }

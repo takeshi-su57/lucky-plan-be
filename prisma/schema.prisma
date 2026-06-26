@@ -156,6 +156,7 @@ model SimulationPlan {
   simulationBots   SimulationBot[]
   simulation       Simulation?                 @relation(fields: [simulationId], references: [id])
   leaderSelections SimulationLeaderSelection[]
+  cache            SimulationPlanCache?
 
   @@index([simulationId, startAt])
 }
@@ -298,6 +299,75 @@ model SimulationBot {
 
   leaderContract Contract       @relation("leaderSimulationBots", fields: [leaderContractId], references: [id])
   simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id])
+  cache          SimulationBotCache?
+}
+
+model SimulationBotCache {
+  id                           Int      @id @default(autoincrement())
+  simulationBotId              Int      @unique
+  completed                    Boolean  @default(false)
+  rebuilding                   Boolean  @default(false)
+  rebuildRequested             Boolean  @default(false)
+  lastFetchedAt                DateTime?
+  openedPositions              Int      @default(0)
+  totalPositions               Int      @default(0)
+  totalLeaderPnl               Float    @default(0)
+  totalFollowerPnl             Float    @default(0)
+  maxDuration                  Float    @default(0)
+  avgDuration                  Float    @default(0)
+  avgPnl                       Float    @default(0)
+  avgPositivePnl               Float    @default(0)
+  avgNegativePnl               Float    @default(0)
+  avgSize                      Float    @default(0)
+  avgCollateral                Float    @default(0)
+  avgPnlPercentageBySize       Float    @default(0)
+  avgPnlPercentageByCollateral Float    @default(0)
+  avgLeverage                  Float    @default(0)
+  lastError                    String?
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  simulationBot SimulationBot                 @relation(fields: [simulationBotId], references: [id], onDelete: Cascade)
+  eventLogs     SimulationBotCachedEventLog[]
+}
+
+model SimulationBotCachedEventLog {
+  id                   Int      @id @default(autoincrement())
+  simulationBotCacheId Int
+  sourceEventLogId     Int
+  contractId           Int
+  address              String   @db.VarChar(255)
+  platform             Platform
+  block                Int
+  logIndex             Int
+  date                 DateTime
+  jsonLog              String
+  usdPnl               Float
+  createdAt            DateTime @default(now())
+
+  simulationBotCache SimulationBotCache @relation(fields: [simulationBotCacheId], references: [id], onDelete: Cascade)
+
+  @@unique([simulationBotCacheId, sourceEventLogId])
+  @@index([simulationBotCacheId, date, block, id])
+}
+
+model SimulationPlanCache {
+  id               Int      @id @default(autoincrement())
+  simulationPlanId Int      @unique
+  completed        Boolean  @default(false)
+  rebuilding       Boolean  @default(false)
+  completedBots    Int      @default(0)
+  incompleteBots   Int      @default(0)
+  openedPositions  Int      @default(0)
+  totalPositions   Int      @default(0)
+  totalLeaderPnl   Float    @default(0)
+  totalFollowerPnl Float    @default(0)
+  lastBuiltAt      DateTime?
+  lastError        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
 }
 
 model Mission {
