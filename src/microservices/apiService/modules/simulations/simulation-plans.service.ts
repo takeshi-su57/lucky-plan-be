@@ -15,7 +15,7 @@ import {
   SimulationTradeHistory,
 } from './entities/simulations.entity';
 import {
-  mapSimulationBotWithCache,
+  mapSimulationBotDetailsWithCache,
   mapSimulationPlanWithCache,
 } from './simulation-cache.mapper';
 
@@ -547,12 +547,16 @@ export class SimulationPlansService {
       return await this.calculateSimulationPlanDetails(id);
     }
 
+    if (simulationPlan.simulationBots.some((bot) => !bot.cache)) {
+      return await this.calculateSimulationPlanDetails(id);
+    }
+
     void this.simulationCacheService.refreshIncompleteBotsForPlan(id);
 
     return {
       ...mapSimulationPlanWithCache(simulationPlan),
       simulationBots: simulationPlan.simulationBots.map((bot) => ({
-        ...mapSimulationBotWithCache(bot),
+        ...mapSimulationBotDetailsWithCache(bot),
         cacheState: bot.cache
           ? {
               completed: bot.cache.completed,
@@ -562,7 +566,6 @@ export class SimulationPlansService {
               lastFetchedAt: bot.cache.lastFetchedAt,
             }
           : null,
-        positions: [],
       })),
     };
   }
@@ -590,12 +593,16 @@ export class SimulationPlansService {
           return await this.calculateSimulationPlanDetails(plan.id);
         }
 
+        if (plan.simulationBots.some((bot) => !bot.cache)) {
+          return await this.calculateSimulationPlanDetails(plan.id);
+        }
+
         void this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
 
         return {
           ...mapSimulationPlanWithCache(plan),
           simulationBots: plan.simulationBots.map((bot) => ({
-            ...mapSimulationBotWithCache(bot),
+            ...mapSimulationBotDetailsWithCache(bot),
             cacheState: bot.cache
               ? {
                   completed: bot.cache.completed,
@@ -605,7 +612,6 @@ export class SimulationPlansService {
                   lastFetchedAt: bot.cache.lastFetchedAt,
                 }
               : null,
-            positions: [],
           })),
         };
       }),

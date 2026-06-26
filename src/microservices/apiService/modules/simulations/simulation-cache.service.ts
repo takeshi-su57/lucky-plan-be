@@ -188,20 +188,54 @@ export class SimulationCacheService {
 
     const signer = bot.mode === BotMode.Reversed ? -1 : 1;
     let totalFollowerPnl = 0;
+    const simulationPositions = positionsWithSummary.positions.map(
+      ({ histories }) => {
+        let leaderPnl = 0;
+        let followerPnl = 0;
 
-    for (const position of positionsWithSummary.positions) {
-      for (const history of position.histories) {
-        const followerUsdFee =
-          history.usdFee !== 0 ? Math.min(-0.5, history.usdFee * bot.ratio) : 0;
-        const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
-        const followerUsdPnl = Math.max(
-          -history.collateralDeltaUsd * bot.ratio,
-          followerUsdBasePnl + followerUsdFee,
-        );
+        const simulationHistories = histories.map((history) => {
+          const followerUsdFee =
+            history.usdFee !== 0
+              ? Math.min(-0.5, history.usdFee * bot.ratio)
+              : 0;
+          const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
+          const followerUsdPnl = Math.max(
+            -history.collateralDeltaUsd * bot.ratio,
+            followerUsdBasePnl + followerUsdFee,
+          );
 
-        totalFollowerPnl += followerUsdPnl;
-      }
-    }
+          const follower = {
+            ...history,
+            id: -history.id,
+            usdPnl: followerUsdPnl,
+            usdBasePnl: followerUsdBasePnl,
+            usdFee: followerUsdFee,
+            sizeInUsd: history.sizeInUsd * bot.ratio,
+            collateralInUsd: history.collateralInUsd * bot.ratio,
+            collateralDeltaUsd: history.collateralDeltaUsd * bot.ratio,
+            sizeDeltaUsd: history.sizeDeltaUsd * bot.ratio,
+            isLong:
+              bot.mode === BotMode.Reversed ? !history.isLong : history.isLong,
+          };
+
+          leaderPnl += history.usdPnl;
+          followerPnl += follower.usdPnl;
+
+          return {
+            leader: history,
+            follower,
+          };
+        });
+
+        totalFollowerPnl += followerPnl;
+
+        return {
+          histories: simulationHistories,
+          leaderPnl,
+          followerPnl,
+        };
+      },
+    );
 
     return {
       completed: this.isBotCacheComplete(bot, histories),
@@ -220,6 +254,10 @@ export class SimulationCacheService {
       avgPnlPercentageByCollateral:
         positionsWithSummary.avgPnlPercentageByCollateral,
       avgLeverage: positionsWithSummary.avgLeverage,
+      positions: simulationPositions,
+      followerPositionPnls: simulationPositions.map(
+        (position) => position.followerPnl,
+      ),
     };
   }
 
@@ -258,9 +296,27 @@ export class SimulationCacheService {
       return await this.prisma.simulationBotCache.update({
         where: { id: cache.id },
         data: {
-          ...summary,
+          completed: summary.completed,
+          openedPositions: summary.openedPositions,
+          totalPositions: summary.totalPositions,
+          totalLeaderPnl: summary.totalLeaderPnl,
+          totalFollowerPnl: summary.totalFollowerPnl,
+          maxDuration: summary.maxDuration,
+          avgDuration: summary.avgDuration,
+          avgPnl: summary.avgPnl,
+          avgPositivePnl: summary.avgPositivePnl,
+          avgNegativePnl: summary.avgNegativePnl,
+          avgSize: summary.avgSize,
+          avgCollateral: summary.avgCollateral,
+          avgPnlPercentageBySize: summary.avgPnlPercentageBySize,
+          avgPnlPercentageByCollateral: summary.avgPnlPercentageByCollateral,
+          avgLeverage: summary.avgLeverage,
           rebuilding: false,
           lastFetchedAt: cachedLogs.at(-1)?.date ?? cache.lastFetchedAt,
+          positionsJson: JSON.stringify(summary.positions),
+          followerPositionPnlsJson: JSON.stringify(
+            summary.followerPositionPnls,
+          ),
         },
       });
     } catch (error) {

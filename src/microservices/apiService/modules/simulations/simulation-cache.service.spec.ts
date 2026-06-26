@@ -260,4 +260,119 @@ describe('SimulationCacheService', () => {
       },
     );
   });
+
+  it('builds cache summary with persisted positions and follower pnl arrays', () => {
+    const bot = {
+      id: 3,
+      mode: BotMode.Reversed,
+      ratio: 0.5,
+      maxLeverage: 50,
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
+      leaderContract: {
+        platform: Platform.GNS,
+        version: Version.V9,
+        chainId: 42161,
+      },
+    } as any;
+
+    const histories: PerpTradeHistory[] = [
+      {
+        id: 1,
+        positionKey: 'p1',
+        address: '0xabc',
+        pair: 'ETH/USD',
+        operation: PerpTradeHistoryOperation.OPEN,
+        usdPnl: 4,
+        usdBasePnl: 4,
+        usdFee: -1,
+        sizeInUsd: 100,
+        leverage: 5,
+        collateralInUsd: 20,
+        collateralDeltaUsd: 20,
+        sizeDeltaUsd: 100,
+        leverageDelta: 0,
+        isLong: true,
+        price: 100,
+        collateralUsdPrice: 1,
+        date: new Date('2026-05-03T00:00:00.000Z'),
+        contractId: 12,
+        platform: Platform.GNS,
+      },
+      {
+        id: 2,
+        positionKey: 'p1',
+        address: '0xabc',
+        pair: 'ETH/USD',
+        operation: PerpTradeHistoryOperation.CLOSE,
+        usdPnl: -2,
+        usdBasePnl: -2,
+        usdFee: 0,
+        sizeInUsd: 100,
+        leverage: 5,
+        collateralInUsd: 20,
+        collateralDeltaUsd: 20,
+        sizeDeltaUsd: 100,
+        leverageDelta: 0,
+        isLong: true,
+        price: 100,
+        collateralUsdPrice: 1,
+        date: new Date('2026-05-06T00:00:00.000Z'),
+        contractId: 12,
+        platform: Platform.GNS,
+      },
+    ];
+
+    jest
+      .spyOn(service, 'buildHistoriesFromCachedLogs')
+      .mockReturnValueOnce(histories);
+    (
+      eventLogsService.convertToPerpTradePositionsWithSummary as jest.Mock
+    ).mockReturnValueOnce({
+      positions: [{ histories }],
+      openedPositions: 0,
+      totalPnl: 2,
+      totalPositions: 1,
+      avgDuration: 10,
+      maxDuration: 10,
+      avgPnl: 2,
+      avgPositivePnl: 2,
+      avgNegativePnl: 0,
+      avgSize: 100,
+      avgCollateral: 20,
+      avgPnlPercentageBySize: 2,
+      avgPnlPercentageByCollateral: 10,
+      avgLeverage: 5,
+    });
+
+    const summary = service.buildBotSummaryFromCachedLogs(bot, []);
+
+    expect(summary.followerPositionPnls).toEqual([-1.5]);
+    expect(summary.positions).toEqual([
+      {
+        histories: [
+          {
+            leader: histories[0],
+            follower: expect.objectContaining({
+              id: -1,
+              usdPnl: -2.5,
+              usdBasePnl: -2,
+              isLong: false,
+            }),
+          },
+          {
+            leader: histories[1],
+            follower: expect.objectContaining({
+              id: -2,
+              usdPnl: 1,
+              usdBasePnl: 1,
+              isLong: false,
+            }),
+          },
+        ],
+        leaderPnl: 2,
+        followerPnl: -1.5,
+      },
+    ]);
+  });
 });

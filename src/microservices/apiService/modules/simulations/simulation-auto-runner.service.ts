@@ -29,6 +29,7 @@ import {
   RangeEvaluationMap,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
+import { SimulationCacheService } from './simulation-cache.service';
 
 @Injectable()
 export class SimulationAutoRunnerService {
@@ -38,6 +39,7 @@ export class SimulationAutoRunnerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationPlansService: SimulationPlansService,
+    private readonly simulationCacheService: SimulationCacheService,
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
   ) {}
 
@@ -390,6 +392,10 @@ export class SimulationAutoRunnerService {
     });
 
     if (existingSimulationPlan) {
+      await this.simulationCacheService.ensureSimulationPlanCache(
+        existingSimulationPlan.id,
+      );
+
       this.logDebug('Auto simulation day reusing existing plan', {
         simulationId: simulation.id,
         simulationPlanId: existingSimulationPlan.id,
@@ -411,6 +417,10 @@ export class SimulationAutoRunnerService {
         simulationId: simulation.id,
       },
     });
+
+    await this.simulationCacheService.ensureSimulationPlanCache(
+      simulationPlan.id,
+    );
 
     return simulationPlan;
   }
@@ -554,6 +564,19 @@ export class SimulationAutoRunnerService {
       data: botInputs,
     });
 
+    const createdBots = await this.prisma.simulationBot.findMany({
+      where: { simulationPlanId },
+      select: { id: true },
+    });
+
+    for (const bot of createdBots) {
+      await this.simulationCacheService.ensureSimulationBotCache(bot.id);
+    }
+
+    await this.simulationCacheService.refreshIncompleteBotsForPlan(
+      simulationPlanId,
+    );
+
     this.logDebug('Auto simulation day created bots', {
       simulationId: simulation.id,
       simulationPlanId,
@@ -566,25 +589,47 @@ export class SimulationAutoRunnerService {
     const plans = await this.prisma.simulationPlan.findMany({
       where: { simulationId: id },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+      include: {
+        cache: true,
+        simulationBots: {
+          include: {
+            cache: true,
+          },
+        },
+      },
     });
 
     const followerPositionPnls: number[] = [];
     let totalLeaderPnl = 0;
 
     for (const plan of plans) {
-      const details =
-        await this.simulationPlansService.calculateSimulationPlanDetails(
-          plan.id,
-          {
-            persistSummary: true,
-          },
-        );
-      totalLeaderPnl += details.totalLeaderPnl;
+      await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
 
-      details.simulationBots.forEach((bot) => {
-        bot.positions.forEach((position) => {
-          followerPositionPnls.push(position.followerPnl);
-        });
+      const refreshedPlan = await this.prisma.simulationPlan.findUnique({
+        where: { id: plan.id },
+        include: {
+          cache: true,
+          simulationBots: {
+            include: {
+              cache: true,
+            },
+          },
+        },
+      });
+
+      if (!refreshedPlan?.cache) {
+        throw new Error(`Simulation plan cache not found for plan ${plan.id}`);
+      }
+
+      totalLeaderPnl += refreshedPlan.cache.totalLeaderPnl;
+
+      refreshedPlan.simulationBots.forEach((bot) => {
+        if (!bot.cache) {
+          return;
+        }
+
+        const pnls = JSON.parse(bot.cache.followerPositionPnlsJson) as number[];
+        followerPositionPnls.push(...pnls);
       });
     }
 

@@ -1,3 +1,5 @@
+import { SimulationTradePosition } from './entities/simulations.entity';
+
 type CacheBackedSimulationBot = {
   openedPositions: number;
   totalPositions: number;
@@ -26,6 +28,7 @@ type CacheBackedSimulationBot = {
     avgPnlPercentageBySize: number;
     avgPnlPercentageByCollateral: number;
     avgLeverage: number;
+    positionsJson?: string;
   } | null;
 };
 
@@ -72,6 +75,28 @@ export function mapSimulationBotWithCache<T extends CacheBackedSimulationBot>(
     avgPnlPercentageBySize: bot.cache.avgPnlPercentageBySize,
     avgPnlPercentageByCollateral: bot.cache.avgPnlPercentageByCollateral,
     avgLeverage: bot.cache.avgLeverage,
+  };
+}
+
+export function mapSimulationBotDetailsWithCache<
+  T extends CacheBackedSimulationBot & {
+    positions?: SimulationTradePosition[];
+  },
+>(bot: T): T & { positions: SimulationTradePosition[] } {
+  const mappedBot = mapSimulationBotWithCache(bot);
+
+  if (!mappedBot.cache?.positionsJson) {
+    return {
+      ...mappedBot,
+      positions: mappedBot.positions ?? [],
+    };
+  }
+
+  return {
+    ...mappedBot,
+    positions: JSON.parse(
+      mappedBot.cache.positionsJson,
+    ) as SimulationTradePosition[],
   };
 }
 
