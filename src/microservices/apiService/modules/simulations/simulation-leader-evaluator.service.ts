@@ -25,7 +25,10 @@ import {
 } from './simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { getRangeKey, WindowRange } from './simulation-range.utils';
-import { getDirectionalSlopeBounds } from './simulation-research.utils';
+import {
+  getDirectionalSlopeRange,
+  valueMatchesRange,
+} from './simulation-research.utils';
 
 export type CandidateEvaluation = {
   leaderAddress: string;
@@ -153,7 +156,7 @@ export class SimulationLeaderEvaluatorService {
           return;
         }
 
-        if (recentTradeHistoryCount < simulation.minTrades) {
+        if (recentTradeHistoryCount < simulation.trade.min) {
           lowRecentTradeHistoryCount += 1;
           return;
         }
@@ -322,29 +325,20 @@ export class SimulationLeaderEvaluatorService {
       reverseNetPnlUsd: 0,
       reverseDrawdownUsd: 0,
     };
-    const effectiveSlopeBounds = getDirectionalSlopeBounds(
+    const effectiveSlopeRange = getDirectionalSlopeRange(
       simulation.direction,
-      {
-        min: simulation.minSlope,
-        max: simulation.maxSlope,
-      },
+      simulation.slope,
     );
 
-    if (
-      rawTradeCount < simulation.minTrades ||
-      rawTradeCount > simulation.maxTrades
-    ) {
+    if (!valueMatchesRange(rawTradeCount, simulation.trade)) {
       return { ...baseEvaluation, rejectedReason: 'TRADE_COUNT_OUT_OF_RANGE' };
     }
 
-    if (
-      rawTrend.slope < effectiveSlopeBounds.minSlope ||
-      rawTrend.slope > effectiveSlopeBounds.maxSlope
-    ) {
+    if (!valueMatchesRange(rawTrend.slope, effectiveSlopeRange)) {
       return { ...baseEvaluation, rejectedReason: 'SLOPE_OUT_OF_RANGE' };
     }
 
-    if (rawTrend.r2 < simulation.minR2 || rawTrend.r2 > simulation.maxR2) {
+    if (!valueMatchesRange(rawTrend.r2, simulation.r2)) {
       return { ...baseEvaluation, rejectedReason: 'R2_OUT_OF_RANGE' };
     }
 
@@ -430,7 +424,7 @@ export class SimulationLeaderEvaluatorService {
       totalCostUsd: reverse.totalCostUsd,
       grossProfitUsd: reverse.grossProfitUsd,
       topTradeProfitUsd: reverse.topTradeProfitUsd,
-      minTrades: simulation.minTrades,
+      minTrades: simulation.trade.min,
       maxReverseDrawdownUsd: SIMULATION_SYSTEM_CONFIG.maxCollateralUsd,
     });
   }

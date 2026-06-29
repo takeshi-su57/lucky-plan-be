@@ -32,15 +32,21 @@ export class SimulationIntRange {
 }
 
 @ObjectType()
-export class SimulationFloatRange {
+export class SimulationTradeRange {
+  @Field(() => Int)
+  min: number;
+
+  @Field(() => Int)
+  max: number;
+}
+
+@ObjectType()
+export class SimulationValueRange {
   @Field(() => Float)
   min: number;
 
   @Field(() => Float)
   max: number;
-
-  @Field(() => Float)
-  gap: number;
 }
 
 @ObjectType()
@@ -273,23 +279,14 @@ export class Simulation {
   @Field(() => Int)
   selectedLeaderCount: number;
 
-  @Field(() => Int)
-  minTrades: number;
+  @Field(() => SimulationTradeRange)
+  trade: SimulationTradeRange;
 
-  @Field(() => Float)
-  maxTrades: number;
+  @Field(() => SimulationValueRange)
+  r2: SimulationValueRange;
 
-  @Field(() => Float)
-  minR2: number;
-
-  @Field(() => Float)
-  maxR2: number;
-
-  @Field(() => Float)
-  minSlope: number;
-
-  @Field(() => Float)
-  maxSlope: number;
+  @Field(() => SimulationValueRange)
+  slope: SimulationValueRange;
 
   @Field(() => Float)
   standardCollateralUsd: number;
@@ -430,26 +427,17 @@ export class SimulationResearch {
   @Field(() => BotMode)
   direction: BotMode;
 
-  @Field(() => SimulationIntRange)
-  minTradesRange: SimulationIntRange;
+  @Field(() => [SimulationTradeRange])
+  trade: SimulationTradeRange[];
 
-  @Field(() => SimulationIntRange)
-  maxTradesRange: SimulationIntRange;
+  @Field(() => [SimulationValueRange])
+  r2: SimulationValueRange[];
 
-  @Field(() => SimulationFloatRange)
-  minR2Range: SimulationFloatRange;
+  @Field(() => [SimulationValueRange])
+  slope: SimulationValueRange[];
 
-  @Field(() => SimulationFloatRange)
-  maxR2Range: SimulationFloatRange;
-
-  @Field(() => SimulationFloatRange)
-  minSlopeRange: SimulationFloatRange;
-
-  @Field(() => SimulationFloatRange)
-  maxSlopeRange: SimulationFloatRange;
-
-  @Field(() => SimulationFloatRange)
-  maxLeverageRange: SimulationFloatRange;
+  @Field(() => [Float])
+  maxLeverage: number[];
 
   @Field(() => Int)
   totalSimulations: number;

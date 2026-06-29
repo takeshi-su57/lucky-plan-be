@@ -170,33 +170,11 @@ model SimulationResearch {
   endAt       DateTime
   direction   BotMode  @default(Reversed)
 
-  minTradesMin Int
-  minTradesMax Int
-  minTradesGap Int
+  trade Json @default("[]")
+  r2    Json @default("[]")
+  slope Json @default("[]")
 
-  maxTradesMin Int
-  maxTradesMax Int
-  maxTradesGap Int
-
-  minR2Min Float
-  minR2Max Float
-  minR2Gap Float
-
-  maxR2Min Float
-  maxR2Max Float
-  maxR2Gap Float
-
-  minSlopeMin Float
-  minSlopeMax Float
-  minSlopeGap Float
-
-  maxSlopeMin Float
-  maxSlopeMax Float
-  maxSlopeGap Float
-
-  maxLeverageMin Float
-  maxLeverageMax Float
-  maxLeverageGap Float
+  maxLeverage Json @default("[]")
 
   simulations Simulation[]
 
@@ -239,13 +217,9 @@ model Simulation {
   progressPercent Float            @default(0)
 
   selectedLeaderCount Int   @default(10)
-  minTrades           Int   @default(3)
-  maxTrades           Int   @default(999999)
-  minR2               Float @default(0.25)
-  maxR2               Float @default(1)
-  minSlope            Float @default(0)
-  maxSlope            Float @default(999999)
-  minNegativeR2       Float @default(0.25)
+  trade               Json  @default("{\"min\":3,\"max\":1000000}")
+  r2                  Json  @default("{\"min\":0.5,\"max\":1}")
+  slope               Json  @default("{\"min\":0,\"max\":1000000000}")
 
   standardCollateralUsd Float @default(100)
   maxLeverage           Float @default(50)

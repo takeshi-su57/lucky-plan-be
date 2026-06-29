@@ -7,7 +7,9 @@ import {
   UpdateSimulationBotInput,
   CreateSimulationInput,
   CreateSimulationResearchInput,
+  FloatMinMaxInput,
   FloatRangeInput,
+  IntMinMaxInput,
   IntRangeInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
@@ -30,10 +32,18 @@ import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { buildDailyRanges } from './simulation-range.utils';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { SimulationPlansService } from './simulation-plans.service';
-import { buildSimulationParameterGrid } from './simulation-research.utils';
+import {
+  buildSimulationParameterGrid,
+  buildValueRangePairs,
+  expandRangeValues,
+  ValueRange,
+} from './simulation-research.utils';
 
 const DEFAULT_SELECTED_LEADER_COUNT = 10;
 const DEFAULT_STANDARD_COLLATERAL_USD = 100;
+const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
+const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
+const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
 
 @Injectable()
 export class SimulationsService {
@@ -75,30 +85,12 @@ export class SimulationsService {
       throw new Error('maxLeverage must be greater than 0');
     }
 
-    if (input.minTrades <= 0) {
-      throw new Error('minTrades must be greater than 0');
-    }
-
-    if (input.maxTrades < input.minTrades) {
-      throw new Error('maxTrades must be greater than or equal to minTrades');
-    }
-
-    if (
-      input.minR2 < 0 ||
-      input.minR2 > 1 ||
-      input.maxR2 < 0 ||
-      input.maxR2 > 1
-    ) {
-      throw new Error('minR2 and maxR2 must be between 0 and 1');
-    }
-
-    if (input.maxR2 < input.minR2) {
-      throw new Error('maxR2 must be greater than or equal to minR2');
-    }
-
-    if (input.maxSlope < input.minSlope) {
-      throw new Error('maxSlope must be greater than or equal to minSlope');
-    }
+    this.validateIntMinMaxPair('trade', input.trade);
+    this.validateFloatMinMaxPair('r2', input.r2, {
+      minAllowed: 0,
+      maxAllowed: 1,
+    });
+    this.validateFloatMinMaxPair('slope', input.slope, { minAllowed: 0 });
   }
 
   private validateSimulationUpdate(input: UpdateSimulationInput) {
@@ -114,59 +106,110 @@ export class SimulationsService {
       );
     }
 
-    if (
-      input.maxTrades !== undefined &&
-      input.maxTrades !== null &&
-      input.minTrades !== undefined &&
-      input.minTrades !== null &&
-      input.maxTrades < input.minTrades
-    ) {
-      throw new Error('maxTrades must be greater than or equal to minTrades');
+    if (input.trade !== undefined && input.trade !== null) {
+      this.validateIntMinMaxPair('trade', input.trade);
     }
 
-    if (
-      input.minR2 !== undefined &&
-      input.minR2 !== null &&
-      (input.minR2 < 0 || input.minR2 > 1)
-    ) {
-      throw new Error('minR2 must be between 0 and 1');
+    if (input.r2 !== undefined && input.r2 !== null) {
+      this.validateFloatMinMaxPair('r2', input.r2, {
+        minAllowed: 0,
+        maxAllowed: 1,
+      });
     }
 
-    if (
-      input.maxR2 !== undefined &&
-      input.maxR2 !== null &&
-      (input.maxR2 < 0 || input.maxR2 > 1)
-    ) {
-      throw new Error('maxR2 must be between 0 and 1');
+    if (input.slope !== undefined && input.slope !== null) {
+      this.validateFloatMinMaxPair('slope', input.slope, {
+        minAllowed: 0,
+      });
+    }
+  }
+
+  private validateIntMinMaxPair(name: string, range: IntMinMaxInput) {
+    if (!Number.isInteger(range.min) || !Number.isInteger(range.max)) {
+      throw new Error(`${name} must use integer values`);
     }
 
-    if (
-      input.minR2 !== undefined &&
-      input.minR2 !== null &&
-      input.maxR2 !== undefined &&
-      input.maxR2 !== null &&
-      input.maxR2 < input.minR2
-    ) {
-      throw new Error('maxR2 must be greater than or equal to minR2');
+    if (range.min <= 0) {
+      throw new Error(`${name}.min must be greater than 0`);
     }
 
-    if (
-      input.minSlope !== undefined &&
-      input.minSlope !== null &&
-      input.maxSlope !== undefined &&
-      input.maxSlope !== null &&
-      input.maxSlope < input.minSlope
-    ) {
-      throw new Error('maxSlope must be greater than or equal to minSlope');
+    if (range.max < range.min) {
+      throw new Error(`${name}.max must be greater than or equal to min`);
+    }
+  }
+
+  private validateIntMinMaxPairs(name: string, ranges: IntMinMaxInput[]) {
+    if (ranges.length === 0) {
+      throw new Error(`${name} must contain at least one range`);
     }
 
-    if (
-      input.minTrades !== undefined &&
-      input.minTrades !== null &&
-      input.minTrades <= 0
-    ) {
-      throw new Error('minTrades must be greater than 0');
+    ranges.forEach((range, index) => {
+      if (!Number.isInteger(range.min) || !Number.isInteger(range.max)) {
+        throw new Error(`${name}[${index}] must use integer values`);
+      }
+
+      if (range.min <= 0) {
+        throw new Error(`${name}[${index}].min must be greater than 0`);
+      }
+
+      if (range.max < range.min) {
+        throw new Error(
+          `${name}[${index}].max must be greater than or equal to min`,
+        );
+      }
+    });
+  }
+
+  private validateFloatMinMaxPair(
+    name: string,
+    range: FloatMinMaxInput,
+    options: { minAllowed?: number; maxAllowed?: number } = {},
+  ) {
+    if (options.minAllowed !== undefined && range.min < options.minAllowed) {
+      throw new Error(
+        `${name}.min must be greater than or equal to ${options.minAllowed}`,
+      );
     }
+
+    if (options.maxAllowed !== undefined && range.max > options.maxAllowed) {
+      throw new Error(
+        `${name}.max must be less than or equal to ${options.maxAllowed}`,
+      );
+    }
+
+    if (range.max < range.min) {
+      throw new Error(`${name}.max must be greater than or equal to min`);
+    }
+  }
+
+  private validateFloatMinMaxPairs(
+    name: string,
+    ranges: FloatMinMaxInput[],
+    options: { minAllowed?: number; maxAllowed?: number } = {},
+  ) {
+    if (ranges.length === 0) {
+      throw new Error(`${name} must contain at least one range`);
+    }
+
+    ranges.forEach((range, index) => {
+      if (options.minAllowed !== undefined && range.min < options.minAllowed) {
+        throw new Error(
+          `${name}[${index}].min must be greater than or equal to ${options.minAllowed}`,
+        );
+      }
+
+      if (options.maxAllowed !== undefined && range.max > options.maxAllowed) {
+        throw new Error(
+          `${name}[${index}].max must be less than or equal to ${options.maxAllowed}`,
+        );
+      }
+
+      if (range.max < range.min) {
+        throw new Error(
+          `${name}[${index}].max must be greater than or equal to min`,
+        );
+      }
+    });
   }
 
   private validateRange(
@@ -231,6 +274,24 @@ export class SimulationsService {
     this.validateRange('maxLeverage', input.maxLeverage, { minAllowed: 0 });
   }
 
+  private serializeRanges(ranges: Array<{ min: number; max: number }>) {
+    return ranges.map((range) => ({
+      min: range.min,
+      max: range.max,
+    })) as any;
+  }
+
+  private serializeRange(range: { min: number; max: number }) {
+    return {
+      min: range.min,
+      max: range.max,
+    } as any;
+  }
+
+  private serializeNumbers(values: number[]) {
+    return values.map((value) => value) as any;
+  }
+
   private mapSimulationResearch(record: any): SimulationResearch {
     const simulations = record.simulations || [];
     const totalSimulations = simulations.length;
@@ -247,41 +308,10 @@ export class SimulationsService {
       startAt: record.startAt,
       endAt: record.endAt,
       direction: record.direction,
-      minTradesRange: {
-        min: record.minTradesMin,
-        max: record.minTradesMax,
-        gap: record.minTradesGap,
-      },
-      maxTradesRange: {
-        min: record.maxTradesMin,
-        max: record.maxTradesMax,
-        gap: record.maxTradesGap,
-      },
-      minR2Range: {
-        min: record.minR2Min,
-        max: record.minR2Max,
-        gap: record.minR2Gap,
-      },
-      maxR2Range: {
-        min: record.maxR2Min,
-        max: record.maxR2Max,
-        gap: record.maxR2Gap,
-      },
-      minSlopeRange: {
-        min: record.minSlopeMin,
-        max: record.minSlopeMax,
-        gap: record.minSlopeGap,
-      },
-      maxSlopeRange: {
-        min: record.maxSlopeMin,
-        max: record.maxSlopeMax,
-        gap: record.maxSlopeGap,
-      },
-      maxLeverageRange: {
-        min: record.maxLeverageMin,
-        max: record.maxLeverageMax,
-        gap: record.maxLeverageGap,
-      },
+      trade: record.trade as any,
+      r2: record.r2 as any,
+      slope: record.slope as any,
+      maxLeverage: (record.maxLeverage as number[] | null) ?? [],
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -293,15 +323,16 @@ export class SimulationsService {
     input: CreateSimulationResearchInput,
   ): Promise<SimulationResearch> {
     this.validateSimulationResearchInput(input);
+    const trade = buildValueRangePairs(input.minTrades, input.maxTrades);
+    const r2 = buildValueRangePairs(input.minR2, input.maxR2);
+    const slope = buildValueRangePairs(input.minSlope, input.maxSlope);
+    const maxLeverage = expandRangeValues(input.maxLeverage);
 
     const combinations = buildSimulationParameterGrid({
       direction: input.direction,
-      minTrades: input.minTrades,
-      maxTrades: input.maxTrades,
-      minR2: input.minR2,
-      maxR2: input.maxR2,
-      minSlopeAbs: input.minSlope,
-      maxSlopeAbs: input.maxSlope,
+      trade,
+      r2,
+      slope,
       maxLeverage: input.maxLeverage,
     });
 
@@ -325,27 +356,10 @@ export class SimulationsService {
           startAt: dayjs(input.startAt).startOf('day').toDate(),
           endAt: dayjs(input.endAt).startOf('day').toDate(),
           direction: input.direction,
-          minTradesMin: input.minTrades.min,
-          minTradesMax: input.minTrades.max,
-          minTradesGap: input.minTrades.gap,
-          maxTradesMin: input.maxTrades.min,
-          maxTradesMax: input.maxTrades.max,
-          maxTradesGap: input.maxTrades.gap,
-          minR2Min: input.minR2.min,
-          minR2Max: input.minR2.max,
-          minR2Gap: input.minR2.gap,
-          maxR2Min: input.maxR2.min,
-          maxR2Max: input.maxR2.max,
-          maxR2Gap: input.maxR2.gap,
-          minSlopeMin: input.minSlope.min,
-          minSlopeMax: input.minSlope.max,
-          minSlopeGap: input.minSlope.gap,
-          maxSlopeMin: input.maxSlope.min,
-          maxSlopeMax: input.maxSlope.max,
-          maxSlopeGap: input.maxSlope.gap,
-          maxLeverageMin: input.maxLeverage.min,
-          maxLeverageMax: input.maxLeverage.max,
-          maxLeverageGap: input.maxLeverage.gap,
+          trade: this.serializeRanges(trade),
+          r2: this.serializeRanges(r2),
+          slope: this.serializeRanges(slope),
+          maxLeverage: this.serializeNumbers(maxLeverage),
         },
       });
 
@@ -364,13 +378,9 @@ export class SimulationsService {
           progressPercent: 0,
           totalSimulationPlans,
           selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
-          minTrades: combination.minTrades,
-          maxTrades: combination.maxTrades,
-          minR2: combination.minR2,
-          maxR2: combination.maxR2,
-          minSlope: combination.minSlope,
-          maxSlope: combination.maxSlope,
-          minNegativeR2: combination.minR2,
+          trade: this.serializeRange(combination.trade),
+          r2: this.serializeRange(combination.r2),
+          slope: this.serializeRange(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
           maxLeverage: combination.maxLeverage,
         })),
@@ -403,9 +413,11 @@ export class SimulationsService {
       data: {
         ...input,
         direction: input.direction,
+        trade: this.serializeRange(input.trade),
+        r2: this.serializeRange(input.r2),
+        slope: this.serializeRange(input.slope),
         startAt: dayjs(input.startAt).startOf('day').toDate(),
         endAt: dayjs(input.endAt).startOf('day').toDate(),
-        minNegativeR2: input.minR2,
         status: SimulationStatus.Created,
         progressPhase: 'created',
         progressMessage: 'Simulation created',
@@ -420,16 +432,13 @@ export class SimulationsService {
       startAt: simulation.startAt,
       endAt: simulation.endAt,
       totalSimulationPlans: simulation.totalSimulationPlans,
-      minTrades: simulation.minTrades,
-      maxTrades: simulation.maxTrades,
-      minR2: simulation.minR2,
-      maxR2: simulation.maxR2,
-      minSlope: simulation.minSlope,
-      maxSlope: simulation.maxSlope,
+      trade: simulation.trade,
+      r2: simulation.r2,
+      slope: simulation.slope,
       minRatio: SIMULATION_SYSTEM_CONFIG.minRatio,
     });
 
-    return simulation;
+    return this.mapSimulation(simulation);
   }
 
   async updateSimulation(input: UpdateSimulationInput): Promise<Simulation> {
@@ -447,24 +456,40 @@ export class SimulationsService {
       throw new Error('Cannot update a running simulation');
     }
 
-    return await this.prisma.simulation.update({
+    const updated = await this.prisma.simulation.update({
       where: { id: input.id },
       data: {
         title: input.title ?? undefined,
         description: input.description ?? undefined,
         selectedLeaderCount: input.selectedLeaderCount ?? undefined,
         direction: input.direction ?? undefined,
-        minTrades: input.minTrades ?? undefined,
-        maxTrades: input.maxTrades ?? undefined,
-        minR2: input.minR2 ?? undefined,
-        maxR2: input.maxR2 ?? undefined,
-        minSlope: input.minSlope ?? undefined,
-        maxSlope: input.maxSlope ?? undefined,
-        minNegativeR2: input.minR2 ?? undefined,
+        trade:
+          input.trade !== undefined && input.trade !== null
+            ? this.serializeRange(input.trade)
+            : undefined,
+        r2:
+          input.r2 !== undefined && input.r2 !== null
+            ? this.serializeRange(input.r2)
+            : undefined,
+        slope:
+          input.slope !== undefined && input.slope !== null
+            ? this.serializeRange(input.slope)
+            : undefined,
         standardCollateralUsd: input.standardCollateralUsd ?? undefined,
         maxLeverage: input.maxLeverage ?? undefined,
       },
     });
+
+    return this.mapSimulation(updated);
+  }
+
+  private mapSimulation(record: any): Simulation {
+    return {
+      ...record,
+      trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
+      r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
+      slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
+    };
   }
 
   async getSimulations(
@@ -480,7 +505,7 @@ export class SimulationsService {
 
     const edges = records.map((record) => ({
       cursor: record.id,
-      node: record,
+      node: this.mapSimulation(record),
     }));
 
     return {
@@ -493,9 +518,11 @@ export class SimulationsService {
   }
 
   async getSimulation(id: number): Promise<Simulation | null> {
-    return await this.prisma.simulation.findUnique({
+    const record = await this.prisma.simulation.findUnique({
       where: { id },
     });
+
+    return record ? this.mapSimulation(record) : null;
   }
 
   async getSimulationResearches(
@@ -548,15 +575,19 @@ export class SimulationsService {
 
     return {
       ...this.mapSimulationResearch(record),
-      simulations: record.simulations,
+      simulations: record.simulations.map((simulation) =>
+        this.mapSimulation(simulation),
+      ),
     };
   }
 
   async getSimulationsByResearch(researchId: number): Promise<Simulation[]> {
-    return this.prisma.simulation.findMany({
+    const records = await this.prisma.simulation.findMany({
       where: { researchId },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
+
+    return records.map((record) => this.mapSimulation(record));
   }
 
   async getSimulationPlansBySimulation(
@@ -662,7 +693,7 @@ export class SimulationsService {
 
     this.logWarn('Auto simulation cancelled', { simulationId: id });
 
-    return simulation;
+    return this.mapSimulation(simulation);
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {

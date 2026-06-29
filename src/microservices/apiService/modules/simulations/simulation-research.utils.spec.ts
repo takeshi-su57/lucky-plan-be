@@ -3,9 +3,10 @@ import { BotMode } from 'generated/prisma/client';
 
 import {
   buildSimulationParameterGrid,
+  buildValueRangePairs,
   expandRangeValues,
-  getDirectionalSlopeBounds,
   normalizeAbsoluteSlopeBounds,
+  valueMatchesAnyRange,
 } from './simulation-research.utils';
 
 describe('simulation research utils', () => {
@@ -27,42 +28,59 @@ describe('simulation research utils', () => {
 
   it('derives reversed effective slope bounds as negative signed values', () => {
     expect(
-      getDirectionalSlopeBounds(BotMode.Reversed, { min: 1.5, max: 3.5 }),
-    ).toEqual({
-      minSlope: -3.5,
-      maxSlope: -1.5,
-    });
+      valueMatchesAnyRange(-2, [
+        { min: -3.5, max: -1.5 },
+        { min: 1, max: 2 },
+      ]),
+    ).toBe(true);
+  });
+
+  it('builds valid range pairs from min/max ranges', () => {
+    expect(
+      buildValueRangePairs(
+        { min: 1, max: 2, gap: 1 },
+        { min: 2, max: 3, gap: 1 },
+      ),
+    ).toEqual([
+      { min: 1, max: 2 },
+      { min: 1, max: 3 },
+      { min: 2, max: 2 },
+      { min: 2, max: 3 },
+    ]);
   });
 
   it('builds only valid simulation parameter combinations', () => {
     const combinations = buildSimulationParameterGrid({
       direction: BotMode.Default,
-      minTrades: { min: 1, max: 2, gap: 1 },
-      maxTrades: { min: 2, max: 3, gap: 1 },
-      minR2: { min: 0.2, max: 0.3, gap: 0.1 },
-      maxR2: { min: 0.3, max: 0.4, gap: 0.1 },
-      minSlopeAbs: { min: 1, max: 2, gap: 1 },
-      maxSlopeAbs: { min: 2, max: 3, gap: 1 },
+      trade: [
+        { min: 1, max: 2 },
+        { min: 2, max: 3 },
+      ],
+      r2: [
+        { min: 0.2, max: 0.3 },
+        { min: 0.3, max: 0.4 },
+      ],
+      slope: [
+        { min: 1, max: 2 },
+        { min: 2, max: 3 },
+      ],
       maxLeverage: { min: 10, max: 20, gap: 10 },
     });
 
-    expect(combinations).toHaveLength(128);
+    expect(combinations).toHaveLength(16);
     expect(combinations[0]).toEqual({
       direction: BotMode.Default,
-      minTrades: 1,
-      maxTrades: 2,
-      minR2: 0.2,
-      maxR2: 0.3,
-      minSlope: 1,
-      maxSlope: 2,
+      trade: { min: 1, max: 2 },
+      r2: { min: 0.2, max: 0.3 },
+      slope: { min: 1, max: 2 },
       maxLeverage: 10,
     });
     expect(
       combinations.every(
         (item: (typeof combinations)[number]) =>
-          item.minTrades <= item.maxTrades &&
-          item.minR2 <= item.maxR2 &&
-          item.minSlope <= item.maxSlope,
+          item.trade.min <= item.trade.max &&
+          item.r2.min <= item.r2.max &&
+          item.slope.min <= item.slope.max,
       ),
     ).toBe(true);
   });
@@ -70,24 +88,18 @@ describe('simulation research utils', () => {
   it('keeps reversed slope pairs stored as absolute values', () => {
     const combinations = buildSimulationParameterGrid({
       direction: BotMode.Reversed,
-      minTrades: { min: 1, max: 1, gap: 1 },
-      maxTrades: { min: 1, max: 1, gap: 1 },
-      minR2: { min: 0.5, max: 0.5, gap: 0.1 },
-      maxR2: { min: 0.5, max: 0.5, gap: 0.1 },
-      minSlopeAbs: { min: 1, max: 3, gap: 2 },
-      maxSlopeAbs: { min: 2, max: 2, gap: 1 },
+      trade: [{ min: 1, max: 1 }],
+      r2: [{ min: 0.5, max: 0.5 }],
+      slope: [{ min: 1, max: 2 }],
       maxLeverage: { min: 20, max: 20, gap: 1 },
     });
 
     expect(combinations).toEqual([
       {
         direction: BotMode.Reversed,
-        minTrades: 1,
-        maxTrades: 1,
-        minR2: 0.5,
-        maxR2: 0.5,
-        minSlope: 1,
-        maxSlope: 2,
+        trade: { min: 1, max: 1 },
+        r2: { min: 0.5, max: 0.5 },
+        slope: { min: 1, max: 2 },
         maxLeverage: 20,
       },
     ]);

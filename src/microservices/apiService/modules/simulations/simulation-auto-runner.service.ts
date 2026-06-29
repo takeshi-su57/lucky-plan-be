@@ -29,6 +29,11 @@ import {
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
+import { ValueRange } from './simulation-research.utils';
+
+const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
+const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
+const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 
 @Injectable()
 export class SimulationAutoRunnerService {
@@ -46,10 +51,22 @@ export class SimulationAutoRunnerService {
     this.activeAutoSimulationRunIds.delete(id);
   }
 
+  private mapSimulation(record: any): Simulation {
+    return {
+      ...record,
+      trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
+      r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
+      slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
+    };
+  }
+
   async playAutoSimulation(id: number): Promise<Simulation> {
-    const simulation = await this.prisma.simulation.findUnique({
+    const simulationRecord = await this.prisma.simulation.findUnique({
       where: { id },
     });
+    const simulation = simulationRecord
+      ? this.mapSimulation(simulationRecord)
+      : null;
 
     if (!simulation) {
       throw new Error('Simulation not found');
@@ -104,7 +121,7 @@ export class SimulationAutoRunnerService {
       void this.runAutoSimulation(id);
     }, 0);
 
-    return updatedSimulation;
+    return this.mapSimulation(updatedSimulation);
   }
 
   private logDebug(message: string, metadata?: Record<string, unknown>) {
@@ -136,9 +153,12 @@ export class SimulationAutoRunnerService {
     }
 
     try {
-      const simulation = await this.prisma.simulation.findUnique({
+      const simulationRecord = await this.prisma.simulation.findUnique({
         where: { id },
       });
+      const simulation = simulationRecord
+        ? this.mapSimulation(simulationRecord)
+        : null;
 
       if (!simulation) {
         this.logWarn('Auto simulation run aborted: simulation not found', {
@@ -235,9 +255,12 @@ export class SimulationAutoRunnerService {
       }
 
       for (const range of ranges) {
-        const current = await this.prisma.simulation.findUnique({
+        const currentRecord = await this.prisma.simulation.findUnique({
           where: { id },
         });
+        const current = currentRecord
+          ? this.mapSimulation(currentRecord)
+          : null;
 
         if (!current || current.status === SimulationStatus.Cancelled) {
           this.logWarn('Auto simulation run stopped before daily range', {

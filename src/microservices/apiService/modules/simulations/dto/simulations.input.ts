@@ -30,6 +30,24 @@ export class FloatRangeInput {
 }
 
 @InputType()
+export class IntMinMaxInput {
+  @Field(() => Int)
+  min: number;
+
+  @Field(() => Int)
+  max: number;
+}
+
+@InputType()
+export class FloatMinMaxInput {
+  @Field(() => Float)
+  min: number;
+
+  @Field(() => Float)
+  max: number;
+}
+
+@InputType()
 export class CreateSimulationPlanInput {
   @IsNotEmpty()
   @IsString()
@@ -123,23 +141,20 @@ export class CreateSimulationInput {
   @Field(() => BotMode, { defaultValue: BotMode.Reversed })
   direction: BotMode;
 
-  @Field(() => Int, { defaultValue: 3 })
-  minTrades: number;
+  @Field(() => IntMinMaxInput, {
+    defaultValue: { min: 3, max: 1000000 },
+  })
+  trade: IntMinMaxInput;
 
-  @Field(() => Int, { defaultValue: 999999 })
-  maxTrades: number;
+  @Field(() => FloatMinMaxInput, {
+    defaultValue: { min: 0.5, max: 1 },
+  })
+  r2: FloatMinMaxInput;
 
-  @Field(() => Float, { defaultValue: 0.25 })
-  minR2: number;
-
-  @Field(() => Float, { defaultValue: 1 })
-  maxR2: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  minSlope: number;
-
-  @Field(() => Float, { defaultValue: 999999 })
-  maxSlope: number;
+  @Field(() => FloatMinMaxInput, {
+    defaultValue: { min: 0, max: 1000000000 },
+  })
+  slope: FloatMinMaxInput;
 
   @Field(() => Float, { defaultValue: 100 })
   standardCollateralUsd: number;
@@ -165,23 +180,14 @@ export class UpdateSimulationInput {
   @Field(() => BotMode, { nullable: true })
   direction?: BotMode | null;
 
-  @Field(() => Int, { nullable: true })
-  minTrades?: number | null;
+  @Field(() => IntMinMaxInput, { nullable: true })
+  trade?: IntMinMaxInput | null;
 
-  @Field(() => Int, { nullable: true })
-  maxTrades?: number | null;
+  @Field(() => FloatMinMaxInput, { nullable: true })
+  r2?: FloatMinMaxInput | null;
 
-  @Field(() => Float, { nullable: true })
-  minR2?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxR2?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  minSlope?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxSlope?: number | null;
+  @Field(() => FloatMinMaxInput, { nullable: true })
+  slope?: FloatMinMaxInput | null;
 
   @Field(() => Float, { nullable: true })
   standardCollateralUsd?: number | null;
