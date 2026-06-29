@@ -3,6 +3,7 @@ import {
   PerpTradeHistoryOperation,
   PerpTradePosition,
 } from '../trade-histories/entities/event-logs.entity';
+import { BotMode } from 'generated/prisma/enums';
 
 export type TrendMetrics = {
   slope: number;
@@ -25,14 +26,15 @@ export type CostModelResult = {
 };
 
 export type ScoreInput = {
+  direction: BotMode;
   rawSlope: number;
   rawR2: number;
   rawTradeCount: number;
-  reverseNetPnlUsd: number;
-  reverseSlope: number;
-  reverseR2: number;
-  reverseMaxDrawdownUsd: number;
-  reverseProfitFactor: number;
+  copiedNetPnlUsd: number;
+  copiedSlope: number;
+  copiedR2: number;
+  copiedMaxDrawdownUsd: number;
+  copiedProfitFactor: number;
   totalCostUsd: number;
   grossProfitUsd: number;
   topTradeProfitUsd: number;
@@ -174,17 +176,17 @@ export function calculateCosts({
 }
 
 export function calculateLeaderScore(input: ScoreInput) {
-  const positiveNetPnlScore = clamp01(input.reverseNetPnlUsd / 1_000);
+  const positiveNetPnlScore = clamp01(input.copiedNetPnlUsd / 1_000);
   const positiveSlopeScore =
-    input.reverseSlope > 0 ? clamp01(input.reverseSlope / 100) : 0;
+    input.copiedSlope > 0 ? clamp01(input.copiedSlope / 100) : 0;
   const reverseTrendScore = clamp01(
-    positiveNetPnlScore * 0.5 +
-      positiveSlopeScore * 0.3 +
-      input.reverseR2 * 0.2,
+    positiveNetPnlScore * 0.5 + positiveSlopeScore * 0.3 + input.copiedR2 * 0.2,
   );
 
+  const alignedRawSlope =
+    input.direction === BotMode.Reversed ? -input.rawSlope : input.rawSlope;
   const rawNegativeSlopeScore =
-    input.rawSlope < 0 ? clamp01(Math.abs(input.rawSlope) / 100) : 0;
+    alignedRawSlope > 0 ? clamp01(Math.abs(alignedRawSlope) / 100) : 0;
   const rawNegativeEdgeScore = clamp01(
     rawNegativeSlopeScore * 0.6 + input.rawR2 * 0.4,
   );
@@ -195,9 +197,9 @@ export function calculateLeaderScore(input: ScoreInput) {
   const drawdownScore =
     1 -
     clamp01(
-      input.reverseMaxDrawdownUsd / Math.max(input.maxReverseDrawdownUsd, 1),
+      input.copiedMaxDrawdownUsd / Math.max(input.maxReverseDrawdownUsd, 1),
     );
-  const profitFactorScore = clamp01((input.reverseProfitFactor - 1) / 2);
+  const profitFactorScore = clamp01((input.copiedProfitFactor - 1) / 2);
   const costEfficiencyScore =
     input.grossProfitUsd > 0
       ? clamp01(1 - input.totalCostUsd / input.grossProfitUsd)

@@ -1,8 +1,33 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
-import { IsDate, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDate, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 import { BotMode, Platform } from 'generated/prisma/enums';
+
+@InputType()
+export class IntRangeInput {
+  @Field(() => Int)
+  min: number;
+
+  @Field(() => Int)
+  max: number;
+
+  @Field(() => Int)
+  gap: number;
+}
+
+@InputType()
+export class FloatRangeInput {
+  @Field(() => Float)
+  min: number;
+
+  @Field(() => Float)
+  max: number;
+
+  @Field(() => Float)
+  gap: number;
+}
 
 @InputType()
 export class CreateSimulationPlanInput {
@@ -95,11 +120,26 @@ export class CreateSimulationInput {
   @Field(() => Int, { defaultValue: 10 })
   selectedLeaderCount: number;
 
+  @Field(() => BotMode, { defaultValue: BotMode.Reversed })
+  direction: BotMode;
+
   @Field(() => Int, { defaultValue: 3 })
   minTrades: number;
 
+  @Field(() => Int, { defaultValue: 999999 })
+  maxTrades: number;
+
   @Field(() => Float, { defaultValue: 0.25 })
-  minNegativeR2: number;
+  minR2: number;
+
+  @Field(() => Float, { defaultValue: 1 })
+  maxR2: number;
+
+  @Field(() => Float, { defaultValue: 0 })
+  minSlope: number;
+
+  @Field(() => Float, { defaultValue: 999999 })
+  maxSlope: number;
 
   @Field(() => Float, { defaultValue: 100 })
   standardCollateralUsd: number;
@@ -122,15 +162,94 @@ export class UpdateSimulationInput {
   @Field(() => Int, { nullable: true })
   selectedLeaderCount?: number | null;
 
+  @Field(() => BotMode, { nullable: true })
+  direction?: BotMode | null;
+
   @Field(() => Int, { nullable: true })
   minTrades?: number | null;
 
+  @Field(() => Int, { nullable: true })
+  maxTrades?: number | null;
+
   @Field(() => Float, { nullable: true })
-  minNegativeR2?: number | null;
+  minR2?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  maxR2?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  minSlope?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  maxSlope?: number | null;
 
   @Field(() => Float, { nullable: true })
   standardCollateralUsd?: number | null;
 
   @Field(() => Float, { nullable: true })
   maxLeverage?: number | null;
+}
+
+@InputType()
+export class CreateSimulationResearchInput {
+  @IsNotEmpty()
+  @IsString()
+  @Field()
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Field()
+  description: string;
+
+  @Field(() => Platform)
+  platform: Platform;
+
+  @IsNotEmpty()
+  @IsDate()
+  @Field(() => Date)
+  startAt: Date;
+
+  @IsNotEmpty()
+  @IsDate()
+  @Field(() => Date)
+  endAt: Date;
+
+  @Field(() => BotMode)
+  direction: BotMode;
+
+  @ValidateNested()
+  @Type(() => IntRangeInput)
+  @Field(() => IntRangeInput)
+  minTrades: IntRangeInput;
+
+  @ValidateNested()
+  @Type(() => IntRangeInput)
+  @Field(() => IntRangeInput)
+  maxTrades: IntRangeInput;
+
+  @ValidateNested()
+  @Type(() => FloatRangeInput)
+  @Field(() => FloatRangeInput)
+  minR2: FloatRangeInput;
+
+  @ValidateNested()
+  @Type(() => FloatRangeInput)
+  @Field(() => FloatRangeInput)
+  maxR2: FloatRangeInput;
+
+  @ValidateNested()
+  @Type(() => FloatRangeInput)
+  @Field(() => FloatRangeInput)
+  minSlope: FloatRangeInput;
+
+  @ValidateNested()
+  @Type(() => FloatRangeInput)
+  @Field(() => FloatRangeInput)
+  maxSlope: FloatRangeInput;
+
+  @ValidateNested()
+  @Type(() => FloatRangeInput)
+  @Field(() => FloatRangeInput)
+  maxLeverage: FloatRangeInput;
 }

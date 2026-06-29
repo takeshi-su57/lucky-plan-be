@@ -25,6 +25,7 @@ import {
 } from './simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { getRangeKey, WindowRange } from './simulation-range.utils';
+import { getDirectionalSlopeBounds } from './simulation-research.utils';
 
 export type CandidateEvaluation = {
   leaderAddress: string;
@@ -287,14 +288,14 @@ export class SimulationLeaderEvaluatorService {
     simulation: Simulation,
     range: WindowRange,
   ): CandidateEvaluation {
-    return this.evaluateLeaderPositionsForReverseCopy(
+    return this.evaluateLeaderPositionsForSimulation(
       leaderAddress,
       this.getClosedPositionsBefore(positions, range.startedAt),
       simulation,
     );
   }
 
-  private evaluateLeaderPositionsForReverseCopy(
+  private evaluateLeaderPositionsForSimulation(
     leaderAddress: string,
     closedPositions: PerpTradePosition[],
     simulation: Simulation,
@@ -321,26 +322,37 @@ export class SimulationLeaderEvaluatorService {
       reverseNetPnlUsd: 0,
       reverseDrawdownUsd: 0,
     };
+    const effectiveSlopeBounds = getDirectionalSlopeBounds(simulation.direction, {
+      min: simulation.minSlope,
+      max: simulation.maxSlope,
+    });
 
-    if (rawTradeCount < simulation.minTrades) {
-      return { ...baseEvaluation, rejectedReason: 'LOW_TRADE_COUNT' };
+    if (
+      rawTradeCount < simulation.minTrades ||
+      rawTradeCount > simulation.maxTrades
+    ) {
+      return { ...baseEvaluation, rejectedReason: 'TRADE_COUNT_OUT_OF_RANGE' };
     }
 
-    if (rawTrend.slope >= 0) {
-      return { ...baseEvaluation, rejectedReason: 'RAW_SLOPE_NOT_NEGATIVE' };
+    if (
+      rawTrend.slope < effectiveSlopeBounds.minSlope ||
+      rawTrend.slope > effectiveSlopeBounds.maxSlope
+    ) {
+      return { ...baseEvaluation, rejectedReason: 'SLOPE_OUT_OF_RANGE' };
     }
 
-    if (rawTrend.r2 < simulation.minNegativeR2) {
-      return { ...baseEvaluation, rejectedReason: 'LOW_RAW_R2' };
+    if (rawTrend.r2 < simulation.minR2 || rawTrend.r2 > simulation.maxR2) {
+      return { ...baseEvaluation, rejectedReason: 'R2_OUT_OF_RANGE' };
     }
 
     if (rawAvgCollateralUsd < SIMULATION_SYSTEM_CONFIG.minCollateralUsd) {
       return { ...baseEvaluation, rejectedReason: 'LOW_AVG_COLLATERAL' };
     }
 
-    const preliminaryReverse = this.simulateReverseCopyApproximation(
+    const preliminaryReverse = this.simulateCopyApproximation(
       closedPositions,
       1,
+      simulation.direction,
     );
     const preliminaryScore = this.scoreCandidate(
       simulation,
@@ -357,9 +369,10 @@ export class SimulationLeaderEvaluatorService {
       minRatio: SIMULATION_SYSTEM_CONFIG.minRatio,
       maxRatio: SIMULATION_SYSTEM_CONFIG.maxRatio,
     });
-    const reverse = this.simulateReverseCopyApproximation(
+    const reverse = this.simulateCopyApproximation(
       closedPositions,
       sizing.suggestedRatio,
+      simulation.direction,
     );
     const score = this.scoreCandidate(
       simulation,
@@ -402,14 +415,15 @@ export class SimulationLeaderEvaluatorService {
     reverse: ReverseSimulationResult,
   ) {
     return calculateLeaderScore({
+      direction: simulation.direction,
       rawSlope: rawTrend.slope,
       rawR2: rawTrend.r2,
       rawTradeCount,
-      reverseNetPnlUsd: reverse.netPnlUsd,
-      reverseSlope: reverse.slope,
-      reverseR2: reverse.r2,
-      reverseMaxDrawdownUsd: reverse.maxDrawdownUsd,
-      reverseProfitFactor: reverse.profitFactor,
+      copiedNetPnlUsd: reverse.netPnlUsd,
+      copiedSlope: reverse.slope,
+      copiedR2: reverse.r2,
+      copiedMaxDrawdownUsd: reverse.maxDrawdownUsd,
+      copiedProfitFactor: reverse.profitFactor,
       totalCostUsd: reverse.totalCostUsd,
       grossProfitUsd: reverse.grossProfitUsd,
       topTradeProfitUsd: reverse.topTradeProfitUsd,
@@ -497,13 +511,17 @@ export class SimulationLeaderEvaluatorService {
     );
   }
 
-  private simulateReverseCopyApproximation(
+  private simulateCopyApproximation(
     positions: PerpTradePosition[],
     ratio: number,
+    direction: Simulation['direction'],
   ): ReverseSimulationResult {
+    const directionMultiplier = direction === 'Reversed' ? -1 : 1;
     const grossPositionPnls = positions.map((position) => {
       const reverseBasePnl =
-        -sum(position.histories.map((history) => history.usdBasePnl)) * ratio;
+        sum(position.histories.map((history) => history.usdBasePnl)) *
+        ratio *
+        directionMultiplier;
       const maxLoss =
         -Math.abs(this.calculatePositionMaxDepositedUsd(position)) * ratio;
 

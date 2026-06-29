@@ -15,6 +15,34 @@ registerEnumType(SimulationStatus, {
   name: 'SimulationStatus',
 });
 
+registerEnumType(BotMode, {
+  name: 'BotMode',
+});
+
+@ObjectType()
+export class SimulationIntRange {
+  @Field(() => Int)
+  min: number;
+
+  @Field(() => Int)
+  max: number;
+
+  @Field(() => Int)
+  gap: number;
+}
+
+@ObjectType()
+export class SimulationFloatRange {
+  @Field(() => Float)
+  min: number;
+
+  @Field(() => Float)
+  max: number;
+
+  @Field(() => Float)
+  gap: number;
+}
+
 @ObjectType()
 export class SimulationBot {
   @Field(() => Int)
@@ -215,6 +243,12 @@ export class Simulation {
   @Field(() => Platform)
   platform: Platform;
 
+  @Field(() => Int, { nullable: true })
+  researchId: number | null;
+
+  @Field(() => BotMode)
+  direction: BotMode;
+
   @Field(() => Date)
   startAt: Date;
 
@@ -243,7 +277,19 @@ export class Simulation {
   minTrades: number;
 
   @Field(() => Float)
-  minNegativeR2: number;
+  maxTrades: number;
+
+  @Field(() => Float)
+  minR2: number;
+
+  @Field(() => Float)
+  maxR2: number;
+
+  @Field(() => Float)
+  minSlope: number;
+
+  @Field(() => Float)
+  maxSlope: number;
 
   @Field(() => Float)
   standardCollateralUsd: number;
@@ -359,4 +405,86 @@ export class SimulationConnection {
   @Field(() => [SimulationEdge])
   edges: SimulationEdge[];
   @Field(() => SimulationPageInfo) pageInfo: SimulationPageInfo;
+}
+
+@ObjectType()
+export class SimulationResearch {
+  @Field(() => Int)
+  id: number;
+
+  @Field(() => String)
+  title: string;
+
+  @Field(() => String)
+  description: string;
+
+  @Field(() => Platform)
+  platform: Platform;
+
+  @Field(() => Date)
+  startAt: Date;
+
+  @Field(() => Date)
+  endAt: Date;
+
+  @Field(() => BotMode)
+  direction: BotMode;
+
+  @Field(() => SimulationIntRange)
+  minTradesRange: SimulationIntRange;
+
+  @Field(() => SimulationIntRange)
+  maxTradesRange: SimulationIntRange;
+
+  @Field(() => SimulationFloatRange)
+  minR2Range: SimulationFloatRange;
+
+  @Field(() => SimulationFloatRange)
+  maxR2Range: SimulationFloatRange;
+
+  @Field(() => SimulationFloatRange)
+  minSlopeRange: SimulationFloatRange;
+
+  @Field(() => SimulationFloatRange)
+  maxSlopeRange: SimulationFloatRange;
+
+  @Field(() => SimulationFloatRange)
+  maxLeverageRange: SimulationFloatRange;
+
+  @Field(() => Int)
+  totalSimulations: number;
+
+  @Field(() => Int)
+  completedSimulations: number;
+
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Field(() => Date)
+  updatedAt: Date;
+}
+
+@ObjectType()
+export class SimulationResearchDetails extends SimulationResearch {
+  @Field(() => [Simulation])
+  simulations: Simulation[];
+}
+
+@ObjectType()
+export class SimulationResearchEdge {
+  @Field(() => Int) cursor: number;
+  @Field(() => SimulationResearch) node: SimulationResearch;
+}
+
+@ObjectType()
+export class SimulationResearchPageInfo {
+  @Field(() => Boolean) hasNextPage: boolean;
+  @Field(() => Int, { nullable: true }) endCursor: number | null;
+}
+
+@ObjectType()
+export class SimulationResearchConnection {
+  @Field(() => [SimulationResearchEdge])
+  edges: SimulationResearchEdge[];
+  @Field(() => SimulationResearchPageInfo) pageInfo: SimulationResearchPageInfo;
 }

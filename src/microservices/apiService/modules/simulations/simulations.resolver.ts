@@ -11,12 +11,16 @@ import {
   Simulation,
   SimulationConnection,
   SimulationLeaderSelection,
+  SimulationResearch,
+  SimulationResearchConnection,
+  SimulationResearchDetails,
 } from './entities/simulations.entity';
 import {
   CreateSimulationPlanInput,
   CreateSimulationBotInput,
   UpdateSimulationBotInput,
   CreateSimulationInput,
+  CreateSimulationResearchInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
 import { Roles } from '../auth/roles.decorator';
@@ -30,6 +34,13 @@ export class SimulationsResolver {
   @Mutation(() => Simulation)
   createSimulation(@Args('input') input: CreateSimulationInput) {
     return this.simulationsService.createSimulation(input);
+  }
+
+  @Mutation(() => SimulationResearch)
+  createSimulationResearch(
+    @Args('input') input: CreateSimulationResearchInput,
+  ) {
+    return this.simulationsService.createSimulationResearch(input);
   }
 
   @Mutation(() => Simulation)
@@ -113,6 +124,26 @@ export class SimulationsResolver {
   @Query(() => Simulation, { nullable: true })
   simulation(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.getSimulation(id);
+  }
+
+  @Query(() => SimulationResearchConnection)
+  simulationResearches(
+    @Args('first', { type: () => Int }) first: number,
+    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+  ) {
+    return this.simulationsService.getSimulationResearches(first, after);
+  }
+
+  @Query(() => SimulationResearchDetails, { nullable: true })
+  simulationResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.getSimulationResearch(id);
+  }
+
+  @Query(() => [Simulation])
+  simulationsByResearch(
+    @Args('researchId', { type: () => Int }) researchId: number,
+  ) {
+    return this.simulationsService.getSimulationsByResearch(researchId);
   }
 
   @Query(() => [SimulationPlan])

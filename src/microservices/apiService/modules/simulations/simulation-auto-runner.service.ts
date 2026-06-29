@@ -5,7 +5,6 @@ import { Simulation } from './entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import {
-  BotMode,
   ContractStatus,
   Platform,
   SimulationStatus,
@@ -545,7 +544,7 @@ export class SimulationAutoRunnerService {
         simulationPlanId,
         startedAt,
         stoppedAt,
-        mode: BotMode.Reversed,
+        mode: simulation.direction,
         ratio: candidate.suggestedRatio,
         maxLeverage: simulation.maxLeverage,
       }));

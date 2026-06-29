@@ -161,6 +161,51 @@ model SimulationPlan {
   @@index([simulationId, startAt])
 }
 
+model SimulationResearch {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  platform    Platform
+  startAt     DateTime
+  endAt       DateTime
+  direction   BotMode  @default(Reversed)
+
+  minTradesMin Int
+  minTradesMax Int
+  minTradesGap Int
+
+  maxTradesMin Int
+  maxTradesMax Int
+  maxTradesGap Int
+
+  minR2Min Float
+  minR2Max Float
+  minR2Gap Float
+
+  maxR2Min Float
+  maxR2Max Float
+  maxR2Gap Float
+
+  minSlopeMin Float
+  minSlopeMax Float
+  minSlopeGap Float
+
+  maxSlopeMin Float
+  maxSlopeMax Float
+  maxSlopeGap Float
+
+  maxLeverageMin Float
+  maxLeverageMax Float
+  maxLeverageGap Float
+
+  simulations Simulation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 enum BotMode {
   Default
   Reversed
@@ -182,6 +227,9 @@ model Simulation {
 
   platform Platform
 
+  researchId Int?
+  direction  BotMode @default(Reversed)
+
   startAt         DateTime
   endAt           DateTime
   cursor          DateTime?
@@ -192,6 +240,11 @@ model Simulation {
 
   selectedLeaderCount Int   @default(10)
   minTrades           Int   @default(3)
+  maxTrades           Int   @default(999999)
+  minR2               Float @default(0.25)
+  maxR2               Float @default(1)
+  minSlope            Float @default(0)
+  maxSlope            Float @default(999999)
   minNegativeR2       Float @default(0.25)
 
   standardCollateralUsd Float @default(100)
@@ -212,11 +265,13 @@ model Simulation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  research         SimulationResearch?       @relation(fields: [researchId], references: [id], onDelete: SetNull)
   simulationPlans  SimulationPlan[]
   leaderSelections SimulationLeaderSelection[]
 
   @@index([status, createdAt])
   @@index([platform, startAt, endAt])
+  @@index([researchId, createdAt])
 }
 
 model SimulationLeaderSelection {
