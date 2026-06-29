@@ -229,14 +229,21 @@ input CreateSimulationInput {
   endAt: Date!
   maxLeverage: Float! = 50
   maxR2: Float! = 1
-  maxSlope: Float! = 0
+  maxSlope: Float! = 999999
   maxTrades: Int! = 999999
   minR2: Float! = 0.25
-  minSlope: Float! = -999999
+  minSlope: Float! = 0
   minTrades: Int! = 3
   platform: Platform!
   selectedLeaderCount: Int! = 10
   standardCollateralUsd: Float! = 100
+  startAt: Date!
+  title: String!
+}
+
+input CreateSimulationPlanInput {
+  description: String!
+  endAt: Date!
   startAt: Date!
   title: String!
 }
@@ -253,13 +260,6 @@ input CreateSimulationResearchInput {
   minSlope: FloatRangeInput!
   minTrades: IntRangeInput!
   platform: Platform!
-  startAt: Date!
-  title: String!
-}
-
-input CreateSimulationPlanInput {
-  description: String!
-  endAt: Date!
   startAt: Date!
   title: String!
 }
@@ -365,6 +365,12 @@ input IncreasePositionSizeInput {
   index: Int!
   leverageDelta: Int!
   pairIndex: Int!
+}
+
+input IntRangeInput {
+  gap: Int!
+  max: Int!
+  min: Int!
 }
 
 """JSON custom scalar type"""
@@ -512,8 +518,8 @@ type Mutation {
   createPlan(createPlanInput: CreatePlanInput!): Plan!
   createSLTP(input: SLTPRequestInput!): SLTPRequest!
   createSimulation(input: CreateSimulationInput!): Simulation!
-  createSimulationResearch(input: CreateSimulationResearchInput!): SimulationResearch!
   createSimulationPlan(input: CreateSimulationPlanInput!): SimulationPlan!
+  createSimulationResearch(input: CreateSimulationResearchInput!): SimulationResearch!
   decreaseAllowanceToZero(collateralIndex: Int!, contractId: Int!, followerAddress: String!, password: String!): Boolean!
   decreasePositionSize(input: DecreasePositionSizeInput!): ContractExecutionResult!
   deleteBot(id: Int!): BotBackwardDetails!
@@ -573,12 +579,6 @@ input OpenTradeInput {
   pairIndex: Int!
   sl: String!
   tp: String!
-}
-
-input IntRangeInput {
-  gap: Int!
-  max: Int!
-  min: Int!
 }
 
 type PerpTradeHistory {
@@ -770,13 +770,13 @@ type Query {
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   simulation(id: Int!): Simulation
-  simulationResearch(id: Int!): SimulationResearchDetails
-  simulationResearches(after: Int, first: Int!): SimulationResearchConnection!
   simulationLeaderSelections(simulationId: Int!, simulationPlanId: Int): [SimulationLeaderSelection!]!
   simulationPlanDetailsBySimulation(simulationId: Int!): [SimulationPlanDetails!]!
   simulationPlansBySimulation(simulationId: Int!): [SimulationPlan!]!
-  simulationsByResearch(researchId: Int!): [Simulation!]!
+  simulationResearch(id: Int!): SimulationResearchDetails
+  simulationResearches(after: Int, first: Int!): SimulationResearchConnection!
   simulations(after: Int, first: Int!): SimulationConnection!
+  simulationsByResearch(researchId: Int!): [Simulation!]!
   systemStatus: Boolean!
 }
 
@@ -819,7 +819,7 @@ type Simulation {
   maxLeverage: Float!
   maxR2: Float!
   maxSlope: Float!
-  maxTrades: Int!
+  maxTrades: Float!
   minR2: Float!
   minSlope: Float!
   minTrades: Int!
@@ -911,15 +911,21 @@ type SimulationConnection {
   pageInfo: SimulationPageInfo!
 }
 
+type SimulationEdge {
+  cursor: Int!
+  node: Simulation!
+}
+
 type SimulationFloatRange {
   gap: Float!
   max: Float!
   min: Float!
 }
 
-type SimulationEdge {
-  cursor: Int!
-  node: Simulation!
+type SimulationIntRange {
+  gap: Int!
+  max: Int!
+  min: Int!
 }
 
 type SimulationLeaderSelection {
@@ -964,6 +970,31 @@ type SimulationPlan {
 type SimulationPlanConnection {
   edges: [SimulationPlanEdge!]!
   pageInfo: SimulationPlanPageInfo!
+}
+
+type SimulationPlanDetails {
+  cursor: Date!
+  description: String!
+  endAt: Date!
+  id: Int!
+  openedPositions: Int!
+  simulationBots: [SimulationBotDetails!]!
+  simulationId: Int
+  startAt: Date!
+  title: String!
+  totalFollowerPnl: Float!
+  totalLeaderPnl: Float!
+  totalPositions: Int!
+}
+
+type SimulationPlanEdge {
+  cursor: Int!
+  node: SimulationPlan!
+}
+
+type SimulationPlanPageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
 }
 
 type SimulationResearch {
@@ -1020,37 +1051,6 @@ type SimulationResearchEdge {
 }
 
 type SimulationResearchPageInfo {
-  endCursor: Int
-  hasNextPage: Boolean!
-}
-
-type SimulationIntRange {
-  gap: Int!
-  max: Int!
-  min: Int!
-}
-
-type SimulationPlanDetails {
-  cursor: Date!
-  description: String!
-  endAt: Date!
-  id: Int!
-  openedPositions: Int!
-  simulationBots: [SimulationBotDetails!]!
-  simulationId: Int
-  startAt: Date!
-  title: String!
-  totalFollowerPnl: Float!
-  totalLeaderPnl: Float!
-  totalPositions: Int!
-}
-
-type SimulationPlanEdge {
-  cursor: Int!
-  node: SimulationPlan!
-}
-
-type SimulationPlanPageInfo {
   endCursor: Int
   hasNextPage: Boolean!
 }

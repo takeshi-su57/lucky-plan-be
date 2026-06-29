@@ -322,10 +322,13 @@ export class SimulationLeaderEvaluatorService {
       reverseNetPnlUsd: 0,
       reverseDrawdownUsd: 0,
     };
-    const effectiveSlopeBounds = getDirectionalSlopeBounds(simulation.direction, {
-      min: simulation.minSlope,
-      max: simulation.maxSlope,
-    });
+    const effectiveSlopeBounds = getDirectionalSlopeBounds(
+      simulation.direction,
+      {
+        min: simulation.minSlope,
+        max: simulation.maxSlope,
+      },
+    );
 
     if (
       rawTradeCount < simulation.minTrades ||
