@@ -94,7 +94,10 @@ export function getDirectionalSlopeRanges(
   });
 }
 
-export function getDirectionalSlopeRange(direction: BotMode, range: ValueRange) {
+export function getDirectionalSlopeRange(
+  direction: BotMode,
+  range: ValueRange,
+) {
   return getDirectionalSlopeRanges(direction, [range])[0];
 }
 

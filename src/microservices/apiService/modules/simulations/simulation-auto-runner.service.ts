@@ -35,6 +35,14 @@ const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 
+type AutoSimulationRunMode = 'manual' | 'queue';
+
+type AutoSimulationRunOptions = {
+  mode: AutoSimulationRunMode;
+  horizon?: Date;
+  runInBackground: boolean;
+};
+
 @Injectable()
 export class SimulationAutoRunnerService {
   private readonly logger = new Logger(SimulationAutoRunnerService.name);
@@ -51,6 +59,16 @@ export class SimulationAutoRunnerService {
     this.activeAutoSimulationRunIds.delete(id);
   }
 
+  isAutoSimulationActive(id: number) {
+    return this.activeAutoSimulationRunIds.has(id);
+  }
+
+  static getTerminalStatusForHorizon(input: { cursor: Date; endAt: Date }) {
+    return input.cursor.getTime() >= input.endAt.getTime()
+      ? SimulationStatus.Completed
+      : SimulationStatus.Paused;
+  }
+
   private mapSimulation(record: any): Simulation {
     return {
       ...record,
@@ -61,6 +79,27 @@ export class SimulationAutoRunnerService {
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {
+    return this.startAutoSimulation(id, {
+      mode: 'manual',
+      runInBackground: true,
+    });
+  }
+
+  async playQueuedAutoSimulation(
+    id: number,
+    horizon: Date,
+  ): Promise<Simulation> {
+    return this.startAutoSimulation(id, {
+      mode: 'queue',
+      horizon,
+      runInBackground: false,
+    });
+  }
+
+  private async startAutoSimulation(
+    id: number,
+    options: AutoSimulationRunOptions,
+  ): Promise<Simulation> {
     const simulationRecord = await this.prisma.simulation.findUnique({
       where: { id },
     });
@@ -117,9 +156,13 @@ export class SimulationAutoRunnerService {
 
     this.activeAutoSimulationRunIds.add(id);
 
-    setTimeout(() => {
-      void this.runAutoSimulation(id);
-    }, 0);
+    if (options.runInBackground) {
+      setTimeout(() => {
+        void this.runAutoSimulation(id, options);
+      }, 0);
+    } else {
+      await this.runAutoSimulation(id, options);
+    }
 
     return this.mapSimulation(updatedSimulation);
   }
@@ -147,7 +190,10 @@ export class SimulationAutoRunnerService {
     );
   }
 
-  private async runAutoSimulation(id: number) {
+  private async runAutoSimulation(
+    id: number,
+    options: AutoSimulationRunOptions,
+  ) {
     if (!this.activeAutoSimulationRunIds.has(id)) {
       this.activeAutoSimulationRunIds.add(id);
     }
@@ -168,9 +214,12 @@ export class SimulationAutoRunnerService {
       }
 
       const allRanges = buildDailyRanges(simulation.startAt, simulation.endAt);
+      const horizon = options.horizon ?? simulation.endAt;
       const startedAt = simulation.cursor ?? simulation.startAt;
       const ranges = allRanges.filter(
-        (range) => range.endedAt.getTime() > startedAt.getTime(),
+        (range) =>
+          range.endedAt.getTime() > startedAt.getTime() &&
+          range.endedAt.getTime() <= horizon.getTime(),
       );
       const warmupRanges = simulation.cursor
         ? allRanges.filter(
@@ -186,6 +235,22 @@ export class SimulationAutoRunnerService {
         cursor: simulation.cursor,
         remainingRangeCount: ranges.length,
       });
+
+      if (ranges.length === 0) {
+        await this.prisma.simulation.update({
+          where: { id },
+          data: {
+            status:
+              (simulation.cursor ?? simulation.startAt).getTime() >=
+              simulation.endAt.getTime()
+                ? SimulationStatus.Completed
+                : SimulationStatus.Paused,
+            progressPhase: 'paused',
+            progressMessage: 'Paused until more historical data is available',
+          },
+        });
+        return;
+      }
 
       const platformContracts = await this.prisma.contract.findMany({
         where: { platform: simulation.platform, status: ContractStatus.Live },
@@ -380,7 +445,22 @@ export class SimulationAutoRunnerService {
         });
       }
 
-      await this.aggregateSimulation(id);
+      const latestRecord = await this.prisma.simulation.findUnique({
+        where: { id },
+      });
+      const latest = latestRecord ? this.mapSimulation(latestRecord) : null;
+
+      if (!latest?.cursor) {
+        return;
+      }
+
+      await this.aggregateSimulation(id, {
+        status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
+          cursor: latest.cursor,
+          endAt: latest.endAt,
+        }),
+        through: latest.cursor,
+      });
     } catch (error) {
       this.logError('Auto simulation failed', error, {
         simulationId: id,
@@ -607,9 +687,17 @@ export class SimulationAutoRunnerService {
     });
   }
 
-  private async aggregateSimulation(id: number) {
+  private async aggregateSimulation(
+    id: number,
+    options: { status: SimulationStatus; through?: Date } = {
+      status: SimulationStatus.Completed,
+    },
+  ) {
     const plans = await this.prisma.simulationPlan.findMany({
-      where: { simulationId: id },
+      where: {
+        simulationId: id,
+        ...(options.through ? { endAt: { lte: options.through } } : {}),
+      },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       include: {
         cache: true,
@@ -660,14 +748,17 @@ export class SimulationAutoRunnerService {
     const positiveTrades = followerPositionPnls.filter(
       (item) => item > 0,
     ).length;
+    const isCompleted = options.status === SimulationStatus.Completed;
 
     await this.prisma.simulation.update({
       where: { id },
       data: {
-        status: SimulationStatus.Completed,
-        progressPhase: 'completed',
-        progressMessage: 'Auto simulation completed',
-        progressPercent: 100,
+        status: options.status,
+        progressPhase: isCompleted ? 'completed' : 'paused',
+        progressMessage: isCompleted
+          ? 'Auto simulation completed'
+          : 'Paused until more historical data is available',
+        ...(isCompleted ? { progressPercent: 100 } : {}),
         completedPlans: plans.length,
         totalLeaderPnl,
         totalFollowerPnl,

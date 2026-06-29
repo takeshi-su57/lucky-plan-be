@@ -18,9 +18,7 @@ describe('simulation research utils', () => {
   });
 
   it('keeps stored slope bounds as absolute values', () => {
-    expect(
-      normalizeAbsoluteSlopeBounds({ min: -1.5, max: 3.5 }),
-    ).toEqual({
+    expect(normalizeAbsoluteSlopeBounds({ min: -1.5, max: 3.5 })).toEqual({
       minSlope: 1.5,
       maxSlope: 3.5,
     });
