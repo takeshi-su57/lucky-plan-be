@@ -224,38 +224,21 @@ export class CreateSimulationResearchInput {
   @Field(() => BotMode)
   direction: BotMode;
 
-  @ValidateNested()
-  @Type(() => IntRangeInput)
-  @Field(() => IntRangeInput)
-  minTrades: IntRangeInput;
+  @ValidateNested({ each: true })
+  @Type(() => IntMinMaxInput)
+  @Field(() => [IntMinMaxInput])
+  trade: IntMinMaxInput[];
 
-  @ValidateNested()
-  @Type(() => IntRangeInput)
-  @Field(() => IntRangeInput)
-  maxTrades: IntRangeInput;
+  @ValidateNested({ each: true })
+  @Type(() => FloatMinMaxInput)
+  @Field(() => [FloatMinMaxInput])
+  r2: FloatMinMaxInput[];
 
-  @ValidateNested()
-  @Type(() => FloatRangeInput)
-  @Field(() => FloatRangeInput)
-  minR2: FloatRangeInput;
+  @ValidateNested({ each: true })
+  @Type(() => FloatMinMaxInput)
+  @Field(() => [FloatMinMaxInput])
+  slope: FloatMinMaxInput[];
 
-  @ValidateNested()
-  @Type(() => FloatRangeInput)
-  @Field(() => FloatRangeInput)
-  maxR2: FloatRangeInput;
-
-  @ValidateNested()
-  @Type(() => FloatRangeInput)
-  @Field(() => FloatRangeInput)
-  minSlope: FloatRangeInput;
-
-  @ValidateNested()
-  @Type(() => FloatRangeInput)
-  @Field(() => FloatRangeInput)
-  maxSlope: FloatRangeInput;
-
-  @ValidateNested()
-  @Type(() => FloatRangeInput)
-  @Field(() => FloatRangeInput)
-  maxLeverage: FloatRangeInput;
+  @Field(() => [Float])
+  maxLeverage: number[];
 }

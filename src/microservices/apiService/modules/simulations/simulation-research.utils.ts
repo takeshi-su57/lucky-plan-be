@@ -16,7 +16,7 @@ export type SimulationParameterGridInput = {
   trade: ValueRange[];
   r2: ValueRange[];
   slope: ValueRange[];
-  maxLeverage: NumericRangeInput;
+  maxLeverage: number[];
 };
 
 export type SimulationParameterCombination = {
@@ -143,7 +143,7 @@ export function buildSimulationParameterGrid(
       for (const slope of input.slope) {
         const normalizedSlope = normalizeAbsoluteSlopeBounds(slope);
 
-        for (const maxLeverage of expandRangeValues(input.maxLeverage)) {
+        for (const maxLeverage of input.maxLeverage) {
           combinations.push({
             direction: input.direction,
             trade: { ...trade },

@@ -8,9 +8,7 @@ import {
   CreateSimulationInput,
   CreateSimulationResearchInput,
   FloatMinMaxInput,
-  FloatRangeInput,
   IntMinMaxInput,
-  IntRangeInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
 import {
@@ -34,8 +32,6 @@ import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { SimulationPlansService } from './simulation-plans.service';
 import {
   buildSimulationParameterGrid,
-  buildValueRangePairs,
-  expandRangeValues,
   ValueRange,
 } from './simulation-research.utils';
 
@@ -212,29 +208,21 @@ export class SimulationsService {
     });
   }
 
-  private validateRange(
+  private validateMinMaxRange(
     name: string,
-    range: IntRangeInput | FloatRangeInput,
+    range: IntMinMaxInput | FloatMinMaxInput,
     options: {
       minAllowed?: number;
       maxAllowed?: number;
       integer?: boolean;
     } = {},
   ) {
-    if (range.gap <= 0) {
-      throw new Error(`${name} gap must be greater than 0`);
-    }
-
     if (range.max < range.min) {
       throw new Error(`${name} max must be greater than or equal to min`);
     }
 
     if (options.integer) {
-      if (
-        !Number.isInteger(range.min) ||
-        !Number.isInteger(range.max) ||
-        !Number.isInteger(range.gap)
-      ) {
+      if (!Number.isInteger(range.min) || !Number.isInteger(range.max)) {
         throw new Error(`${name} must use integer values`);
       }
     }
@@ -259,19 +247,47 @@ export class SimulationsService {
       throw new Error('Simulation research startAt must be before endAt');
     }
 
-    this.validateRange('minTrades', input.minTrades, {
-      minAllowed: 1,
-      integer: true,
+    if (input.trade.length === 0) {
+      throw new Error('trade must contain at least one range');
+    }
+
+    if (input.r2.length === 0) {
+      throw new Error('r2 must contain at least one range');
+    }
+
+    if (input.slope.length === 0) {
+      throw new Error('slope must contain at least one range');
+    }
+
+    if (input.maxLeverage.length === 0) {
+      throw new Error('maxLeverage must contain at least one value');
+    }
+
+    input.trade.forEach((range, index) =>
+      this.validateMinMaxRange(`trade[${index}]`, range, {
+        minAllowed: 1,
+        integer: true,
+      }),
+    );
+    input.r2.forEach((range, index) =>
+      this.validateMinMaxRange(`r2[${index}]`, range, {
+        minAllowed: 0,
+        maxAllowed: 1,
+      }),
+    );
+    input.slope.forEach((range, index) =>
+      this.validateMinMaxRange(`slope[${index}]`, range, {
+        minAllowed: 0,
+      }),
+    );
+
+    input.maxLeverage.forEach((value, index) => {
+      if (value < 0) {
+        throw new Error(
+          `maxLeverage[${index}] must be greater than or equal to 0`,
+        );
+      }
     });
-    this.validateRange('maxTrades', input.maxTrades, {
-      minAllowed: 1,
-      integer: true,
-    });
-    this.validateRange('minR2', input.minR2, { minAllowed: 0, maxAllowed: 1 });
-    this.validateRange('maxR2', input.maxR2, { minAllowed: 0, maxAllowed: 1 });
-    this.validateRange('minSlope', input.minSlope, { minAllowed: 0 });
-    this.validateRange('maxSlope', input.maxSlope, { minAllowed: 0 });
-    this.validateRange('maxLeverage', input.maxLeverage, { minAllowed: 0 });
   }
 
   private serializeRanges(ranges: Array<{ min: number; max: number }>) {
@@ -323,17 +339,17 @@ export class SimulationsService {
     input: CreateSimulationResearchInput,
   ): Promise<SimulationResearch> {
     this.validateSimulationResearchInput(input);
-    const trade = buildValueRangePairs(input.minTrades, input.maxTrades);
-    const r2 = buildValueRangePairs(input.minR2, input.maxR2);
-    const slope = buildValueRangePairs(input.minSlope, input.maxSlope);
-    const maxLeverage = expandRangeValues(input.maxLeverage);
+    const trade = input.trade;
+    const r2 = input.r2;
+    const slope = input.slope;
+    const maxLeverage = input.maxLeverage;
 
     const combinations = buildSimulationParameterGrid({
       direction: input.direction,
       trade,
       r2,
       slope,
-      maxLeverage: input.maxLeverage,
+      maxLeverage,
     });
 
     if (combinations.length === 0) {
