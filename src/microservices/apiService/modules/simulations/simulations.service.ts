@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
 import {
@@ -31,6 +32,7 @@ import {
   buildSimulationParameterGrid,
   ValueRange,
 } from './simulation-research.utils';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 const API_SIMULATION_SYSTEM_CONFIG = {
   minCollateralUsd: 10,
@@ -63,6 +65,9 @@ export class SimulationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationPlansService: SimulationPlansService,
+    @Optional()
+    @Inject(SERVICE_NAMES.REDIS_SERVICE)
+    private readonly redisClient?: ClientProxy,
   ) {}
 
   private logDebug(message: string, metadata?: Record<string, unknown>) {
@@ -352,6 +357,47 @@ export class SimulationsService {
     };
   }
 
+  private async emitSimulationResearchUpdated(id: number) {
+    if (!this.redisClient) {
+      return;
+    }
+
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!research) {
+      return;
+    }
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationResearchUpdated,
+      this.mapSimulationResearch(research),
+    );
+  }
+
+  private async emitSimulationUpdated(simulation: Simulation) {
+    if (!this.redisClient) {
+      return;
+    }
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationUpdated,
+      simulation,
+    );
+
+    if (simulation.researchId) {
+      await this.emitSimulationResearchUpdated(simulation.researchId);
+    }
+  }
+
   async createSimulationResearch(
     input: CreateSimulationResearchInput,
   ): Promise<SimulationResearch> {
@@ -513,7 +559,10 @@ export class SimulationsService {
       },
     });
 
-    return this.mapSimulation(updated);
+    const mapped = this.mapSimulation(updated);
+    await this.emitSimulationUpdated(mapped);
+
+    return mapped;
   }
 
   private mapSimulation(record: any): Simulation {
@@ -724,7 +773,10 @@ export class SimulationsService {
 
     this.logWarn('Auto simulation cancelled', { simulationId: id });
 
-    return this.mapSimulation(simulation);
+    const mapped = this.mapSimulation(simulation);
+    await this.emitSimulationUpdated(mapped);
+
+    return mapped;
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {
@@ -757,7 +809,10 @@ export class SimulationsService {
       },
     });
 
-    return this.mapSimulation(updated);
+    const mapped = this.mapSimulation(updated);
+    await this.emitSimulationUpdated(mapped);
+
+    return mapped;
   }
 
   async deleteSimulationPlan(id: number): Promise<number> {

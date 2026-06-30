@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
 import { Simulation } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
@@ -28,6 +29,11 @@ import {
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import {
+  SimulationPlan,
+  SimulationResearch,
+} from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 
 type ValueRange = {
   min: number;
@@ -55,6 +61,8 @@ export class SimulationAutoRunnerService {
     private readonly prisma: PrismaService,
     private readonly simulationCacheService: SimulationCacheService,
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
+    @Inject(SERVICE_NAMES.REDIS_SERVICE)
+    private readonly redisClient: ClientProxy,
   ) {}
 
   clearActiveRun(id: number) {
@@ -78,6 +86,94 @@ export class SimulationAutoRunnerService {
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
     };
+  }
+
+  private mapSimulationResearch(record: any): SimulationResearch {
+    const simulations = record.simulations || [];
+    const totalSimulations = simulations.length;
+    const completedSimulations = simulations.filter(
+      (simulation: { status: SimulationStatus }) =>
+        simulation.status === SimulationStatus.Completed,
+    ).length;
+
+    return {
+      id: record.id,
+      title: record.title,
+      description: record.description,
+      platform: record.platform,
+      startAt: record.startAt,
+      endAt: record.endAt,
+      direction: record.direction,
+      trade: record.trade as any,
+      r2: record.r2 as any,
+      slope: record.slope as any,
+      maxLeverage: (record.maxLeverage as number[] | null) ?? [],
+      totalSimulations,
+      completedSimulations,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  async emitSimulationUpdated(record: any) {
+    const simulation = this.mapSimulation(record);
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationUpdated,
+      simulation,
+    );
+
+    if (!simulation.researchId) {
+      return;
+    }
+
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id: simulation.researchId },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!research) {
+      return;
+    }
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationResearchUpdated,
+      this.mapSimulationResearch(research),
+    );
+  }
+
+  private async getSimulationPlanForUpdate(
+    id: number,
+  ): Promise<SimulationPlan | null> {
+    return await this.prisma.simulationPlan.findUnique({
+      where: { id },
+      include: {
+        simulationBots: {
+          include: {
+            leaderContract: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async emitSimulationPlanUpdated(id: number) {
+    const simulationPlan = await this.getSimulationPlanForUpdate(id);
+
+    if (!simulationPlan) {
+      return;
+    }
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationPlanUpdated,
+      simulationPlan,
+    );
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {
@@ -155,6 +251,7 @@ export class SimulationAutoRunnerService {
             : 100,
       },
     });
+    await this.emitSimulationUpdated(updatedSimulation);
 
     this.activeAutoSimulationRunIds.add(id);
 
@@ -239,7 +336,7 @@ export class SimulationAutoRunnerService {
       });
 
       if (ranges.length === 0) {
-        await this.prisma.simulation.update({
+        const pausedSimulation = await this.prisma.simulation.update({
           where: { id },
           data: {
             status:
@@ -251,6 +348,7 @@ export class SimulationAutoRunnerService {
             progressMessage: 'Paused until more historical data is available',
           },
         });
+        await this.emitSimulationUpdated(pausedSimulation);
         return;
       }
 
@@ -345,7 +443,7 @@ export class SimulationAutoRunnerService {
           rangeEndAt: range.endedAt,
         });
 
-        await this.prisma.simulation.update({
+        const selectingSimulation = await this.prisma.simulation.update({
           where: { id },
           data: {
             progressPhase: 'leader-selection',
@@ -354,6 +452,7 @@ export class SimulationAutoRunnerService {
             ).format('YYYY-MM-DD')}`,
           },
         });
+        await this.emitSimulationUpdated(selectingSimulation);
 
         const rangeKey = getRangeKey(range);
         const simulationPlan = planByRangeKey.get(rangeKey);
@@ -422,7 +521,7 @@ export class SimulationAutoRunnerService {
           (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
         ).length;
 
-        await this.prisma.simulation.update({
+        const completedDaySimulation = await this.prisma.simulation.update({
           where: { id },
           data: {
             cursor: range.endedAt,
@@ -437,6 +536,7 @@ export class SimulationAutoRunnerService {
                 : 100,
           },
         });
+        await this.emitSimulationUpdated(completedDaySimulation);
 
         this.logDebug('Auto simulation day completed', {
           simulationId: id,
@@ -469,7 +569,7 @@ export class SimulationAutoRunnerService {
         error: getReadableError(error),
       });
 
-      await this.prisma.simulation.update({
+      const failedSimulation = await this.prisma.simulation.update({
         where: { id },
         data: {
           status: SimulationStatus.Failed,
@@ -478,6 +578,7 @@ export class SimulationAutoRunnerService {
           error: getReadableError(error),
         },
       });
+      await this.emitSimulationUpdated(failedSimulation);
     } finally {
       this.activeAutoSimulationRunIds.delete(id);
     }
@@ -506,6 +607,8 @@ export class SimulationAutoRunnerService {
         day: dayjs(range.startedAt).format('YYYY-MM-DD'),
       });
 
+      await this.emitSimulationPlanUpdated(existingSimulationPlan.id);
+
       return existingSimulationPlan;
     }
 
@@ -525,6 +628,7 @@ export class SimulationAutoRunnerService {
     await this.simulationCacheService.ensureSimulationPlanCache(
       simulationPlan.id,
     );
+    await this.emitSimulationPlanUpdated(simulationPlan.id);
 
     return simulationPlan;
   }
@@ -752,7 +856,7 @@ export class SimulationAutoRunnerService {
     ).length;
     const isCompleted = options.status === SimulationStatus.Completed;
 
-    await this.prisma.simulation.update({
+    const updatedSimulation = await this.prisma.simulation.update({
       where: { id },
       data: {
         status: options.status,
@@ -772,6 +876,7 @@ export class SimulationAutoRunnerService {
         maxDrawdownUsd: calculateMaxDrawdown(cumulative(followerPositionPnls)),
       },
     });
+    await this.emitSimulationUpdated(updatedSimulation);
 
     this.logDebug('Auto simulation completed', {
       simulationId: id,

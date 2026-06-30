@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
 import {
@@ -24,6 +25,7 @@ import { EventLogsService } from '../trade-histories/event-logs.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { BotMode, SimulationStatus } from 'generated/prisma/enums';
 import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 function sum(values: number[]) {
   return values.reduce((acc, value) => acc + value, 0);
@@ -38,7 +40,21 @@ export class SimulationPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
+    @Optional()
+    @Inject(SERVICE_NAMES.REDIS_SERVICE)
+    private readonly redisClient?: ClientProxy,
   ) {}
+
+  private async emitSimulationPlanUpdated(simulationPlan: SimulationPlan) {
+    if (!this.redisClient) {
+      return;
+    }
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationPlanUpdated,
+      simulationPlan,
+    );
+  }
 
   private async ensureSimulationPlanCache(simulationPlanId: number) {
     return this.prisma.simulationPlanCache.upsert({
@@ -80,6 +96,8 @@ export class SimulationPlansService {
     });
 
     await this.ensureSimulationPlanCache(simulationPlan.id);
+
+    await this.emitSimulationPlanUpdated(simulationPlan);
 
     return simulationPlan;
   }
@@ -231,7 +249,7 @@ export class SimulationPlansService {
       dayjs(simulationPlan.cursor).add(1, 'day').toDate().getTime(),
     );
 
-    return await this.prisma.simulationPlan.update({
+    const updated = await this.prisma.simulationPlan.update({
       where: {
         id,
       },
@@ -246,6 +264,10 @@ export class SimulationPlansService {
         },
       },
     });
+
+    await this.emitSimulationPlanUpdated(updated);
+
+    return updated;
   }
 
   async stopSimulationBot(id: number): Promise<SimulationBot> {

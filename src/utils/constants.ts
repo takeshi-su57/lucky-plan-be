@@ -19,7 +19,9 @@ export const SUBSCRIPTION_TOKEN = {
   missionUpdated: 'missionUpdated',
   taskCreated: 'taskCreated',
   taskUpdated: 'taskUpdated',
-  simulationProgressUpdated: 'simulationProgressUpdated',
+  simulationResearchUpdated: 'simulationResearchUpdated',
+  simulationUpdated: 'simulationUpdated',
+  simulationPlanUpdated: 'simulationPlanUpdated',
   newLog: 'newLog',
 };
 
@@ -57,8 +59,9 @@ export const PATTERNS = {
     SimulationProgressUpdated: 'SIMULATION_PROGRESS_UPDATED',
   },
   Simulations: {
-    SimulationPlanCreated: 'SIMULATION_PLAN_CREATED',
-    SimulationBotCreated: 'SIMULATION_BOT_CREATED',
+    SimulationResearchUpdated: 'SIMULATION_RESEARCH_UPDATED',
+    SimulationUpdated: 'SIMULATION_UPDATED',
+    SimulationPlanUpdated: 'SIMULATION_PLAN_UPDATED',
   },
   Tasks: {
     TaskCreated: 'TASK_CREATED',

@@ -1,6 +1,14 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Subscription,
+} from '@nestjs/graphql';
+import { Inject, UseGuards } from '@nestjs/common';
 import { UserPermission } from 'generated/prisma/client';
+import { PubSub } from 'graphql-subscriptions';
 
 import { SimulationsService } from './simulations.service';
 import {
@@ -26,10 +34,15 @@ import {
 import { Roles } from '../auth/roles.decorator';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
+import { PUB_SUB } from 'src/global/global.module';
+import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
 
 @Resolver()
 export class SimulationsResolver {
-  constructor(private readonly simulationsService: SimulationsService) {}
+  constructor(
+    private readonly simulationsService: SimulationsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
   @Mutation(() => Simulation)
   createSimulation(@Args('input') input: CreateSimulationInput) {
@@ -98,6 +111,33 @@ export class SimulationsResolver {
   @Mutation(() => SimulationBot)
   stopSimulationBot(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.stopSimulationBot(id);
+  }
+
+  @Subscription(() => SimulationResearch, {
+    name: SUBSCRIPTION_TOKEN.simulationResearchUpdated,
+  })
+  subscribeToSimulationResearchUpdated() {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.simulationResearchUpdated,
+    );
+  }
+
+  @Subscription(() => Simulation, {
+    name: SUBSCRIPTION_TOKEN.simulationUpdated,
+  })
+  subscribeToSimulationUpdated() {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.simulationUpdated,
+    );
+  }
+
+  @Subscription(() => SimulationPlan, {
+    name: SUBSCRIPTION_TOKEN.simulationPlanUpdated,
+  })
+  subscribeToSimulationPlanUpdated() {
+    return this.pubSub.asyncIterableIterator(
+      SUBSCRIPTION_TOKEN.simulationPlanUpdated,
+    );
   }
 
   @Query(() => SimulationPlanConnection)
