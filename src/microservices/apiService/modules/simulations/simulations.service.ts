@@ -26,26 +26,35 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationStatus } from 'generated/prisma/enums';
-import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
-import { buildDailyRanges } from './simulation-range.utils';
-import {
-  buildAutomationHorizon,
-  filterReadyAutomationRanges,
-  isRunningSimulationStale,
-  SIMULATION_AUTOMATION_STALE_AFTER_MS,
-} from './simulation-automation-queue.utils';
-import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { SimulationPlansService } from './simulation-plans.service';
 import {
   buildSimulationParameterGrid,
   ValueRange,
 } from './simulation-research.utils';
 
+const API_SIMULATION_SYSTEM_CONFIG = {
+  minCollateralUsd: 10,
+  maxCollateralUsd: 500,
+  minRatio: 0,
+} as const;
 const DEFAULT_SELECTED_LEADER_COUNT = 10;
 const DEFAULT_STANDARD_COLLATERAL_USD = 100;
 const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
+
+function countDailySimulationPlans(startAt: Date, endAt: Date) {
+  let count = 0;
+  let cursor = dayjs(startAt).startOf('day');
+  const end = dayjs(endAt).startOf('day');
+
+  while (cursor.isBefore(end)) {
+    count += 1;
+    cursor = cursor.add(1, 'day');
+  }
+
+  return count;
+}
 
 @Injectable()
 export class SimulationsService {
@@ -53,22 +62,8 @@ export class SimulationsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly simulationAutoRunnerService: SimulationAutoRunnerService,
     private readonly simulationPlansService: SimulationPlansService,
   ) {}
-
-  static getAutomationStatusPriority(status: SimulationStatus) {
-    switch (status) {
-      case SimulationStatus.Running:
-        return 0;
-      case SimulationStatus.Paused:
-        return 1;
-      case SimulationStatus.Created:
-        return 2;
-      default:
-        return 99;
-    }
-  }
 
   private logDebug(message: string, metadata?: Record<string, unknown>) {
     this.logger.debug(
@@ -88,8 +83,10 @@ export class SimulationsService {
     }
 
     if (
-      input.standardCollateralUsd < SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
-      input.standardCollateralUsd > SIMULATION_SYSTEM_CONFIG.maxCollateralUsd
+      input.standardCollateralUsd <
+        API_SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
+      input.standardCollateralUsd >
+        API_SIMULATION_SYSTEM_CONFIG.maxCollateralUsd
     ) {
       throw new Error(
         'standardCollateralUsd must be between system minCollateralUsd and maxCollateralUsd',
@@ -113,8 +110,9 @@ export class SimulationsService {
       input.standardCollateralUsd !== undefined &&
       input.standardCollateralUsd !== null &&
       (input.standardCollateralUsd <
-        SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
-        input.standardCollateralUsd > SIMULATION_SYSTEM_CONFIG.maxCollateralUsd)
+        API_SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
+        input.standardCollateralUsd >
+          API_SIMULATION_SYSTEM_CONFIG.maxCollateralUsd)
     ) {
       throw new Error(
         'standardCollateralUsd must be between system minCollateralUsd and maxCollateralUsd',
@@ -377,10 +375,10 @@ export class SimulationsService {
       );
     }
 
-    const totalSimulationPlans = buildDailyRanges(
+    const totalSimulationPlans = countDailySimulationPlans(
       input.startAt,
       input.endAt,
-    ).length;
+    );
 
     const research = await this.prisma.$transaction(async (tx) => {
       const createdResearch = await tx.simulationResearch.create({
@@ -439,10 +437,10 @@ export class SimulationsService {
   async createSimulation(input: CreateSimulationInput): Promise<Simulation> {
     this.validateSimulationInput(input);
 
-    const totalSimulationPlans = buildDailyRanges(
+    const totalSimulationPlans = countDailySimulationPlans(
       input.startAt,
       input.endAt,
-    ).length;
+    );
 
     const simulation = await this.prisma.simulation.create({
       data: {
@@ -470,7 +468,7 @@ export class SimulationsService {
       trade: simulation.trade,
       r2: simulation.r2,
       slope: simulation.slope,
-      minRatio: SIMULATION_SYSTEM_CONFIG.minRatio,
+      minRatio: API_SIMULATION_SYSTEM_CONFIG.minRatio,
     });
 
     return this.mapSimulation(simulation);
@@ -711,8 +709,6 @@ export class SimulationsService {
       });
     });
 
-    this.simulationAutoRunnerService.clearActiveRun(id);
-
     return id;
   }
 
@@ -732,78 +728,36 @@ export class SimulationsService {
   }
 
   async playAutoSimulation(id: number): Promise<Simulation> {
-    return await this.simulationAutoRunnerService.playAutoSimulation(id);
-  }
-
-  async processNextQueuedAutoSimulation(
-    now = new Date(),
-  ): Promise<Simulation | null> {
-    const candidates = await this.prisma.simulation.findMany({
-      where: {
-        status: {
-          in: [
-            SimulationStatus.Running,
-            SimulationStatus.Paused,
-            SimulationStatus.Created,
-          ],
-        },
-      },
-      orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-      take: 25,
+    const simulation = await this.prisma.simulation.findUnique({
+      where: { id },
     });
 
-    const eligibleCandidates = candidates
-      .filter((candidate) => {
-        if (
-          candidate.status === SimulationStatus.Running &&
-          !isRunningSimulationStale({
-            status: candidate.status,
-            updatedAt: candidate.updatedAt,
-            now,
-            staleAfterMs: SIMULATION_AUTOMATION_STALE_AFTER_MS,
-            isLocallyActive:
-              this.simulationAutoRunnerService.isAutoSimulationActive(
-                candidate.id,
-              ),
-          })
-        ) {
-          return false;
-        }
-
-        const allRanges = buildDailyRanges(candidate.startAt, candidate.endAt);
-        const horizon = buildAutomationHorizon(candidate.endAt, now);
-        const readyRanges = filterReadyAutomationRanges(
-          allRanges,
-          candidate.cursor,
-          horizon,
-        );
-
-        return readyRanges.length > 0;
-      })
-      .sort((a, b) => {
-        const priorityDiff =
-          SimulationsService.getAutomationStatusPriority(a.status) -
-          SimulationsService.getAutomationStatusPriority(b.status);
-
-        if (priorityDiff !== 0) {
-          return priorityDiff;
-        }
-
-        return a.updatedAt.getTime() - b.updatedAt.getTime();
-      });
-
-    const simulation = eligibleCandidates[0];
-
     if (!simulation) {
-      return null;
+      throw new Error('Simulation not found');
     }
 
-    const horizon = buildAutomationHorizon(simulation.endAt, now);
+    if (simulation.status === SimulationStatus.Cancelled) {
+      throw new Error('Cannot queue a cancelled simulation');
+    }
 
-    return this.simulationAutoRunnerService.playQueuedAutoSimulation(
-      simulation.id,
-      horizon,
-    );
+    if (simulation.status === SimulationStatus.Completed) {
+      return this.mapSimulation(simulation);
+    }
+
+    const updated = await this.prisma.simulation.update({
+      where: { id },
+      data: {
+        status:
+          simulation.status === SimulationStatus.Running
+            ? SimulationStatus.Running
+            : SimulationStatus.Paused,
+        error: null,
+        progressPhase: 'queued',
+        progressMessage: 'Simulation queued for analytics automation',
+      },
+    });
+
+    return this.mapSimulation(updated);
   }
 
   async deleteSimulationPlan(id: number): Promise<number> {

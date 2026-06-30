@@ -10,7 +10,8 @@ Start with these files before changing behavior:
 - `src/main.ts` for service boot selection.
 - `src/microservices/apiService/api.module.ts` for the GraphQL/API module graph.
 - `src/microservices/copyTradingService/copy-trading-flow.service.ts` for the live copy-trading loop.
-- `src/microservices/leaderboardService/leaderboard.service.ts` for historical log indexing.
+- `src/microservices/analyticsService/modules/leaderboard/leaderboard.service.ts` for historical log indexing.
+- `src/microservices/analyticsService/modules/simulations/**` for simulation execution and automation.
 - `prisma/schema.prisma` for persistence contracts.
 
 ## Worktree Hygiene
@@ -54,7 +55,7 @@ PowerShell service runs:
 ```bash
 $env:SERVICE="API_SERVICE"; npm run start:dev
 $env:SERVICE="COPY_TRADING_SERVICE"; npm run start:dev
-$env:SERVICE="LEADERBOARD_SERVICE"; npm run start:dev
+$env:SERVICE="ANALYTICS_SERVICE"; npm run start:dev
 ```
 
 ## Fast Agent Loop
@@ -70,7 +71,7 @@ Use this loop for most feature and fix work:
 Good local search anchors:
 
 - GraphQL API behavior: `src/microservices/apiService/modules/**`.
-- Worker behavior: `src/microservices/copyTradingService/**` and `src/microservices/leaderboardService/**`.
+- Worker behavior: `src/microservices/copyTradingService/**` and `src/microservices/analyticsService/**`.
 - Chain/event behavior: `src/web3/platform/**` and `src/web3/utils.ts`.
 - Data contracts: `prisma/schema.prisma`, module `dto`, and module `entities`.
 - Cross-service event names: `src/utils/constants.ts`.

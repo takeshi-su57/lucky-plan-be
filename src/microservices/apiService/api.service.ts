@@ -20,7 +20,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const microservices = [
-  SERVICE_NAMES.LEADERBOARD_SERVICE,
+  SERVICE_NAMES.ANALYTICS_SERVICE,
   SERVICE_NAMES.COPY_TRADING_SERVICE,
 ];
 
@@ -56,9 +56,13 @@ export class ApiService {
     status: ServiceStatus,
     pid: number,
   ) {
+    if (!this.serviceStatus[serviceName]) {
+      return;
+    }
+
     if (status === ServiceStatus.KILLED) {
       this.serviceStatus[serviceName] = this.serviceStatus[serviceName].filter(
-        (pid) => pid !== pid,
+        (item) => item !== pid,
       );
     } else {
       this.serviceStatus[serviceName] = [

@@ -9,11 +9,11 @@ import {
 import { PrismaService } from 'src/global/prisma.service';
 import { getWeb3Info } from 'src/web3/utils';
 
-import { EventLogsService } from '../trade-histories/event-logs.service';
+import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
-} from '../trade-histories/entities/event-logs.entity';
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 type SimulationBotWithContract = SimulationBot & {
   leaderContract: {

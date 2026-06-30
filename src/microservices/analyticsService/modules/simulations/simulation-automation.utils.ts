@@ -2,7 +2,7 @@ import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
   PerpTradePosition,
-} from '../trade-histories/entities/event-logs.entity';
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { BotMode } from 'generated/prisma/enums';
 
 export type TrendMetrics = {

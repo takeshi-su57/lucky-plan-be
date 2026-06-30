@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 
-import { Simulation } from './entities/simulations.entity';
+import { Simulation } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
 import {
@@ -21,7 +21,6 @@ import {
   getRangeKey,
   WindowRange,
 } from './simulation-range.utils';
-import { SimulationPlansService } from './simulation-plans.service';
 import {
   CandidateEvaluation,
   LeaderPositionsCache,
@@ -29,7 +28,11 @@ import {
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
-import { ValueRange } from './simulation-research.utils';
+
+type ValueRange = {
+  min: number;
+  max: number;
+};
 
 const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
@@ -50,7 +53,6 @@ export class SimulationAutoRunnerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly simulationPlansService: SimulationPlansService,
     private readonly simulationCacheService: SimulationCacheService,
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
   ) {}

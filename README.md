@@ -8,7 +8,7 @@ The backend tracks on-chain perp trading events from supported venues, stores no
 
 The current implementation supports:
 
-- API, copy-trading, and leaderboard services from one Nest entry point.
+- API, copy-trading, and analytics services from one Nest entry point.
 - GraphQL queries, mutations, and subscriptions for plans, bots, missions, tasks, logs, contracts, simulations, auth, followers, strategies, SL/TP requests, prices, and trade histories.
 - Redis transport for service status, process control, logging, and internal microservice messages.
 - Prisma 7 with Postgres and a generated client in `generated/prisma`.
@@ -22,7 +22,7 @@ The current implementation supports:
 
 - `API_SERVICE`: starts the HTTP Nest app, GraphQL API, GraphQL subscriptions, global validation, CORS, compression, and a Redis microservice listener.
 - `COPY_TRADING_SERVICE`: starts a Redis microservice that scans configured live contracts, routes observed actions into missions/tasks, and executes available follower tasks on a schedule.
-- `LEADERBOARD_SERVICE`: starts a Redis microservice that indexes historical/finalized on-chain trade logs into `PerpTradingEventLog` records and PnL snapshots.
+- `ANALYTICS_SERVICE`: starts a Redis microservice that indexes historical/finalized on-chain trade logs into `PerpTradingEventLog` records, builds PnL snapshots, refreshes leaderboard data, and runs simulation automation.
 
 Redis is used as the Nest microservice transport, not as the primary database. Postgres is the source of truth for domain state.
 
@@ -43,7 +43,7 @@ COPY_TRADING_SERVICE ---- Redis ---- API_SERVICE
         v                               |
 EVM RPC providers                       |
                                         |
-LEADERBOARD_SERVICE ---- Redis --------+
+ANALYTICS_SERVICE ---- Redis --------+
         |
         v
 EVM RPC providers
@@ -82,11 +82,11 @@ The main flow is:
 
 The scanner intentionally rechecks a small block window (`TRADING_RECHECK_BLOCKS`, default `5`) to reduce reorg risk.
 
-### Leaderboard Worker
+### Analytics Worker
 
-The leaderboard worker is assembled in `src/microservices/leaderboardService/leaderboard.module.ts`.
+The analytics worker is assembled in `src/microservices/analyticsService/analytics.module.ts`.
 
-It indexes finalized logs for live contracts, normalizes platform-specific trade events, calculates USD PnL per event, and stores those rows in `PerpTradingEventLog`. This is the historical data source for leaderboards, trade history views, and simulations.
+Its leaderboard module indexes finalized logs for live contracts, normalizes platform-specific trade events, calculates USD PnL per event, and stores those rows in `PerpTradingEventLog`. Its simulations module owns queued simulation automation and execution.
 
 ### Web3 Layer
 
@@ -166,10 +166,10 @@ Run the copy-trading worker:
 $env:SERVICE="COPY_TRADING_SERVICE"; npm run start:dev
 ```
 
-Run the leaderboard worker:
+Run the analytics worker:
 
 ```bash
-$env:SERVICE="LEADERBOARD_SERVICE"; npm run start:dev
+$env:SERVICE="ANALYTICS_SERVICE"; npm run start:dev
 ```
 
 On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
@@ -198,7 +198,7 @@ Notes:
 The sample file lists the expected variables:
 
 - `DATABASE_URL`: Postgres connection string used by Prisma and the Prisma PG adapter.
-- `SERVICE`: one of `API_SERVICE`, `COPY_TRADING_SERVICE`, or `LEADERBOARD_SERVICE`.
+- `SERVICE`: one of `API_SERVICE`, `COPY_TRADING_SERVICE`, or `ANALYTICS_SERVICE`.
 - `PORT`: API HTTP port.
 - `REDIS_HOST`, `REDIS_PORT`: Redis transport endpoint.
 - `JWT_SECRET`, `JWT_EXPIRES_IN`: auth token settings.

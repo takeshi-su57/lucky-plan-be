@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 
-import { Simulation } from './entities/simulations.entity';
+import { Simulation } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { EventLogsService } from '../trade-histories/event-logs.service';
+import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import { getWeb3Info } from 'src/web3/utils';
-import { Platform } from 'generated/prisma/enums';
+import { BotMode, Platform } from 'generated/prisma/enums';
 import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
   PerpTradePosition,
-} from '../trade-histories/entities/event-logs.entity';
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import {
   calculateCosts,
   calculateLeaderScore,
@@ -25,10 +25,32 @@ import {
 } from './simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { getRangeKey, WindowRange } from './simulation-range.utils';
-import {
-  getDirectionalSlopeRange,
-  valueMatchesRange,
-} from './simulation-research.utils';
+
+type ValueRange = {
+  min: number;
+  max: number;
+};
+
+function getDirectionalSlopeRange(direction: BotMode, range: ValueRange) {
+  const minSlope = Math.abs(range.min);
+  const maxSlope = Math.abs(range.max);
+
+  if (direction === BotMode.Reversed) {
+    return {
+      min: -maxSlope,
+      max: -minSlope,
+    };
+  }
+
+  return {
+    min: minSlope,
+    max: maxSlope,
+  };
+}
+
+function valueMatchesRange(value: number, range: ValueRange) {
+  return value >= range.min && value <= range.max;
+}
 
 export type CandidateEvaluation = {
   leaderAddress: string;

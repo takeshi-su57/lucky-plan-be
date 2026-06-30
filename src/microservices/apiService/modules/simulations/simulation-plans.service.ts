@@ -24,8 +24,10 @@ import { EventLogsService } from '../trade-histories/event-logs.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { BotMode, SimulationStatus } from 'generated/prisma/enums';
 import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
-import { sum } from './simulation-automation.utils';
-import { SimulationCacheService } from './simulation-cache.service';
+
+function sum(values: number[]) {
+  return values.reduce((acc, value) => acc + value, 0);
+}
 
 export type SimulationPlanDetailsOptions = {
   persistSummary?: boolean;
@@ -36,8 +38,23 @@ export class SimulationPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
-    private readonly simulationCacheService: SimulationCacheService,
   ) {}
+
+  private async ensureSimulationPlanCache(simulationPlanId: number) {
+    return this.prisma.simulationPlanCache.upsert({
+      where: { simulationPlanId },
+      update: {},
+      create: { simulationPlanId },
+    });
+  }
+
+  private async ensureSimulationBotCache(simulationBotId: number) {
+    return this.prisma.simulationBotCache.upsert({
+      where: { simulationBotId },
+      update: {},
+      create: { simulationBotId },
+    });
+  }
 
   async createSimulationPlan(
     createSimulationPlanInput: CreateSimulationPlanInput,
@@ -62,9 +79,7 @@ export class SimulationPlansService {
       },
     });
 
-    await this.simulationCacheService.ensureSimulationPlanCache(
-      simulationPlan.id,
-    );
+    await this.ensureSimulationPlanCache(simulationPlan.id);
 
     return simulationPlan;
   }
@@ -175,7 +190,7 @@ export class SimulationPlansService {
         },
       });
 
-      await this.simulationCacheService.ensureSimulationBotCache(bot.id);
+      await this.ensureSimulationBotCache(bot.id);
       simulationBots.push(bot);
     }
 
@@ -551,8 +566,6 @@ export class SimulationPlansService {
       return await this.calculateSimulationPlanDetails(id);
     }
 
-    void this.simulationCacheService.refreshIncompleteBotsForPlan(id);
-
     return {
       ...mapSimulationPlanWithCache(simulationPlan),
       simulationBots: simulationPlan.simulationBots.map((bot) => ({
@@ -596,8 +609,6 @@ export class SimulationPlansService {
         if (plan.simulationBots.some((bot) => !bot.cache)) {
           return await this.calculateSimulationPlanDetails(plan.id);
         }
-
-        void this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
 
         return {
           ...mapSimulationPlanWithCache(plan),

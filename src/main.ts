@@ -7,16 +7,16 @@ import compression from 'compression';
 import { SERVICE_NAMES } from './utils/constants';
 
 import { ApiModule } from './microservices/apiService/api.module';
-import { LeaderboardModule } from './microservices/leaderboardService/leaderboard.module';
+import { AnalyticsModule } from './microservices/analyticsService/analytics.module';
 import { CopyTradingModule } from './microservices/copyTradingService/copy-trading.module';
 
 import 'dotenv';
 
 async function bootstrap() {
   switch (process.env.SERVICE) {
-    case SERVICE_NAMES.LEADERBOARD_SERVICE: {
+    case SERVICE_NAMES.ANALYTICS_SERVICE: {
       const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-        LeaderboardModule,
+        AnalyticsModule,
         {
           transport: Transport.REDIS,
           options: {

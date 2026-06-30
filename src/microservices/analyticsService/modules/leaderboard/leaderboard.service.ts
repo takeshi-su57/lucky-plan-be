@@ -28,23 +28,23 @@ import { limitExecutedEventParser as avntLimitExecutedV1EventParser } from 'src/
 import { marginUpdateExecutedEventParser as avntMarginUpdateExecutedV1EventParser } from 'src/web3/platform/avnt/v1/eventParsers/margin-update-executed.parser';
 import { eventToActionParser as eventToActionParserForAVNT } from 'src/web3/platform/avnt/v1/eventParsers';
 
-import { getReadableError } from '../../utils';
+import { getReadableError } from 'src/utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
 
-import { ContractsService } from '../apiService/modules/contracts/contracts.service';
-import { LogsService } from '../../global/logs.service';
+import { ContractsService } from 'src/microservices/apiService/modules/contracts/contracts.service';
+import { LogsService } from 'src/global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
-import { EventLogsService } from '../apiService/modules/trade-histories/event-logs.service';
+import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import { PrismaService } from 'src/global/prisma.service';
-import { CreatePerpTradingEventLogInput } from '../apiService/modules/trade-histories/dto/event-logs.input';
+import { CreatePerpTradingEventLogInput } from 'src/microservices/apiService/modules/trade-histories/dto/event-logs.input';
 import {
   CancelReason,
   PendingOrderType,
-} from '../../web3/platform/gns/v10/types';
+} from 'src/web3/platform/gns/v10/types';
 import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
 import { LimitOrder } from 'src/web3/platform/avnt/v1/types';
 
-import { parseEvent } from '../../web3/platform/gmx/v2/eventParsers';
+import { parseEvent } from 'src/web3/platform/gmx/v2/eventParsers';
 
 import { getWeb3Info } from 'src/web3/utils';
 import { parseGnsPositionKey } from 'src/web3/platform/gns/utils';

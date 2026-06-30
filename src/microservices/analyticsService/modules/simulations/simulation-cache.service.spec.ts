@@ -6,11 +6,11 @@ import {
   Version,
 } from 'generated/prisma/client';
 
-import { EventLogsService } from '../trade-histories/event-logs.service';
+import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
-} from '../trade-histories/entities/event-logs.entity';
+} from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { SimulationCacheService } from './simulation-cache.service';
 
 const eventLogsService = {
