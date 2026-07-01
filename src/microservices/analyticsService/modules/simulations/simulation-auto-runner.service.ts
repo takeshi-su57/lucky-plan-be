@@ -67,7 +67,21 @@ export class SimulationAutoRunnerService {
     return this.activeAutoSimulationRunIds.has(id);
   }
 
-  static getTerminalStatusForHorizon(input: { cursor: Date; endAt: Date }) {
+  static getTerminalStatusForHorizon(input: {
+    cursor: Date;
+    endAt: Date;
+    completedPlans?: number;
+    totalSimulationPlans?: number;
+  }) {
+    if (
+      typeof input.completedPlans === 'number' &&
+      typeof input.totalSimulationPlans === 'number' &&
+      input.totalSimulationPlans > 0 &&
+      input.completedPlans >= input.totalSimulationPlans
+    ) {
+      return SimulationStatus.Completed;
+    }
+
     return input.cursor.getTime() >= input.endAt.getTime()
       ? SimulationStatus.Completed
       : SimulationStatus.Paused;
@@ -280,16 +294,22 @@ export class SimulationAutoRunnerService {
           range.endedAt.getTime() <= horizon.getTime(),
       );
       if (ranges.length === 0) {
+        const status = SimulationAutoRunnerService.getTerminalStatusForHorizon({
+          cursor: simulation.cursor ?? simulation.startAt,
+          endAt: simulation.endAt,
+          completedPlans: simulation.completedPlans,
+          totalSimulationPlans: allRanges.length,
+        });
+        const isCompleted = status === SimulationStatus.Completed;
         const pausedSimulation = await this.prisma.simulation.update({
           where: { id },
           data: {
-            status:
-              (simulation.cursor ?? simulation.startAt).getTime() >=
-              simulation.endAt.getTime()
-                ? SimulationStatus.Completed
-                : SimulationStatus.Paused,
-            progressPhase: 'paused',
-            progressMessage: 'Paused until more historical data is available',
+            status,
+            progressPhase: isCompleted ? 'completed' : 'paused',
+            progressMessage: isCompleted
+              ? 'Auto simulation completed'
+              : 'Paused until more historical data is available',
+            ...(isCompleted ? { progressPercent: 100 } : {}),
           },
         });
         await this.emitSimulationUpdated(pausedSimulation);
@@ -310,6 +330,7 @@ export class SimulationAutoRunnerService {
       const contractById = new Map(
         platformContracts.map((contract) => [contract.id, contract]),
       );
+
       for (const range of ranges) {
         const currentRecord = await this.prisma.simulation.findUnique({
           where: { id },
@@ -398,6 +419,8 @@ export class SimulationAutoRunnerService {
         status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
           cursor: latest.cursor,
           endAt: latest.endAt,
+          completedPlans: latest.completedPlans,
+          totalSimulationPlans: allRanges.length,
         }),
         through: latest.cursor,
       });
@@ -480,55 +503,26 @@ export class SimulationAutoRunnerService {
       return;
     }
 
-    const platformContractIds = contracts
-      .filter((contract) => contract.platform === simulation.platform)
-      .map((contract) => contract.id);
+    const hasPlatformContract = contracts.some(
+      (contract) => contract.platform === simulation.platform,
+    );
 
-    if (platformContractIds.length === 0) {
+    if (!hasPlatformContract) {
       return;
     }
 
-    const leaderAddresses = selectedCandidates.map((candidate) =>
-      candidate.leaderAddress.toLowerCase(),
-    );
-    const tradedContractGroups = await this.prisma.perpTradingEventLog.groupBy({
-      by: ['address'],
-      where: {
-        platform: simulation.platform,
-        address: {
-          in: leaderAddresses,
-        },
-        contractId: {
-          in: platformContractIds,
-        },
-        date: {
-          gte: startedAt,
-          lt: stoppedAt,
-        },
-      },
-    });
-    const tradedLeaderAddresses = new Set<string>();
-
-    tradedContractGroups.forEach((group) => {
-      tradedLeaderAddresses.add(group.address.toLowerCase());
-    });
-
-    const botInputs = selectedCandidates
-      .filter((candidate) =>
-        tradedLeaderAddresses.has(candidate.leaderAddress.toLowerCase()),
-      )
-      .map((candidate) => ({
-        leaderAddress: candidate.leaderAddress,
-        leaderPlatform: simulation.platform,
-        simulationPlanId,
-        startedAt,
-        stoppedAt,
-        mode: simulation.direction,
-        ratio: candidate.suggestedRatio,
-        score: candidate.score,
-        minLeverage: simulation.leverage.min,
-        maxLeverage: simulation.leverage.max,
-      }));
+    const botInputs = selectedCandidates.map((candidate) => ({
+      leaderAddress: candidate.leaderAddress,
+      leaderPlatform: simulation.platform,
+      simulationPlanId,
+      startedAt,
+      stoppedAt,
+      mode: simulation.direction,
+      ratio: candidate.suggestedRatio,
+      score: candidate.score,
+      minLeverage: simulation.leverage.min,
+      maxLeverage: simulation.leverage.max,
+    }));
 
     if (botInputs.length === 0) {
       return;
@@ -551,6 +545,7 @@ export class SimulationAutoRunnerService {
     await this.simulationCacheService.refreshIncompleteBotsForPlan(
       simulationPlanId,
     );
+    await this.emitSimulationPlanUpdated(simulationPlanId);
   }
 
   private async aggregateSimulation(
