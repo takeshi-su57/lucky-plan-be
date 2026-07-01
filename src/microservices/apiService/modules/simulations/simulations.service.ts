@@ -650,7 +650,8 @@ export class SimulationsService {
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
-      leverage: (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
+      leverage:
+        (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
       score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
     };
   }

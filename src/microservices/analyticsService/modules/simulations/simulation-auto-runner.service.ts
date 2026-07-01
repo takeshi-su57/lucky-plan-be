@@ -38,6 +38,7 @@ const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE: ValueRange = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE: ValueRange = { min: 0, max: 1 };
+const LEADER_STALE_AFTER_MONTHS = 1;
 
 type AutoSimulationRunMode = 'manual' | 'queue';
 
@@ -330,6 +331,13 @@ export class SimulationAutoRunnerService {
       const contractById = new Map(
         platformContracts.map((contract) => [contract.id, contract]),
       );
+      const selectedCandidateByAddress = new Map<string, CandidateEvaluation>();
+      let previousRange = await this.seedCandidatesFromPreviousPlan(
+        simulation,
+        allRanges,
+        ranges[0],
+        selectedCandidateByAddress,
+      );
 
       for (const range of ranges) {
         const currentRecord = await this.prisma.simulation.findUnique({
@@ -359,20 +367,69 @@ export class SimulationAutoRunnerService {
           range,
         );
 
-        const candidateLeaders =
-          await this.simulationLeaderEvaluatorService.findCandidateLeaders(
-            current,
-            range,
-          );
+        if (!previousRange) {
+          const candidateLeaders =
+            await this.simulationLeaderEvaluatorService.findCandidateLeaders(
+              current,
+              range,
+            );
 
-        const selectedCandidates = (
-          await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-            current,
-            candidateLeaders,
-            range,
-            contractById,
-          )
-        ).sort((a, b) => b.score - a.score);
+          const selectedCandidates =
+            await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+              current,
+              candidateLeaders,
+              range,
+              contractById,
+            );
+
+          selectedCandidates.forEach((candidate) => {
+            selectedCandidateByAddress.set(
+              candidate.leaderAddress.toLowerCase(),
+              candidate,
+            );
+          });
+        } else {
+          const changedLeaderAddresses =
+            await this.simulationLeaderEvaluatorService.findChangedLeaderAddresses(
+              current,
+              {
+                startedAt: previousRange.startedAt,
+                endedAt: range.startedAt,
+              },
+            );
+
+          changedLeaderAddresses.forEach((leaderAddress) => {
+            selectedCandidateByAddress.delete(leaderAddress.toLowerCase());
+          });
+
+          const changedSelectedCandidates =
+            changedLeaderAddresses.length > 0
+              ? await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+                  current,
+                  changedLeaderAddresses,
+                  range,
+                  contractById,
+                )
+              : [];
+
+          changedSelectedCandidates.forEach((candidate) => {
+            selectedCandidateByAddress.set(
+              candidate.leaderAddress.toLowerCase(),
+              candidate,
+            );
+          });
+        }
+
+        await this.hydrateMissingLastEventAt(
+          current,
+          selectedCandidateByAddress,
+          range.startedAt,
+        );
+        this.removeStaleCandidates(selectedCandidateByAddress, range.startedAt);
+
+        const selectedCandidates = [
+          ...selectedCandidateByAddress.values(),
+        ].sort((a, b) => b.score - a.score);
 
         await this.createSimulationBotsForSelections(
           simulationPlan.id,
@@ -404,6 +461,7 @@ export class SimulationAutoRunnerService {
             },
           });
         await this.emitSimulationUpdated(completedPlanWindowSimulation);
+        previousRange = range;
       }
 
       const latestRecord = await this.prisma.simulation.findUnique({
@@ -481,6 +539,129 @@ export class SimulationAutoRunnerService {
     await this.emitSimulationPlanUpdated(simulationPlan.id);
 
     return simulationPlan;
+  }
+
+  private getPreviousRange(
+    allRanges: WindowRange[],
+    range: WindowRange,
+  ): WindowRange | null {
+    const rangeIndex = allRanges.findIndex(
+      (item) =>
+        item.startedAt.getTime() === range.startedAt.getTime() &&
+        item.endedAt.getTime() === range.endedAt.getTime(),
+    );
+
+    return rangeIndex > 0 ? allRanges[rangeIndex - 1] : null;
+  }
+
+  private async seedCandidatesFromPreviousPlan(
+    simulation: Simulation,
+    allRanges: WindowRange[],
+    firstRange: WindowRange | undefined,
+    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
+  ): Promise<WindowRange | null> {
+    if (!firstRange) {
+      return null;
+    }
+
+    const previousRange = this.getPreviousRange(allRanges, firstRange);
+
+    if (!previousRange) {
+      return null;
+    }
+
+    const previousPlan = await this.prisma.simulationPlan.findFirst({
+      where: {
+        simulationId: simulation.id,
+        startAt: previousRange.startedAt,
+        endAt: previousRange.endedAt,
+      },
+      include: {
+        simulationBots: {
+          where: {
+            leaderPlatform: simulation.platform,
+          },
+        },
+      },
+    });
+
+    if (!previousPlan) {
+      return null;
+    }
+
+    previousPlan.simulationBots.forEach((bot) => {
+      selectedCandidateByAddress.set(bot.leaderAddress.toLowerCase(), {
+        leaderAddress: bot.leaderAddress,
+        lastEventAt: null,
+        score: bot.score,
+        suggestedRatio: bot.ratio,
+        suggestedCollateralUsd: 0,
+        rawTotalPnlUsd: 0,
+        rawSlope: 0,
+        rawR2: 0,
+        rawTradeCount: 0,
+        copiedNetPnlUsd: 0,
+        copiedDrawdownUsd: 0,
+      });
+    });
+
+    return previousRange;
+  }
+
+  private async hydrateMissingLastEventAt(
+    simulation: Simulation,
+    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
+    before: Date,
+  ) {
+    const addressesMissingLastEventAt = [
+      ...selectedCandidateByAddress.entries(),
+    ]
+      .filter(([, candidate]) => !candidate.lastEventAt)
+      .map(([address]) => address);
+
+    if (addressesMissingLastEventAt.length === 0) {
+      return;
+    }
+
+    const lastEventAtByLeader =
+      await this.simulationLeaderEvaluatorService.getLastEventAtByLeader(
+        simulation,
+        addressesMissingLastEventAt,
+        before,
+      );
+
+    addressesMissingLastEventAt.forEach((address) => {
+      const candidate = selectedCandidateByAddress.get(address);
+      const lastEventAt = lastEventAtByLeader.get(address);
+
+      if (!candidate || !lastEventAt) {
+        return;
+      }
+
+      selectedCandidateByAddress.set(address, {
+        ...candidate,
+        lastEventAt,
+      });
+    });
+  }
+
+  private removeStaleCandidates(
+    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
+    startedAt: Date,
+  ) {
+    const staleCutoff = dayjs(startedAt)
+      .subtract(LEADER_STALE_AFTER_MONTHS, 'month')
+      .toDate()
+      .getTime();
+
+    for (const [address, candidate] of selectedCandidateByAddress) {
+      if (
+        !candidate.lastEventAt ||
+        candidate.lastEventAt.getTime() < staleCutoff
+      ) {
+        selectedCandidateByAddress.delete(address);
+      }
+    }
   }
 
   private async createSimulationBotsForSelections(

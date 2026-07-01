@@ -6,7 +6,16 @@ import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.
 describe('SimulationLeaderEvaluatorService', () => {
   it('filters evaluated leaders outside the simulation score range', async () => {
     const service = new SimulationLeaderEvaluatorService(
-      {} as never,
+      {
+        perpTradingEventLog: {
+          groupBy: jest.fn(async () => [
+            {
+              address: '0xequal',
+              _max: { date: new Date('2026-04-01T00:00:00.000Z') },
+            },
+          ]),
+        },
+      } as never,
       {} as never,
     );
     const simulation = {
@@ -40,7 +49,13 @@ describe('SimulationLeaderEvaluatorService', () => {
       new Map(),
     );
 
-    expect(evaluations).toEqual([{ leaderAddress: '0xequal', score: 0.5 }]);
+    expect(evaluations).toEqual([
+      {
+        leaderAddress: '0xequal',
+        score: 0.5,
+        lastEventAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+    ]);
   });
 
   it('uses the preliminary score as the candidate quality score after sizing', () => {
@@ -167,9 +182,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       simulation,
     );
 
-    expect(evaluation.rejectedReason).toBe(
-      'BOT_TRADER_AVG_DURATION_TOO_SHORT',
-    );
+    expect(evaluation.rejectedReason).toBe('BOT_TRADER_AVG_DURATION_TOO_SHORT');
   });
 
   it('applies direction to trading pnl and applies platform fees without reversing them', () => {

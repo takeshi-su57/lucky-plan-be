@@ -55,6 +55,7 @@ function valueMatchesRange(value: number, range: ValueRange) {
 
 export type CandidateEvaluation = {
   leaderAddress: string;
+  lastEventAt?: Date | null;
   score: number;
   suggestedRatio: number;
   suggestedCollateralUsd: number;
@@ -179,6 +180,61 @@ export class SimulationLeaderEvaluatorService {
     return prefilteredAddresses;
   }
 
+  async findChangedLeaderAddresses(simulation: Simulation, range: WindowRange) {
+    const records = await this.prisma.perpTradingEventLog.groupBy({
+      by: ['address'],
+      where: {
+        platform: simulation.platform,
+        date: {
+          gte: range.startedAt,
+          lt: range.endedAt,
+        },
+      },
+    });
+
+    return records
+      .map((record) => record.address.toLowerCase())
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  async getLastEventAtByLeader(
+    simulation: Simulation,
+    leaderAddresses: string[],
+    before: Date,
+  ) {
+    const normalizedAddresses = [
+      ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
+    ];
+
+    if (normalizedAddresses.length === 0) {
+      return new Map<string, Date>();
+    }
+
+    const groups = await this.prisma.perpTradingEventLog.groupBy({
+      by: ['address'],
+      where: {
+        platform: simulation.platform,
+        address: {
+          in: normalizedAddresses,
+        },
+        date: {
+          lt: before,
+        },
+      },
+      _max: {
+        date: true,
+      },
+    });
+
+    return new Map(
+      groups.flatMap((group) =>
+        group._max.date
+          ? [[group.address.toLowerCase(), group._max.date] as const]
+          : [],
+      ),
+    );
+  }
+
   async evaluateLeadersForRange(
     simulation: Simulation,
     leaderAddresses: string[],
@@ -186,6 +242,11 @@ export class SimulationLeaderEvaluatorService {
     contractById: Map<number, ContractContext>,
   ) {
     const evaluations: CandidateEvaluation[] = [];
+    const lastEventAtByLeader = await this.getLastEventAtByLeader(
+      simulation,
+      leaderAddresses,
+      range.startedAt,
+    );
 
     for (const leaderAddress of leaderAddresses) {
       const positions = await this.loadLeaderPositionsUntil(
@@ -208,7 +269,10 @@ export class SimulationLeaderEvaluatorService {
         continue;
       }
 
-      evaluations.push(evaluation);
+      evaluations.push({
+        ...evaluation,
+        lastEventAt: lastEventAtByLeader.get(leaderAddress.toLowerCase()),
+      });
     }
 
     return evaluations;
