@@ -18,8 +18,8 @@ describe('SimulationsService API queue requests', () => {
       trade: [{ min: 3, max: 10 }],
       r2: [{ min: 0.5, max: 1 }],
       slope: [{ min: 0, max: 100 }],
-      maxLeverage: [50],
-      score: [0.5],
+      leverage: [{ min: 10, max: 50 }],
+      score: [{ min: 0.5, max: 0.8 }],
       createdAt: new Date('2026-07-01T00:00:00.000Z'),
       updatedAt: new Date('2026-07-01T00:00:00.000Z'),
       simulations: [{ status: SimulationStatus.Created }],
@@ -51,8 +51,8 @@ describe('SimulationsService API queue requests', () => {
       trade: [{ min: 3, max: 10 }],
       r2: [{ min: 0.5, max: 1 }],
       slope: [{ min: 0, max: 100 }],
-      maxLeverage: [50],
-      score: [0.5],
+      leverage: [{ min: 10, max: 50 }],
+      score: [{ min: 0.5, max: 0.8 }],
     });
 
     const transactionCallback = (prisma.$transaction as any).mock.calls[0][0];
@@ -71,6 +71,8 @@ describe('SimulationsService API queue requests', () => {
       expect.objectContaining({
         days: 3,
         gapDays: 2,
+        leverage: [{ min: 10, max: 50 }],
+        score: [{ min: 0.5, max: 0.8 }],
       }),
     );
     expect((tx.simulation.createMany as any).mock.calls[0][0].data[0]).toEqual(
@@ -78,6 +80,8 @@ describe('SimulationsService API queue requests', () => {
         days: 3,
         gapDays: 2,
         totalSimulationPlans: 2,
+        leverage: { min: 10, max: 50 },
+        score: { min: 0.5, max: 0.8 },
       }),
     );
     expect(result.days).toBe(3);
@@ -104,7 +108,8 @@ describe('SimulationsService API queue requests', () => {
       r2: { min: 0.5, max: 1 },
       slope: { min: 0, max: 100 },
       standardCollateralUsd: 100,
-      maxLeverage: 50,
+      leverage: { min: 0, max: 50 },
+      score: { min: 0, max: 1 },
       totalSimulationPlans: 31,
       completedPlans: 0,
       totalLeaderPnl: 0,

@@ -213,6 +213,7 @@ export class SimulationPlansService {
       },
       data: {
         ratio: input.ratio ?? undefined,
+        minLeverage: input.minLeverage ?? undefined,
         maxLeverage: input.maxLeverage ?? undefined,
         mode: input.mode ?? undefined,
       },
@@ -411,6 +412,7 @@ export class SimulationPlansService {
             .filter((item): item is PerpTradeHistory => !!item),
           {
             stoppedAt: stoppedAt || undefined,
+            minLeverage: bot.minLeverage,
             maxLeverage: bot.maxLeverage,
           },
         );

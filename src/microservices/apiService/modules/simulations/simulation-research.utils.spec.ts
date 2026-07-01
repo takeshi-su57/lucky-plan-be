@@ -62,8 +62,14 @@ describe('simulation research utils', () => {
         { min: 1, max: 2 },
         { min: 2, max: 3 },
       ],
-      maxLeverage: [10, 20],
-      score: [0.25, 0.75],
+      leverage: [
+        { min: 10, max: 20 },
+        { min: 20, max: 40 },
+      ],
+      score: [
+        { min: 0.25, max: 0.5 },
+        { min: 0.5, max: 0.75 },
+      ],
     });
 
     expect(combinations).toHaveLength(32);
@@ -72,8 +78,8 @@ describe('simulation research utils', () => {
       trade: { min: 1, max: 2 },
       r2: { min: 0.2, max: 0.3 },
       slope: { min: 1, max: 2 },
-      maxLeverage: 10,
-      score: 0.25,
+      leverage: { min: 10, max: 20 },
+      score: { min: 0.25, max: 0.5 },
     });
     expect(
       combinations.every(
@@ -91,8 +97,8 @@ describe('simulation research utils', () => {
       trade: [{ min: 1, max: 1 }],
       r2: [{ min: 0.5, max: 0.5 }],
       slope: [{ min: 1, max: 2 }],
-      maxLeverage: [20],
-      score: [0.5],
+      leverage: [{ min: 10, max: 20 }],
+      score: [{ min: 0.5, max: 0.75 }],
     });
 
     expect(combinations).toEqual([
@@ -101,8 +107,8 @@ describe('simulation research utils', () => {
         trade: { min: 1, max: 1 },
         r2: { min: 0.5, max: 0.5 },
         slope: { min: 1, max: 2 },
-        maxLeverage: 20,
-        score: 0.5,
+        leverage: { min: 10, max: 20 },
+        score: { min: 0.5, max: 0.75 },
       },
     ]);
   });
@@ -117,26 +123,32 @@ describe('simulation research utils', () => {
       { min: 0.5, max: 0.9 },
     ];
     const slope = [{ min: 1, max: 3 }];
-    const maxLeverage = [10, 25, 50];
-    const score = [0.25, 0.5];
+    const leverage = [
+      { min: 10, max: 25 },
+      { min: 25, max: 50 },
+    ];
+    const score = [
+      { min: 0.25, max: 0.5 },
+      { min: 0.5, max: 0.75 },
+    ];
 
     const combinations = buildSimulationParameterGrid({
       direction: BotMode.Default,
       trade,
       r2,
       slope,
-      maxLeverage,
+      leverage,
       score,
     });
 
-    expect(combinations).toHaveLength(24);
+    expect(combinations).toHaveLength(16);
     expect(combinations[0]).toEqual({
       direction: BotMode.Default,
       trade: { min: 3, max: 10 },
       r2: { min: 0.25, max: 0.5 },
       slope: { min: 1, max: 3 },
-      maxLeverage: 10,
-      score: 0.25,
+      leverage: { min: 10, max: 25 },
+      score: { min: 0.25, max: 0.5 },
     });
   });
 });

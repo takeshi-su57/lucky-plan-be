@@ -184,6 +184,7 @@ export class SimulationCacheService {
         histories,
         {
           stoppedAt: bot.stoppedAt || undefined,
+          minLeverage: bot.minLeverage,
           maxLeverage: bot.maxLeverage,
         },
       );

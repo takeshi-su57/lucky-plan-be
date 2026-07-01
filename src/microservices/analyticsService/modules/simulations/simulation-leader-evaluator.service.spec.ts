@@ -4,7 +4,7 @@ import { BotMode, Platform } from 'generated/prisma/enums';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 
 describe('SimulationLeaderEvaluatorService', () => {
-  it('filters evaluated leaders below the simulation score threshold', async () => {
+  it('filters evaluated leaders outside the simulation score range', async () => {
     const service = new SimulationLeaderEvaluatorService(
       {} as never,
       {} as never,
@@ -13,7 +13,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       id: 1,
       platform: Platform.GNS,
       direction: BotMode.Reversed,
-      score: 0.5,
+      score: { min: 0.5, max: 0.9 },
     };
     jest
       .spyOn(service as any, 'loadLeaderPositionsUntil')
@@ -22,12 +22,17 @@ describe('SimulationLeaderEvaluatorService', () => {
       .spyOn(service as any, 'evaluateLeaderPositionsForSimulation')
       .mockImplementation(((leaderAddress: string) => ({
         leaderAddress,
-        score: leaderAddress === '0xlow' ? 0.49 : 0.5,
+        score:
+          leaderAddress === '0xlow'
+            ? 0.49
+            : leaderAddress === '0xhigh'
+              ? 0.91
+              : 0.5,
       })) as any);
 
     const evaluations = await service.evaluateLeadersForRange(
       simulation as never,
-      ['0xlow', '0xequal'],
+      ['0xlow', '0xequal', '0xhigh'],
       {
         startedAt: new Date('2026-04-02T00:00:00.000Z'),
         endedAt: new Date('2026-04-03T00:00:00.000Z'),
@@ -47,7 +52,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       id: 1,
       platform: Platform.GNS,
       direction: BotMode.Default,
-      score: 0,
+      score: { min: 0, max: 1 },
       trade: { min: 1, max: 10 },
       r2: { min: 0, max: 1 },
       slope: { min: 0, max: 100 },
@@ -120,6 +125,51 @@ describe('SimulationLeaderEvaluatorService', () => {
     expect(evaluation.copiedNetPnlUsd).toBe(75);
     expect(evaluation.copiedDrawdownUsd).toBe(4);
     expect(scoreCandidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects likely bot traders whose average position duration is under 10 minutes', () => {
+    const service = new SimulationLeaderEvaluatorService(
+      {} as never,
+      {} as never,
+    );
+    const simulation = {
+      id: 1,
+      platform: Platform.GNS,
+      direction: BotMode.Default,
+      score: { min: 0, max: 1 },
+      trade: { min: 1, max: 10 },
+      r2: { min: 0, max: 1 },
+      slope: { min: 0, max: 100 },
+      standardCollateralUsd: 100,
+    };
+    const positions = [
+      {
+        histories: [
+          {
+            usdPnl: 0,
+            usdBasePnl: 0,
+            collateralInUsd: 100,
+            date: new Date('2026-04-01T00:00:00.000Z'),
+          },
+          {
+            usdPnl: 50,
+            usdBasePnl: 50,
+            collateralInUsd: 100,
+            date: new Date('2026-04-01T00:05:00.000Z'),
+          },
+        ],
+      },
+    ];
+
+    const evaluation = (service as any).evaluateLeaderPositionsForSimulation(
+      '0xbot',
+      positions,
+      simulation,
+    );
+
+    expect(evaluation.rejectedReason).toBe(
+      'BOT_TRADER_AVG_DURATION_TOO_SHORT',
+    );
   });
 
   it('applies direction to trading pnl and applies platform fees without reversing them', () => {

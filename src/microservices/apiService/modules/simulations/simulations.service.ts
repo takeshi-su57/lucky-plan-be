@@ -33,7 +33,6 @@ import {
   ValueRange,
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { buildSimulationRanges } from 'src/microservices/analyticsService/modules/simulations/utils/simulation-range.utils';
 
 const API_SIMULATION_SYSTEM_CONFIG = {
   minCollateralUsd: 10,
@@ -45,7 +44,8 @@ const DEFAULT_STANDARD_COLLATERAL_USD = 100;
 const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
-const DEFAULT_SCORE = 0;
+const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
+const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
 
 function countSimulationPlanWindows(
   startAt: Date,
@@ -53,7 +53,22 @@ function countSimulationPlanWindows(
   days: number,
   gapDays: number,
 ) {
-  return buildSimulationRanges(startAt, endAt, { days, gapDays }).length;
+  let count = 0;
+  let cursor = dayjs(startAt).startOf('day');
+  const end = dayjs(endAt).startOf('day');
+
+  while (cursor.isBefore(end)) {
+    const nextCursor = cursor.add(days, 'day');
+
+    if (nextCursor.isAfter(end)) {
+      break;
+    }
+
+    count += 1;
+    cursor = nextCursor.add(gapDays, 'day');
+  }
+
+  return count;
 }
 
 @Injectable()
@@ -96,14 +111,6 @@ export class SimulationsService {
       );
     }
 
-    if (input.maxLeverage <= 0) {
-      throw new Error('maxLeverage must be greater than 0');
-    }
-
-    if (input.score < 0 || input.score > 1) {
-      throw new Error('score must be between 0 and 1');
-    }
-
     this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
     this.validateIntMinMaxPair('trade', input.trade);
     this.validateFloatMinMaxPair('r2', input.r2, {
@@ -111,6 +118,13 @@ export class SimulationsService {
       maxAllowed: 1,
     });
     this.validateFloatMinMaxPair('slope', input.slope, { minAllowed: 0 });
+    this.validateFloatMinMaxPair('leverage', input.leverage, {
+      minAllowed: 0,
+    });
+    this.validateFloatMinMaxPair('score', input.score, {
+      minAllowed: 0,
+      maxAllowed: 1,
+    });
   }
 
   private validateSimulationUpdate(input: UpdateSimulationInput) {
@@ -144,12 +158,17 @@ export class SimulationsService {
       });
     }
 
-    if (
-      input.score !== undefined &&
-      input.score !== null &&
-      (input.score < 0 || input.score > 1)
-    ) {
-      throw new Error('score must be between 0 and 1');
+    if (input.leverage !== undefined && input.leverage !== null) {
+      this.validateFloatMinMaxPair('leverage', input.leverage, {
+        minAllowed: 0,
+      });
+    }
+
+    if (input.score !== undefined && input.score !== null) {
+      this.validateFloatMinMaxPair('score', input.score, {
+        minAllowed: 0,
+        maxAllowed: 1,
+      });
     }
   }
 
@@ -292,12 +311,12 @@ export class SimulationsService {
       throw new Error('slope must contain at least one range');
     }
 
-    if (input.maxLeverage.length === 0) {
-      throw new Error('maxLeverage must contain at least one value');
+    if (input.leverage.length === 0) {
+      throw new Error('leverage must contain at least one range');
     }
 
     if (input.score.length === 0) {
-      throw new Error('score must contain at least one value');
+      throw new Error('score must contain at least one range');
     }
 
     input.trade.forEach((range, index) =>
@@ -318,19 +337,18 @@ export class SimulationsService {
       }),
     );
 
-    input.maxLeverage.forEach((value, index) => {
-      if (value < 0) {
-        throw new Error(
-          `maxLeverage[${index}] must be greater than or equal to 0`,
-        );
-      }
-    });
+    input.leverage.forEach((range, index) =>
+      this.validateMinMaxRange(`leverage[${index}]`, range, {
+        minAllowed: 0,
+      }),
+    );
 
-    input.score.forEach((value, index) => {
-      if (value < 0 || value > 1) {
-        throw new Error(`score[${index}] must be between 0 and 1`);
-      }
-    });
+    input.score.forEach((range, index) =>
+      this.validateMinMaxRange(`score[${index}]`, range, {
+        minAllowed: 0,
+        maxAllowed: 1,
+      }),
+    );
 
     this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
   }
@@ -359,10 +377,6 @@ export class SimulationsService {
     } as any;
   }
 
-  private serializeNumbers(values: number[]) {
-    return values.map((value) => value) as any;
-  }
-
   private mapSimulationResearch(record: any): SimulationResearch {
     const simulations = record.simulations || [];
     const totalSimulations = simulations.length;
@@ -384,8 +398,8 @@ export class SimulationsService {
       trade: record.trade as any,
       r2: record.r2 as any,
       slope: record.slope as any,
-      maxLeverage: (record.maxLeverage as number[] | null) ?? [],
-      score: (record.score as number[] | null) ?? [],
+      leverage: (record.leverage as ValueRange[] | null) ?? [],
+      score: (record.score as ValueRange[] | null) ?? [],
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -441,7 +455,7 @@ export class SimulationsService {
     const trade = input.trade;
     const r2 = input.r2;
     const slope = input.slope;
-    const maxLeverage = input.maxLeverage;
+    const leverage = input.leverage;
     const score = input.score;
 
     const combinations = buildSimulationParameterGrid({
@@ -449,7 +463,7 @@ export class SimulationsService {
       trade,
       r2,
       slope,
-      maxLeverage,
+      leverage,
       score,
     });
 
@@ -482,8 +496,8 @@ export class SimulationsService {
           trade: this.serializeRanges(trade),
           r2: this.serializeRanges(r2),
           slope: this.serializeRanges(slope),
-          maxLeverage: this.serializeNumbers(maxLeverage),
-          score: this.serializeNumbers(score),
+          leverage: this.serializeRanges(leverage),
+          score: this.serializeRanges(score),
         },
       });
 
@@ -508,8 +522,8 @@ export class SimulationsService {
           r2: this.serializeRange(combination.r2),
           slope: this.serializeRange(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
-          maxLeverage: combination.maxLeverage,
-          score: combination.score,
+          leverage: this.serializeRange(combination.leverage),
+          score: this.serializeRange(combination.score),
         })),
       });
 
@@ -547,6 +561,8 @@ export class SimulationsService {
         trade: this.serializeRange(input.trade),
         r2: this.serializeRange(input.r2),
         slope: this.serializeRange(input.slope),
+        leverage: this.serializeRange(input.leverage),
+        score: this.serializeRange(input.score),
         startAt: dayjs(input.startAt).startOf('day').toDate(),
         endAt: dayjs(input.endAt).startOf('day').toDate(),
         days,
@@ -608,9 +624,15 @@ export class SimulationsService {
           input.slope !== undefined && input.slope !== null
             ? this.serializeRange(input.slope)
             : undefined,
+        leverage:
+          input.leverage !== undefined && input.leverage !== null
+            ? this.serializeRange(input.leverage)
+            : undefined,
         standardCollateralUsd: input.standardCollateralUsd ?? undefined,
-        maxLeverage: input.maxLeverage ?? undefined,
-        score: input.score ?? undefined,
+        score:
+          input.score !== undefined && input.score !== null
+            ? this.serializeRange(input.score)
+            : undefined,
       },
     });
 
@@ -628,7 +650,8 @@ export class SimulationsService {
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
-      score: record.score ?? DEFAULT_SCORE,
+      leverage: (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
+      score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
     };
   }
 

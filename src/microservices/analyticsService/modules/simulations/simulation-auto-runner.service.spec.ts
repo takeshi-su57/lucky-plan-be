@@ -154,7 +154,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
         id: 9,
         platform: Platform.GNS,
         direction: BotMode.Reversed,
-        maxLeverage: 5,
+        leverage: { min: 1, max: 5 },
       },
       [
         {
@@ -180,6 +180,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           mode: BotMode.Reversed,
           ratio: 3,
           score: 0.82,
+          minLeverage: 1,
           maxLeverage: 5,
         },
       ],

@@ -174,8 +174,8 @@ model SimulationResearch {
   r2    Json @default("[]")
   slope Json @default("[]")
 
-  maxLeverage Json @default("[]")
-  score       Json @default("[]")
+  leverage Json @default("[]")
+  score    Json @default("[]")
 
   simulations Simulation[]
 
@@ -225,8 +225,8 @@ model Simulation {
   slope               Json  @default("{\"min\":0,\"max\":1000000000}")
 
   standardCollateralUsd Float @default(100)
-  maxLeverage           Float @default(50)
-  score                 Float @default(0)
+  leverage              Json  @default("{\"min\":0,\"max\":50}")
+  score                 Json  @default("{\"min\":0,\"max\":1}")
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)
@@ -285,6 +285,7 @@ model SimulationBot {
   mode             BotMode   @default(Default)
   ratio            Float     @default(1)
   score            Float     @default(0)
+  minLeverage      Float     @default(0)
   maxLeverage      Float     @default(50)
 
   openedPositions              Int   @default(0)
@@ -304,7 +305,7 @@ model SimulationBot {
   simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id])
   cache          SimulationBotCache?
 
-  @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, maxLeverage])
+  @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, minLeverage, maxLeverage])
   @@index([leaderPlatform, leaderAddress])
 }
 

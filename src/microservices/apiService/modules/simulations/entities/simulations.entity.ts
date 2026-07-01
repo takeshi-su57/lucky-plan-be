@@ -63,6 +63,9 @@ export class SimulationBot {
   score: number;
 
   @Field(() => Float)
+  minLeverage: number;
+
+  @Field(() => Float)
   maxLeverage: number;
 
   @Field(() => Int)
@@ -296,11 +299,11 @@ export class Simulation {
   @Field(() => Float)
   standardCollateralUsd: number;
 
-  @Field(() => Float)
-  maxLeverage: number;
+  @Field(() => SimulationValueRange)
+  leverage: SimulationValueRange;
 
-  @Field(() => Float)
-  score: number;
+  @Field(() => SimulationValueRange)
+  score: SimulationValueRange;
 
   @Field(() => Int)
   totalSimulationPlans: number;
@@ -399,11 +402,11 @@ export class SimulationResearch {
   @Field(() => [SimulationValueRange])
   slope: SimulationValueRange[];
 
-  @Field(() => [Float])
-  maxLeverage: number[];
+  @Field(() => [SimulationValueRange])
+  leverage: SimulationValueRange[];
 
-  @Field(() => [Float])
-  score: number[];
+  @Field(() => [SimulationValueRange])
+  score: SimulationValueRange[];
 
   @Field(() => Int)
   totalSimulations: number;

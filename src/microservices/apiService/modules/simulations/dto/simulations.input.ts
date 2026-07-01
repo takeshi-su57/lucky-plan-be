@@ -91,6 +91,9 @@ export class CreateSimulationBotInput {
   @Field(() => Float)
   ratio: number;
 
+  @Field(() => Float, { defaultValue: 0 })
+  minLeverage: number;
+
   @Field(() => Float)
   maxLeverage: number;
 }
@@ -105,6 +108,9 @@ export class UpdateSimulationBotInput {
 
   @Field(() => Float, { nullable: true })
   ratio?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  minLeverage?: number | null;
 
   @Field(() => Float, { nullable: true })
   maxLeverage?: number | null;
@@ -165,11 +171,15 @@ export class CreateSimulationInput {
   @Field(() => Float, { defaultValue: 100 })
   standardCollateralUsd: number;
 
-  @Field(() => Float, { defaultValue: 50 })
-  maxLeverage: number;
+  @Field(() => FloatMinMaxInput, {
+    defaultValue: { min: 0, max: 50 },
+  })
+  leverage: FloatMinMaxInput;
 
-  @Field(() => Float, { defaultValue: 0 })
-  score: number;
+  @Field(() => FloatMinMaxInput, {
+    defaultValue: { min: 0, max: 1 },
+  })
+  score: FloatMinMaxInput;
 }
 
 @InputType()
@@ -201,11 +211,11 @@ export class UpdateSimulationInput {
   @Field(() => Float, { nullable: true })
   standardCollateralUsd?: number | null;
 
-  @Field(() => Float, { nullable: true })
-  maxLeverage?: number | null;
+  @Field(() => FloatMinMaxInput, { nullable: true })
+  leverage?: FloatMinMaxInput | null;
 
-  @Field(() => Float, { nullable: true })
-  score?: number | null;
+  @Field(() => FloatMinMaxInput, { nullable: true })
+  score?: FloatMinMaxInput | null;
 }
 
 @InputType()
@@ -257,9 +267,13 @@ export class CreateSimulationResearchInput {
   @Field(() => [FloatMinMaxInput])
   slope: FloatMinMaxInput[];
 
-  @Field(() => [Float])
-  maxLeverage: number[];
+  @ValidateNested({ each: true })
+  @Type(() => FloatMinMaxInput)
+  @Field(() => [FloatMinMaxInput])
+  leverage: FloatMinMaxInput[];
 
-  @Field(() => [Float])
-  score: number[];
+  @ValidateNested({ each: true })
+  @Type(() => FloatMinMaxInput)
+  @Field(() => [FloatMinMaxInput])
+  score: FloatMinMaxInput[];
 }

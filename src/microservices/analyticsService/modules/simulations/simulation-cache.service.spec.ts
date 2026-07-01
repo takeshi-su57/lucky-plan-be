@@ -285,6 +285,7 @@ describe('SimulationCacheService', () => {
       id: 3,
       mode: BotMode.Reversed,
       ratio: 0.5,
+      minLeverage: 2,
       maxLeverage: 50,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
@@ -370,6 +371,13 @@ describe('SimulationCacheService', () => {
 
     const summary = service.buildBotSummaryFromCachedLogs(bot, []);
 
+    expect(
+      eventLogsService.convertToPerpTradePositionsWithSummary,
+    ).toHaveBeenCalledWith(Platform.GNS, histories, {
+      stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
+      minLeverage: 2,
+      maxLeverage: 50,
+    });
     expect(summary.followerPositionPnls).toEqual([-1.5]);
     expect(summary.positions).toEqual([
       {

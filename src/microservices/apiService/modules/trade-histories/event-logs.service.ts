@@ -110,6 +110,7 @@ export class EventLogsService {
     histories: PerpTradeHistory[],
     filters: {
       stoppedAt?: Date;
+      minLeverage?: number;
       maxLeverage?: number;
     },
   ): PerpTradePositionsWithSummary {
@@ -161,6 +162,13 @@ export class EventLogsService {
         }
 
         if (filters.stoppedAt && history.date > filters.stoppedAt) {
+          break;
+        }
+
+        if (
+          filters.minLeverage !== undefined &&
+          history.leverage < filters.minLeverage
+        ) {
           break;
         }
 

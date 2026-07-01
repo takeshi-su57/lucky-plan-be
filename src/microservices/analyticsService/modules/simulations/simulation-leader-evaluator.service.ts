@@ -30,6 +30,8 @@ type ValueRange = {
   max: number;
 };
 
+const BOT_TRADER_MIN_AVG_DURATION_MS = 10 * 60 * 1000;
+
 function getDirectionalSlopeRange(direction: BotMode, range: ValueRange) {
   const minSlope = Math.abs(range.min);
   const maxSlope = Math.abs(range.max);
@@ -199,7 +201,10 @@ export class SimulationLeaderEvaluatorService {
         simulation,
       );
 
-      if (evaluation.rejectedReason || evaluation.score < simulation.score) {
+      if (
+        evaluation.rejectedReason ||
+        !valueMatchesRange(evaluation.score, simulation.score)
+      ) {
         continue;
       }
 
@@ -232,7 +237,8 @@ export class SimulationLeaderEvaluatorService {
       simulation.platform,
       histories,
       {
-        maxLeverage: simulation.maxLeverage,
+        minLeverage: simulation.leverage.min,
+        maxLeverage: simulation.leverage.max,
       },
     ).positions;
   }
@@ -271,6 +277,19 @@ export class SimulationLeaderEvaluatorService {
 
     if (!valueMatchesRange(rawTradeCount, simulation.trade)) {
       return { ...baseEvaluation, rejectedReason: 'TRADE_COUNT_OUT_OF_RANGE' };
+    }
+
+    const rawAvgDurationMs =
+      this.calculateAveragePositionDurationMs(closedPositions);
+
+    if (
+      rawAvgDurationMs !== null &&
+      rawAvgDurationMs < BOT_TRADER_MIN_AVG_DURATION_MS
+    ) {
+      return {
+        ...baseEvaluation,
+        rejectedReason: 'BOT_TRADER_AVG_DURATION_TOO_SHORT',
+      };
     }
 
     if (!valueMatchesRange(rawTrend.slope, effectiveSlopeRange)) {
@@ -427,6 +446,30 @@ export class SimulationLeaderEvaluatorService {
         ),
       ) / positions.length
     );
+  }
+
+  private calculateAveragePositionDurationMs(
+    positions: PerpTradePosition[],
+  ): number | null {
+    const durations = positions
+      .map((position) => {
+        const timestamps = position.histories
+          .map((history) => history.date?.getTime())
+          .filter((timestamp): timestamp is number => timestamp !== undefined);
+
+        if (timestamps.length < 2) {
+          return null;
+        }
+
+        return Math.max(...timestamps) - Math.min(...timestamps);
+      })
+      .filter((duration): duration is number => duration !== null);
+
+    if (durations.length === 0) {
+      return null;
+    }
+
+    return sum(durations) / durations.length;
   }
 
   private simulateCopyApproximation(
