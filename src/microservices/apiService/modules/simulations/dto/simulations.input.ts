@@ -135,6 +135,12 @@ export class CreateSimulationInput {
   @Field(() => Date)
   endAt: Date;
 
+  @Field(() => Int, { defaultValue: 1 })
+  days: number;
+
+  @Field(() => Int, { defaultValue: 0 })
+  gapDays: number;
+
   @Field(() => Int, { defaultValue: 10 })
   selectedLeaderCount: number;
 
@@ -161,6 +167,9 @@ export class CreateSimulationInput {
 
   @Field(() => Float, { defaultValue: 50 })
   maxLeverage: number;
+
+  @Field(() => Float, { defaultValue: 0 })
+  score: number;
 }
 
 @InputType()
@@ -194,6 +203,9 @@ export class UpdateSimulationInput {
 
   @Field(() => Float, { nullable: true })
   maxLeverage?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  score?: number | null;
 }
 
 @InputType()
@@ -221,6 +233,12 @@ export class CreateSimulationResearchInput {
   @Field(() => Date)
   endAt: Date;
 
+  @Field(() => Int, { defaultValue: 1 })
+  days: number;
+
+  @Field(() => Int, { defaultValue: 0 })
+  gapDays: number;
+
   @Field(() => BotMode)
   direction: BotMode;
 
@@ -241,4 +259,7 @@ export class CreateSimulationResearchInput {
 
   @Field(() => [Float])
   maxLeverage: number[];
+
+  @Field(() => [Float])
+  score: number[];
 }

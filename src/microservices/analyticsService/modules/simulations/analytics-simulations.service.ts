@@ -8,9 +8,9 @@ import {
   filterReadyAutomationRanges,
   isRunningSimulationStale,
   SIMULATION_AUTOMATION_STALE_AFTER_MS,
-} from './simulation-automation-queue.utils';
+} from './utils/simulation-automation-queue.utils';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
-import { buildDailyRanges } from './simulation-range.utils';
+import { buildSimulationRanges } from './utils/simulation-range.utils';
 
 @Injectable()
 export class AnalyticsSimulationsService {
@@ -67,7 +67,11 @@ export class AnalyticsSimulationsService {
           return false;
         }
 
-        const allRanges = buildDailyRanges(candidate.startAt, candidate.endAt);
+        const allRanges = buildSimulationRanges(
+          candidate.startAt,
+          candidate.endAt,
+          { days: candidate.days, gapDays: candidate.gapDays },
+        );
         const horizon = buildAutomationHorizon(candidate.endAt, now);
         const readyRanges = filterReadyAutomationRanges(
           allRanges,

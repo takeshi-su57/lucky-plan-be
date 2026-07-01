@@ -117,10 +117,6 @@ export class SimulationPlansService {
         throw new Error('Cannot delete a plan from a running simulation');
       }
 
-      await tx.simulationLeaderSelection.deleteMany({
-        where: { simulationPlanId: id },
-      });
-
       await tx.simulationBot.deleteMany({
         where: { simulationPlanId: id },
       });

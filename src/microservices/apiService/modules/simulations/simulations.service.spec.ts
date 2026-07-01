@@ -4,6 +4,86 @@ import { BotMode, Platform, SimulationStatus } from 'generated/prisma/enums';
 import { SimulationsService } from './simulations.service';
 
 describe('SimulationsService API queue requests', () => {
+  it('creates research simulations with multi-day plan windows and gap days', async () => {
+    const createdResearch = {
+      id: 91,
+      title: 'Windowed research',
+      description: 'Three days with gaps',
+      platform: Platform.GNS,
+      startAt: new Date('2026-07-01T00:00:00.000Z'),
+      endAt: new Date('2026-07-10T00:00:00.000Z'),
+      direction: BotMode.Reversed,
+      days: 3,
+      gapDays: 2,
+      trade: [{ min: 3, max: 10 }],
+      r2: [{ min: 0.5, max: 1 }],
+      slope: [{ min: 0, max: 100 }],
+      maxLeverage: [50],
+      score: [0.5],
+      createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+      simulations: [{ status: SimulationStatus.Created }],
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: any) =>
+        callback({
+          simulationResearch: {
+            create: jest.fn(async () => createdResearch),
+            findUniqueOrThrow: jest.fn(async () => createdResearch),
+          },
+          simulation: {
+            createMany: jest.fn(async () => ({ count: 1 })),
+          },
+        }),
+      ),
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    const result = await service.createSimulationResearch({
+      title: 'Windowed research',
+      description: 'Three days with gaps',
+      platform: Platform.GNS,
+      startAt: new Date('2026-07-01T00:00:00.000Z'),
+      endAt: new Date('2026-07-10T00:00:00.000Z'),
+      direction: BotMode.Reversed,
+      days: 3,
+      gapDays: 2,
+      trade: [{ min: 3, max: 10 }],
+      r2: [{ min: 0.5, max: 1 }],
+      slope: [{ min: 0, max: 100 }],
+      maxLeverage: [50],
+      score: [0.5],
+    });
+
+    const transactionCallback = (prisma.$transaction as any).mock.calls[0][0];
+    const tx = {
+      simulationResearch: {
+        create: jest.fn(async () => createdResearch),
+        findUniqueOrThrow: jest.fn(async () => createdResearch),
+      },
+      simulation: {
+        createMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    await transactionCallback(tx);
+
+    expect((tx.simulationResearch.create as any).mock.calls[0][0].data).toEqual(
+      expect.objectContaining({
+        days: 3,
+        gapDays: 2,
+      }),
+    );
+    expect((tx.simulation.createMany as any).mock.calls[0][0].data[0]).toEqual(
+      expect.objectContaining({
+        days: 3,
+        gapDays: 2,
+        totalSimulationPlans: 2,
+      }),
+    );
+    expect(result.days).toBe(3);
+    expect(result.gapDays).toBe(2);
+  });
+
   it('marks a simulation as queued without running analytics execution', async () => {
     const simulation = {
       id: 1,

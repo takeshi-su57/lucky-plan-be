@@ -39,7 +39,7 @@ export type ScoreInput = {
   grossProfitUsd: number;
   topTradeProfitUsd: number;
   minTrades: number;
-  maxReverseDrawdownUsd: number;
+  maxCopiedDrawdownUsd: number;
 };
 
 export function clamp(value: number, min: number, max: number) {
@@ -179,16 +179,16 @@ export function calculateLeaderScore(input: ScoreInput) {
   const positiveNetPnlScore = clamp01(input.copiedNetPnlUsd / 1_000);
   const positiveSlopeScore =
     input.copiedSlope > 0 ? clamp01(input.copiedSlope / 100) : 0;
-  const reverseTrendScore = clamp01(
+  const copiedTrendScore = clamp01(
     positiveNetPnlScore * 0.5 + positiveSlopeScore * 0.3 + input.copiedR2 * 0.2,
   );
 
   const alignedRawSlope =
     input.direction === BotMode.Reversed ? -input.rawSlope : input.rawSlope;
-  const rawNegativeSlopeScore =
+  const rawDirectionalSlopeScore =
     alignedRawSlope > 0 ? clamp01(Math.abs(alignedRawSlope) / 100) : 0;
-  const rawNegativeEdgeScore = clamp01(
-    rawNegativeSlopeScore * 0.6 + input.rawR2 * 0.4,
+  const rawDirectionalEdgeScore = clamp01(
+    rawDirectionalSlopeScore * 0.6 + input.rawR2 * 0.4,
   );
 
   const sampleScore = clamp01(
@@ -197,7 +197,7 @@ export function calculateLeaderScore(input: ScoreInput) {
   const drawdownScore =
     1 -
     clamp01(
-      input.copiedMaxDrawdownUsd / Math.max(input.maxReverseDrawdownUsd, 1),
+      input.copiedMaxDrawdownUsd / Math.max(input.maxCopiedDrawdownUsd, 1),
     );
   const profitFactorScore = clamp01((input.copiedProfitFactor - 1) / 2);
   const costEfficiencyScore =
@@ -214,8 +214,8 @@ export function calculateLeaderScore(input: ScoreInput) {
       : 1;
 
   const score =
-    reverseTrendScore * 0.35 +
-    rawNegativeEdgeScore * 0.2 +
+    copiedTrendScore * 0.35 +
+    rawDirectionalEdgeScore * 0.2 +
     sampleScore * 0.15 +
     drawdownScore * 0.15 +
     profitFactorScore * 0.1 +

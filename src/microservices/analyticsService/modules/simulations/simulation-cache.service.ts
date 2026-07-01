@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   BotMode,
   Contract,
@@ -38,8 +38,6 @@ type CachedEventLogRecord = Pick<
 
 @Injectable()
 export class SimulationCacheService {
-  private readonly logger = new Logger(SimulationCacheService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
@@ -334,10 +332,6 @@ export class SimulationCacheService {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-
-      this.logger.warn(
-        `Failed to rebuild simulation bot cache ${bot.id}: ${message}`,
-      );
 
       await this.prisma.simulationBotCache.update({
         where: { id: cache.id },

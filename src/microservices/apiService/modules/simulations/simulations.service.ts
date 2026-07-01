@@ -19,7 +19,6 @@ import {
   SimulationPlanConnection,
   Simulation,
   SimulationConnection,
-  SimulationLeaderSelection,
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
@@ -34,6 +33,7 @@ import {
   ValueRange,
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { buildSimulationRanges } from 'src/microservices/analyticsService/modules/simulations/utils/simulation-range.utils';
 
 const API_SIMULATION_SYSTEM_CONFIG = {
   minCollateralUsd: 10,
@@ -45,18 +45,15 @@ const DEFAULT_STANDARD_COLLATERAL_USD = 100;
 const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
+const DEFAULT_SCORE = 0;
 
-function countDailySimulationPlans(startAt: Date, endAt: Date) {
-  let count = 0;
-  let cursor = dayjs(startAt).startOf('day');
-  const end = dayjs(endAt).startOf('day');
-
-  while (cursor.isBefore(end)) {
-    count += 1;
-    cursor = cursor.add(1, 'day');
-  }
-
-  return count;
+function countSimulationPlanWindows(
+  startAt: Date,
+  endAt: Date,
+  days: number,
+  gapDays: number,
+) {
+  return buildSimulationRanges(startAt, endAt, { days, gapDays }).length;
 }
 
 @Injectable()
@@ -103,6 +100,11 @@ export class SimulationsService {
       throw new Error('maxLeverage must be greater than 0');
     }
 
+    if (input.score < 0 || input.score > 1) {
+      throw new Error('score must be between 0 and 1');
+    }
+
+    this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
     this.validateIntMinMaxPair('trade', input.trade);
     this.validateFloatMinMaxPair('r2', input.r2, {
       minAllowed: 0,
@@ -140,6 +142,14 @@ export class SimulationsService {
       this.validateFloatMinMaxPair('slope', input.slope, {
         minAllowed: 0,
       });
+    }
+
+    if (
+      input.score !== undefined &&
+      input.score !== null &&
+      (input.score < 0 || input.score > 1)
+    ) {
+      throw new Error('score must be between 0 and 1');
     }
   }
 
@@ -286,6 +296,10 @@ export class SimulationsService {
       throw new Error('maxLeverage must contain at least one value');
     }
 
+    if (input.score.length === 0) {
+      throw new Error('score must contain at least one value');
+    }
+
     input.trade.forEach((range, index) =>
       this.validateMinMaxRange(`trade[${index}]`, range, {
         minAllowed: 1,
@@ -311,6 +325,24 @@ export class SimulationsService {
         );
       }
     });
+
+    input.score.forEach((value, index) => {
+      if (value < 0 || value > 1) {
+        throw new Error(`score[${index}] must be between 0 and 1`);
+      }
+    });
+
+    this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
+  }
+
+  private validatePlanWindow(days: number, gapDays: number) {
+    if (!Number.isInteger(days) || days <= 0) {
+      throw new Error('days must be a positive integer');
+    }
+
+    if (!Number.isInteger(gapDays) || gapDays < 0) {
+      throw new Error('gapDays must be a non-negative integer');
+    }
   }
 
   private serializeRanges(ranges: Array<{ min: number; max: number }>) {
@@ -346,11 +378,14 @@ export class SimulationsService {
       platform: record.platform,
       startAt: record.startAt,
       endAt: record.endAt,
+      days: record.days ?? 1,
+      gapDays: record.gapDays ?? 0,
       direction: record.direction,
       trade: record.trade as any,
       r2: record.r2 as any,
       slope: record.slope as any,
       maxLeverage: (record.maxLeverage as number[] | null) ?? [],
+      score: (record.score as number[] | null) ?? [],
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -407,6 +442,7 @@ export class SimulationsService {
     const r2 = input.r2;
     const slope = input.slope;
     const maxLeverage = input.maxLeverage;
+    const score = input.score;
 
     const combinations = buildSimulationParameterGrid({
       direction: input.direction,
@@ -414,6 +450,7 @@ export class SimulationsService {
       r2,
       slope,
       maxLeverage,
+      score,
     });
 
     if (combinations.length === 0) {
@@ -422,9 +459,13 @@ export class SimulationsService {
       );
     }
 
-    const totalSimulationPlans = countDailySimulationPlans(
+    const days = input.days ?? 1;
+    const gapDays = input.gapDays ?? 0;
+    const totalSimulationPlans = countSimulationPlanWindows(
       input.startAt,
       input.endAt,
+      days,
+      gapDays,
     );
 
     const research = await this.prisma.$transaction(async (tx) => {
@@ -435,11 +476,14 @@ export class SimulationsService {
           platform: input.platform,
           startAt: dayjs(input.startAt).startOf('day').toDate(),
           endAt: dayjs(input.endAt).startOf('day').toDate(),
+          days,
+          gapDays,
           direction: input.direction,
           trade: this.serializeRanges(trade),
           r2: this.serializeRanges(r2),
           slope: this.serializeRanges(slope),
           maxLeverage: this.serializeNumbers(maxLeverage),
+          score: this.serializeNumbers(score),
         },
       });
 
@@ -452,6 +496,8 @@ export class SimulationsService {
           direction: combination.direction,
           startAt: dayjs(input.startAt).startOf('day').toDate(),
           endAt: dayjs(input.endAt).startOf('day').toDate(),
+          days,
+          gapDays,
           status: SimulationStatus.Created,
           progressPhase: 'created',
           progressMessage: 'Simulation created',
@@ -463,6 +509,7 @@ export class SimulationsService {
           slope: this.serializeRange(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
           maxLeverage: combination.maxLeverage,
+          score: combination.score,
         })),
       });
 
@@ -484,9 +531,13 @@ export class SimulationsService {
   async createSimulation(input: CreateSimulationInput): Promise<Simulation> {
     this.validateSimulationInput(input);
 
-    const totalSimulationPlans = countDailySimulationPlans(
+    const days = input.days ?? 1;
+    const gapDays = input.gapDays ?? 0;
+    const totalSimulationPlans = countSimulationPlanWindows(
       input.startAt,
       input.endAt,
+      days,
+      gapDays,
     );
 
     const simulation = await this.prisma.simulation.create({
@@ -498,6 +549,8 @@ export class SimulationsService {
         slope: this.serializeRange(input.slope),
         startAt: dayjs(input.startAt).startOf('day').toDate(),
         endAt: dayjs(input.endAt).startOf('day').toDate(),
+        days,
+        gapDays,
         status: SimulationStatus.Created,
         progressPhase: 'created',
         progressMessage: 'Simulation created',
@@ -557,6 +610,7 @@ export class SimulationsService {
             : undefined,
         standardCollateralUsd: input.standardCollateralUsd ?? undefined,
         maxLeverage: input.maxLeverage ?? undefined,
+        score: input.score ?? undefined,
       },
     });
 
@@ -569,9 +623,12 @@ export class SimulationsService {
   private mapSimulation(record: any): Simulation {
     return {
       ...record,
+      days: record.days ?? 1,
+      gapDays: record.gapDays ?? 0,
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
+      score: record.score ?? DEFAULT_SCORE,
     };
   }
 
@@ -700,19 +757,6 @@ export class SimulationsService {
     );
   }
 
-  async getSimulationLeaderSelections(
-    simulationId: number,
-    simulationPlanId: number | null,
-  ): Promise<SimulationLeaderSelection[]> {
-    return await this.prisma.simulationLeaderSelection.findMany({
-      where: {
-        simulationId,
-        simulationPlanId: simulationPlanId ?? undefined,
-      },
-      orderBy: [{ date: 'asc' }, { score: 'desc' }],
-    });
-  }
-
   async deleteSimulation(id: number): Promise<number> {
     await this.prisma.$transaction(async (tx) => {
       const simulation = await tx.simulation.findUnique({
@@ -735,17 +779,6 @@ export class SimulationsService {
       const simulationPlanIds = simulation.simulationPlans.map(
         (plan) => plan.id,
       );
-
-      await tx.simulationLeaderSelection.deleteMany({
-        where: {
-          OR: [
-            { simulationId: id },
-            ...(simulationPlanIds.length > 0
-              ? [{ simulationPlanId: { in: simulationPlanIds } }]
-              : []),
-          ],
-        },
-      });
 
       if (simulationPlanIds.length > 0) {
         await tx.simulationBot.deleteMany({

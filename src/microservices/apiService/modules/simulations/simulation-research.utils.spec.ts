@@ -63,15 +63,17 @@ describe('simulation research utils', () => {
         { min: 2, max: 3 },
       ],
       maxLeverage: [10, 20],
+      score: [0.25, 0.75],
     });
 
-    expect(combinations).toHaveLength(16);
+    expect(combinations).toHaveLength(32);
     expect(combinations[0]).toEqual({
       direction: BotMode.Default,
       trade: { min: 1, max: 2 },
       r2: { min: 0.2, max: 0.3 },
       slope: { min: 1, max: 2 },
       maxLeverage: 10,
+      score: 0.25,
     });
     expect(
       combinations.every(
@@ -90,6 +92,7 @@ describe('simulation research utils', () => {
       r2: [{ min: 0.5, max: 0.5 }],
       slope: [{ min: 1, max: 2 }],
       maxLeverage: [20],
+      score: [0.5],
     });
 
     expect(combinations).toEqual([
@@ -99,6 +102,7 @@ describe('simulation research utils', () => {
         r2: { min: 0.5, max: 0.5 },
         slope: { min: 1, max: 2 },
         maxLeverage: 20,
+        score: 0.5,
       },
     ]);
   });
@@ -114,6 +118,7 @@ describe('simulation research utils', () => {
     ];
     const slope = [{ min: 1, max: 3 }];
     const maxLeverage = [10, 25, 50];
+    const score = [0.25, 0.5];
 
     const combinations = buildSimulationParameterGrid({
       direction: BotMode.Default,
@@ -121,15 +126,17 @@ describe('simulation research utils', () => {
       r2,
       slope,
       maxLeverage,
+      score,
     });
 
-    expect(combinations).toHaveLength(12);
+    expect(combinations).toHaveLength(24);
     expect(combinations[0]).toEqual({
       direction: BotMode.Default,
       trade: { min: 3, max: 10 },
       r2: { min: 0.25, max: 0.5 },
       slope: { min: 1, max: 3 },
       maxLeverage: 10,
+      score: 0.25,
     });
   });
 });

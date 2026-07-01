@@ -154,7 +154,6 @@ model SimulationPlan {
 
   simulationBots   SimulationBot[]
   simulation       Simulation?                 @relation(fields: [simulationId], references: [id])
-  leaderSelections SimulationLeaderSelection[]
   cache            SimulationPlanCache?
 
   @@index([simulationId, startAt])
@@ -167,6 +166,8 @@ model SimulationResearch {
   platform    Platform
   startAt     DateTime
   endAt       DateTime
+  days        Int      @default(1)
+  gapDays     Int      @default(0)
   direction   BotMode  @default(Reversed)
 
   trade Json @default("[]")
@@ -174,6 +175,7 @@ model SimulationResearch {
   slope Json @default("[]")
 
   maxLeverage Json @default("[]")
+  score       Json @default("[]")
 
   simulations Simulation[]
 
@@ -209,6 +211,8 @@ model Simulation {
 
   startAt         DateTime
   endAt           DateTime
+  days            Int              @default(1)
+  gapDays         Int              @default(0)
   cursor          DateTime?
   status          SimulationStatus @default(Created)
   progressPhase   String?
@@ -222,6 +226,7 @@ model Simulation {
 
   standardCollateralUsd Float @default(100)
   maxLeverage           Float @default(50)
+  score                 Float @default(0)
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)
@@ -240,39 +245,9 @@ model Simulation {
 
   research         SimulationResearch?       @relation(fields: [researchId], references: [id], onDelete: SetNull)
   simulationPlans  SimulationPlan[]
-  leaderSelections SimulationLeaderSelection[]
-
   @@index([status, createdAt])
   @@index([platform, startAt, endAt])
   @@index([researchId, createdAt])
-}
-
-model SimulationLeaderSelection {
-  id               Int      @id @default(autoincrement())
-  simulationId     Int
-  simulationPlanId Int?
-  leaderAddress    String   @db.VarChar(255)
-  date             DateTime
-
-  score                  Float @default(0)
-  suggestedRatio         Float @default(0)
-  suggestedCollateralUsd Float @default(0)
-  rawTotalPnlUsd         Float @default(0)
-  rawSlope               Float @default(0)
-  rawR2                  Float @default(0)
-  rawTradeCount          Int   @default(0)
-  reverseNetPnlUsd       Float @default(0)
-  reverseDrawdownUsd     Float @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  simulation     Simulation      @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  simulationPlan SimulationPlan? @relation(fields: [simulationPlanId], references: [id])
-
-  @@unique([simulationPlanId, leaderAddress])
-  @@index([simulationId, date])
-  @@index([leaderAddress])
 }
 
 model Bot {
@@ -309,6 +284,7 @@ model SimulationBot {
   simulationPlanId Int       @default(0)
   mode             BotMode   @default(Default)
   ratio            Float     @default(1)
+  score            Float     @default(0)
   maxLeverage      Float     @default(50)
 
   openedPositions              Int   @default(0)

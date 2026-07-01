@@ -159,6 +159,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       [
         {
           leaderAddress: '0xabc',
+          score: 0.82,
           suggestedRatio: 3,
         },
       ],
@@ -178,10 +179,127 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           stoppedAt: new Date('2026-04-02T00:00:00.000Z'),
           mode: BotMode.Reversed,
           ratio: 3,
+          score: 0.82,
           maxLeverage: 5,
         },
       ],
       skipDuplicates: true,
     });
+  });
+
+  it('evaluates and creates bots one simulation plan window at a time', async () => {
+    const simulation = {
+      id: 10,
+      title: 'Windowed simulation',
+      description: 'Windowed simulation',
+      platform: Platform.GNS,
+      researchId: null,
+      direction: BotMode.Reversed,
+      startAt: new Date('2026-04-01T00:00:00.000Z'),
+      endAt: new Date('2026-04-03T00:00:00.000Z'),
+      cursor: null,
+      status: SimulationStatus.Running,
+      progressPhase: 'accepted',
+      progressMessage: 'Auto simulation accepted',
+      progressPercent: 0,
+      selectedLeaderCount: 10,
+      trade: { min: 3, max: 100 },
+      r2: { min: 0.5, max: 1 },
+      slope: { min: 0, max: 100 },
+      standardCollateralUsd: 100,
+      maxLeverage: 50,
+      totalSimulationPlans: 2,
+      completedPlans: 0,
+      totalLeaderPnl: 0,
+      totalFollowerPnl: 0,
+      totalNetPnlUsd: 0,
+      totalCostUsd: 0,
+      maxDrawdownUsd: 0,
+      tradeCount: 0,
+      winRate: 0,
+      profitFactor: 0,
+      error: null,
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+    };
+    const latestSimulation = {
+      ...simulation,
+      cursor: new Date('2026-04-03T00:00:00.000Z'),
+    };
+    const prisma = {
+      simulation: {
+        findUnique: (jest.fn() as any)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(latestSimulation),
+        update: jest.fn(async ({ data }: any) => ({
+          ...simulation,
+          ...data,
+        })),
+      },
+      contract: {
+        findMany: jest.fn(async () => [
+          {
+            id: 11,
+            platform: Platform.GNS,
+            chainId: 1,
+            version: 'V9',
+          },
+        ]),
+      },
+    };
+    const evaluator = {
+      findCandidateLeaders: (jest.fn() as any)
+        .mockResolvedValueOnce(['0xday1'])
+        .mockResolvedValueOnce(['0xday2']),
+      evaluateLeadersForRange: (jest.fn() as any)
+        .mockResolvedValueOnce([{ leaderAddress: '0xday1', score: 0.7 }])
+        .mockResolvedValueOnce([{ leaderAddress: '0xday2', score: 0.9 }]),
+    };
+    const service = new SimulationAutoRunnerService(
+      prisma as never,
+      {} as never,
+      evaluator as never,
+      { emit: jest.fn(async () => undefined) } as never,
+    );
+    const createSimulationPlanForRange = jest
+      .spyOn(service as any, 'createSimulationPlanForRange')
+      .mockResolvedValueOnce({ id: 101 })
+      .mockResolvedValueOnce({ id: 102 });
+    const createSimulationBotsForSelections = jest
+      .spyOn(service as any, 'createSimulationBotsForSelections')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(service as any, 'aggregateSimulation')
+      .mockResolvedValue(undefined);
+
+    await (service as any).runAutoSimulation(10, {
+      mode: 'queue',
+      horizon: new Date('2026-04-03T00:00:00.000Z'),
+      runInBackground: false,
+    });
+
+    expect(createSimulationPlanForRange).toHaveBeenCalledTimes(2);
+    expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(2);
+    expect(evaluator.evaluateLeadersForRange).toHaveBeenCalledTimes(2);
+    expect(evaluator.evaluateLeadersForRange.mock.calls[0][1]).toEqual([
+      '0xday1',
+    ]);
+    expect(evaluator.evaluateLeadersForRange.mock.calls[0][2]).toBe(
+      createSimulationPlanForRange.mock.calls[0][1],
+    );
+    expect(evaluator.evaluateLeadersForRange.mock.calls[1][1]).toEqual([
+      '0xday2',
+    ]);
+    expect(evaluator.evaluateLeadersForRange.mock.calls[1][2]).toBe(
+      createSimulationPlanForRange.mock.calls[1][1],
+    );
+    expect(createSimulationBotsForSelections.mock.calls[0][4]).toEqual([
+      { leaderAddress: '0xday1', score: 0.7 },
+    ]);
+    expect(createSimulationBotsForSelections.mock.calls[1][4]).toEqual([
+      { leaderAddress: '0xday2', score: 0.9 },
+    ]);
   });
 });

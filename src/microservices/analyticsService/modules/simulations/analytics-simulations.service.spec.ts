@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import dayjs from 'dayjs';
 import { BotMode, Platform, SimulationStatus } from 'generated/prisma/enums';
 
 import { AnalyticsSimulationsService } from './analytics-simulations.service';
@@ -8,6 +9,8 @@ function simulation(
     id: number;
     startAt: Date;
     endAt: Date;
+    days: number;
+    gapDays: number;
     cursor: Date | null;
     status: SimulationStatus;
     updatedAt: Date;
@@ -23,6 +26,8 @@ function simulation(
     direction: BotMode.Reversed,
     startAt: overrides.startAt ?? new Date('2026-05-01T00:00:00.000Z'),
     endAt: overrides.endAt ?? new Date('2026-10-01T00:00:00.000Z'),
+    days: overrides.days ?? 1,
+    gapDays: overrides.gapDays ?? 0,
     cursor: overrides.cursor ?? null,
     status: overrides.status ?? SimulationStatus.Paused,
     progressPhase: 'queued',
@@ -58,7 +63,7 @@ function createService(candidates: ReturnType<typeof simulation>[]) {
   };
   const runner = {
     isAutoSimulationActive: jest.fn(() => false),
-    playQueuedAutoSimulation: jest.fn(async (id: number) =>
+    playQueuedAutoSimulation: jest.fn(async (id: number, _horizon: Date) =>
       simulation({ id, status: SimulationStatus.Running }),
     ),
   };
@@ -78,10 +83,12 @@ describe('AnalyticsSimulationsService', () => {
       new Date('2026-07-01T12:00:00.000Z'),
     );
 
-    expect(runner.playQueuedAutoSimulation.mock.calls[0]).toEqual([
-      11,
-      new Date('2026-07-01T00:00:00.000Z'),
-    ]);
+    expect(runner.playQueuedAutoSimulation.mock.calls[0][0]).toBe(11);
+    expect(
+      dayjs(runner.playQueuedAutoSimulation.mock.calls[0][1]).format(
+        'YYYY-MM-DD',
+      ),
+    ).toBe('2026-07-01');
   });
 
   it('skips a running simulation that is not stale', async () => {
@@ -114,9 +121,11 @@ describe('AnalyticsSimulationsService', () => {
       new Date('2026-07-01T12:00:00.000Z'),
     );
 
-    expect(runner.playQueuedAutoSimulation.mock.calls[0]).toEqual([
-      13,
-      new Date('2026-07-01T00:00:00.000Z'),
-    ]);
+    expect(runner.playQueuedAutoSimulation.mock.calls[0][0]).toBe(13);
+    expect(
+      dayjs(runner.playQueuedAutoSimulation.mock.calls[0][1]).format(
+        'YYYY-MM-DD',
+      ),
+    ).toBe('2026-07-01');
   });
 });

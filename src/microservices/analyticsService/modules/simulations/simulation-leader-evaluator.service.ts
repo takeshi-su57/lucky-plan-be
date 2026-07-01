@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 
 import { Simulation } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
@@ -13,7 +13,6 @@ import {
   PerpTradePosition,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import {
-  calculateCosts,
   calculateLeaderScore,
   calculateMaxDrawdown,
   calculateProfitFactor,
@@ -22,9 +21,9 @@ import {
   getPositionPnls,
   sum,
   suggestPositionSizing,
-} from './simulation-automation.utils';
+} from './utils/simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
-import { getRangeKey, WindowRange } from './simulation-range.utils';
+import { WindowRange } from './utils/simulation-range.utils';
 
 type ValueRange = {
   min: number;
@@ -61,8 +60,8 @@ export type CandidateEvaluation = {
   rawSlope: number;
   rawR2: number;
   rawTradeCount: number;
-  reverseNetPnlUsd: number;
-  reverseDrawdownUsd: number;
+  copiedNetPnlUsd: number;
+  copiedDrawdownUsd: number;
   rejectedReason?: string;
 };
 
@@ -73,10 +72,7 @@ export type ContractContext = {
   platform: Platform;
 };
 
-export type RangeEvaluationMap = Map<string, CandidateEvaluation[]>;
-export type LeaderPositionsCache = Map<string, Promise<PerpTradePosition[]>>;
-
-type ReverseSimulationResult = {
+type CopySimulationResult = {
   grossPnlUsd: number;
   netPnlUsd: number;
   totalCostUsd: number;
@@ -90,30 +86,29 @@ type ReverseSimulationResult = {
 
 const CANDIDATE_PREFILTER_BATCH_SIZE = 50;
 const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
+const PLATFORM_MIN_FEE_USD = 0.5;
 
 @Injectable()
 export class SimulationLeaderEvaluatorService {
-  private readonly logger = new Logger(SimulationLeaderEvaluatorService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
   ) {}
 
-  async findCandidateLeaders(
-    simulation: Simulation,
-    range: WindowRange,
-    checkedLeaderAddresses: Set<string> = new Set(),
-    shouldLog = true,
-  ) {
+  async findCandidateLeaders(simulation: Simulation, range: WindowRange) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
     const records = await this.prisma.pnlSnapshotV2.findMany({
       where: {
         platform: simulation.platform,
         dateStr,
-        accUSDPnl: {
-          lte: -50,
-        },
+        accUSDPnl:
+          simulation.direction === BotMode.Default
+            ? {
+                gte: 50,
+              }
+            : {
+                lte: -50,
+              },
       },
       select: {
         address: true,
@@ -124,23 +119,17 @@ export class SimulationLeaderEvaluatorService {
     const candidateAddresses = records.map((record) =>
       record.address.toLowerCase(),
     );
-    const uncheckedCandidateAddresses = candidateAddresses.filter(
-      (address) => !checkedLeaderAddresses.has(address),
-    );
-
     const recentActivityCutoff = dayjs(range.startedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
     const prefilteredAddresses: string[] = [];
-    let noRecentTradeHistoryCount = 0;
-    let lowRecentTradeHistoryCount = 0;
 
     for (
       let offset = 0;
-      offset < uncheckedCandidateAddresses.length;
+      offset < candidateAddresses.length;
       offset += CANDIDATE_PREFILTER_BATCH_SIZE
     ) {
-      const addressBatch = uncheckedCandidateAddresses.slice(
+      const addressBatch = candidateAddresses.slice(
         offset,
         offset + CANDIDATE_PREFILTER_BATCH_SIZE,
       );
@@ -174,12 +163,10 @@ export class SimulationLeaderEvaluatorService {
         const recentTradeHistoryCount = eventCountByAddress.get(address) || 0;
 
         if (recentTradeHistoryCount === 0) {
-          noRecentTradeHistoryCount += 1;
           return;
         }
 
         if (recentTradeHistoryCount < simulation.trade.min) {
-          lowRecentTradeHistoryCount += 1;
           return;
         }
 
@@ -187,110 +174,53 @@ export class SimulationLeaderEvaluatorService {
       });
     }
 
-    if (shouldLog) {
-      this.logDebug('Auto simulation candidates prefiltered', {
-        simulationId: simulation.id,
-        day: dateStr,
-        snapshotCandidateCount: candidateAddresses.length,
-        skippedAlreadyCheckedCount:
-          candidateAddresses.length - uncheckedCandidateAddresses.length,
-        prefilteredCount: prefilteredAddresses.length,
-        noRecentTradeHistoryCount,
-        lowRecentTradeHistoryCount,
-      });
-    }
-
     return prefilteredAddresses;
   }
 
-  async evaluateLeadersAcrossRanges(
+  async evaluateLeadersForRange(
     simulation: Simulation,
     leaderAddresses: string[],
-    ranges: WindowRange[],
+    range: WindowRange,
     contractById: Map<number, ContractContext>,
-    leaderPositionsCache: LeaderPositionsCache,
-    selectedCandidatesByRangeKey: RangeEvaluationMap,
   ) {
-    let evaluatedCount = 0;
-    let acceptedCount = 0;
+    const evaluations: CandidateEvaluation[] = [];
 
     for (const leaderAddress of leaderAddresses) {
-      const positions = await this.getCachedLeaderPositions(
+      const positions = await this.loadLeaderPositionsUntil(
         leaderAddress,
         simulation,
         contractById,
-        leaderPositionsCache,
+        range.startedAt,
       );
 
-      for (const range of ranges) {
-        evaluatedCount += 1;
+      const evaluation = this.evaluateLeaderPositionsForSimulation(
+        leaderAddress,
+        this.getClosedPositionsBefore(positions, range.startedAt),
+        simulation,
+      );
 
-        const evaluation = this.evaluateLeaderForReverseCopyFromPositions(
-          leaderAddress,
-          positions,
-          simulation,
-          range,
-        );
-
-        if (evaluation.rejectedReason || evaluation.score <= 0) {
-          continue;
-        }
-
-        acceptedCount += 1;
-
-        const rangeKey = getRangeKey(range);
-        const rangeEvaluations =
-          selectedCandidatesByRangeKey.get(rangeKey) || [];
-
-        rangeEvaluations.push(evaluation);
-        selectedCandidatesByRangeKey.set(rangeKey, rangeEvaluations);
+      if (evaluation.rejectedReason || evaluation.score < simulation.score) {
+        continue;
       }
+
+      evaluations.push(evaluation);
     }
 
-    return { evaluatedCount, acceptedCount };
+    return evaluations;
   }
 
-  private logDebug(message: string, metadata?: Record<string, unknown>) {
-    this.logger.debug(
-      metadata ? `${message} ${JSON.stringify(metadata)}` : message,
-    );
-  }
-
-  private async getCachedLeaderPositions(
+  private async loadLeaderPositionsUntil(
     leaderAddress: string,
     simulation: Simulation,
     contractById: Map<number, ContractContext>,
-    leaderPositionsCache: LeaderPositionsCache,
-  ) {
-    const normalizedLeaderAddress = leaderAddress.toLowerCase();
-    const existing = leaderPositionsCache.get(normalizedLeaderAddress);
-
-    if (existing) {
-      return existing;
-    }
-
-    const pendingPositions = this.loadLeaderPositionsForSimulation(
-      normalizedLeaderAddress,
-      simulation,
-      contractById,
-    );
-
-    leaderPositionsCache.set(normalizedLeaderAddress, pendingPositions);
-
-    return pendingPositions;
-  }
-
-  private async loadLeaderPositionsForSimulation(
-    leaderAddress: string,
-    simulation: Simulation,
-    contractById: Map<number, ContractContext>,
+    before: Date,
   ) {
     const records = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: leaderAddress.toLowerCase(),
         platform: simulation.platform,
         date: {
-          lt: simulation.endAt,
+          lt: before,
         },
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
@@ -305,19 +235,6 @@ export class SimulationLeaderEvaluatorService {
         maxLeverage: simulation.maxLeverage,
       },
     ).positions;
-  }
-
-  private evaluateLeaderForReverseCopyFromPositions(
-    leaderAddress: string,
-    positions: PerpTradePosition[],
-    simulation: Simulation,
-    range: WindowRange,
-  ): CandidateEvaluation {
-    return this.evaluateLeaderPositionsForSimulation(
-      leaderAddress,
-      this.getClosedPositionsBefore(positions, range.startedAt),
-      simulation,
-    );
   }
 
   private evaluateLeaderPositionsForSimulation(
@@ -344,8 +261,8 @@ export class SimulationLeaderEvaluatorService {
       rawSlope: rawTrend.slope,
       rawR2: rawTrend.r2,
       rawTradeCount,
-      reverseNetPnlUsd: 0,
-      reverseDrawdownUsd: 0,
+      copiedNetPnlUsd: 0,
+      copiedDrawdownUsd: 0,
     };
     const effectiveSlopeRange = getDirectionalSlopeRange(
       simulation.direction,
@@ -368,7 +285,7 @@ export class SimulationLeaderEvaluatorService {
       return { ...baseEvaluation, rejectedReason: 'LOW_AVG_COLLATERAL' };
     }
 
-    const preliminaryReverse = this.simulateCopyApproximation(
+    const preliminaryCopy = this.simulateCopyApproximation(
       closedPositions,
       1,
       simulation.direction,
@@ -377,7 +294,7 @@ export class SimulationLeaderEvaluatorService {
       simulation,
       rawTrend,
       rawTradeCount,
-      preliminaryReverse,
+      preliminaryCopy,
     );
     const sizing = suggestPositionSizing({
       score: preliminaryScore,
@@ -388,25 +305,19 @@ export class SimulationLeaderEvaluatorService {
       minRatio: SIMULATION_SYSTEM_CONFIG.minRatio,
       maxRatio: SIMULATION_SYSTEM_CONFIG.maxRatio,
     });
-    const reverse = this.simulateCopyApproximation(
+    const copied = this.simulateCopyApproximation(
       closedPositions,
       sizing.suggestedRatio,
       simulation.direction,
     );
-    const score = this.scoreCandidate(
-      simulation,
-      rawTrend,
-      rawTradeCount,
-      reverse,
-    );
 
     return {
       ...baseEvaluation,
-      score,
+      score: preliminaryScore,
       suggestedRatio: sizing.suggestedRatio,
       suggestedCollateralUsd: sizing.suggestedCollateralUsd,
-      reverseNetPnlUsd: reverse.netPnlUsd,
-      reverseDrawdownUsd: reverse.maxDrawdownUsd,
+      copiedNetPnlUsd: copied.netPnlUsd,
+      copiedDrawdownUsd: copied.maxDrawdownUsd,
     };
   }
 
@@ -431,23 +342,23 @@ export class SimulationLeaderEvaluatorService {
     simulation: Simulation,
     rawTrend: { slope: number; r2: number },
     rawTradeCount: number,
-    reverse: ReverseSimulationResult,
+    copied: CopySimulationResult,
   ) {
     return calculateLeaderScore({
       direction: simulation.direction,
       rawSlope: rawTrend.slope,
       rawR2: rawTrend.r2,
       rawTradeCount,
-      copiedNetPnlUsd: reverse.netPnlUsd,
-      copiedSlope: reverse.slope,
-      copiedR2: reverse.r2,
-      copiedMaxDrawdownUsd: reverse.maxDrawdownUsd,
-      copiedProfitFactor: reverse.profitFactor,
-      totalCostUsd: reverse.totalCostUsd,
-      grossProfitUsd: reverse.grossProfitUsd,
-      topTradeProfitUsd: reverse.topTradeProfitUsd,
+      copiedNetPnlUsd: copied.netPnlUsd,
+      copiedSlope: copied.slope,
+      copiedR2: copied.r2,
+      copiedMaxDrawdownUsd: copied.maxDrawdownUsd,
+      copiedProfitFactor: copied.profitFactor,
+      totalCostUsd: copied.totalCostUsd,
+      grossProfitUsd: copied.grossProfitUsd,
+      topTradeProfitUsd: copied.topTradeProfitUsd,
       minTrades: simulation.trade.min,
-      maxReverseDrawdownUsd: SIMULATION_SYSTEM_CONFIG.maxCollateralUsd,
+      maxCopiedDrawdownUsd: SIMULATION_SYSTEM_CONFIG.maxCollateralUsd,
     });
   }
 
@@ -504,18 +415,6 @@ export class SimulationLeaderEvaluatorService {
     );
   }
 
-  private calculatePositionCost(position: PerpTradePosition, ratio: number) {
-    const costs = calculateCosts({
-      positions: [position],
-      ratio,
-      openFeeRate: 0,
-      closeFeeRate: 0,
-      slippageRate: 0,
-    });
-
-    return costs.totalCostUsd;
-  }
-
   private calculateAverageMaxDepositedUsd(positions: PerpTradePosition[]) {
     if (positions.length === 0) {
       return 0;
@@ -534,29 +433,30 @@ export class SimulationLeaderEvaluatorService {
     positions: PerpTradePosition[],
     ratio: number,
     direction: Simulation['direction'],
-  ): ReverseSimulationResult {
+  ): CopySimulationResult {
     const directionMultiplier = direction === 'Reversed' ? -1 : 1;
+    let totalCostUsd = 0;
     const grossPositionPnls = positions.map((position) => {
-      const reverseBasePnl =
-        sum(position.histories.map((history) => history.usdBasePnl)) *
-        ratio *
-        directionMultiplier;
+      const copiedPnl = sum(
+        position.histories.map((history) => {
+          const copiedFee = this.calculateCopiedPlatformFee(
+            history.usdFee,
+            ratio,
+          );
+          totalCostUsd += Math.abs(copiedFee);
+
+          return (
+            (history.usdPnl - history.usdFee) * ratio * directionMultiplier +
+            copiedFee
+          );
+        }),
+      );
       const maxLoss =
         -Math.abs(this.calculatePositionMaxDepositedUsd(position)) * ratio;
 
-      return Math.max(maxLoss, reverseBasePnl);
+      return Math.max(maxLoss, copiedPnl);
     });
-    const costs = calculateCosts({
-      positions,
-      ratio,
-      openFeeRate: 0,
-      closeFeeRate: 0,
-      slippageRate: 0,
-    });
-    const netPositionPnls = grossPositionPnls.map(
-      (positionPnl, index) =>
-        positionPnl - this.calculatePositionCost(positions[index], ratio),
-    );
+    const netPositionPnls = grossPositionPnls;
     const equityCurve = cumulative(netPositionPnls);
     const trend = calculateTrend(equityCurve);
     const grossProfitUsd = sum(grossPositionPnls.filter((item) => item > 0));
@@ -564,7 +464,7 @@ export class SimulationLeaderEvaluatorService {
     return {
       grossPnlUsd: sum(grossPositionPnls),
       netPnlUsd: sum(netPositionPnls),
-      totalCostUsd: costs.totalCostUsd,
+      totalCostUsd,
       maxDrawdownUsd: calculateMaxDrawdown(equityCurve),
       slope: trend.slope,
       r2: trend.r2,
@@ -572,5 +472,13 @@ export class SimulationLeaderEvaluatorService {
       grossProfitUsd,
       topTradeProfitUsd: Math.max(0, ...grossPositionPnls),
     };
+  }
+
+  private calculateCopiedPlatformFee(usdFee: number, ratio: number) {
+    if (usdFee === 0) {
+      return 0;
+    }
+
+    return Math.min(-PLATFORM_MIN_FEE_USD, usdFee * ratio);
   }
 }

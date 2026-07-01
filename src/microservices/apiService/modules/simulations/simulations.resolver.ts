@@ -18,7 +18,6 @@ import {
   SimulationPlanConnection,
   Simulation,
   SimulationConnection,
-  SimulationLeaderSelection,
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
@@ -199,18 +198,6 @@ export class SimulationsResolver {
   ) {
     return this.simulationsService.getSimulationPlanDetailsBySimulation(
       simulationId,
-    );
-  }
-
-  @Query(() => [SimulationLeaderSelection])
-  simulationLeaderSelections(
-    @Args('simulationId', { type: () => Int }) simulationId: number,
-    @Args('simulationPlanId', { type: () => Int, nullable: true })
-    simulationPlanId: number | null,
-  ) {
-    return this.simulationsService.getSimulationLeaderSelections(
-      simulationId,
-      simulationPlanId,
     );
   }
 }

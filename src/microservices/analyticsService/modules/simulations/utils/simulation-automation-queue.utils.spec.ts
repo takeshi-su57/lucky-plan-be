@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import dayjs from 'dayjs';
 import { SimulationStatus } from 'generated/prisma/enums';
 
 import {
@@ -7,52 +8,50 @@ import {
   isAutomationStatusEligible,
   isRunningSimulationStale,
 } from './simulation-automation-queue.utils';
-import { buildDailyRanges } from './simulation-range.utils';
+import { buildSimulationRanges } from './simulation-range.utils';
 
 describe('simulation automation queue utils', () => {
   it('caps the automation horizon at the current day boundary', () => {
     const horizon = buildAutomationHorizon(
-      new Date('2026-10-01T00:00:00.000Z'),
-      new Date('2026-07-01T12:00:00.000Z'),
+      new Date(2026, 9, 1),
+      new Date(2026, 6, 1, 12),
     );
 
-    expect(horizon.toISOString()).toBe('2026-07-01T00:00:00.000Z');
+    expect(dayjs(horizon).format('YYYY-MM-DD')).toBe('2026-07-01');
   });
 
   it('uses endAt as the horizon when the simulation has already ended', () => {
     const horizon = buildAutomationHorizon(
-      new Date('2026-06-01T00:00:00.000Z'),
-      new Date('2026-07-01T12:00:00.000Z'),
+      new Date(2026, 5, 1),
+      new Date(2026, 6, 1, 12),
     );
 
-    expect(horizon.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+    expect(dayjs(horizon).format('YYYY-MM-DD')).toBe('2026-06-01');
   });
 
   it('filters only ranges after the cursor and up to the horizon', () => {
-    const ranges = buildDailyRanges(
-      new Date('2026-05-01T00:00:00.000Z'),
-      new Date('2026-10-01T00:00:00.000Z'),
+    const ranges = buildSimulationRanges(
+      new Date(2026, 4, 1),
+      new Date(2026, 9, 1),
     );
 
     const readyRanges = filterReadyAutomationRanges(
       ranges,
-      new Date('2026-05-03T00:00:00.000Z'),
-      new Date('2026-07-01T00:00:00.000Z'),
+      new Date(2026, 4, 3),
+      new Date(2026, 6, 1),
     );
 
-    expect(readyRanges[0].startedAt.toISOString()).toBe(
-      '2026-05-03T00:00:00.000Z',
+    expect(dayjs(readyRanges[0].startedAt).format('YYYY-MM-DD')).toBe(
+      '2026-05-03',
     );
-    expect(readyRanges.at(-1)?.endedAt.toISOString()).toBe(
-      '2026-07-01T00:00:00.000Z',
+    expect(dayjs(readyRanges.at(-1)?.endedAt).format('YYYY-MM-DD')).toBe(
+      '2026-07-01',
     );
     expect(
       readyRanges.every(
         (range) =>
-          range.startedAt.getTime() >=
-            new Date('2026-05-03T00:00:00.000Z').getTime() &&
-          range.endedAt.getTime() <=
-            new Date('2026-07-01T00:00:00.000Z').getTime(),
+          range.startedAt.getTime() >= new Date(2026, 4, 3).getTime() &&
+          range.endedAt.getTime() <= new Date(2026, 6, 1).getTime(),
       ),
     ).toBe(true);
   });

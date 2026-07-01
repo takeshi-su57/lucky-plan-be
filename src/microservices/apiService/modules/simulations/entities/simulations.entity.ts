@@ -60,6 +60,9 @@ export class SimulationBot {
   ratio: number;
 
   @Field(() => Float)
+  score: number;
+
+  @Field(() => Float)
   maxLeverage: number;
 
   @Field(() => Int)
@@ -257,6 +260,12 @@ export class Simulation {
   @Field(() => Date)
   endAt: Date;
 
+  @Field(() => Int)
+  days: number;
+
+  @Field(() => Int)
+  gapDays: number;
+
   @Field(() => Date, { nullable: true })
   cursor: Date | null;
 
@@ -290,6 +299,9 @@ export class Simulation {
   @Field(() => Float)
   maxLeverage: number;
 
+  @Field(() => Float)
+  score: number;
+
   @Field(() => Int)
   totalSimulationPlans: number;
 
@@ -322,57 +334,6 @@ export class Simulation {
 
   @Field(() => String, { nullable: true })
   error: string | null;
-
-  @Field(() => Date)
-  createdAt: Date;
-
-  @Field(() => Date)
-  updatedAt: Date;
-}
-
-@ObjectType()
-export class SimulationLeaderSelection {
-  @Field(() => Int)
-  id: number;
-
-  @Field(() => Int)
-  simulationId: number;
-
-  @Field(() => Int, { nullable: true })
-  simulationPlanId: number | null;
-
-  @Field(() => String)
-  leaderAddress: string;
-
-  @Field(() => Date)
-  date: Date;
-
-  @Field(() => Float)
-  score: number;
-
-  @Field(() => Float)
-  suggestedRatio: number;
-
-  @Field(() => Float)
-  suggestedCollateralUsd: number;
-
-  @Field(() => Float)
-  rawTotalPnlUsd: number;
-
-  @Field(() => Float)
-  rawSlope: number;
-
-  @Field(() => Float)
-  rawR2: number;
-
-  @Field(() => Int)
-  rawTradeCount: number;
-
-  @Field(() => Float)
-  reverseNetPnlUsd: number;
-
-  @Field(() => Float)
-  reverseDrawdownUsd: number;
 
   @Field(() => Date)
   createdAt: Date;
@@ -420,6 +381,12 @@ export class SimulationResearch {
   @Field(() => Date)
   endAt: Date;
 
+  @Field(() => Int)
+  days: number;
+
+  @Field(() => Int)
+  gapDays: number;
+
   @Field(() => BotMode)
   direction: BotMode;
 
@@ -434,6 +401,9 @@ export class SimulationResearch {
 
   @Field(() => [Float])
   maxLeverage: number[];
+
+  @Field(() => [Float])
+  score: number[];
 
   @Field(() => Int)
   totalSimulations: number;
