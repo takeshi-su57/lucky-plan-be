@@ -1,10 +1,29 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { BotMode, Platform, SimulationStatus } from 'generated/prisma/enums';
 
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { PATTERNS } from 'src/utils/constants';
 
 describe('SimulationAutoRunnerService queue helpers', () => {
+  const emitClient = {
+    emit: jest.fn(async () => undefined),
+  };
+
+  const simulationPlan = {
+    id: 5,
+    title: 'Plan',
+    description: 'Plan',
+    startAt: new Date('2026-04-01T00:00:00.000Z'),
+    endAt: new Date('2026-04-02T00:00:00.000Z'),
+    cursor: new Date('2026-04-02T00:00:00.000Z'),
+    simulationId: 9,
+    simulationBots: [],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('reports whether a simulation id is active locally', () => {
     const service = Object.create(
       SimulationAutoRunnerService.prototype,
@@ -32,6 +51,17 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       SimulationAutoRunnerService.getTerminalStatusForHorizon({
         cursor: new Date('2026-10-01T00:00:00.000Z'),
         endAt: new Date('2026-10-01T00:00:00.000Z'),
+      }),
+    ).toBe(SimulationStatus.Completed);
+  });
+
+  it('uses Completed when the cursor reaches the final executable range before endAt', () => {
+    expect(
+      SimulationAutoRunnerService.getTerminalStatusForHorizon({
+        cursor: new Date('2026-07-09T00:00:00.000Z'),
+        endAt: new Date('2026-07-10T00:00:00.000Z'),
+        completedPlans: 2,
+        totalSimulationPlans: 2,
       }),
     ).toBe(SimulationStatus.Completed);
   });
@@ -123,16 +153,16 @@ describe('SimulationAutoRunnerService queue helpers', () => {
 
   it('creates one simulation bot per selected leader platform instead of per contract', async () => {
     const prisma = {
+      simulationPlan: {
+        findUnique: jest.fn(async () => simulationPlan),
+      },
       simulationBot: {
         count: jest.fn(async () => 0),
         createMany: jest.fn(async () => ({ count: 1 })),
         findMany: jest.fn(async () => [{ id: 77 }]),
       },
       perpTradingEventLog: {
-        groupBy: jest.fn(async () => [
-          { address: '0xabc', contractId: 11 },
-          { address: '0xabc', contractId: 12 },
-        ]),
+        groupBy: jest.fn(),
       },
     };
     const cacheService = {
@@ -143,7 +173,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       prisma as never,
       cacheService as never,
       {} as never,
-      { emit: jest.fn(async () => undefined) } as never,
+      emitClient as never,
     );
 
     await (service as any).createSimulationBotsForSelections(
@@ -185,6 +215,14 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       ],
       skipDuplicates: true,
     });
+    expect(prisma.perpTradingEventLog.groupBy).not.toHaveBeenCalled();
+    expect(
+      cacheService.refreshIncompleteBotsForPlan as jest.Mock,
+    ).toHaveBeenCalledWith(5);
+    expect(emitClient.emit as jest.Mock).toHaveBeenCalledWith(
+      PATTERNS.Simulations.SimulationPlanUpdated,
+      simulationPlan,
+    );
   });
 
   it('evaluates and creates bots one simulation plan window at a time', async () => {
@@ -301,5 +339,102 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     expect(createSimulationBotsForSelections.mock.calls[1][4]).toEqual([
       { leaderAddress: '0xday2', score: 0.9 },
     ]);
+  });
+
+  it('completes a gap-day simulation after the final generated range runs before endAt', async () => {
+    const simulation = {
+      id: 12,
+      title: 'Gapped simulation',
+      description: 'Gapped simulation',
+      platform: Platform.GNS,
+      researchId: null,
+      direction: BotMode.Reversed,
+      startAt: new Date('2026-07-01T00:00:00.000Z'),
+      endAt: new Date('2026-07-10T00:00:00.000Z'),
+      days: 3,
+      gapDays: 2,
+      cursor: null,
+      status: SimulationStatus.Running,
+      progressPhase: 'accepted',
+      progressMessage: 'Auto simulation accepted',
+      progressPercent: 0,
+      selectedLeaderCount: 10,
+      trade: { min: 3, max: 100 },
+      r2: { min: 0.5, max: 1 },
+      slope: { min: 0, max: 100 },
+      standardCollateralUsd: 100,
+      maxLeverage: 50,
+      totalSimulationPlans: 2,
+      completedPlans: 0,
+      totalLeaderPnl: 0,
+      totalFollowerPnl: 0,
+      totalNetPnlUsd: 0,
+      totalCostUsd: 0,
+      maxDrawdownUsd: 0,
+      tradeCount: 0,
+      winRate: 0,
+      profitFactor: 0,
+      error: null,
+      createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+    };
+    const latestSimulation = {
+      ...simulation,
+      cursor: new Date('2026-07-09T00:00:00.000Z'),
+      completedPlans: 2,
+    };
+    const prisma = {
+      simulation: {
+        findUnique: (jest.fn() as any)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(simulation)
+          .mockResolvedValueOnce(latestSimulation),
+        update: jest.fn(async ({ data }: any) => ({
+          ...simulation,
+          ...data,
+        })),
+      },
+      contract: {
+        findMany: jest.fn(async () => [
+          {
+            id: 11,
+            platform: Platform.GNS,
+            chainId: 1,
+            version: 'V9',
+          },
+        ]),
+      },
+    };
+    const evaluator = {
+      findCandidateLeaders: jest.fn(async () => []),
+      evaluateLeadersForRange: jest.fn(async () => []),
+    };
+    const service = new SimulationAutoRunnerService(
+      prisma as never,
+      {} as never,
+      evaluator as never,
+      emitClient as never,
+    );
+    jest
+      .spyOn(service as any, 'createSimulationPlanForRange')
+      .mockResolvedValue({ id: 201 });
+    jest
+      .spyOn(service as any, 'createSimulationBotsForSelections')
+      .mockResolvedValue(undefined);
+    const aggregateSimulation = jest
+      .spyOn(service as any, 'aggregateSimulation')
+      .mockResolvedValue(undefined);
+
+    await (service as any).runAutoSimulation(12, {
+      mode: 'queue',
+      horizon: new Date('2026-07-10T00:00:00.000Z'),
+      runInBackground: false,
+    });
+
+    expect(aggregateSimulation).toHaveBeenCalledWith(12, {
+      status: SimulationStatus.Completed,
+      through: new Date('2026-07-09T00:00:00.000Z'),
+    });
   });
 });

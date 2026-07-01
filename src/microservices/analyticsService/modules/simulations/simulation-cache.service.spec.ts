@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   BotMode,
   PerpTradingEventLog,
@@ -48,6 +48,10 @@ const prisma = {
 
 describe('SimulationCacheService', () => {
   const service = new SimulationCacheService(prisma, eventLogsService);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('marks bot cache incomplete when a lifetime-opened position has no close', () => {
     const bot = {
@@ -165,32 +169,107 @@ describe('SimulationCacheService', () => {
     expect(service.isBotCacheComplete(bot, histories)).toBe(true);
   });
 
-  it('dedupes copied source logs by cache and source event log id', async () => {
+  function sourceLog(
+    overrides: Partial<PerpTradingEventLog>,
+  ): PerpTradingEventLog {
+    return {
+      id: 10,
+      address: '0xabc',
+      contractId: 12,
+      platform: Platform.GNS,
+      jsonLog: '{}',
+      usdPnl: 1,
+      block: 100,
+      logIndex: 1,
+      date: new Date('2026-05-02T00:00:00.000Z'),
+      ...overrides,
+    } as PerpTradingEventLog;
+  }
+
+  function history(overrides: Partial<PerpTradeHistory>): PerpTradeHistory {
+    return {
+      id: 10,
+      positionKey: 'p1',
+      address: '0xabc',
+      pair: 'ETH/USD',
+      operation: PerpTradeHistoryOperation.OPEN,
+      usdPnl: 1,
+      usdBasePnl: 1,
+      usdFee: 0,
+      sizeInUsd: 100,
+      leverage: 5,
+      collateralInUsd: 20,
+      collateralDeltaUsd: 20,
+      sizeDeltaUsd: 100,
+      leverageDelta: 0,
+      isLong: true,
+      price: 100,
+      collateralUsdPrice: 1,
+      date: new Date('2026-05-02T00:00:00.000Z'),
+      contractId: 12,
+      platform: Platform.GNS,
+      ...overrides,
+    };
+  }
+
+  it('caches only logs for positions opened during the simulation bot lifetime', async () => {
     const bot = {
       leaderAddress: '0xabc',
       leaderPlatform: Platform.GNS,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      stoppedAt: new Date('2026-05-03T00:00:00.000Z'),
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GNS,
+          version: Version.V9,
+          chainId: 42161,
+        },
+      ],
     } as any;
 
     const sourceLogs: PerpTradingEventLog[] = [
-      {
+      sourceLog({
         id: 10,
-        address: '0xabc',
-        contractId: 12,
-        platform: Platform.GNS,
-        jsonLog: '{}',
-        usdPnl: 1,
-        block: 100,
-        logIndex: 1,
         date: new Date('2026-05-02T00:00:00.000Z'),
-      },
+      }),
+      sourceLog({
+        id: 11,
+        logIndex: 2,
+        date: new Date('2026-05-02T00:00:00.000Z'),
+      }),
+      sourceLog({
+        id: 12,
+        logIndex: 3,
+        date: new Date('2026-05-02T00:00:00.000Z'),
+      }),
     ];
 
-    prisma.simulationBotCachedEventLog.findFirst.mockResolvedValueOnce(null);
+    prisma.simulationBotCachedEventLog.findMany.mockResolvedValueOnce([]);
     prisma.perpTradingEventLog.findMany.mockResolvedValueOnce(sourceLogs);
     prisma.simulationBotCachedEventLog.createMany.mockResolvedValueOnce({
-      count: 1,
+      count: 2,
     });
+    jest.spyOn(service, 'buildHistoriesFromCachedLogs').mockReturnValueOnce([
+      history({
+        id: 10,
+        positionKey: 'tracked',
+        operation: PerpTradeHistoryOperation.OPEN,
+        date: new Date('2026-05-02T00:00:00.000Z'),
+      }),
+      history({
+        id: 11,
+        positionKey: 'tracked',
+        operation: PerpTradeHistoryOperation.INCREASE_SIZE,
+        date: new Date('2026-05-02T12:00:00.000Z'),
+      }),
+      history({
+        id: 12,
+        positionKey: 'unrelated',
+        operation: PerpTradeHistoryOperation.CLOSE,
+        date: new Date('2026-05-02T13:00:00.000Z'),
+      }),
+    ]);
 
     await service.appendNewEventLogsForBot(33, bot);
 
@@ -198,7 +277,10 @@ describe('SimulationCacheService', () => {
       where: {
         address: '0xabc',
         platform: Platform.GNS,
-        date: { gte: new Date('2026-05-01T00:00:00.000Z') },
+        date: {
+          gte: new Date('2026-05-01T00:00:00.000Z'),
+          lt: new Date('2026-05-03T00:00:00.000Z'),
+        },
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
     });
@@ -215,6 +297,116 @@ describe('SimulationCacheService', () => {
           date: new Date('2026-05-02T00:00:00.000Z'),
           jsonLog: '{}',
           usdPnl: 1,
+        },
+        {
+          simulationBotCacheId: 33,
+          sourceEventLogId: 11,
+          contractId: 12,
+          address: '0xabc',
+          platform: Platform.GNS,
+          block: 100,
+          logIndex: 2,
+          date: new Date('2026-05-02T00:00:00.000Z'),
+          jsonLog: '{}',
+          usdPnl: 1,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it('appends future logs only for already tracked bot position keys', async () => {
+    const bot = {
+      leaderAddress: '0xabc',
+      leaderPlatform: Platform.GNS,
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      stoppedAt: new Date('2026-05-03T00:00:00.000Z'),
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GNS,
+          version: Version.V9,
+          chainId: 42161,
+        },
+      ],
+    } as any;
+    const existingLast = {
+      id: 8,
+      sourceEventLogId: 10,
+      date: new Date('2026-05-02T00:00:00.000Z'),
+      block: 100,
+      logIndex: 1,
+    };
+    const sourceLogs: PerpTradingEventLog[] = [
+      sourceLog({
+        id: 11,
+        usdPnl: 2,
+        logIndex: 2,
+        date: new Date('2026-05-02T00:00:00.000Z'),
+      }),
+      sourceLog({
+        id: 12,
+        usdPnl: 3,
+        logIndex: 3,
+        date: new Date('2026-05-04T00:00:00.000Z'),
+      }),
+    ];
+
+    prisma.simulationBotCachedEventLog.findMany.mockResolvedValueOnce([
+      existingLast,
+    ]);
+    prisma.perpTradingEventLog.findMany.mockResolvedValueOnce(sourceLogs);
+    prisma.simulationBotCachedEventLog.createMany.mockResolvedValueOnce({
+      count: 1,
+    });
+    jest
+      .spyOn(service, 'buildHistoriesFromCachedLogs')
+      .mockReturnValueOnce([
+        history({
+          id: 10,
+          positionKey: 'tracked',
+          operation: PerpTradeHistoryOperation.OPEN,
+          date: new Date('2026-05-02T00:00:00.000Z'),
+        }),
+      ])
+      .mockReturnValueOnce([
+        history({
+          id: 11,
+          positionKey: 'tracked',
+          operation: PerpTradeHistoryOperation.CLOSE,
+          date: new Date('2026-05-02T00:00:00.000Z'),
+        }),
+        history({
+          id: 12,
+          positionKey: 'unrelated-future',
+          operation: PerpTradeHistoryOperation.OPEN,
+          date: new Date('2026-05-04T00:00:00.000Z'),
+        }),
+      ]);
+
+    await service.appendNewEventLogsForBot(33, bot);
+
+    expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledWith({
+      where: {
+        address: '0xabc',
+        platform: Platform.GNS,
+        date: { gte: existingLast.date },
+      },
+      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+    });
+    expect(prisma.simulationBotCachedEventLog.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          simulationBotCacheId: 33,
+          sourceEventLogId: 11,
+          contractId: 12,
+          address: '0xabc',
+          platform: Platform.GNS,
+          block: 100,
+          logIndex: 2,
+          date: new Date('2026-05-02T00:00:00.000Z'),
+          jsonLog: '{}',
+          usdPnl: 2,
         },
       ],
       skipDuplicates: true,
@@ -257,6 +449,36 @@ describe('SimulationCacheService', () => {
       incompleteBots: 1,
       totalPositions: 7,
     });
+  });
+
+  it('skips completed bot caches during plan refresh', async () => {
+    const completedBot = {
+      id: 77,
+      leaderAddress: '0xabc',
+      leaderPlatform: Platform.GNS,
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      cache: {
+        id: 33,
+        completed: true,
+        rebuilding: false,
+        rebuildRequested: false,
+      },
+    };
+
+    prisma.simulationBot.findMany = jest.fn(async () => [completedBot]);
+    prisma.simulationBotCache.findMany.mockResolvedValueOnce([]);
+    prisma.simulationPlanCache.upsert.mockResolvedValueOnce({});
+    const appendNewEventLogsForBot = jest
+      .spyOn(service, 'appendNewEventLogsForBot')
+      .mockResolvedValueOnce({ count: 1 } as never);
+    const rebuildBotCache = jest
+      .spyOn(service, 'rebuildBotCache')
+      .mockResolvedValueOnce({} as never);
+
+    await service.refreshIncompleteBotsForPlan(10);
+
+    expect(appendNewEventLogsForBot).not.toHaveBeenCalled();
+    expect(rebuildBotCache).not.toHaveBeenCalled();
   });
 
   it('compares cached plan totals with current plan record totals', async () => {

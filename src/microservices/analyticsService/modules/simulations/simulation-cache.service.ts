@@ -61,46 +61,138 @@ export class SimulationCacheService {
 
   async appendNewEventLogsForBot(
     cacheId: number,
-    bot: Pick<SimulationBot, 'leaderAddress' | 'leaderPlatform' | 'startedAt'>,
+    bot: Pick<
+      SimulationBotWithContract,
+      | 'leaderAddress'
+      | 'leaderPlatform'
+      | 'startedAt'
+      | 'stoppedAt'
+      | 'leaderContracts'
+    >,
   ) {
-    const existingLast =
-      await this.prisma.simulationBotCachedEventLog.findFirst({
-        where: { simulationBotCacheId: cacheId },
-        orderBy: [{ date: 'desc' }, { block: 'desc' }, { id: 'desc' }],
-      });
+    const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany({
+      where: { simulationBotCacheId: cacheId },
+      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+    });
+    const existingLast = cachedLogs.at(-1);
 
     const newLogs = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: bot.leaderAddress.toLowerCase(),
         platform: bot.leaderPlatform,
         ...(existingLast
-          ? { date: { gt: existingLast.date } }
-          : { date: { gte: bot.startedAt } }),
+          ? { date: { gte: existingLast.date } }
+          : {
+              date: {
+                gte: bot.startedAt,
+                ...(bot.stoppedAt ? { lt: bot.stoppedAt } : {}),
+              },
+            }),
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
     });
 
     if (newLogs.length === 0) {
-      return [];
+      return { count: 0 };
     }
 
-    await this.prisma.simulationBotCachedEventLog.createMany({
-      data: newLogs.map((log) => ({
-        simulationBotCacheId: cacheId,
-        sourceEventLogId: log.id,
-        contractId: log.contractId,
-        address: log.address,
-        platform: log.platform,
-        block: log.block,
-        logIndex: log.logIndex,
-        date: log.date,
-        jsonLog: log.jsonLog,
-        usdPnl: log.usdPnl,
-      })),
-      skipDuplicates: true,
+    const cachedHistories =
+      cachedLogs.length > 0
+        ? this.buildHistoriesFromCachedLogs(
+            bot as SimulationBotWithContract,
+            cachedLogs,
+          )
+        : [];
+    const newLogRecords = newLogs.map((log) =>
+      this.mapSourceLogToCachedRecord(cacheId, log),
+    );
+    const newHistories = this.buildHistoriesFromCachedLogs(
+      bot as SimulationBotWithContract,
+      newLogRecords,
+    );
+    const trackedPositionKeys = this.getLifetimeOpenedPositionKeys(
+      bot,
+      cachedHistories,
+    );
+
+    for (const history of newHistories) {
+      if (this.isOpenedDuringBotLifetime(bot, history)) {
+        trackedPositionKeys.add(this.getHistoryPositionKey(history));
+      }
+    }
+
+    if (trackedPositionKeys.size === 0) {
+      return { count: 0 };
+    }
+
+    const historyBySourceEventLogId = new Map(
+      newHistories.map((history) => [history.id, history]),
+    );
+    const cacheableLogRecords = newLogRecords.filter((record) => {
+      const history = historyBySourceEventLogId.get(record.sourceEventLogId);
+
+      return (
+        history && trackedPositionKeys.has(this.getHistoryPositionKey(history))
+      );
     });
 
-    return newLogs;
+    if (cacheableLogRecords.length === 0) {
+      return { count: 0 };
+    }
+
+    return this.prisma.simulationBotCachedEventLog.createMany({
+      data: cacheableLogRecords.map(({ id: _id, ...record }) => record),
+      skipDuplicates: true,
+    });
+  }
+
+  private mapSourceLogToCachedRecord(
+    cacheId: number,
+    log: PerpTradingEventLog,
+  ) {
+    return {
+      id: log.id,
+      simulationBotCacheId: cacheId,
+      sourceEventLogId: log.id,
+      contractId: log.contractId,
+      address: log.address,
+      platform: log.platform,
+      block: log.block,
+      logIndex: log.logIndex,
+      date: log.date,
+      jsonLog: log.jsonLog,
+      usdPnl: log.usdPnl,
+    };
+  }
+
+  private getHistoryPositionKey(history: PerpTradeHistory) {
+    return `${history.contractId}:${history.positionKey}`;
+  }
+
+  private isOpenedDuringBotLifetime(
+    bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
+    history: PerpTradeHistory,
+  ) {
+    return (
+      history.operation === PerpTradeHistoryOperation.OPEN &&
+      history.date >= bot.startedAt &&
+      (!bot.stoppedAt || history.date < bot.stoppedAt)
+    );
+  }
+
+  private getLifetimeOpenedPositionKeys(
+    bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
+    histories: PerpTradeHistory[],
+  ) {
+    const positionKeys = new Set<string>();
+
+    for (const history of histories) {
+      if (this.isOpenedDuringBotLifetime(bot, history)) {
+        positionKeys.add(this.getHistoryPositionKey(history));
+      }
+    }
+
+    return positionKeys;
   }
 
   isBotCacheComplete(
@@ -408,13 +500,16 @@ export class SimulationCacheService {
     });
 
     for (const bot of bots) {
-      if (!bot.cache || !bot.cache.completed || bot.cache.rebuildRequested) {
-        if (bot.cache?.rebuilding) {
-          continue;
-        }
-
-        await this.rebuildBotCache(bot.id);
+      if (bot.cache?.rebuilding) {
+        continue;
       }
+
+      if (!bot.cache || !bot.cache.completed || bot.cache.rebuildRequested) {
+        await this.rebuildBotCache(bot.id);
+        continue;
+      }
+
+      continue;
     }
 
     await this.rebuildPlanCache(simulationPlanId);
