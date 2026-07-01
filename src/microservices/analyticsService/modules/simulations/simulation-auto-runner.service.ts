@@ -154,11 +154,7 @@ export class SimulationAutoRunnerService {
     return await this.prisma.simulationPlan.findUnique({
       where: { id },
       include: {
-        simulationBots: {
-          include: {
-            leaderContract: true,
-          },
-        },
+        simulationBots: true,
       },
     });
   }
@@ -716,7 +712,7 @@ export class SimulationAutoRunnerService {
       candidate.leaderAddress.toLowerCase(),
     );
     const tradedContractGroups = await this.prisma.perpTradingEventLog.groupBy({
-      by: ['address', 'contractId'],
+      by: ['address'],
       where: {
         platform: simulation.platform,
         address: {
@@ -731,25 +727,19 @@ export class SimulationAutoRunnerService {
         },
       },
     });
-    const contractIdsByLeaderAddress = new Map<string, Set<number>>();
+    const tradedLeaderAddresses = new Set<string>();
 
     tradedContractGroups.forEach((group) => {
-      const leaderAddress = group.address.toLowerCase();
-      const contractIds =
-        contractIdsByLeaderAddress.get(leaderAddress) || new Set<number>();
-
-      contractIds.add(group.contractId);
-      contractIdsByLeaderAddress.set(leaderAddress, contractIds);
+      tradedLeaderAddresses.add(group.address.toLowerCase());
     });
 
-    const botInputs = selectedCandidates.flatMap((candidate) => {
-      const contractIds =
-        contractIdsByLeaderAddress.get(candidate.leaderAddress.toLowerCase()) ||
-        new Set<number>();
-
-      return [...contractIds].map((contractId) => ({
+    const botInputs = selectedCandidates
+      .filter((candidate) =>
+        tradedLeaderAddresses.has(candidate.leaderAddress.toLowerCase()),
+      )
+      .map((candidate) => ({
         leaderAddress: candidate.leaderAddress,
-        leaderContractId: contractId,
+        leaderPlatform: simulation.platform,
         simulationPlanId,
         startedAt,
         stoppedAt,
@@ -757,7 +747,6 @@ export class SimulationAutoRunnerService {
         ratio: candidate.suggestedRatio,
         maxLeverage: simulation.maxLeverage,
       }));
-    });
 
     if (botInputs.length === 0) {
       this.logDebug('Auto simulation day created no bots', {
@@ -770,6 +759,7 @@ export class SimulationAutoRunnerService {
 
     await this.prisma.simulationBot.createMany({
       data: botInputs,
+      skipDuplicates: true,
     });
 
     const createdBots = await this.prisma.simulationBot.findMany({

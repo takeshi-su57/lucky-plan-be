@@ -37,6 +37,9 @@ const prisma = {
   simulationBot: {
     findUniqueOrThrow: jest.fn(),
   },
+  contract: {
+    findMany: jest.fn(),
+  },
   simulationPlan: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -54,11 +57,15 @@ describe('SimulationCacheService', () => {
       maxLeverage: 50,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
-      leaderContract: {
-        platform: Platform.GNS,
-        version: Version.V9,
-        chainId: 42161,
-      },
+      leaderPlatform: Platform.GNS,
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GNS,
+          version: Version.V9,
+          chainId: 42161,
+        },
+      ],
     } as any;
 
     const histories: PerpTradeHistory[] = [
@@ -97,11 +104,15 @@ describe('SimulationCacheService', () => {
       maxLeverage: 50,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
-      leaderContract: {
-        platform: Platform.GNS,
-        version: Version.V9,
-        chainId: 42161,
-      },
+      leaderPlatform: Platform.GNS,
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GNS,
+          version: Version.V9,
+          chainId: 42161,
+        },
+      ],
     } as any;
 
     const histories: PerpTradeHistory[] = [
@@ -157,7 +168,7 @@ describe('SimulationCacheService', () => {
   it('dedupes copied source logs by cache and source event log id', async () => {
     const bot = {
       leaderAddress: '0xabc',
-      leaderContractId: 12,
+      leaderPlatform: Platform.GNS,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
     } as any;
 
@@ -183,6 +194,14 @@ describe('SimulationCacheService', () => {
 
     await service.appendNewEventLogsForBot(33, bot);
 
+    expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledWith({
+      where: {
+        address: '0xabc',
+        platform: Platform.GNS,
+        date: { gte: new Date('2026-05-01T00:00:00.000Z') },
+      },
+      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+    });
     expect(prisma.simulationBotCachedEventLog.createMany).toHaveBeenCalledWith({
       data: [
         {
@@ -269,11 +288,15 @@ describe('SimulationCacheService', () => {
       maxLeverage: 50,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
-      leaderContract: {
-        platform: Platform.GNS,
-        version: Version.V9,
-        chainId: 42161,
-      },
+      leaderPlatform: Platform.GNS,
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GNS,
+          version: Version.V9,
+          chainId: 42161,
+        },
+      ],
     } as any;
 
     const histories: PerpTradeHistory[] = [

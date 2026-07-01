@@ -8,7 +8,6 @@ import {
 } from '@nestjs/graphql';
 import { BotMode, Platform, SimulationStatus } from 'generated/prisma/client';
 
-import { Contract } from '../../contracts/entities/contract.entity';
 import { PerpTradeHistory } from '../../trade-histories/entities/event-logs.entity';
 
 registerEnumType(SimulationStatus, {
@@ -66,8 +65,8 @@ export class SimulationBot {
   @Field(() => Int)
   simulationPlanId: number;
 
-  @Field(() => Int)
-  leaderContractId: number;
+  @Field(() => Platform)
+  leaderPlatform: Platform;
 
   @Field(() => Date)
   startedAt: Date;
@@ -77,9 +76,6 @@ export class SimulationBot {
 
   @Field(() => BotMode)
   mode: BotMode;
-
-  @Field(() => Contract)
-  leaderContract: Contract;
 
   @Field(() => Int)
   openedPositions: number;

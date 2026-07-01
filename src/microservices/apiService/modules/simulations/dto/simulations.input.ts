@@ -81,8 +81,8 @@ export class CreateSimulationBotInput {
   leaderAddress: string;
 
   @IsNotEmpty()
-  @Field(() => Int)
-  leaderContractId: number;
+  @Field(() => Platform)
+  leaderPlatform: Platform;
 
   @IsNotEmpty()
   @Field(() => BotMode)

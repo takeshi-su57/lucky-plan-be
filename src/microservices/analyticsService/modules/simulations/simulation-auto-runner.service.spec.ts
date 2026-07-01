@@ -120,4 +120,68 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       }),
     ]);
   });
+
+  it('creates one simulation bot per selected leader platform instead of per contract', async () => {
+    const prisma = {
+      simulationBot: {
+        count: jest.fn(async () => 0),
+        createMany: jest.fn(async () => ({ count: 1 })),
+        findMany: jest.fn(async () => [{ id: 77 }]),
+      },
+      perpTradingEventLog: {
+        groupBy: jest.fn(async () => [
+          { address: '0xabc', contractId: 11 },
+          { address: '0xabc', contractId: 12 },
+        ]),
+      },
+    };
+    const cacheService = {
+      ensureSimulationBotCache: jest.fn(async () => undefined),
+      refreshIncompleteBotsForPlan: jest.fn(async () => undefined),
+    };
+    const service = new SimulationAutoRunnerService(
+      prisma as never,
+      cacheService as never,
+      {} as never,
+      { emit: jest.fn(async () => undefined) } as never,
+    );
+
+    await (service as any).createSimulationBotsForSelections(
+      5,
+      new Date('2026-04-01T00:00:00.000Z'),
+      new Date('2026-04-02T00:00:00.000Z'),
+      {
+        id: 9,
+        platform: Platform.GNS,
+        direction: BotMode.Reversed,
+        maxLeverage: 5,
+      },
+      [
+        {
+          leaderAddress: '0xabc',
+          suggestedRatio: 3,
+        },
+      ],
+      [
+        { id: 11, platform: Platform.GNS },
+        { id: 12, platform: Platform.GNS },
+      ],
+    );
+
+    expect((prisma.simulationBot.createMany as any).mock.calls[0][0]).toEqual({
+      data: [
+        {
+          leaderAddress: '0xabc',
+          leaderPlatform: Platform.GNS,
+          simulationPlanId: 5,
+          startedAt: new Date('2026-04-01T00:00:00.000Z'),
+          stoppedAt: new Date('2026-04-02T00:00:00.000Z'),
+          mode: BotMode.Reversed,
+          ratio: 3,
+          maxLeverage: 5,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
 });

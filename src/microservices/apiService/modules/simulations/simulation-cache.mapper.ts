@@ -1,6 +1,7 @@
 import { SimulationTradePosition } from './entities/simulations.entity';
 
 type CacheBackedSimulationBot = {
+  leaderPlatform: string;
   openedPositions: number;
   totalPositions: number;
   totalPnl: number;

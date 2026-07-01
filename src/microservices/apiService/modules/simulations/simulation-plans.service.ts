@@ -87,11 +87,7 @@ export class SimulationPlansService {
         cursor: createSimulationPlanInput.startAt,
       },
       include: {
-        simulationBots: {
-          include: {
-            leaderContract: true,
-          },
-        },
+        simulationBots: true,
       },
     });
 
@@ -203,9 +199,6 @@ export class SimulationPlansService {
           ...input,
           startedAt: simulationPlan.cursor,
         },
-        include: {
-          leaderContract: true,
-        },
       });
 
       await this.ensureSimulationBotCache(bot.id);
@@ -226,9 +219,6 @@ export class SimulationPlansService {
         ratio: input.ratio ?? undefined,
         maxLeverage: input.maxLeverage ?? undefined,
         mode: input.mode ?? undefined,
-      },
-      include: {
-        leaderContract: true,
       },
     });
   }
@@ -257,11 +247,7 @@ export class SimulationPlansService {
         cursor: new Date(nextCursor),
       },
       include: {
-        simulationBots: {
-          include: {
-            leaderContract: true,
-          },
-        },
+        simulationBots: true,
       },
     });
 
@@ -291,9 +277,6 @@ export class SimulationPlansService {
       data: {
         stoppedAt: simulationBot.simulationPlan.cursor,
       },
-      include: {
-        leaderContract: true,
-      },
     });
   }
 
@@ -318,11 +301,7 @@ export class SimulationPlansService {
         },
       ],
       include: {
-        simulationBots: {
-          include: {
-            leaderContract: true,
-          },
-        },
+        simulationBots: true,
       },
     });
 
@@ -348,11 +327,7 @@ export class SimulationPlansService {
     const simulationPlan = await this.prisma.simulationPlan.findUnique({
       where: { id },
       include: {
-        simulationBots: {
-          include: {
-            leaderContract: true,
-          },
-        },
+        simulationBots: true,
       },
     });
 
@@ -360,6 +335,21 @@ export class SimulationPlansService {
       throw new Error('SimulationPlan not found');
     }
 
+    const leaderPlatforms = [
+      ...new Set(
+        simulationPlan.simulationBots.map((bot) => bot.leaderPlatform),
+      ),
+    ];
+    const contracts = await this.prisma.contract.findMany({
+      where: {
+        platform: {
+          in: leaderPlatforms,
+        },
+      },
+    });
+    const contractById = new Map(
+      contracts.map((contract) => [contract.id, contract]),
+    );
     const simulationBotDetails: SimulationBotDetails[] = [];
 
     let totalPositions = 0;
@@ -372,7 +362,7 @@ export class SimulationPlansService {
       const records = await this.prisma.perpTradingEventLog.findMany({
         where: {
           address: bot.leaderAddress.toLowerCase(),
-          contractId: bot.leaderContractId,
+          platform: bot.leaderPlatform,
           date: {
             gte: bot.startedAt,
             ...(stoppedAt
@@ -395,14 +385,20 @@ export class SimulationPlansService {
 
       const positionsWithSummary =
         this.eventLogsService.convertToPerpTradePositionsWithSummary(
-          bot.leaderContract.platform,
+          bot.leaderPlatform,
           records
             .map((record) => {
+              const contract = contractById.get(record.contractId);
+
+              if (!contract) {
+                return null;
+              }
+
               const history = getWeb3Info(
-                bot.leaderContract.platform,
-                bot.leaderContract.version,
+                contract.platform,
+                contract.version,
               ).eventToPerpTradeHistory(
-                bot.leaderContract.chainId,
+                contract.chainId,
                 JSON.parse(record.jsonLog) as any,
               );
 
@@ -522,9 +518,6 @@ export class SimulationPlansService {
                 calculatedBot.avgPnlPercentageByCollateral,
               avgLeverage: calculatedBot.avgLeverage,
             },
-            include: {
-              leaderContract: true,
-            },
           })
         : calculatedBot;
 
@@ -569,7 +562,6 @@ export class SimulationPlansService {
         cache: true,
         simulationBots: {
           include: {
-            leaderContract: true,
             cache: true,
           },
         },
@@ -615,7 +607,6 @@ export class SimulationPlansService {
         cache: true,
         simulationBots: {
           include: {
-            leaderContract: true,
             cache: true,
           },
         },

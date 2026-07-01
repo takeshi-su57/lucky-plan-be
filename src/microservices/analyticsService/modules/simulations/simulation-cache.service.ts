@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   BotMode,
+  Contract,
   PerpTradingEventLog,
   SimulationBot,
   SimulationBotCache,
@@ -16,11 +17,7 @@ import {
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 
 type SimulationBotWithContract = SimulationBot & {
-  leaderContract: {
-    platform: SimulationBot['mode'] extends never ? never : any;
-    version: any;
-    chainId: number;
-  };
+  leaderContracts: Pick<Contract, 'id' | 'platform' | 'version' | 'chainId'>[];
   cache?: SimulationBotCache | null;
 };
 
@@ -66,10 +63,7 @@ export class SimulationCacheService {
 
   async appendNewEventLogsForBot(
     cacheId: number,
-    bot: Pick<
-      SimulationBot,
-      'leaderAddress' | 'leaderContractId' | 'startedAt'
-    >,
+    bot: Pick<SimulationBot, 'leaderAddress' | 'leaderPlatform' | 'startedAt'>,
   ) {
     const existingLast =
       await this.prisma.simulationBotCachedEventLog.findFirst({
@@ -80,7 +74,7 @@ export class SimulationCacheService {
     const newLogs = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: bot.leaderAddress.toLowerCase(),
-        contractId: bot.leaderContractId,
+        platform: bot.leaderPlatform,
         ...(existingLast
           ? { date: { gt: existingLast.date } }
           : { date: { gte: bot.startedAt } }),
@@ -148,13 +142,23 @@ export class SimulationCacheService {
     bot: SimulationBotWithContract,
     cachedLogs: CachedEventLogRecord[],
   ) {
+    const contractById = new Map(
+      bot.leaderContracts.map((contract) => [contract.id, contract]),
+    );
+
     return cachedLogs
       .map((record) => {
+        const contract = contractById.get(record.contractId);
+
+        if (!contract) {
+          return null;
+        }
+
         const history = getWeb3Info(
-          bot.leaderContract.platform,
-          bot.leaderContract.version,
+          contract.platform,
+          contract.version,
         ).eventToPerpTradeHistory(
-          bot.leaderContract.chainId,
+          contract.chainId,
           JSON.parse(record.jsonLog) as never,
         );
 
@@ -178,7 +182,7 @@ export class SimulationCacheService {
     const histories = this.buildHistoriesFromCachedLogs(bot, cachedLogs);
     const positionsWithSummary =
       this.eventLogsService.convertToPerpTradePositionsWithSummary(
-        bot.leaderContract.platform,
+        bot.leaderPlatform,
         histories,
         {
           stoppedAt: bot.stoppedAt || undefined,
@@ -265,10 +269,16 @@ export class SimulationCacheService {
     const bot = await this.prisma.simulationBot.findUniqueOrThrow({
       where: { id: simulationBotId },
       include: {
-        leaderContract: true,
         cache: true,
       },
     });
+    const leaderContracts = await this.prisma.contract.findMany({
+      where: { platform: bot.leaderPlatform },
+    });
+    const botWithContracts = {
+      ...bot,
+      leaderContracts,
+    };
 
     const cache = await this.ensureSimulationBotCache(bot.id);
 
@@ -282,7 +292,7 @@ export class SimulationCacheService {
     });
 
     try {
-      await this.appendNewEventLogsForBot(cache.id, bot);
+      await this.appendNewEventLogsForBot(cache.id, botWithContracts);
 
       const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany(
         {
@@ -291,7 +301,10 @@ export class SimulationCacheService {
         },
       );
 
-      const summary = this.buildBotSummaryFromCachedLogs(bot, cachedLogs);
+      const summary = this.buildBotSummaryFromCachedLogs(
+        botWithContracts,
+        cachedLogs,
+      );
 
       return await this.prisma.simulationBotCache.update({
         where: { id: cache.id },

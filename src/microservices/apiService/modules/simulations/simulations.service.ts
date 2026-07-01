@@ -28,6 +28,7 @@ import {
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationStatus } from 'generated/prisma/enums';
 import { SimulationPlansService } from './simulation-plans.service';
+import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import {
   buildSimulationParameterGrid,
   ValueRange,
@@ -675,17 +676,20 @@ export class SimulationsService {
   async getSimulationPlansBySimulation(
     simulationId: number,
   ): Promise<SimulationPlan[]> {
-    return await this.prisma.simulationPlan.findMany({
+    const plans = await this.prisma.simulationPlan.findMany({
       where: { simulationId },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       include: {
+        cache: true,
         simulationBots: {
           include: {
-            leaderContract: true,
+            cache: true,
           },
         },
       },
     });
+
+    return plans.map((plan) => mapSimulationPlanWithCache(plan));
   }
 
   async getSimulationPlanDetailsBySimulation(

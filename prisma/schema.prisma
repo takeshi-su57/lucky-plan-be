@@ -54,7 +54,6 @@ model Contract {
   leaderBots                 Bot[]           @relation("leaderBots")
   sltprequests               SLTPRequest[]
   actions                    Action[]
-  simulationBots             SimulationBot[] @relation("leaderSimulationBots")
 
   @@unique([chainId, address, version, platform])
 }
@@ -304,7 +303,7 @@ model Bot {
 model SimulationBot {
   id               Int       @id @default(autoincrement())
   leaderAddress    String    @db.VarChar(255)
-  leaderContractId Int
+  leaderPlatform   Platform
   stoppedAt        DateTime?
   startedAt        DateTime
   simulationPlanId Int       @default(0)
@@ -326,9 +325,11 @@ model SimulationBot {
   avgPnlPercentageByCollateral Float @default(0)
   avgLeverage                  Float @default(0)
 
-  leaderContract Contract       @relation("leaderSimulationBots", fields: [leaderContractId], references: [id])
   simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id])
   cache          SimulationBotCache?
+
+  @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, maxLeverage])
+  @@index([leaderPlatform, leaderAddress])
 }
 
 model SimulationBotCache {
