@@ -108,6 +108,52 @@ describe('AnalyticsSimulationsService', () => {
     expect(runner.playQueuedAutoSimulation).not.toHaveBeenCalled();
   });
 
+  it('pauses a created simulation when cron has no ready historical range yet', async () => {
+    const candidate = simulation({
+      id: 14,
+      status: SimulationStatus.Created,
+      startAt: new Date('2026-07-01T00:00:00.000Z'),
+      endAt: new Date('2026-07-10T00:00:00.000Z'),
+    });
+    const prisma = {
+      simulation: {
+        findMany: jest.fn(async () => [candidate]),
+        update: jest.fn(async ({ data }: any) => ({
+          ...candidate,
+          ...data,
+        })),
+      },
+    };
+    const runner = {
+      isAutoSimulationActive: jest.fn(() => false),
+      playQueuedAutoSimulation: jest.fn(),
+    };
+    const service = new AnalyticsSimulationsService(
+      prisma as never,
+      runner as never,
+    );
+
+    const result = await service.processNextQueuedAutoSimulation(
+      new Date('2026-07-01T12:00:00.000Z'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 14,
+        status: SimulationStatus.Paused,
+        progressPhase: 'paused',
+      }),
+    );
+    expect(prisma.simulation.update).toHaveBeenCalledWith({
+      where: { id: 14 },
+      data: expect.objectContaining({
+        status: SimulationStatus.Paused,
+        progressPhase: 'paused',
+      }),
+    });
+    expect(runner.playQueuedAutoSimulation).not.toHaveBeenCalled();
+  });
+
   it('recovers a stale running simulation after a worker restart', async () => {
     const { service, runner } = createService([
       simulation({

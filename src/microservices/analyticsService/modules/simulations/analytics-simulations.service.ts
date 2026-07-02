@@ -49,8 +49,27 @@ export class AnalyticsSimulationsService {
       take: 25,
     });
 
-    const eligibleCandidates = candidates
-      .filter((candidate) => {
+    const candidateReadiness = candidates.map((candidate) => {
+      const allRanges = buildSimulationRanges(
+        candidate.startAt,
+        candidate.endAt,
+        { days: candidate.days, gapDays: candidate.gapDays },
+      );
+      const horizon = buildAutomationHorizon(candidate.endAt, now);
+      const readyRanges = filterReadyAutomationRanges(
+        allRanges,
+        candidate.cursor,
+        horizon,
+      );
+
+      return {
+        candidate,
+        readyRanges,
+      };
+    });
+
+    const eligibleCandidates = candidateReadiness
+      .filter(({ candidate, readyRanges }) => {
         if (
           candidate.status === SimulationStatus.Running &&
           !isRunningSimulationStale({
@@ -67,20 +86,9 @@ export class AnalyticsSimulationsService {
           return false;
         }
 
-        const allRanges = buildSimulationRanges(
-          candidate.startAt,
-          candidate.endAt,
-          { days: candidate.days, gapDays: candidate.gapDays },
-        );
-        const horizon = buildAutomationHorizon(candidate.endAt, now);
-        const readyRanges = filterReadyAutomationRanges(
-          allRanges,
-          candidate.cursor,
-          horizon,
-        );
-
         return readyRanges.length > 0;
       })
+      .map(({ candidate }) => candidate)
       .sort((a, b) => {
         const priorityDiff =
           AnalyticsSimulationsService.getAutomationStatusPriority(a.status) -
@@ -96,7 +104,24 @@ export class AnalyticsSimulationsService {
     const simulation = eligibleCandidates[0];
 
     if (!simulation) {
-      return null;
+      const waitingSimulation = candidateReadiness
+        .map(({ candidate }) => candidate)
+        .find((candidate) => candidate.status === SimulationStatus.Created);
+
+      if (!waitingSimulation) {
+        return null;
+      }
+
+      const pausedSimulation = await this.prisma.simulation.update({
+        where: { id: waitingSimulation.id },
+        data: {
+          status: SimulationStatus.Paused,
+          progressPhase: 'paused',
+          progressMessage: 'Paused until more historical data is available',
+        },
+      });
+
+      return pausedSimulation as unknown as Simulation;
     }
 
     const horizon = buildAutomationHorizon(simulation.endAt, now);
