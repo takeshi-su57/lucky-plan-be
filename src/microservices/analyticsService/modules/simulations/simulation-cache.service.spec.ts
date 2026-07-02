@@ -509,6 +509,8 @@ describe('SimulationCacheService', () => {
       ratio: 0.5,
       minLeverage: 2,
       maxLeverage: 50,
+      minCollateral: 10,
+      maxCollateral: 200,
       startedAt: new Date('2026-05-01T00:00:00.000Z'),
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
       leaderPlatform: Platform.GNS,
@@ -599,6 +601,8 @@ describe('SimulationCacheService', () => {
       stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
       minLeverage: 2,
       maxLeverage: 50,
+      minCollateral: 10,
+      maxCollateral: 200,
     });
     expect(summary.followerPositionPnls).toEqual([-1.5]);
     expect(summary.positions).toEqual([

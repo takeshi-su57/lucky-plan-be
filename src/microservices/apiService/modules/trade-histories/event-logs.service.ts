@@ -110,6 +110,8 @@ export class EventLogsService {
     histories: PerpTradeHistory[],
     filters: {
       stoppedAt?: Date;
+      minCollateral?: number;
+      maxCollateral?: number;
       minLeverage?: number;
       maxLeverage?: number;
     },
@@ -162,6 +164,20 @@ export class EventLogsService {
         }
 
         if (filters.stoppedAt && history.date > filters.stoppedAt) {
+          break;
+        }
+
+        if (
+          filters.minCollateral !== undefined &&
+          history.collateralInUsd < filters.minCollateral
+        ) {
+          break;
+        }
+
+        if (
+          filters.maxCollateral !== undefined &&
+          history.collateralInUsd > filters.maxCollateral
+        ) {
           break;
         }
 

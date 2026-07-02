@@ -16,6 +16,7 @@ export type SimulationParameterGridInput = {
   trade: ValueRange[];
   r2: ValueRange[];
   slope: ValueRange[];
+  collateral: ValueRange[];
   leverage: ValueRange[];
   score: ValueRange[];
 };
@@ -25,6 +26,7 @@ export type SimulationParameterCombination = {
   trade: ValueRange;
   r2: ValueRange;
   slope: ValueRange;
+  collateral: ValueRange;
   leverage: ValueRange;
   score: ValueRange;
 };
@@ -148,19 +150,22 @@ export function buildSimulationParameterGrid(
       for (const slope of input.slope) {
         const normalizedSlope = normalizeAbsoluteSlopeBounds(slope);
 
-        for (const leverage of input.leverage) {
-          for (const score of input.score) {
-            combinations.push({
-              direction: input.direction,
-              trade: { ...trade },
-              r2: { ...r2 },
-              slope: {
-                min: normalizedSlope.minSlope,
-                max: normalizedSlope.maxSlope,
-              },
-              leverage: { ...leverage },
-              score: { ...score },
-            });
+        for (const collateral of input.collateral) {
+          for (const leverage of input.leverage) {
+            for (const score of input.score) {
+              combinations.push({
+                direction: input.direction,
+                trade: { ...trade },
+                r2: { ...r2 },
+                slope: {
+                  min: normalizedSlope.minSlope,
+                  max: normalizedSlope.maxSlope,
+                },
+                collateral: { ...collateral },
+                leverage: { ...leverage },
+                score: { ...score },
+              });
+            }
           }
         }
       }

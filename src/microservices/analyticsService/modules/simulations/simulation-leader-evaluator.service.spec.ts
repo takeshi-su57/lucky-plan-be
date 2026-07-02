@@ -281,6 +281,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       {
         id: 1,
         platform: Platform.GNS,
+        collateral: { min: 10, max: 500 },
         leverage: { min: 1, max: 100 },
       },
       new Map(),
@@ -347,6 +348,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       {
         id: 1,
         platform: Platform.GNS,
+        collateral: { min: 10, max: 500 },
         leverage: { min: 1, max: 100 },
       },
       new Map(),

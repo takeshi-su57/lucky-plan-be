@@ -444,6 +444,8 @@ export class SimulationLeaderEvaluatorService {
         simulation.platform,
         histories,
         {
+          minCollateral: simulation.collateral.min,
+          maxCollateral: simulation.collateral.max,
           minLeverage: simulation.leverage.min,
           maxLeverage: simulation.leverage.max,
         },

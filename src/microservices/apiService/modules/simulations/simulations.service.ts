@@ -50,6 +50,7 @@ const DEFAULT_STANDARD_COLLATERAL_USD = 100;
 const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
+const DEFAULT_COLLATERAL_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
 
@@ -124,6 +125,9 @@ export class SimulationsService {
       maxAllowed: 1,
     });
     this.validateFloatMinMaxPair('slope', input.slope, { minAllowed: 0 });
+    this.validateFloatMinMaxPair('collateral', input.collateral, {
+      minAllowed: 0,
+    });
     this.validateFloatMinMaxPair('leverage', input.leverage, {
       minAllowed: 0,
     });
@@ -166,6 +170,12 @@ export class SimulationsService {
 
     if (input.leverage !== undefined && input.leverage !== null) {
       this.validateFloatMinMaxPair('leverage', input.leverage, {
+        minAllowed: 0,
+      });
+    }
+
+    if (input.collateral !== undefined && input.collateral !== null) {
+      this.validateFloatMinMaxPair('collateral', input.collateral, {
         minAllowed: 0,
       });
     }
@@ -321,6 +331,10 @@ export class SimulationsService {
       throw new Error('leverage must contain at least one range');
     }
 
+    if (input.collateral.length === 0) {
+      throw new Error('collateral must contain at least one range');
+    }
+
     if (input.score.length === 0) {
       throw new Error('score must contain at least one range');
     }
@@ -345,6 +359,12 @@ export class SimulationsService {
 
     input.leverage.forEach((range, index) =>
       this.validateMinMaxRange(`leverage[${index}]`, range, {
+        minAllowed: 0,
+      }),
+    );
+
+    input.collateral.forEach((range, index) =>
+      this.validateMinMaxRange(`collateral[${index}]`, range, {
         minAllowed: 0,
       }),
     );
@@ -404,6 +424,7 @@ export class SimulationsService {
       trade: record.trade as any,
       r2: record.r2 as any,
       slope: record.slope as any,
+      collateral: (record.collateral as ValueRange[] | null) ?? [],
       leverage: (record.leverage as ValueRange[] | null) ?? [],
       score: (record.score as ValueRange[] | null) ?? [],
       scoreFormular:
@@ -467,6 +488,7 @@ export class SimulationsService {
     const trade = input.trade;
     const r2 = input.r2;
     const slope = input.slope;
+    const collateral = input.collateral;
     const leverage = input.leverage;
     const score = input.score;
 
@@ -475,6 +497,7 @@ export class SimulationsService {
       trade,
       r2,
       slope,
+      collateral,
       leverage,
       score,
     });
@@ -508,6 +531,7 @@ export class SimulationsService {
           trade: this.serializeRanges(trade),
           r2: this.serializeRanges(r2),
           slope: this.serializeRanges(slope),
+          collateral: this.serializeRanges(collateral),
           leverage: this.serializeRanges(leverage),
           score: this.serializeRanges(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
@@ -536,6 +560,7 @@ export class SimulationsService {
           r2: this.serializeRange(combination.r2),
           slope: this.serializeRange(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
+          collateral: this.serializeRange(combination.collateral),
           leverage: this.serializeRange(combination.leverage),
           score: this.serializeRange(combination.score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
@@ -577,6 +602,7 @@ export class SimulationsService {
         trade: this.serializeRange(input.trade),
         r2: this.serializeRange(input.r2),
         slope: this.serializeRange(input.slope),
+        collateral: this.serializeRange(input.collateral),
         leverage: this.serializeRange(input.leverage),
         score: this.serializeRange(input.score),
         scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
@@ -642,6 +668,10 @@ export class SimulationsService {
           input.slope !== undefined && input.slope !== null
             ? this.serializeRange(input.slope)
             : undefined,
+        collateral:
+          input.collateral !== undefined && input.collateral !== null
+            ? this.serializeRange(input.collateral)
+            : undefined,
         leverage:
           input.leverage !== undefined && input.leverage !== null
             ? this.serializeRange(input.leverage)
@@ -670,6 +700,8 @@ export class SimulationsService {
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
+      collateral:
+        (record.collateral as ValueRange | null) ?? DEFAULT_COLLATERAL_RANGE,
       leverage:
         (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
       score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,

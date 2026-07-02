@@ -43,6 +43,7 @@ type ValueRange = {
 const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
+const DEFAULT_COLLATERAL_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE: ValueRange = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE: ValueRange = { min: 0, max: 1 };
 const LEADER_STALE_AFTER_MONTHS = 1;
@@ -102,6 +103,8 @@ export class SimulationAutoRunnerService {
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
       r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
       slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
+      collateral:
+        (record.collateral as ValueRange | null) ?? DEFAULT_COLLATERAL_RANGE,
       leverage:
         (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
       score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
@@ -135,6 +138,7 @@ export class SimulationAutoRunnerService {
       trade: record.trade as any,
       r2: record.r2 as any,
       slope: record.slope as any,
+      collateral: (record.collateral as ValueRange[] | null) ?? [],
       leverage: (record.leverage as ValueRange[] | null) ?? [],
       score: (record.score as ValueRange[] | null) ?? [],
       scoreFormular:
@@ -732,6 +736,8 @@ export class SimulationAutoRunnerService {
       mode: simulation.direction,
       ratio: candidate.suggestedRatio,
       score: candidate.score,
+      minCollateral: simulation.collateral.min,
+      maxCollateral: simulation.collateral.max,
       minLeverage: simulation.leverage.min,
       maxLeverage: simulation.leverage.max,
     }));
