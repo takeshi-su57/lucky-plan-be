@@ -100,8 +100,6 @@ export class SimulationLeaderEvaluatorService {
 
   async findCandidateLeaders(simulation: Simulation, range: WindowRange) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const queryTimer = `[simulation:evaluator:${simulation.id}:${dateStr}] pnlSnapshot candidates`;
-    console.time(queryTimer);
     const records = await this.prisma.pnlSnapshotV2.findMany({
       where: {
         platform: simulation.platform,
@@ -120,7 +118,6 @@ export class SimulationLeaderEvaluatorService {
       },
       orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
     });
-    console.timeEnd(queryTimer);
 
     const candidateAddresses = records.map((record) =>
       record.address.toLowerCase(),
@@ -139,14 +136,11 @@ export class SimulationLeaderEvaluatorService {
     range: WindowRange,
   ) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const filterTimer = `[simulation:evaluator:${simulation.id}:${dateStr}] filterCandidateLeaderAddresses input=${leaderAddresses.length}`;
-    console.time(filterTimer);
     const normalizedAddresses = [
       ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
     ];
 
     if (normalizedAddresses.length === 0) {
-      console.timeEnd(filterTimer);
       return [];
     }
 
@@ -180,7 +174,7 @@ export class SimulationLeaderEvaluatorService {
       simulation,
       candidateAddresses,
       range,
-    ).finally(() => console.timeEnd(filterTimer));
+    );
   }
 
   private async filterRecentlyActiveCandidateAddresses(
@@ -188,9 +182,6 @@ export class SimulationLeaderEvaluatorService {
     candidateAddresses: string[],
     range: WindowRange,
   ) {
-    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] recentActivityPrefilter candidates=${candidateAddresses.length}`;
-    console.time(timer);
     const recentActivityCutoff = dayjs(range.startedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
@@ -246,16 +237,10 @@ export class SimulationLeaderEvaluatorService {
       });
     }
 
-    console.timeEnd(timer);
     return prefilteredAddresses;
   }
 
   async findChangedLeaderAddresses(simulation: Simulation, range: WindowRange) {
-    const rangeLabel = `${dayjs(range.startedAt).format('YYYY-MM-DD')}_${dayjs(
-      range.endedAt,
-    ).format('YYYY-MM-DD')}`;
-    const timer = `[simulation:evaluator:${simulation.id}:${rangeLabel}] changedLeaderGroupBy`;
-    console.time(timer);
     const records = await this.prisma.perpTradingEventLog.groupBy({
       by: ['address'],
       where: {
@@ -266,7 +251,6 @@ export class SimulationLeaderEvaluatorService {
         },
       },
     });
-    console.timeEnd(timer);
 
     return records
       .map((record) => record.address.toLowerCase())
@@ -278,15 +262,11 @@ export class SimulationLeaderEvaluatorService {
     leaderAddresses: string[],
     before: Date,
   ) {
-    const dateStr = dayjs(before).format('YYYY-MM-DD');
-    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] getLastEventAtByLeader input=${leaderAddresses.length}`;
-    console.time(timer);
     const normalizedAddresses = [
       ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
     ];
 
     if (normalizedAddresses.length === 0) {
-      console.timeEnd(timer);
       return new Map<string, Date>();
     }
 
@@ -313,7 +293,6 @@ export class SimulationLeaderEvaluatorService {
           : [],
       ),
     );
-    console.timeEnd(timer);
 
     return lastEventAtByLeader;
   }
@@ -325,33 +304,51 @@ export class SimulationLeaderEvaluatorService {
     contractById: Map<number, ContractContext>,
   ) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] evaluateLeadersForRange leaders=${leaderAddresses.length}`;
-    console.time(timer);
+    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}] evaluateLeadersForRange`;
+    console.time(`${baseLabel} total leaders=${leaderAddresses.length}`);
     const evaluations: CandidateEvaluation[] = [];
+    console.time(`${baseLabel} getLastEventAtByLeader`);
     const lastEventAtByLeader = await this.getLastEventAtByLeader(
       simulation,
       leaderAddresses,
       range.startedAt,
     );
+    console.timeEnd(`${baseLabel} getLastEventAtByLeader`);
 
+    console.log(`${baseLabel} leaderAddresses ${leaderAddresses.length}`);
+
+    console.time(`${baseLabel} leaderLoop`);
     for (const leaderAddress of leaderAddresses) {
+      const leaderLabel = `${baseLabel}:${leaderAddress}`;
+      console.time(`${leaderLabel} evaluateLeader`);
       const positions = await this.loadLeaderPositionsUntil(
         leaderAddress,
         simulation,
         contractById,
         range.startedAt,
       );
+      console.time(`${leaderLabel} getClosedPositionsBefore`);
+      const closedPositions = this.getClosedPositionsBefore(
+        positions,
+        range.startedAt,
+      );
+      console.timeEnd(`${leaderLabel} getClosedPositionsBefore`);
+      console.time(`${leaderLabel} evaluateLeaderPositionsForSimulation`);
 
       const evaluation = this.evaluateLeaderPositionsForSimulation(
         leaderAddress,
-        this.getClosedPositionsBefore(positions, range.startedAt),
+        closedPositions,
         simulation,
       );
-
-      if (
+      console.timeEnd(`${leaderLabel} evaluateLeaderPositionsForSimulation`);
+      const rejectedReason =
         evaluation.rejectedReason ||
-        !valueMatchesRange(evaluation.score, simulation.score)
-      ) {
+        (!valueMatchesRange(evaluation.score, simulation.score)
+          ? 'SCORE_OUT_OF_RANGE'
+          : null);
+
+      if (rejectedReason) {
+        console.timeEnd(`${leaderLabel} evaluateLeader`);
         continue;
       }
 
@@ -359,9 +356,11 @@ export class SimulationLeaderEvaluatorService {
         ...evaluation,
         lastEventAt: lastEventAtByLeader.get(leaderAddress.toLowerCase()),
       });
+      console.timeEnd(`${leaderLabel} evaluateLeader`);
     }
+    console.timeEnd(`${baseLabel} leaderLoop`);
 
-    console.timeEnd(timer);
+    console.timeEnd(`${baseLabel} total leaders=${leaderAddresses.length}`);
 
     return evaluations;
   }
@@ -370,11 +369,12 @@ export class SimulationLeaderEvaluatorService {
     leaderAddress: string,
     simulation: Simulation,
     contractById: Map<number, ContractContext>,
-        before: Date,
+    before: Date,
   ) {
     const dateStr = dayjs(before).format('YYYY-MM-DD');
-    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}:${leaderAddress}] loadLeaderPositionsUntil`;
-    console.time(timer);
+    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}:${leaderAddress}] loadLeaderPositionsUntil`;
+    console.time(`${baseLabel} total`);
+    console.time(`${baseLabel} dbQuery`);
     const records = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: leaderAddress.toLowerCase(),
@@ -385,18 +385,26 @@ export class SimulationLeaderEvaluatorService {
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
     });
+    console.timeEnd(`${baseLabel} dbQuery`);
 
+    console.time(`${baseLabel} eventLogsToHistories`);
     const histories = this.eventLogsToHistories(records, contractById);
+    console.timeEnd(`${baseLabel} eventLogsToHistories`);
 
-    const positions = this.eventLogsService.convertToPerpTradePositionsWithSummary(
-      simulation.platform,
-      histories,
-      {
-        minLeverage: simulation.leverage.min,
-        maxLeverage: simulation.leverage.max,
-      },
-    ).positions;
-    console.timeEnd(timer);
+    console.time(`${baseLabel} convertToPerpTradePositionsWithSummary`);
+    const positionsWithSummary =
+      this.eventLogsService.convertToPerpTradePositionsWithSummary(
+        simulation.platform,
+        histories,
+        {
+          minLeverage: simulation.leverage.min,
+          maxLeverage: simulation.leverage.max,
+        },
+      );
+    console.timeEnd(`${baseLabel} convertToPerpTradePositionsWithSummary`);
+    const positions = positionsWithSummary.positions;
+
+    console.timeEnd(`${baseLabel} total`);
 
     return positions;
   }
