@@ -2,6 +2,12 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { BotMode, Platform, SimulationStatus } from 'generated/prisma/enums';
 
 import { SimulationsService } from './simulations.service';
+import {
+  DEFAULT_SCORE_FORMULAR,
+  DEFAULT_SIZING_FORMULAR,
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from './simulation-formulars';
 
 describe('SimulationsService API queue requests', () => {
   it('creates research simulations with multi-day plan windows and gap days', async () => {
@@ -20,6 +26,8 @@ describe('SimulationsService API queue requests', () => {
       slope: [{ min: 0, max: 100 }],
       leverage: [{ min: 10, max: 50 }],
       score: [{ min: 0.5, max: 0.8 }],
+      scoreFormular: DEFAULT_SCORE_FORMULAR,
+      sizingFormular: DEFAULT_SIZING_FORMULAR,
       createdAt: new Date('2026-07-01T00:00:00.000Z'),
       updatedAt: new Date('2026-07-01T00:00:00.000Z'),
       simulations: [{ status: SimulationStatus.Created }],
@@ -53,6 +61,8 @@ describe('SimulationsService API queue requests', () => {
       slope: [{ min: 0, max: 100 }],
       leverage: [{ min: 10, max: 50 }],
       score: [{ min: 0.5, max: 0.8 }],
+      scoreFormular: SimulationScoreFormular.RiskAdjustedCopyScore,
+      sizingFormular: SimulationSizingFormular.ScoreScaledCollateralSizing,
     });
 
     const transactionCallback = (prisma.$transaction as any).mock.calls[0][0];
@@ -73,6 +83,8 @@ describe('SimulationsService API queue requests', () => {
         gapDays: 2,
         leverage: [{ min: 10, max: 50 }],
         score: [{ min: 0.5, max: 0.8 }],
+        scoreFormular: SimulationScoreFormular.RiskAdjustedCopyScore,
+        sizingFormular: SimulationSizingFormular.ScoreScaledCollateralSizing,
       }),
     );
     expect((tx.simulation.createMany as any).mock.calls[0][0].data[0]).toEqual(
@@ -82,10 +94,14 @@ describe('SimulationsService API queue requests', () => {
         totalSimulationPlans: 2,
         leverage: { min: 10, max: 50 },
         score: { min: 0.5, max: 0.8 },
+        scoreFormular: SimulationScoreFormular.RiskAdjustedCopyScore,
+        sizingFormular: SimulationSizingFormular.ScoreScaledCollateralSizing,
       }),
     );
     expect(result.days).toBe(3);
     expect(result.gapDays).toBe(2);
+    expect(result.scoreFormular).toBe(DEFAULT_SCORE_FORMULAR);
+    expect(result.sizingFormular).toBe(DEFAULT_SIZING_FORMULAR);
   });
 
   it('marks a simulation as queued without running analytics execution', async () => {
@@ -110,6 +126,8 @@ describe('SimulationsService API queue requests', () => {
       standardCollateralUsd: 100,
       leverage: { min: 0, max: 50 },
       score: { min: 0, max: 1 },
+      scoreFormular: DEFAULT_SCORE_FORMULAR,
+      sizingFormular: DEFAULT_SIZING_FORMULAR,
       totalSimulationPlans: 31,
       completedPlans: 0,
       totalLeaderPnl: 0,

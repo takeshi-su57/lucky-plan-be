@@ -234,7 +234,9 @@ input CreateSimulationInput {
   platform: Platform!
   r2: FloatMinMaxInput! = {max: 1, min: 0.5}
   score: FloatMinMaxInput! = {max: 1, min: 0}
+  scoreFormular: SimulationScoreFormular! = RiskAdjustedCopyScore
   selectedLeaderCount: Int! = 10
+  sizingFormular: SimulationSizingFormular! = ScoreScaledCollateralSizing
   slope: FloatMinMaxInput! = {max: 1000000000, min: 0}
   standardCollateralUsd: Float! = 100
   startAt: Date!
@@ -259,6 +261,8 @@ input CreateSimulationResearchInput {
   platform: Platform!
   r2: [FloatMinMaxInput!]!
   score: [FloatMinMaxInput!]!
+  scoreFormular: SimulationScoreFormular! = RiskAdjustedCopyScore
+  sizingFormular: SimulationSizingFormular! = ScoreScaledCollateralSizing
   slope: [FloatMinMaxInput!]!
   startAt: Date!
   title: String!
@@ -825,7 +829,9 @@ type Simulation {
   r2: SimulationValueRange!
   researchId: Int
   score: SimulationValueRange!
+  scoreFormular: SimulationScoreFormular!
   selectedLeaderCount: Int!
+  sizingFormular: SimulationSizingFormular!
   slope: SimulationValueRange!
   standardCollateralUsd: Float!
   startAt: Date!
@@ -979,6 +985,8 @@ type SimulationResearch {
   platform: Platform!
   r2: [SimulationValueRange!]!
   score: [SimulationValueRange!]!
+  scoreFormular: SimulationScoreFormular!
+  sizingFormular: SimulationSizingFormular!
   slope: [SimulationValueRange!]!
   startAt: Date!
   title: String!
@@ -1005,7 +1013,9 @@ type SimulationResearchDetails {
   platform: Platform!
   r2: [SimulationValueRange!]!
   score: [SimulationValueRange!]!
+  scoreFormular: SimulationScoreFormular!
   simulations: [Simulation!]!
+  sizingFormular: SimulationSizingFormular!
   slope: [SimulationValueRange!]!
   startAt: Date!
   title: String!
@@ -1022,6 +1032,14 @@ type SimulationResearchEdge {
 type SimulationResearchPageInfo {
   endCursor: Int
   hasNextPage: Boolean!
+}
+
+enum SimulationScoreFormular {
+  RiskAdjustedCopyScore
+}
+
+enum SimulationSizingFormular {
+  ScoreScaledCollateralSizing
 }
 
 enum SimulationStatus {
@@ -1154,7 +1172,9 @@ input UpdateSimulationInput {
   leverage: FloatMinMaxInput
   r2: FloatMinMaxInput
   score: FloatMinMaxInput
+  scoreFormular: SimulationScoreFormular
   selectedLeaderCount: Int
+  sizingFormular: SimulationSizingFormular
   slope: FloatMinMaxInput
   standardCollateralUsd: Float
   title: String

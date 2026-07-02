@@ -295,6 +295,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValueOnce([
         '0xday2',
       ]),
+      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValueOnce([
+        '0xday2',
+      ]),
       evaluateLeadersForRange: (jest.fn() as any)
         .mockResolvedValueOnce([
           {
@@ -431,8 +434,11 @@ describe('SimulationAutoRunnerService queue helpers', () => {
         '0xchanged',
       ]),
       findChangedLeaderAddresses: (jest.fn() as any)
-        .mockResolvedValueOnce(['0xchanged', '0xnew'])
+        .mockResolvedValueOnce(['0xchanged', '0xnew', '0xrejected'])
         .mockResolvedValueOnce([]),
+      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
+        '0xnew',
+      ]),
       evaluateLeadersForRange: (jest.fn() as any)
         .mockResolvedValueOnce([
           {
@@ -494,8 +500,14 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       startedAt: new Date('2026-04-01T00:00:00.000Z'),
       endedAt: new Date('2026-04-02T00:00:00.000Z'),
     });
+    expect(evaluator.filterCandidateLeaderAddresses).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 13 }),
+      ['0xchanged', '0xnew', '0xrejected'],
+      expect.objectContaining({
+        startedAt: new Date('2026-04-02T00:00:00.000Z'),
+      }),
+    );
     expect(evaluator.evaluateLeadersForRange.mock.calls[1][1]).toEqual([
-      '0xchanged',
       '0xnew',
     ]);
     expect(createSimulationBotsForSelections.mock.calls[0][4]).toEqual([
@@ -592,6 +604,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     const evaluator = {
       findCandidateLeaders: jest.fn(async () => ['0xshould-not-run']),
       findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValue([
+        '0xnew',
+      ]),
+      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
         '0xnew',
       ]),
       evaluateLeadersForRange: jest.fn(async () => [
@@ -722,6 +737,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValue([
         '0xnew',
       ]),
+      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
+        '0xnew',
+      ]),
       evaluateLeadersForRange: jest.fn(async () => [
         {
           leaderAddress: '0xnew',
@@ -836,6 +854,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       findCandidateLeaders: jest.fn(async () => []),
       evaluateLeadersForRange: jest.fn(async () => []),
       findChangedLeaderAddresses: jest.fn(async () => []),
+      filterCandidateLeaderAddresses: jest.fn(async () => []),
       getLastEventAtByLeader: jest.fn(async () => new Map()),
     };
     const service = new SimulationAutoRunnerService(

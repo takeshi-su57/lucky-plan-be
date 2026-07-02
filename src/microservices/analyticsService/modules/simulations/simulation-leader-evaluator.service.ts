@@ -13,14 +13,14 @@ import {
   PerpTradePosition,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import {
-  calculateLeaderScore,
   calculateMaxDrawdown,
   calculateProfitFactor,
   calculateTrend,
   cumulative,
+  getScoreFormular,
+  getSizingFormular,
   getPositionPnls,
   sum,
-  suggestPositionSizing,
 } from './utils/simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { WindowRange } from './utils/simulation-range.utils';
@@ -122,6 +122,66 @@ export class SimulationLeaderEvaluatorService {
     const candidateAddresses = records.map((record) =>
       record.address.toLowerCase(),
     );
+
+    return this.filterRecentlyActiveCandidateAddresses(
+      simulation,
+      candidateAddresses,
+      range,
+    );
+  }
+
+  async filterCandidateLeaderAddresses(
+    simulation: Simulation,
+    leaderAddresses: string[],
+    range: WindowRange,
+  ) {
+    const normalizedAddresses = [
+      ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
+    ];
+
+    if (normalizedAddresses.length === 0) {
+      return [];
+    }
+
+    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    const records = await this.prisma.pnlSnapshotV2.findMany({
+      where: {
+        platform: simulation.platform,
+        dateStr,
+        address: {
+          in: normalizedAddresses,
+        },
+        accUSDPnl:
+          simulation.direction === BotMode.Default
+            ? {
+                gte: 50,
+              }
+            : {
+                lte: -50,
+              },
+      },
+      select: {
+        address: true,
+      },
+      orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
+    });
+
+    const candidateAddresses = records.map((record) =>
+      record.address.toLowerCase(),
+    );
+
+    return this.filterRecentlyActiveCandidateAddresses(
+      simulation,
+      candidateAddresses,
+      range,
+    );
+  }
+
+  private async filterRecentlyActiveCandidateAddresses(
+    simulation: Simulation,
+    candidateAddresses: string[],
+    range: WindowRange,
+  ) {
     const recentActivityCutoff = dayjs(range.startedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
@@ -379,7 +439,7 @@ export class SimulationLeaderEvaluatorService {
       rawTradeCount,
       preliminaryCopy,
     );
-    const sizing = suggestPositionSizing({
+    const sizing = getSizingFormular(simulation.sizingFormular)({
       score: preliminaryScore,
       standardCollateralUsd: simulation.standardCollateralUsd,
       minCollateralUsd: SIMULATION_SYSTEM_CONFIG.minCollateralUsd,
@@ -427,7 +487,7 @@ export class SimulationLeaderEvaluatorService {
     rawTradeCount: number,
     copied: CopySimulationResult,
   ) {
-    return calculateLeaderScore({
+    return getScoreFormular(simulation.scoreFormular)({
       direction: simulation.direction,
       rawSlope: rawTrend.slope,
       rawR2: rawTrend.r2,

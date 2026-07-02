@@ -27,6 +27,12 @@ import {
   SimulationPlan,
   SimulationResearch,
 } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
+import {
+  DEFAULT_SCORE_FORMULAR,
+  DEFAULT_SIZING_FORMULAR,
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from 'src/microservices/apiService/modules/simulations/simulation-formulars';
 
 type ValueRange = {
   min: number;
@@ -97,6 +103,12 @@ export class SimulationAutoRunnerService {
       leverage:
         (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
       score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
+      scoreFormular:
+        (record.scoreFormular as SimulationScoreFormular | null) ??
+        DEFAULT_SCORE_FORMULAR,
+      sizingFormular:
+        (record.sizingFormular as SimulationSizingFormular | null) ??
+        DEFAULT_SIZING_FORMULAR,
     };
   }
 
@@ -123,6 +135,12 @@ export class SimulationAutoRunnerService {
       slope: record.slope as any,
       leverage: (record.leverage as ValueRange[] | null) ?? [],
       score: (record.score as ValueRange[] | null) ?? [],
+      scoreFormular:
+        (record.scoreFormular as SimulationScoreFormular | null) ??
+        DEFAULT_SCORE_FORMULAR,
+      sizingFormular:
+        (record.sizingFormular as SimulationSizingFormular | null) ??
+        DEFAULT_SIZING_FORMULAR,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -402,11 +420,20 @@ export class SimulationAutoRunnerService {
             selectedCandidateByAddress.delete(leaderAddress.toLowerCase());
           });
 
-          const changedSelectedCandidates =
+          const filteredChangedLeaderAddresses =
             changedLeaderAddresses.length > 0
-              ? await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+              ? await this.simulationLeaderEvaluatorService.filterCandidateLeaderAddresses(
                   current,
                   changedLeaderAddresses,
+                  range,
+                )
+              : [];
+
+          const changedSelectedCandidates =
+            filteredChangedLeaderAddresses.length > 0
+              ? await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+                  current,
+                  filteredChangedLeaderAddresses,
                   range,
                   contractById,
                 )

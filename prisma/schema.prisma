@@ -176,6 +176,8 @@ model SimulationResearch {
 
   leverage Json @default("[]")
   score    Json @default("[]")
+  scoreFormular  String @default("RiskAdjustedCopyScore")
+  sizingFormular String @default("ScoreScaledCollateralSizing")
 
   simulations Simulation[]
 
@@ -227,6 +229,8 @@ model Simulation {
   standardCollateralUsd Float @default(100)
   leverage              Json  @default("{\"min\":0,\"max\":50}")
   score                 Json  @default("{\"min\":0,\"max\":1}")
+  scoreFormular         String @default("RiskAdjustedCopyScore")
+  sizingFormular        String @default("ScoreScaledCollateralSizing")
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)

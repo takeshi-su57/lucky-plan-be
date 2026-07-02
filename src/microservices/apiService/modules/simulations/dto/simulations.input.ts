@@ -1,9 +1,21 @@
 import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { IsDate, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import {
+  IsDate,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 import { BotMode, Platform } from 'generated/prisma/enums';
+import {
+  DEFAULT_SCORE_FORMULAR,
+  DEFAULT_SIZING_FORMULAR,
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from '../simulation-formulars';
 
 @InputType()
 export class IntRangeInput {
@@ -180,6 +192,18 @@ export class CreateSimulationInput {
     defaultValue: { min: 0, max: 1 },
   })
   score: FloatMinMaxInput;
+
+  @IsEnum(SimulationScoreFormular)
+  @Field(() => SimulationScoreFormular, {
+    defaultValue: DEFAULT_SCORE_FORMULAR,
+  })
+  scoreFormular?: SimulationScoreFormular;
+
+  @IsEnum(SimulationSizingFormular)
+  @Field(() => SimulationSizingFormular, {
+    defaultValue: DEFAULT_SIZING_FORMULAR,
+  })
+  sizingFormular?: SimulationSizingFormular;
 }
 
 @InputType()
@@ -216,6 +240,12 @@ export class UpdateSimulationInput {
 
   @Field(() => FloatMinMaxInput, { nullable: true })
   score?: FloatMinMaxInput | null;
+
+  @Field(() => SimulationScoreFormular, { nullable: true })
+  scoreFormular?: SimulationScoreFormular | null;
+
+  @Field(() => SimulationSizingFormular, { nullable: true })
+  sizingFormular?: SimulationSizingFormular | null;
 }
 
 @InputType()
@@ -276,4 +306,16 @@ export class CreateSimulationResearchInput {
   @Type(() => FloatMinMaxInput)
   @Field(() => [FloatMinMaxInput])
   score: FloatMinMaxInput[];
+
+  @IsEnum(SimulationScoreFormular)
+  @Field(() => SimulationScoreFormular, {
+    defaultValue: DEFAULT_SCORE_FORMULAR,
+  })
+  scoreFormular?: SimulationScoreFormular;
+
+  @IsEnum(SimulationSizingFormular)
+  @Field(() => SimulationSizingFormular, {
+    defaultValue: DEFAULT_SIZING_FORMULAR,
+  })
+  sizingFormular?: SimulationSizingFormular;
 }

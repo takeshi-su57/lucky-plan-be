@@ -4,6 +4,90 @@ import { BotMode, Platform } from 'generated/prisma/enums';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 
 describe('SimulationLeaderEvaluatorService', () => {
+  it('filters changed default leaders by positive 3 month pnl snapshot and recent activity', async () => {
+    const prisma = {
+      pnlSnapshotV2: {
+        findMany: jest.fn(async () => [
+          { address: '0xpass' },
+          { address: '0xlow' },
+        ]),
+      },
+      perpTradingEventLog: {
+        groupBy: jest.fn(async () => [
+          { address: '0xpass', _count: { address: 3 } },
+          { address: '0xlow', _count: { address: 1 } },
+        ]),
+      },
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      prisma as never,
+      {} as never,
+    );
+
+    const result = await service.filterCandidateLeaderAddresses(
+      {
+        platform: Platform.GNS,
+        direction: BotMode.Default,
+        trade: { min: 3, max: 100 },
+      } as never,
+      ['0xpass', '0xlow', '0xmissing'],
+      {
+        startedAt: new Date('2026-04-02T00:00:00.000Z'),
+        endedAt: new Date('2026-04-03T00:00:00.000Z'),
+      },
+    );
+
+    expect(prisma.pnlSnapshotV2.findMany as any).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          accUSDPnl: { gte: 50 },
+          address: { in: ['0xpass', '0xlow', '0xmissing'] },
+        }),
+      }),
+    );
+    expect(result).toEqual(['0xpass']);
+  });
+
+  it('filters changed reversed leaders by negative 3 month pnl snapshot', async () => {
+    const prisma = {
+      pnlSnapshotV2: {
+        findMany: jest.fn(async () => [{ address: '0xpass' }]),
+      },
+      perpTradingEventLog: {
+        groupBy: jest.fn(async () => [
+          { address: '0xpass', _count: { address: 3 } },
+        ]),
+      },
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      prisma as never,
+      {} as never,
+    );
+
+    const result = await service.filterCandidateLeaderAddresses(
+      {
+        platform: Platform.GNS,
+        direction: BotMode.Reversed,
+        trade: { min: 3, max: 100 },
+      } as never,
+      ['0xpass', '0xweak'],
+      {
+        startedAt: new Date('2026-04-02T00:00:00.000Z'),
+        endedAt: new Date('2026-04-03T00:00:00.000Z'),
+      },
+    );
+
+    expect(prisma.pnlSnapshotV2.findMany as any).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          accUSDPnl: { lte: -50 },
+          address: { in: ['0xpass', '0xweak'] },
+        }),
+      }),
+    );
+    expect(result).toEqual(['0xpass']);
+  });
+
   it('filters evaluated leaders outside the simulation score range', async () => {
     const service = new SimulationLeaderEvaluatorService(
       {

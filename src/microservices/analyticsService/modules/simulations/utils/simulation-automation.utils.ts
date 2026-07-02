@@ -4,6 +4,12 @@ import {
   PerpTradePosition,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { BotMode } from 'generated/prisma/enums';
+import {
+  DEFAULT_SCORE_FORMULAR,
+  DEFAULT_SIZING_FORMULAR,
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from 'src/microservices/apiService/modules/simulations/simulation-formulars';
 
 export type TrendMetrics = {
   slope: number;
@@ -40,6 +46,23 @@ export type ScoreInput = {
   topTradeProfitUsd: number;
   minTrades: number;
   maxCopiedDrawdownUsd: number;
+};
+
+export type ScoreFormular = (input: ScoreInput) => number;
+
+export type SizingInput = {
+  score: number;
+  standardCollateralUsd: number;
+  minCollateralUsd: number;
+  maxCollateralUsd: number;
+  leaderAvgCollateralUsd: number;
+  minRatio: number;
+  maxRatio: number;
+};
+
+export type SizingFormular = (params: SizingInput) => {
+  suggestedCollateralUsd: number;
+  suggestedRatio: number;
 };
 
 export function clamp(value: number, min: number, max: number) {
@@ -224,15 +247,7 @@ export function calculateLeaderScore(input: ScoreInput) {
   return clamp01(score) * concentrationPenalty;
 }
 
-export function suggestPositionSizing(params: {
-  score: number;
-  standardCollateralUsd: number;
-  minCollateralUsd: number;
-  maxCollateralUsd: number;
-  leaderAvgCollateralUsd: number;
-  minRatio: number;
-  maxRatio: number;
-}) {
+export function suggestPositionSizing(params: SizingInput) {
   const suggestedCollateralUsd = clamp(
     params.standardCollateralUsd * params.score,
     params.minCollateralUsd,
@@ -248,4 +263,29 @@ export function suggestPositionSizing(params: {
     suggestedCollateralUsd,
     suggestedRatio,
   };
+}
+
+export const SCORE_FORMULARS: Record<SimulationScoreFormular, ScoreFormular> = {
+  [SimulationScoreFormular.RiskAdjustedCopyScore]: calculateLeaderScore,
+};
+
+export const SIZING_FORMULARS: Record<
+  SimulationSizingFormular,
+  SizingFormular
+> = {
+  [SimulationSizingFormular.ScoreScaledCollateralSizing]: suggestPositionSizing,
+};
+
+export function getScoreFormular(name?: string | null): ScoreFormular {
+  return (
+    SCORE_FORMULARS[name as SimulationScoreFormular] ??
+    SCORE_FORMULARS[DEFAULT_SCORE_FORMULAR]
+  );
+}
+
+export function getSizingFormular(name?: string | null): SizingFormular {
+  return (
+    SIZING_FORMULARS[name as SimulationSizingFormular] ??
+    SIZING_FORMULARS[DEFAULT_SIZING_FORMULAR]
+  );
 }

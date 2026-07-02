@@ -9,6 +9,10 @@ import {
 import { BotMode, Platform, SimulationStatus } from 'generated/prisma/client';
 
 import { PerpTradeHistory } from '../../trade-histories/entities/event-logs.entity';
+import {
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from '../simulation-formulars';
 
 registerEnumType(SimulationStatus, {
   name: 'SimulationStatus',
@@ -16,6 +20,14 @@ registerEnumType(SimulationStatus, {
 
 registerEnumType(BotMode, {
   name: 'BotMode',
+});
+
+registerEnumType(SimulationScoreFormular, {
+  name: 'SimulationScoreFormular',
+});
+
+registerEnumType(SimulationSizingFormular, {
+  name: 'SimulationSizingFormular',
 });
 
 @ObjectType()
@@ -305,6 +317,12 @@ export class Simulation {
   @Field(() => SimulationValueRange)
   score: SimulationValueRange;
 
+  @Field(() => SimulationScoreFormular)
+  scoreFormular: SimulationScoreFormular;
+
+  @Field(() => SimulationSizingFormular)
+  sizingFormular: SimulationSizingFormular;
+
   @Field(() => Int)
   totalSimulationPlans: number;
 
@@ -407,6 +425,12 @@ export class SimulationResearch {
 
   @Field(() => [SimulationValueRange])
   score: SimulationValueRange[];
+
+  @Field(() => SimulationScoreFormular)
+  scoreFormular: SimulationScoreFormular;
+
+  @Field(() => SimulationSizingFormular)
+  sizingFormular: SimulationSizingFormular;
 
   @Field(() => Int)
   totalSimulations: number;

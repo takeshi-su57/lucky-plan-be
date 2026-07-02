@@ -33,6 +33,12 @@ import {
   ValueRange,
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import {
+  DEFAULT_SCORE_FORMULAR,
+  DEFAULT_SIZING_FORMULAR,
+  SimulationScoreFormular,
+  SimulationSizingFormular,
+} from './simulation-formulars';
 
 const API_SIMULATION_SYSTEM_CONFIG = {
   minCollateralUsd: 10,
@@ -400,6 +406,12 @@ export class SimulationsService {
       slope: record.slope as any,
       leverage: (record.leverage as ValueRange[] | null) ?? [],
       score: (record.score as ValueRange[] | null) ?? [],
+      scoreFormular:
+        (record.scoreFormular as SimulationScoreFormular | null) ??
+        DEFAULT_SCORE_FORMULAR,
+      sizingFormular:
+        (record.sizingFormular as SimulationSizingFormular | null) ??
+        DEFAULT_SIZING_FORMULAR,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -498,6 +510,8 @@ export class SimulationsService {
           slope: this.serializeRanges(slope),
           leverage: this.serializeRanges(leverage),
           score: this.serializeRanges(score),
+          scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
+          sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
         },
       });
 
@@ -524,6 +538,8 @@ export class SimulationsService {
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
           leverage: this.serializeRange(combination.leverage),
           score: this.serializeRange(combination.score),
+          scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
+          sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
         })),
       });
 
@@ -563,6 +579,8 @@ export class SimulationsService {
         slope: this.serializeRange(input.slope),
         leverage: this.serializeRange(input.leverage),
         score: this.serializeRange(input.score),
+        scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
+        sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
         startAt: dayjs(input.startAt).startOf('day').toDate(),
         endAt: dayjs(input.endAt).startOf('day').toDate(),
         days,
@@ -633,6 +651,8 @@ export class SimulationsService {
           input.score !== undefined && input.score !== null
             ? this.serializeRange(input.score)
             : undefined,
+        scoreFormular: input.scoreFormular ?? undefined,
+        sizingFormular: input.sizingFormular ?? undefined,
       },
     });
 
@@ -653,6 +673,12 @@ export class SimulationsService {
       leverage:
         (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
       score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
+      scoreFormular:
+        (record.scoreFormular as SimulationScoreFormular | null) ??
+        DEFAULT_SCORE_FORMULAR,
+      sizingFormular:
+        (record.sizingFormular as SimulationSizingFormular | null) ??
+        DEFAULT_SIZING_FORMULAR,
     };
   }
 
