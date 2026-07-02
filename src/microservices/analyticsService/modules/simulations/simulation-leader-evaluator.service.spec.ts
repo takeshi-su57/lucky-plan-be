@@ -4,6 +4,16 @@ import { BotMode, Platform } from 'generated/prisma/enums';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 
 describe('SimulationLeaderEvaluatorService', () => {
+  const createCacheService = () =>
+    ({
+      getRefreshStartedAt: jest.fn(
+        (_platform: Platform, _address: string, fallback: Date) => fallback,
+      ),
+      updateCache: jest.fn(async (_platform, _address, records) => ({
+        records,
+      })),
+    }) as never;
+
   it('filters changed default leaders by positive 3 month pnl snapshot and recent activity', async () => {
     const prisma = {
       pnlSnapshotV2: {
@@ -22,6 +32,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     const service = new SimulationLeaderEvaluatorService(
       prisma as never,
       {} as never,
+      createCacheService(),
     );
 
     const result = await service.filterCandidateLeaderAddresses(
@@ -62,6 +73,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     const service = new SimulationLeaderEvaluatorService(
       prisma as never,
       {} as never,
+      createCacheService(),
     );
 
     const result = await service.filterCandidateLeaderAddresses(
@@ -88,6 +100,56 @@ describe('SimulationLeaderEvaluatorService', () => {
     expect(result).toEqual(['0xpass']);
   });
 
+  it('prefilters candidate activity in batches of 100 addresses', async () => {
+    const candidateRecords = Array.from({ length: 101 }, (_, index) => ({
+      address: `0xleader${index}`,
+    }));
+    const prisma = {
+      pnlSnapshotV2: {
+        findMany: jest.fn(async ({ skip = 0, take }: any) =>
+          candidateRecords.slice(skip, skip + take),
+        ),
+      },
+      perpTradingEventLog: {
+        groupBy: jest.fn(async ({ where }: any) =>
+          where.address.in.map((address: string) => ({
+            address,
+            _count: { address: 3 },
+          })),
+        ),
+      },
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      prisma as never,
+      {} as never,
+      createCacheService(),
+    );
+
+    const result = await service.findCandidateLeaders(
+      {
+        platform: Platform.GNS,
+        direction: BotMode.Default,
+        trade: { min: 3, max: 100 },
+      } as never,
+      {
+        startedAt: new Date('2026-04-02T00:00:00.000Z'),
+        endedAt: new Date('2026-04-03T00:00:00.000Z'),
+      },
+    );
+
+    expect(result).toHaveLength(101);
+    expect(prisma.pnlSnapshotV2.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.perpTradingEventLog.groupBy).toHaveBeenCalledTimes(2);
+    expect(
+      (prisma.perpTradingEventLog.groupBy as any).mock.calls[0][0].where.address
+        .in,
+    ).toHaveLength(100);
+    expect(
+      (prisma.perpTradingEventLog.groupBy as any).mock.calls[1][0].where.address
+        .in,
+    ).toHaveLength(1);
+  });
+
   it('filters evaluated leaders outside the simulation score range', async () => {
     const service = new SimulationLeaderEvaluatorService(
       {
@@ -101,6 +163,7 @@ describe('SimulationLeaderEvaluatorService', () => {
         },
       } as never,
       {} as never,
+      createCacheService(),
     );
     const simulation = {
       id: 1,
@@ -109,7 +172,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       score: { min: 0.5, max: 0.9 },
     };
     jest
-      .spyOn(service as any, 'loadLeaderPositionsUntil')
+      .spyOn(service as any, 'loadLeaderPositionsByLeaderUntil')
       .mockResolvedValue([]);
     jest
       .spyOn(service as any, 'evaluateLeaderPositionsForSimulation')
@@ -142,10 +205,168 @@ describe('SimulationLeaderEvaluatorService', () => {
     ]);
   });
 
+  it('evaluates leaders one at a time so event logs can be cached per address', async () => {
+    const service = new SimulationLeaderEvaluatorService(
+      {
+        perpTradingEventLog: {
+          groupBy: jest.fn(async () => []),
+        },
+      } as never,
+      {} as never,
+      createCacheService(),
+    );
+    const leaderAddresses = Array.from(
+      { length: 21 },
+      (_, index) => `0xleader${index}`,
+    );
+    const loadLeaderPositionsByLeaderUntil = jest
+      .spyOn(service as any, 'loadLeaderPositionsByLeaderUntil')
+      .mockResolvedValue([]);
+    jest
+      .spyOn(service as any, 'evaluateLeaderPositionsForSimulation')
+      .mockImplementation(((leaderAddress: string) => ({
+        leaderAddress,
+        score: 0.5,
+      })) as any);
+
+    await service.evaluateLeadersForRange(
+      {
+        id: 1,
+        platform: Platform.GNS,
+        direction: BotMode.Default,
+        score: { min: 0, max: 1 },
+      } as never,
+      leaderAddresses,
+      {
+        startedAt: new Date('2026-04-02T00:00:00.000Z'),
+        endedAt: new Date('2026-04-03T00:00:00.000Z'),
+      },
+      new Map(),
+    );
+
+    expect(loadLeaderPositionsByLeaderUntil).toHaveBeenCalledTimes(21);
+    expect(loadLeaderPositionsByLeaderUntil.mock.calls[0][0]).toBe(
+      leaderAddresses[0],
+    );
+    expect(loadLeaderPositionsByLeaderUntil.mock.calls[20][0]).toBe(
+      leaderAddresses[20],
+    );
+  });
+
+  it('loads one leader event logs from db on cache miss using a 180 day scoring window', async () => {
+    const prisma = {
+      perpTradingEventLog: {
+        findMany: jest.fn(async () => []),
+      },
+    };
+    const cacheService = {
+      getRefreshStartedAt: jest.fn(
+        (_platform: Platform, _address: string, fallback: Date) => fallback,
+      ),
+      updateCache: jest.fn(async () => ({ records: [] })),
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      prisma as never,
+      {
+        convertToPerpTradePositionsWithSummary: jest.fn(() => ({
+          positions: [],
+        })),
+      } as never,
+      cacheService as never,
+    );
+    const before = new Date('2026-04-02T00:00:00.000Z');
+
+    await (service as any).loadLeaderPositionsByLeaderUntil(
+      '0xLeader',
+      {
+        id: 1,
+        platform: Platform.GNS,
+        leverage: { min: 1, max: 100 },
+      },
+      new Map(),
+      before,
+    );
+
+    expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledTimes(1);
+    const findManyCalls = (prisma.perpTradingEventLog.findMany as any).mock
+      .calls;
+    expect(findManyCalls[0][0]).toEqual(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          address: '0xleader',
+          date: {
+            gte: new Date('2025-10-04T00:00:00.000Z'),
+            lt: before,
+          },
+        }),
+      }),
+    );
+    expect(cacheService.updateCache as jest.Mock).toHaveBeenCalledWith(
+      Platform.GNS,
+      '0xleader',
+      [],
+      new Date('2025-10-04T00:00:00.000Z'),
+      before,
+    );
+  });
+
+  it('converts cached leader event logs returned from the cache service', async () => {
+    const cachedRecord = {
+      id: 1,
+      address: '0xleader',
+      platform: Platform.GNS,
+      date: new Date('2026-03-01T00:00:00.000Z'),
+      block: 1,
+      contractId: 11,
+      jsonLog: '{}',
+    };
+    const prisma = {
+      perpTradingEventLog: {
+        findMany: jest.fn(async () => [cachedRecord]),
+      },
+    };
+    const eventLogsService = {
+      convertToPerpTradePositionsWithSummary: jest.fn(() => ({
+        positions: [],
+      })),
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      prisma as never,
+      eventLogsService as never,
+      {
+        getRefreshStartedAt: jest.fn(() => new Date('2026-01-01T00:00:00Z')),
+        updateCache: jest.fn(async () => ({ records: [cachedRecord] })),
+      } as never,
+    );
+    jest
+      .spyOn(service as any, 'eventLogsToHistories')
+      .mockImplementation((records: any) => records);
+
+    await (service as any).loadLeaderPositionsByLeaderUntil(
+      '0xLeader',
+      {
+        id: 1,
+        platform: Platform.GNS,
+        leverage: { min: 1, max: 100 },
+      },
+      new Map(),
+      new Date('2026-04-02T00:00:00.000Z'),
+    );
+
+    expect(
+      eventLogsService.convertToPerpTradePositionsWithSummary as jest.Mock,
+    ).toHaveBeenCalledWith(
+      Platform.GNS,
+      [expect.objectContaining({ id: 1 })],
+      expect.any(Object),
+    );
+  });
+
   it('uses the preliminary score as the candidate quality score after sizing', () => {
     const service = new SimulationLeaderEvaluatorService(
       {} as never,
       {} as never,
+      createCacheService(),
     );
     const simulation = {
       id: 1,
@@ -230,6 +451,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     const service = new SimulationLeaderEvaluatorService(
       {} as never,
       {} as never,
+      createCacheService(),
     );
     const simulation = {
       id: 1,
@@ -273,6 +495,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     const service = new SimulationLeaderEvaluatorService(
       {} as never,
       {} as never,
+      createCacheService(),
     );
     const positions = [
       {

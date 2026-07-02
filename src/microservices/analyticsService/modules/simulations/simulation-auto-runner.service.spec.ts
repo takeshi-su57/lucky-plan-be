@@ -133,6 +133,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       {} as never,
       client as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
 
     await service.emitSimulationUpdated(simulation as never);
@@ -174,6 +175,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cacheService as never,
       {} as never,
       emitClient as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
 
     await (service as any).createSimulationBotsForSelections(
@@ -320,6 +322,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
     const createSimulationPlanForRange = jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -338,6 +341,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       runInBackground: false,
     });
 
+    expect(
+      (service as any).leaderEventLogCacheService.clear,
+    ).toHaveBeenCalledTimes(1);
     expect(createSimulationPlanForRange).toHaveBeenCalledTimes(2);
     expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(1);
     expect(evaluator.findChangedLeaderAddresses).toHaveBeenCalledTimes(1);
@@ -475,6 +481,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -627,6 +634,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -755,6 +763,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -862,6 +871,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       evaluator as never,
       emitClient as never,
+      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')

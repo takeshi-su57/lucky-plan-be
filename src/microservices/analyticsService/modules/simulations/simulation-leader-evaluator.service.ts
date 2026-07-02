@@ -24,6 +24,7 @@ import {
 } from './utils/simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { WindowRange } from './utils/simulation-range.utils';
+import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 
 type ValueRange = {
   min: number;
@@ -87,8 +88,9 @@ type CopySimulationResult = {
   topTradeProfitUsd: number;
 };
 
-const CANDIDATE_PREFILTER_BATCH_SIZE = 50;
+const CANDIDATE_BATCH_SIZE = 100;
 const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
+const LEADER_SCORING_WINDOW_DAYS = 180;
 const PLATFORM_MIN_FEE_USD = 0.5;
 
 @Injectable()
@@ -96,38 +98,52 @@ export class SimulationLeaderEvaluatorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
+    private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
   ) {}
 
   async findCandidateLeaders(simulation: Simulation, range: WindowRange) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const records = await this.prisma.pnlSnapshotV2.findMany({
-      where: {
-        platform: simulation.platform,
-        dateStr,
-        accUSDPnl:
-          simulation.direction === BotMode.Default
-            ? {
-                gte: 50,
-              }
-            : {
-                lte: -50,
-              },
-      },
-      select: {
-        address: true,
-      },
-      orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
-    });
+    const candidateAddresses: string[] = [];
 
-    const candidateAddresses = records.map((record) =>
-      record.address.toLowerCase(),
-    );
+    for (let skip = 0; ; skip += CANDIDATE_BATCH_SIZE) {
+      const records = await this.prisma.pnlSnapshotV2.findMany({
+        where: {
+          platform: simulation.platform,
+          dateStr,
+          accUSDPnl:
+            simulation.direction === BotMode.Default
+              ? {
+                  gte: 50,
+                }
+              : {
+                  lte: -50,
+                },
+        },
+        select: {
+          address: true,
+        },
+        orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
+        skip,
+        take: CANDIDATE_BATCH_SIZE,
+      });
 
-    return this.filterRecentlyActiveCandidateAddresses(
-      simulation,
-      candidateAddresses,
-      range,
-    );
+      const batchAddresses = records.map((record) =>
+        record.address.toLowerCase(),
+      );
+      const activeBatch = await this.filterRecentlyActiveCandidateAddresses(
+        simulation,
+        batchAddresses,
+        range,
+      );
+
+      candidateAddresses.push(...activeBatch);
+
+      if (records.length < CANDIDATE_BATCH_SIZE) {
+        break;
+      }
+    }
+
+    return candidateAddresses;
   }
 
   async filterCandidateLeaderAddresses(
@@ -190,11 +206,11 @@ export class SimulationLeaderEvaluatorService {
     for (
       let offset = 0;
       offset < candidateAddresses.length;
-      offset += CANDIDATE_PREFILTER_BATCH_SIZE
+      offset += CANDIDATE_BATCH_SIZE
     ) {
       const addressBatch = candidateAddresses.slice(
         offset,
-        offset + CANDIDATE_PREFILTER_BATCH_SIZE,
+        offset + CANDIDATE_BATCH_SIZE,
       );
 
       const activeLeaderGroups = await this.prisma.perpTradingEventLog.groupBy({
@@ -319,28 +335,25 @@ export class SimulationLeaderEvaluatorService {
 
     console.time(`${baseLabel} leaderLoop`);
     for (const leaderAddress of leaderAddresses) {
-      const leaderLabel = `${baseLabel}:${leaderAddress}`;
-      console.time(`${leaderLabel} evaluateLeader`);
-      const positions = await this.loadLeaderPositionsUntil(
+      const positions = await this.loadLeaderPositionsByLeaderUntil(
         leaderAddress,
         simulation,
         contractById,
         range.startedAt,
       );
-      console.time(`${leaderLabel} getClosedPositionsBefore`);
+      console.time(`${baseLabel} evaluateLeader`);
+
       const closedPositions = this.getClosedPositionsBefore(
         positions,
         range.startedAt,
       );
-      console.timeEnd(`${leaderLabel} getClosedPositionsBefore`);
-      console.time(`${leaderLabel} evaluateLeaderPositionsForSimulation`);
 
       const evaluation = this.evaluateLeaderPositionsForSimulation(
         leaderAddress,
         closedPositions,
         simulation,
       );
-      console.timeEnd(`${leaderLabel} evaluateLeaderPositionsForSimulation`);
+
       const rejectedReason =
         evaluation.rejectedReason ||
         (!valueMatchesRange(evaluation.score, simulation.score)
@@ -348,7 +361,7 @@ export class SimulationLeaderEvaluatorService {
           : null);
 
       if (rejectedReason) {
-        console.timeEnd(`${leaderLabel} evaluateLeader`);
+        console.timeEnd(`${baseLabel} evaluateLeader`);
         continue;
       }
 
@@ -356,7 +369,7 @@ export class SimulationLeaderEvaluatorService {
         ...evaluation,
         lastEventAt: lastEventAtByLeader.get(leaderAddress.toLowerCase()),
       });
-      console.timeEnd(`${leaderLabel} evaluateLeader`);
+      console.timeEnd(`${baseLabel} evaluateLeader`);
     }
     console.timeEnd(`${baseLabel} leaderLoop`);
 
@@ -365,33 +378,67 @@ export class SimulationLeaderEvaluatorService {
     return evaluations;
   }
 
-  private async loadLeaderPositionsUntil(
+  private async loadLeaderPositionsByLeaderUntil(
     leaderAddress: string,
     simulation: Simulation,
     contractById: Map<number, ContractContext>,
     before: Date,
   ) {
+    const normalizedLeaderAddress = leaderAddress.toLowerCase();
+    const scoringStartedAt = dayjs(before)
+      .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
+      .toDate();
     const dateStr = dayjs(before).format('YYYY-MM-DD');
-    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}:${leaderAddress}] loadLeaderPositionsUntil`;
-    console.time(`${baseLabel} total`);
+    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}] loadLeaderPositionsByLeaderUntil`;
+    const refreshStartedAt =
+      this.leaderEventLogCacheService.getRefreshStartedAt(
+        simulation.platform,
+        normalizedLeaderAddress,
+        scoringStartedAt,
+      );
+
+    console.time(`${baseLabel} total address=${normalizedLeaderAddress}`);
     console.time(`${baseLabel} dbQuery`);
     const records = await this.prisma.perpTradingEventLog.findMany({
+      select: {
+        id: true,
+        address: true,
+        date: true,
+        block: true,
+        contractId: true,
+        platform: true,
+        jsonLog: true,
+      },
       where: {
-        address: leaderAddress.toLowerCase(),
+        address: normalizedLeaderAddress,
         platform: simulation.platform,
         date: {
+          gte: refreshStartedAt,
           lt: before,
         },
       },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      orderBy: [
+        { address: 'asc' },
+        { date: 'asc' },
+        { block: 'asc' },
+        { id: 'asc' },
+      ],
     });
     console.timeEnd(`${baseLabel} dbQuery`);
 
-    console.time(`${baseLabel} eventLogsToHistories`);
-    const histories = this.eventLogsToHistories(records, contractById);
-    console.timeEnd(`${baseLabel} eventLogsToHistories`);
+    const { records: cachedRecords } =
+      await this.leaderEventLogCacheService.updateCache(
+        simulation.platform,
+        normalizedLeaderAddress,
+        records,
+        scoringStartedAt,
+        before,
+      );
 
     console.time(`${baseLabel} convertToPerpTradePositionsWithSummary`);
+
+    const histories = this.eventLogsToHistories(cachedRecords, contractById);
+
     const positionsWithSummary =
       this.eventLogsService.convertToPerpTradePositionsWithSummary(
         simulation.platform,
@@ -401,10 +448,12 @@ export class SimulationLeaderEvaluatorService {
           maxLeverage: simulation.leverage.max,
         },
       );
-    console.timeEnd(`${baseLabel} convertToPerpTradePositionsWithSummary`);
+
     const positions = positionsWithSummary.positions;
 
-    console.timeEnd(`${baseLabel} total`);
+    console.timeEnd(`${baseLabel} convertToPerpTradePositionsWithSummary`);
+
+    console.timeEnd(`${baseLabel} total address=${normalizedLeaderAddress}`);
 
     return positions;
   }

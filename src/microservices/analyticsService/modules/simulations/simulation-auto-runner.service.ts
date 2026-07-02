@@ -22,6 +22,7 @@ import {
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
+import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import {
   SimulationPlan,
@@ -64,6 +65,7 @@ export class SimulationAutoRunnerService {
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
+    private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
   ) {}
 
   clearActiveRun(id: number) {
@@ -587,6 +589,8 @@ export class SimulationAutoRunnerService {
     firstRange: WindowRange | undefined,
     selectedCandidateByAddress: Map<string, CandidateEvaluation>,
   ): Promise<WindowRange | null> {
+    await this.leaderEventLogCacheService.clear();
+
     if (!firstRange) {
       return null;
     }
