@@ -284,6 +284,9 @@ export class SimulationAutoRunnerService {
     id: number,
     options: AutoSimulationRunOptions,
   ) {
+    const runTimer = `[simulation:auto:${id}] runAutoSimulation`;
+    console.time(runTimer);
+
     if (!this.activeAutoSimulationRunIds.has(id)) {
       this.activeAutoSimulationRunIds.add(id);
     }
@@ -358,6 +361,12 @@ export class SimulationAutoRunnerService {
       );
 
       for (const range of ranges) {
+        const rangeLabel = `${dayjs(range.startedAt).format(
+          'YYYY-MM-DD',
+        )}_${dayjs(range.endedAt).format('YYYY-MM-DD')}`;
+        const rangeTimer = `[simulation:auto:${id}:${rangeLabel}] range`;
+        console.time(rangeTimer);
+
         const currentRecord = await this.prisma.simulation.findUnique({
           where: { id },
         });
@@ -380,18 +389,26 @@ export class SimulationAutoRunnerService {
         });
         await this.emitSimulationUpdated(selectingSimulation);
 
+        const createPlanTimer = `[simulation:auto:${id}:${rangeLabel}] createSimulationPlanForRange`;
+        console.time(createPlanTimer);
         const simulationPlan = await this.createSimulationPlanForRange(
           current,
           range,
         );
+        console.timeEnd(createPlanTimer);
 
         if (!previousRange) {
+          const findCandidatesTimer = `[simulation:auto:${id}:${rangeLabel}] findCandidateLeaders`;
+          console.time(findCandidatesTimer);
           const candidateLeaders =
             await this.simulationLeaderEvaluatorService.findCandidateLeaders(
               current,
               range,
             );
+          console.timeEnd(findCandidatesTimer);
 
+          const evaluateCandidatesTimer = `[simulation:auto:${id}:${rangeLabel}] evaluateLeadersForRange initial=${candidateLeaders.length}`;
+          console.time(evaluateCandidatesTimer);
           const selectedCandidates =
             await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
               current,
@@ -399,6 +416,7 @@ export class SimulationAutoRunnerService {
               range,
               contractById,
             );
+          console.timeEnd(evaluateCandidatesTimer);
 
           selectedCandidates.forEach((candidate) => {
             selectedCandidateByAddress.set(
@@ -407,6 +425,8 @@ export class SimulationAutoRunnerService {
             );
           });
         } else {
+          const findChangedTimer = `[simulation:auto:${id}:${rangeLabel}] findChangedLeaderAddresses`;
+          console.time(findChangedTimer);
           const changedLeaderAddresses =
             await this.simulationLeaderEvaluatorService.findChangedLeaderAddresses(
               current,
@@ -415,11 +435,14 @@ export class SimulationAutoRunnerService {
                 endedAt: range.startedAt,
               },
             );
+          console.timeEnd(findChangedTimer);
 
           changedLeaderAddresses.forEach((leaderAddress) => {
             selectedCandidateByAddress.delete(leaderAddress.toLowerCase());
           });
 
+          const filterChangedTimer = `[simulation:auto:${id}:${rangeLabel}] filterCandidateLeaderAddresses changed=${changedLeaderAddresses.length}`;
+          console.time(filterChangedTimer);
           const filteredChangedLeaderAddresses =
             changedLeaderAddresses.length > 0
               ? await this.simulationLeaderEvaluatorService.filterCandidateLeaderAddresses(
@@ -428,7 +451,10 @@ export class SimulationAutoRunnerService {
                   range,
                 )
               : [];
+          console.timeEnd(filterChangedTimer);
 
+          const evaluateChangedTimer = `[simulation:auto:${id}:${rangeLabel}] evaluateLeadersForRange changed=${filteredChangedLeaderAddresses.length}`;
+          console.time(evaluateChangedTimer);
           const changedSelectedCandidates =
             filteredChangedLeaderAddresses.length > 0
               ? await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
@@ -438,6 +464,7 @@ export class SimulationAutoRunnerService {
                   contractById,
                 )
               : [];
+          console.timeEnd(evaluateChangedTimer);
 
           changedSelectedCandidates.forEach((candidate) => {
             selectedCandidateByAddress.set(
@@ -447,17 +474,22 @@ export class SimulationAutoRunnerService {
           });
         }
 
+        const hydrateTimer = `[simulation:auto:${id}:${rangeLabel}] hydrateAndPruneCandidates`;
+        console.time(hydrateTimer);
         await this.hydrateMissingLastEventAt(
           current,
           selectedCandidateByAddress,
           range.startedAt,
         );
         this.removeStaleCandidates(selectedCandidateByAddress, range.startedAt);
+        console.timeEnd(hydrateTimer);
 
         const selectedCandidates = [
           ...selectedCandidateByAddress.values(),
         ].sort((a, b) => b.score - a.score);
 
+        const createBotsTimer = `[simulation:auto:${id}:${rangeLabel}] createSimulationBotsForSelections selected=${selectedCandidates.length}`;
+        console.time(createBotsTimer);
         await this.createSimulationBotsForSelections(
           simulationPlan.id,
           range.startedAt,
@@ -466,6 +498,7 @@ export class SimulationAutoRunnerService {
           selectedCandidates,
           platformContracts,
         );
+        console.timeEnd(createBotsTimer);
 
         const completedPlans = allRanges.filter(
           (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
@@ -489,6 +522,7 @@ export class SimulationAutoRunnerService {
           });
         await this.emitSimulationUpdated(completedPlanWindowSimulation);
         previousRange = range;
+        console.timeEnd(rangeTimer);
       }
 
       const latestRecord = await this.prisma.simulation.findUnique({
@@ -500,6 +534,8 @@ export class SimulationAutoRunnerService {
         return;
       }
 
+      const aggregateTimer = `[simulation:auto:${id}] aggregateSimulation`;
+      console.time(aggregateTimer);
       await this.aggregateSimulation(id, {
         status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
           cursor: latest.cursor,
@@ -509,6 +545,7 @@ export class SimulationAutoRunnerService {
         }),
         through: latest.cursor,
       });
+      console.timeEnd(aggregateTimer);
     } catch (error) {
       const failedSimulation = await this.prisma.simulation.update({
         where: { id },
@@ -522,6 +559,7 @@ export class SimulationAutoRunnerService {
       await this.emitSimulationUpdated(failedSimulation);
     } finally {
       this.activeAutoSimulationRunIds.delete(id);
+      console.timeEnd(runTimer);
     }
   }
 
@@ -762,6 +800,8 @@ export class SimulationAutoRunnerService {
       status: SimulationStatus.Completed,
     },
   ) {
+    const loadPlansTimer = `[simulation:auto:${id}] aggregateSimulation loadPlans`;
+    console.time(loadPlansTimer);
     const plans = await this.prisma.simulationPlan.findMany({
       where: {
         simulationId: id,
@@ -777,11 +817,14 @@ export class SimulationAutoRunnerService {
         },
       },
     });
+    console.timeEnd(loadPlansTimer);
 
     const followerPositionPnls: number[] = [];
     let totalLeaderPnl = 0;
 
     for (const plan of plans) {
+      const planTimer = `[simulation:auto:${id}:plan:${plan.id}] aggregate plan cache`;
+      console.time(planTimer);
       await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
 
       const refreshedPlan = await this.prisma.simulationPlan.findUnique({
@@ -810,6 +853,7 @@ export class SimulationAutoRunnerService {
         const pnls = JSON.parse(bot.cache.followerPositionPnlsJson) as number[];
         followerPositionPnls.push(...pnls);
       });
+      console.timeEnd(planTimer);
     }
 
     const totalFollowerPnl = sum(followerPositionPnls);

@@ -70,12 +70,20 @@ export class SimulationCacheService {
       | 'leaderContracts'
     >,
   ) {
+    const timer = `[simulation:cache:bot:${bot.leaderAddress}:${bot.startedAt.toISOString()}] appendNewEventLogsForBot`;
+    console.time(timer);
+
+    const cachedLogsTimer = `[simulation:cache:bot:${bot.leaderAddress}:${bot.startedAt.toISOString()}] loadCachedLogs`;
+    console.time(cachedLogsTimer);
     const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany({
       where: { simulationBotCacheId: cacheId },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
     });
+    console.timeEnd(cachedLogsTimer);
     const existingLast = cachedLogs.at(-1);
 
+    const sourceLogsTimer = `[simulation:cache:bot:${bot.leaderAddress}:${bot.startedAt.toISOString()}] loadSourceEventLogs`;
+    console.time(sourceLogsTimer);
     const newLogs = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: bot.leaderAddress.toLowerCase(),
@@ -91,11 +99,15 @@ export class SimulationCacheService {
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
     });
+    console.timeEnd(sourceLogsTimer);
 
     if (newLogs.length === 0) {
+      console.timeEnd(timer);
       return { count: 0 };
     }
 
+    const mapLogsTimer = `[simulation:cache:bot:${bot.leaderAddress}:${bot.startedAt.toISOString()}] mapAndFilterLogs new=${newLogs.length}`;
+    console.time(mapLogsTimer);
     const cachedHistories =
       cachedLogs.length > 0
         ? this.buildHistoriesFromCachedLogs(
@@ -122,6 +134,8 @@ export class SimulationCacheService {
     }
 
     if (trackedPositionKeys.size === 0) {
+      console.timeEnd(mapLogsTimer);
+      console.timeEnd(timer);
       return { count: 0 };
     }
 
@@ -137,13 +151,22 @@ export class SimulationCacheService {
     });
 
     if (cacheableLogRecords.length === 0) {
+      console.timeEnd(mapLogsTimer);
+      console.timeEnd(timer);
       return { count: 0 };
     }
+    console.timeEnd(mapLogsTimer);
 
-    return this.prisma.simulationBotCachedEventLog.createMany({
+    const writeTimer = `[simulation:cache:bot:${bot.leaderAddress}:${bot.startedAt.toISOString()}] writeCachedLogs count=${cacheableLogRecords.length}`;
+    console.time(writeTimer);
+    const result = await this.prisma.simulationBotCachedEventLog.createMany({
       data: cacheableLogRecords.map(({ id: _id, ...record }) => record),
       skipDuplicates: true,
     });
+    console.timeEnd(writeTimer);
+    console.timeEnd(timer);
+
+    return result;
   }
 
   private mapSourceLogToCachedRecord(
@@ -269,6 +292,8 @@ export class SimulationCacheService {
     bot: SimulationBotWithContract,
     cachedLogs: CachedEventLogRecord[],
   ) {
+    const timer = `[simulation:cache:bot:${bot.id}] buildBotSummaryFromCachedLogs logs=${cachedLogs.length}`;
+    console.time(timer);
     const histories = this.buildHistoriesFromCachedLogs(bot, cachedLogs);
     const positionsWithSummary =
       this.eventLogsService.convertToPerpTradePositionsWithSummary(
@@ -332,7 +357,7 @@ export class SimulationCacheService {
       },
     );
 
-    return {
+    const summary = {
       completed: this.isBotCacheComplete(bot, histories),
       openedPositions: positionsWithSummary.openedPositions,
       totalPositions: positionsWithSummary.totalPositions,
@@ -354,9 +379,14 @@ export class SimulationCacheService {
         (position) => position.followerPnl,
       ),
     };
+    console.timeEnd(timer);
+
+    return summary;
   }
 
   async rebuildBotCache(simulationBotId: number) {
+    const timer = `[simulation:cache:bot:${simulationBotId}] rebuildBotCache`;
+    console.time(timer);
     const bot = await this.prisma.simulationBot.findUniqueOrThrow({
       where: { id: simulationBotId },
       include: {
@@ -385,19 +415,24 @@ export class SimulationCacheService {
     try {
       await this.appendNewEventLogsForBot(cache.id, botWithContracts);
 
+      const cachedLogsTimer = `[simulation:cache:bot:${simulationBotId}] reloadCachedLogsForSummary`;
+      console.time(cachedLogsTimer);
       const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany(
         {
           where: { simulationBotCacheId: cache.id },
           orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
         },
       );
+      console.timeEnd(cachedLogsTimer);
 
       const summary = this.buildBotSummaryFromCachedLogs(
         botWithContracts,
         cachedLogs,
       );
 
-      return await this.prisma.simulationBotCache.update({
+      const updateTimer = `[simulation:cache:bot:${simulationBotId}] updateCacheSummary`;
+      console.time(updateTimer);
+      const result = await this.prisma.simulationBotCache.update({
         where: { id: cache.id },
         data: {
           completed: summary.completed,
@@ -423,6 +458,10 @@ export class SimulationCacheService {
           ),
         },
       });
+      console.timeEnd(updateTimer);
+      console.timeEnd(timer);
+
+      return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
@@ -434,11 +473,14 @@ export class SimulationCacheService {
         },
       });
 
+      console.timeEnd(timer);
       throw error;
     }
   }
 
   async rebuildPlanCache(simulationPlanId: number) {
+    const timer = `[simulation:cache:plan:${simulationPlanId}] rebuildPlanCache`;
+    console.time(timer);
     const botCaches = await this.prisma.simulationBotCache.findMany({
       where: {
         simulationBot: {
@@ -466,7 +508,7 @@ export class SimulationCacheService {
       0,
     );
 
-    return this.prisma.simulationPlanCache.upsert({
+    const result = await this.prisma.simulationPlanCache.upsert({
       where: { simulationPlanId },
       update: {
         completed: incompleteBots === 0,
@@ -492,9 +534,14 @@ export class SimulationCacheService {
         lastBuiltAt: new Date(),
       },
     });
+    console.timeEnd(timer);
+
+    return result;
   }
 
   async refreshIncompleteBotsForPlan(simulationPlanId: number) {
+    const timer = `[simulation:cache:plan:${simulationPlanId}] refreshIncompleteBotsForPlan`;
+    console.time(timer);
     const bots = await this.prisma.simulationBot.findMany({
       where: { simulationPlanId },
       include: { cache: true },
@@ -514,6 +561,7 @@ export class SimulationCacheService {
     }
 
     await this.rebuildPlanCache(simulationPlanId);
+    console.timeEnd(timer);
   }
 
   async backfillSimulationCaches(simulationId: number) {

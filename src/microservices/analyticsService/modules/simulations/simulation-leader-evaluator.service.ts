@@ -100,6 +100,8 @@ export class SimulationLeaderEvaluatorService {
 
   async findCandidateLeaders(simulation: Simulation, range: WindowRange) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    const queryTimer = `[simulation:evaluator:${simulation.id}:${dateStr}] pnlSnapshot candidates`;
+    console.time(queryTimer);
     const records = await this.prisma.pnlSnapshotV2.findMany({
       where: {
         platform: simulation.platform,
@@ -118,6 +120,7 @@ export class SimulationLeaderEvaluatorService {
       },
       orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
     });
+    console.timeEnd(queryTimer);
 
     const candidateAddresses = records.map((record) =>
       record.address.toLowerCase(),
@@ -135,15 +138,18 @@ export class SimulationLeaderEvaluatorService {
     leaderAddresses: string[],
     range: WindowRange,
   ) {
+    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    const filterTimer = `[simulation:evaluator:${simulation.id}:${dateStr}] filterCandidateLeaderAddresses input=${leaderAddresses.length}`;
+    console.time(filterTimer);
     const normalizedAddresses = [
       ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
     ];
 
     if (normalizedAddresses.length === 0) {
+      console.timeEnd(filterTimer);
       return [];
     }
 
-    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
     const records = await this.prisma.pnlSnapshotV2.findMany({
       where: {
         platform: simulation.platform,
@@ -174,7 +180,7 @@ export class SimulationLeaderEvaluatorService {
       simulation,
       candidateAddresses,
       range,
-    );
+    ).finally(() => console.timeEnd(filterTimer));
   }
 
   private async filterRecentlyActiveCandidateAddresses(
@@ -182,6 +188,9 @@ export class SimulationLeaderEvaluatorService {
     candidateAddresses: string[],
     range: WindowRange,
   ) {
+    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] recentActivityPrefilter candidates=${candidateAddresses.length}`;
+    console.time(timer);
     const recentActivityCutoff = dayjs(range.startedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
@@ -237,10 +246,16 @@ export class SimulationLeaderEvaluatorService {
       });
     }
 
+    console.timeEnd(timer);
     return prefilteredAddresses;
   }
 
   async findChangedLeaderAddresses(simulation: Simulation, range: WindowRange) {
+    const rangeLabel = `${dayjs(range.startedAt).format('YYYY-MM-DD')}_${dayjs(
+      range.endedAt,
+    ).format('YYYY-MM-DD')}`;
+    const timer = `[simulation:evaluator:${simulation.id}:${rangeLabel}] changedLeaderGroupBy`;
+    console.time(timer);
     const records = await this.prisma.perpTradingEventLog.groupBy({
       by: ['address'],
       where: {
@@ -251,6 +266,7 @@ export class SimulationLeaderEvaluatorService {
         },
       },
     });
+    console.timeEnd(timer);
 
     return records
       .map((record) => record.address.toLowerCase())
@@ -262,11 +278,15 @@ export class SimulationLeaderEvaluatorService {
     leaderAddresses: string[],
     before: Date,
   ) {
+    const dateStr = dayjs(before).format('YYYY-MM-DD');
+    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] getLastEventAtByLeader input=${leaderAddresses.length}`;
+    console.time(timer);
     const normalizedAddresses = [
       ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
     ];
 
     if (normalizedAddresses.length === 0) {
+      console.timeEnd(timer);
       return new Map<string, Date>();
     }
 
@@ -286,13 +306,16 @@ export class SimulationLeaderEvaluatorService {
       },
     });
 
-    return new Map(
+    const lastEventAtByLeader = new Map(
       groups.flatMap((group) =>
         group._max.date
           ? [[group.address.toLowerCase(), group._max.date] as const]
           : [],
       ),
     );
+    console.timeEnd(timer);
+
+    return lastEventAtByLeader;
   }
 
   async evaluateLeadersForRange(
@@ -301,6 +324,9 @@ export class SimulationLeaderEvaluatorService {
     range: WindowRange,
     contractById: Map<number, ContractContext>,
   ) {
+    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
+    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}] evaluateLeadersForRange leaders=${leaderAddresses.length}`;
+    console.time(timer);
     const evaluations: CandidateEvaluation[] = [];
     const lastEventAtByLeader = await this.getLastEventAtByLeader(
       simulation,
@@ -335,6 +361,8 @@ export class SimulationLeaderEvaluatorService {
       });
     }
 
+    console.timeEnd(timer);
+
     return evaluations;
   }
 
@@ -342,8 +370,11 @@ export class SimulationLeaderEvaluatorService {
     leaderAddress: string,
     simulation: Simulation,
     contractById: Map<number, ContractContext>,
-    before: Date,
+        before: Date,
   ) {
+    const dateStr = dayjs(before).format('YYYY-MM-DD');
+    const timer = `[simulation:evaluator:${simulation.id}:${dateStr}:${leaderAddress}] loadLeaderPositionsUntil`;
+    console.time(timer);
     const records = await this.prisma.perpTradingEventLog.findMany({
       where: {
         address: leaderAddress.toLowerCase(),
@@ -357,7 +388,7 @@ export class SimulationLeaderEvaluatorService {
 
     const histories = this.eventLogsToHistories(records, contractById);
 
-    return this.eventLogsService.convertToPerpTradePositionsWithSummary(
+    const positions = this.eventLogsService.convertToPerpTradePositionsWithSummary(
       simulation.platform,
       histories,
       {
@@ -365,6 +396,9 @@ export class SimulationLeaderEvaluatorService {
         maxLeverage: simulation.leverage.max,
       },
     ).positions;
+    console.timeEnd(timer);
+
+    return positions;
   }
 
   private evaluateLeaderPositionsForSimulation(
