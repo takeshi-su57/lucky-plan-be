@@ -481,6 +481,37 @@ export class SimulationsService {
     }
   }
 
+  private async deleteSimulationRecordsInTransaction(
+    tx: any,
+    simulationIds: number[],
+  ) {
+    if (simulationIds.length === 0) {
+      return;
+    }
+
+    const simulationPlans = await tx.simulationPlan.findMany({
+      where: { simulationId: { in: simulationIds } },
+      select: { id: true },
+    });
+    const simulationPlanIds = simulationPlans.map(
+      (plan: { id: number }) => plan.id,
+    );
+
+    if (simulationPlanIds.length > 0) {
+      await tx.simulationBot.deleteMany({
+        where: { simulationPlanId: { in: simulationPlanIds } },
+      });
+
+      await tx.simulationPlan.deleteMany({
+        where: { id: { in: simulationPlanIds } },
+      });
+    }
+
+    await tx.simulation.deleteMany({
+      where: { id: { in: simulationIds } },
+    });
+  }
+
   async createSimulationResearch(
     input: CreateSimulationResearchInput,
   ): Promise<SimulationResearch> {
@@ -843,11 +874,6 @@ export class SimulationsService {
     await this.prisma.$transaction(async (tx) => {
       const simulation = await tx.simulation.findUnique({
         where: { id },
-        include: {
-          simulationPlans: {
-            select: { id: true },
-          },
-        },
       });
 
       if (!simulation) {
@@ -858,21 +884,45 @@ export class SimulationsService {
         throw new Error('Cannot delete a running simulation');
       }
 
-      const simulationPlanIds = simulation.simulationPlans.map(
-        (plan) => plan.id,
-      );
+      await this.deleteSimulationRecordsInTransaction(tx, [id]);
+    });
 
-      if (simulationPlanIds.length > 0) {
-        await tx.simulationBot.deleteMany({
-          where: { simulationPlanId: { in: simulationPlanIds } },
-        });
+    return id;
+  }
 
-        await tx.simulationPlan.deleteMany({
-          where: { id: { in: simulationPlanIds } },
-        });
+  async deleteSimulationResearch(id: number): Promise<number> {
+    await this.prisma.$transaction(async (tx) => {
+      const research = await tx.simulationResearch.findUnique({
+        where: { id },
+        include: {
+          simulations: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!research) {
+        throw new Error('SimulationResearch not found');
       }
 
-      await tx.simulation.delete({
+      if (
+        research.simulations.some(
+          (simulation: { status: SimulationStatus }) =>
+            simulation.status === SimulationStatus.Running,
+        )
+      ) {
+        throw new Error('Cannot delete research with a running simulation');
+      }
+
+      await this.deleteSimulationRecordsInTransaction(
+        tx,
+        research.simulations.map((simulation: { id: number }) => simulation.id),
+      );
+
+      await tx.simulationResearch.delete({
         where: { id },
       });
     });
@@ -936,6 +986,10 @@ export class SimulationsService {
 
   async deleteSimulationPlan(id: number): Promise<number> {
     return await this.simulationPlansService.deleteSimulationPlan(id);
+  }
+
+  async deleteSimulationBot(id: number): Promise<number> {
+    return await this.simulationPlansService.deleteSimulationBot(id);
   }
 
   async createSimulationPlan(

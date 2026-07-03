@@ -10,6 +10,74 @@ import {
 } from './simulation-formulars';
 
 describe('SimulationsService API queue requests', () => {
+  it('deletes a simulation research with child simulations, plans, and bots', async () => {
+    const tx = {
+      simulationResearch: {
+        findUnique: jest.fn(async () => ({
+          id: 7,
+          simulations: [
+            { id: 11, status: SimulationStatus.Completed },
+            { id: 12, status: SimulationStatus.Created },
+          ],
+        })),
+        delete: jest.fn(async () => ({ id: 7 })),
+      },
+      simulationPlan: {
+        findMany: jest.fn(async () => [{ id: 101 }, { id: 102 }]),
+        deleteMany: jest.fn(async () => ({ count: 2 })),
+      },
+      simulationBot: {
+        deleteMany: jest.fn(async () => ({ count: 3 })),
+      },
+      simulation: {
+        deleteMany: jest.fn(async () => ({ count: 2 })),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: any) => callback(tx)),
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    const result = await service.deleteSimulationResearch(7);
+
+    expect(result).toBe(7);
+    expect(tx.simulationPlan.findMany as any).toHaveBeenCalledWith({
+      where: { simulationId: { in: [11, 12] } },
+      select: { id: true },
+    });
+    expect(tx.simulationBot.deleteMany as any).toHaveBeenCalledWith({
+      where: { simulationPlanId: { in: [101, 102] } },
+    });
+    expect(tx.simulationPlan.deleteMany as any).toHaveBeenCalledWith({
+      where: { id: { in: [101, 102] } },
+    });
+    expect(tx.simulation.deleteMany as any).toHaveBeenCalledWith({
+      where: { id: { in: [11, 12] } },
+    });
+    expect(tx.simulationResearch.delete as any).toHaveBeenCalledWith({
+      where: { id: 7 },
+    });
+  });
+
+  it('rejects deleting research while a child simulation is running', async () => {
+    const tx = {
+      simulationResearch: {
+        findUnique: jest.fn(async () => ({
+          id: 7,
+          simulations: [{ id: 11, status: SimulationStatus.Running }],
+        })),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: any) => callback(tx)),
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    await expect(service.deleteSimulationResearch(7)).rejects.toThrow(
+      'Cannot delete research with a running simulation',
+    );
+  });
+
   it('creates research simulations with multi-day plan windows and gap days', async () => {
     const createdResearch = {
       id: 91,

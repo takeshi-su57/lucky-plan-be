@@ -72,6 +72,34 @@ export class SimulationPlansService {
     });
   }
 
+  private async deleteSimulationBotInTransaction(tx: any, id: number) {
+    const simulationBot = await tx.simulationBot.findUnique({
+      where: { id },
+      include: {
+        simulationPlan: {
+          include: {
+            simulation: true,
+          },
+        },
+      },
+    });
+
+    if (!simulationBot) {
+      throw new Error('SimulationBot not found');
+    }
+
+    if (
+      simulationBot.simulationPlan.simulation?.status ===
+      SimulationStatus.Running
+    ) {
+      throw new Error('Cannot delete a bot from a running simulation');
+    }
+
+    await tx.simulationBot.delete({
+      where: { id },
+    });
+  }
+
   async createSimulationPlan(
     createSimulationPlanInput: CreateSimulationPlanInput,
   ): Promise<SimulationPlan> {
@@ -163,6 +191,14 @@ export class SimulationPlansService {
           },
         });
       }
+    });
+
+    return id;
+  }
+
+  async deleteSimulationBot(id: number): Promise<number> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.deleteSimulationBotInTransaction(tx, id);
     });
 
     return id;
