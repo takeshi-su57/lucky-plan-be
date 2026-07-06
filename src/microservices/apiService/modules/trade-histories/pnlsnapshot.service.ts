@@ -31,7 +31,7 @@ function getKey(address: string, platform: Platform) {
 
 const timestampGapByThreeMonthPnlSnapshot = 3 * 30 * 24 * 60 * 60 * 1000;
 
-const BATCH_SIZE = 10000;
+const BATCH_SIZE = 5000;
 @Injectable()
 export class PnlSnapshotsService {
   status: ServiceStatus;
@@ -484,7 +484,7 @@ export class PnlSnapshotsService {
 
         const cachedKeys = Array.from(tempCache.keys());
 
-        if (cachedKeys.length > 10_0000) {
+        if (cachedKeys.length > 5_0000) {
           await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
           tempCache.clear();
         }
