@@ -339,7 +339,7 @@ export class PnlSnapshotsService {
                 platform,
                 date: {
                   gte: new Date(pastLowerBound),
-                  lte: new Date(pastUpperBound),
+                  lt: new Date(pastUpperBound),
                 },
               },
               orderBy: [
@@ -359,7 +359,7 @@ export class PnlSnapshotsService {
               where: {
                 date: {
                   gte: new Date(pastLowerBound),
-                  lte: new Date(pastUpperBound),
+                  lt: new Date(pastUpperBound),
                 },
                 platform,
               },
@@ -434,7 +434,7 @@ export class PnlSnapshotsService {
                 platform,
                 date: {
                   gte: new Date(lowerBound),
-                  lte: new Date(upperBound),
+                  lt: new Date(upperBound),
                 },
               },
               orderBy: [
@@ -455,7 +455,7 @@ export class PnlSnapshotsService {
                 platform,
                 date: {
                   gte: new Date(lowerBound),
-                  lte: new Date(upperBound),
+                  lt: new Date(upperBound),
                 },
               },
               orderBy: [
@@ -758,7 +758,7 @@ export class PnlSnapshotsService {
         const storedKeys = Array.from(tempCache.keys());
 
         // we need to clean cache for prevent memory execeed.
-        if (storedKeys.length > 100_000) {
+        if (storedKeys.length > 50_000) {
           await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
           tempCache.clear();
         }
