@@ -175,6 +175,7 @@ export class PnlSnapshotsService {
               ...history,
               id: record.id,
               date: record.date,
+              chainId: contract.chainId,
               contractId: record.contractId,
               platform: contract.platform,
             };

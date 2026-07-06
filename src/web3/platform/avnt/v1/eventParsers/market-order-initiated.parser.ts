@@ -22,7 +22,11 @@ export function parseMarketOrderInitiatedEvent(
 ) {
   return eventToAction(
     event.eventName,
-    getAvntPositionKey(event.args.trader, Number(event.args.orderId)),
+    getAvntPositionKey(
+      event.args.trader,
+      Number(event.args.pairIndex),
+      Number(event.args.orderId),
+    ),
     event.args.trader,
     event.args,
   );

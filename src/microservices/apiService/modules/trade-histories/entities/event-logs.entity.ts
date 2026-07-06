@@ -139,6 +139,9 @@ export class PerpTradeHistory extends PurePerpTradeHistory {
   @Field(() => Int)
   contractId: number;
 
+  @Field(() => Int)
+  chainId: number;
+
   @Field(() => Platform)
   platform: Platform;
 }

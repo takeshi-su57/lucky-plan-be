@@ -257,6 +257,7 @@ export class SimulationCacheService {
               ...history,
               id: record.sourceEventLogId ?? record.id,
               date: record.date,
+              chainId: contract.chainId,
               contractId: record.contractId,
               platform: record.platform,
             }

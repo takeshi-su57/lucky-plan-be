@@ -24,7 +24,11 @@ export type MarketExecutedEventArgs = MarketExecutedEvent['args'];
 export function parseMarketExecutedEvent(event: MarketExecutedEvent) {
   return eventToAction(
     event.eventName,
-    getAvntPositionKey(event.args.t.trader, Number(event.args.t.index)),
+    getAvntPositionKey(
+      event.args.t.trader,
+      Number(event.args.t.pairIndex),
+      Number(event.args.t.index),
+    ),
     event.args.t.trader,
     event.args,
   );
@@ -74,6 +78,7 @@ export function eventToPerpTradeHistory(
   return {
     positionKey: getAvntPositionKey(
       event.args.t.trader,
+      Number(event.args.t.pairIndex),
       Number(event.args.t.index),
     ),
     address: event.args.t.trader.toLowerCase() as `0x${string}`,

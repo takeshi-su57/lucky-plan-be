@@ -20,7 +20,11 @@ export type MarketOpenCanceledEventArgs = MarketOpenCanceledEvent['args'];
 export function parseMarketOpenCanceledEvent(event: MarketOpenCanceledEvent) {
   return eventToAction(
     event.eventName,
-    getAvntPositionKey(event.args.trader, Number(event.args.orderId)),
+    getAvntPositionKey(
+      event.args.trader,
+      Number(event.args.pairIndex),
+      Number(event.args.orderId),
+    ),
     event.args.trader,
     event.args,
   );

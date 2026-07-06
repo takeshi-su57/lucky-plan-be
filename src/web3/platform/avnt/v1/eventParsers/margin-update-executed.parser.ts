@@ -25,7 +25,11 @@ export type MarginUpdateEventArgs = MarginUpdateEvent['args'];
 export function parseMarginUpdateEvent(event: MarginUpdateEvent) {
   return eventToAction(
     event.eventName,
-    getAvntPositionKey(event.args.trader, Number(event.args.index)),
+    getAvntPositionKey(
+      event.args.trader,
+      Number(event.args.pairIndex),
+      Number(event.args.index),
+    ),
     event.args.trader,
     event.args,
   );
@@ -56,6 +60,7 @@ export function eventToPerpTradeHistory(
   return {
     positionKey: getAvntPositionKey(
       event.args.trader,
+      Number(event.args.pairIndex),
       Number(event.args.index),
     ),
     address: event.args.trader.toLowerCase() as `0x${string}`,

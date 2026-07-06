@@ -92,6 +92,7 @@ export class EventLogsService {
                 ...history,
                 id: record.id,
                 date: record.date,
+                chainId: contract.chainId,
                 contractId: record.contractId,
                 platform: record.platform,
               }
@@ -144,12 +145,14 @@ export class EventLogsService {
         return;
       }
 
-      const arr = groupedByPositionKey.get(history.positionKey);
+      const positionKey = `${history.chainId}:${history.positionKey}`;
+
+      const arr = groupedByPositionKey.get(positionKey);
 
       if (arr) {
         arr.push(history);
       } else {
-        groupedByPositionKey.set(history.positionKey, [history]);
+        groupedByPositionKey.set(positionKey, [history]);
       }
     });
 

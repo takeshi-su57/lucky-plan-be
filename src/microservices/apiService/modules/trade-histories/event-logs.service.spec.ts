@@ -18,6 +18,7 @@ function history(
     collateralInUsd,
     collateralUsdPrice: 1,
     contractId: 1,
+    chainId: 42161,
     date: new Date(`2026-05-0${positionKey.replace('p', '')}T00:00:00.000Z`),
     isLong: true,
     leverage: 5,
