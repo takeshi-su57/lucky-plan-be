@@ -3,7 +3,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getMarketInfo } from '../configs';
+import { getMarketInfo, getTokenInfo } from '../configs';
 
 export const eventName = 'PositionIncrease';
 
@@ -71,8 +71,16 @@ export function eventToPerpTradeHistory(
       Number(event.args['collateralTokenPrice.max'])) /
     1e30;
 
-  const collateralUsdPrice =
-    (collateralInUsd * 1e30) / Number(event.args.collateralAmount);
+  const collateralTokenInfo = getTokenInfo(
+    chainId,
+    event.args.collateralToken.toLowerCase(),
+  );
+
+  const collateralUsdPrice = collateralTokenInfo
+    ? (Number(event.args['collateralTokenPrice.max']) *
+        10 ** collateralTokenInfo.decimals) /
+      1e30
+    : 1;
 
   const sizeDeltaUsd = Number(event.args.sizeDeltaUsd) / 1e30;
   const collateralDeltaUsd =
