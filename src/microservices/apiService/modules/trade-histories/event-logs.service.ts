@@ -144,14 +144,12 @@ export class EventLogsService {
         return;
       }
 
-      const positionKey = `${history.contractId}:${history.positionKey}`;
-
-      const arr = groupedByPositionKey.get(positionKey);
+      const arr = groupedByPositionKey.get(history.positionKey);
 
       if (arr) {
         arr.push(history);
       } else {
-        groupedByPositionKey.set(positionKey, [history]);
+        groupedByPositionKey.set(history.positionKey, [history]);
       }
     });
 
