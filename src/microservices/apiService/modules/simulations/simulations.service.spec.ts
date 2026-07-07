@@ -9,6 +9,42 @@ import {
   SimulationSizingFormular,
 } from './simulation-formulars';
 
+function createResearchRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 91,
+    title: 'Runtime research',
+    description: 'Research automation state',
+    platform: Platform.GNS,
+    startAt: new Date('2026-07-01T00:00:00.000Z'),
+    endAt: new Date('2026-07-10T00:00:00.000Z'),
+    direction: BotMode.Reversed,
+    days: 3,
+    gapDays: 2,
+    trade: [{ min: 3, max: 10 }],
+    r2: [{ min: 0.5, max: 1 }],
+    slope: [{ min: 0, max: 100 }],
+    collateral: [{ min: 10, max: 500 }],
+    leverage: [{ min: 10, max: 50 }],
+    score: [{ min: 0.5, max: 0.8 }],
+    scoreFormular: DEFAULT_SCORE_FORMULAR,
+    sizingFormular: DEFAULT_SIZING_FORMULAR,
+    cursor: null,
+    status: SimulationStatus.Created,
+    progressPhase: 'created',
+    progressMessage: 'Research created',
+    progressPercent: 0,
+    totalRanges: 2,
+    completedRanges: 0,
+    startedAt: null,
+    finishedAt: null,
+    lastError: null,
+    createdAt: new Date('2026-07-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+    simulations: [{ status: SimulationStatus.Created }],
+    ...overrides,
+  };
+}
+
 describe('SimulationsService API queue requests', () => {
   it('deletes a simulation research with child simulations, plans, and bots', async () => {
     const tx = {
@@ -230,6 +266,131 @@ describe('SimulationsService API queue requests', () => {
       'Simulation research can generate at most 30 simulations',
     );
     expect(prisma.$transaction as any).not.toHaveBeenCalled();
+  });
+
+  it('queues created research for automation', async () => {
+    const research = createResearchRecord();
+    const updated = createResearchRecord({
+      status: SimulationStatus.Queued,
+      progressPhase: 'queued',
+      progressMessage: 'Research queued for analytics automation',
+      lastError: null,
+    });
+    const prisma = {
+      simulationResearch: {
+        findUnique: jest.fn(async () => research),
+        update: jest.fn(async () => updated),
+      },
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    const result = await service.playAutoResearch(91);
+
+    expect((prisma.simulationResearch.update as any).mock.calls[0][0]).toEqual({
+      where: { id: 91 },
+      data: {
+        status: SimulationStatus.Queued,
+        lastError: null,
+        progressPhase: 'queued',
+        progressMessage: 'Research queued for analytics automation',
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    expect(result.status).toBe(SimulationStatus.Queued);
+  });
+
+  it('pauses queued research automation', async () => {
+    const research = createResearchRecord({ status: SimulationStatus.Queued });
+    const updated = createResearchRecord({
+      status: SimulationStatus.Paused,
+      progressPhase: 'paused',
+      progressMessage: 'Research automation paused',
+    });
+    const prisma = {
+      simulationResearch: {
+        findUnique: jest.fn(async () => research),
+        update: jest.fn(async () => updated),
+      },
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    const result = await service.pauseResearch(91);
+
+    expect((prisma.simulationResearch.update as any).mock.calls[0][0]).toEqual({
+      where: { id: 91 },
+      data: {
+        status: SimulationStatus.Paused,
+        progressPhase: 'paused',
+        progressMessage: 'Research automation paused',
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    expect(result.status).toBe(SimulationStatus.Paused);
+  });
+
+  it('cancels non-terminal research automation', async () => {
+    const research = createResearchRecord({ status: SimulationStatus.Running });
+    const updated = createResearchRecord({
+      status: SimulationStatus.Cancelled,
+      progressPhase: 'cancelled',
+      progressMessage: 'Research cancellation requested',
+      finishedAt: new Date('2026-07-02T00:00:00.000Z'),
+    });
+    const prisma = {
+      simulationResearch: {
+        findUnique: jest.fn(async () => research),
+        update: jest.fn(async () => updated),
+      },
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    const result = await service.cancelResearch(91);
+
+    expect((prisma.simulationResearch.update as any).mock.calls[0][0]).toEqual({
+      where: { id: 91 },
+      data: expect.objectContaining({
+        status: SimulationStatus.Cancelled,
+        progressPhase: 'cancelled',
+        progressMessage: 'Research cancellation requested',
+      }),
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    expect(result.status).toBe(SimulationStatus.Cancelled);
+  });
+
+  it('rejects queueing completed research automation', async () => {
+    const prisma = {
+      simulationResearch: {
+        findUnique: jest.fn(async () =>
+          createResearchRecord({ status: SimulationStatus.Completed }),
+        ),
+        update: jest.fn(),
+      },
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    await expect(service.playAutoResearch(91)).rejects.toThrow(
+      'Cannot queue a completed research',
+    );
+    expect(prisma.simulationResearch.update as any).not.toHaveBeenCalled();
   });
 
   it('marks a simulation as queued without running analytics execution', async () => {

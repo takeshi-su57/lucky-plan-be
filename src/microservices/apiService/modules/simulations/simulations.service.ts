@@ -976,6 +976,166 @@ export class SimulationsService {
     return mapped;
   }
 
+  async playAutoResearch(id: number): Promise<SimulationResearch> {
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!research) {
+      throw new Error('SimulationResearch not found');
+    }
+
+    if (research.status === SimulationStatus.Running) {
+      throw new Error('Cannot queue a running research');
+    }
+
+    if (research.status === SimulationStatus.Completed) {
+      throw new Error('Cannot queue a completed research');
+    }
+
+    if (research.status === SimulationStatus.Cancelled) {
+      throw new Error('Cannot queue a cancelled research');
+    }
+
+    if (research.status === SimulationStatus.Failed) {
+      throw new Error('Cannot queue a failed research');
+    }
+
+    if (research.status === SimulationStatus.Queued) {
+      return this.mapSimulationResearch(research);
+    }
+
+    const updated = await this.prisma.simulationResearch.update({
+      where: { id },
+      data: {
+        status: SimulationStatus.Queued,
+        lastError: null,
+        progressPhase: 'queued',
+        progressMessage: 'Research queued for analytics automation',
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    const mapped = this.mapSimulationResearch(updated);
+    await this.emitSimulationResearchUpdated(id);
+
+    return mapped;
+  }
+
+  async pauseResearch(id: number): Promise<SimulationResearch> {
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!research) {
+      throw new Error('SimulationResearch not found');
+    }
+
+    if (research.status === SimulationStatus.Completed) {
+      throw new Error('Cannot pause a completed research');
+    }
+
+    if (research.status === SimulationStatus.Cancelled) {
+      throw new Error('Cannot pause a cancelled research');
+    }
+
+    if (research.status === SimulationStatus.Failed) {
+      throw new Error('Cannot pause a failed research');
+    }
+
+    if (research.status === SimulationStatus.Paused) {
+      return this.mapSimulationResearch(research);
+    }
+
+    const updated = await this.prisma.simulationResearch.update({
+      where: { id },
+      data: {
+        status: SimulationStatus.Paused,
+        progressPhase: 'paused',
+        progressMessage: 'Research automation paused',
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    const mapped = this.mapSimulationResearch(updated);
+    await this.emitSimulationResearchUpdated(id);
+
+    return mapped;
+  }
+
+  async cancelResearch(id: number): Promise<SimulationResearch> {
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!research) {
+      throw new Error('SimulationResearch not found');
+    }
+
+    if (research.status === SimulationStatus.Completed) {
+      throw new Error('Cannot cancel a completed research');
+    }
+
+    if (research.status === SimulationStatus.Cancelled) {
+      return this.mapSimulationResearch(research);
+    }
+
+    const updated = await this.prisma.simulationResearch.update({
+      where: { id },
+      data: {
+        status: SimulationStatus.Cancelled,
+        progressPhase: 'cancelled',
+        progressMessage: 'Research cancellation requested',
+        finishedAt: new Date(),
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    const mapped = this.mapSimulationResearch(updated);
+    await this.emitSimulationResearchUpdated(id);
+
+    return mapped;
+  }
+
   async playAutoSimulation(id: number): Promise<Simulation> {
     const simulation = await this.prisma.simulation.findUnique({
       where: { id },

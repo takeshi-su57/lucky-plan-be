@@ -80,6 +80,27 @@ export class SimulationsResolver {
     return this.simulationsService.cancelSimulation(id);
   }
 
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  playAutoResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.playAutoResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  pauseResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.pauseResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  cancelResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.cancelResearch(id);
+  }
+
   @Mutation(() => Int)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)

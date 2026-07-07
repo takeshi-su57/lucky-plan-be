@@ -207,6 +207,7 @@ enum BotMode {
 
 enum SimulationStatus {
   Created
+  Queued
   Running
   Paused
   Completed

@@ -552,6 +552,9 @@ type Mutation {
   makeSafeApp(password: String!): Boolean!
   openTradeMarket(input: OpenTradeInput!): ContractExecutionResult!
   pauseSystem: Boolean!
+  cancelResearch(id: Int!): SimulationResearch!
+  pauseResearch(id: Int!): SimulationResearch!
+  playAutoResearch(id: Int!): SimulationResearch!
   playAutoSimulation(id: Int!): Simulation!
   playSimulationPlan(id: Int!): SimulationPlan!
   resumeSystem(password: String): Boolean!
@@ -1082,6 +1085,7 @@ enum SimulationStatus {
   Created
   Failed
   Paused
+  Queued
   Running
 }
 
