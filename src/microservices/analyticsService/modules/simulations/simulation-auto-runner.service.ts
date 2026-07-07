@@ -147,6 +147,24 @@ export class SimulationAutoRunnerService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      status: record.status ?? SimulationStatus.Created,
+      cursor: record.cursor ?? null,
+      progressPhase: record.progressPhase ?? 'created',
+      progressMessage: record.progressMessage ?? 'Research created',
+      progressPercent: record.progressPercent ?? 0,
+      totalRanges:
+        record.totalRanges ??
+        Math.max(
+          ...simulations.map(
+            (simulation: { totalSimulationPlans?: number | null }) =>
+              simulation.totalSimulationPlans ?? 0,
+          ),
+          0,
+        ),
+      completedRanges: record.completedRanges ?? 0,
+      startedAt: record.startedAt ?? null,
+      finishedAt: record.finishedAt ?? null,
+      lastError: record.lastError ?? null,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,

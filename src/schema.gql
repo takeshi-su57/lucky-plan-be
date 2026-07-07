@@ -1000,6 +1000,16 @@ type SimulationResearch {
   score: [SimulationValueRange!]!
   scoreFormular: SimulationScoreFormular!
   sizingFormular: SimulationSizingFormular!
+  status: SimulationStatus!
+  cursor: Date
+  progressPhase: String
+  progressMessage: String
+  progressPercent: Float!
+  totalRanges: Int!
+  completedRanges: Int!
+  startedAt: Date
+  finishedAt: Date
+  lastError: String
   slope: [SimulationValueRange!]!
   startAt: Date!
   title: String!
@@ -1030,6 +1040,16 @@ type SimulationResearchDetails {
   scoreFormular: SimulationScoreFormular!
   simulations: [Simulation!]!
   sizingFormular: SimulationSizingFormular!
+  status: SimulationStatus!
+  cursor: Date
+  progressPhase: String
+  progressMessage: String
+  progressPercent: Float!
+  totalRanges: Int!
+  completedRanges: Int!
+  startedAt: Date
+  finishedAt: Date
+  lastError: String
   slope: [SimulationValueRange!]!
   startAt: Date!
   title: String!

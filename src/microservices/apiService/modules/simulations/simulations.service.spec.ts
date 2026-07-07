@@ -174,6 +174,16 @@ describe('SimulationsService API queue requests', () => {
     expect(result.gapDays).toBe(2);
     expect(result.scoreFormular).toBe(DEFAULT_SCORE_FORMULAR);
     expect(result.sizingFormular).toBe(DEFAULT_SIZING_FORMULAR);
+    expect(result.status).toBe(SimulationStatus.Created);
+    expect(result.cursor).toBeNull();
+    expect(result.progressPhase).toBe('created');
+    expect(result.progressMessage).toBe('Research created');
+    expect(result.progressPercent).toBe(0);
+    expect(result.totalRanges).toBe(2);
+    expect(result.completedRanges).toBe(0);
+    expect(result.startedAt).toBeNull();
+    expect(result.finishedAt).toBeNull();
+    expect(result.lastError).toBeNull();
   });
 
   it('rejects simulation research with more than 30 generated simulations', async () => {

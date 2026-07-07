@@ -411,6 +411,11 @@ export class SimulationsService {
       (simulation: { status: SimulationStatus }) =>
         simulation.status === SimulationStatus.Completed,
     ).length;
+    const days = record.days ?? 1;
+    const gapDays = record.gapDays ?? 0;
+    const totalRanges =
+      record.totalRanges ??
+      countSimulationPlanWindows(record.startAt, record.endAt, days, gapDays);
 
     return {
       id: record.id,
@@ -419,8 +424,8 @@ export class SimulationsService {
       platform: record.platform,
       startAt: record.startAt,
       endAt: record.endAt,
-      days: record.days ?? 1,
-      gapDays: record.gapDays ?? 0,
+      days,
+      gapDays,
       direction: record.direction,
       trade: record.trade as any,
       r2: record.r2 as any,
@@ -434,6 +439,16 @@ export class SimulationsService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      status: record.status ?? SimulationStatus.Created,
+      cursor: record.cursor ?? null,
+      progressPhase: record.progressPhase ?? 'created',
+      progressMessage: record.progressMessage ?? 'Research created',
+      progressPercent: record.progressPercent ?? 0,
+      totalRanges,
+      completedRanges: record.completedRanges ?? 0,
+      startedAt: record.startedAt ?? null,
+      finishedAt: record.finishedAt ?? null,
+      lastError: record.lastError ?? null,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -574,6 +589,12 @@ export class SimulationsService {
           score: this.serializeRanges(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
+          status: SimulationStatus.Created,
+          progressPhase: 'created',
+          progressMessage: 'Research created',
+          progressPercent: 0,
+          totalRanges: totalSimulationPlans,
+          completedRanges: 0,
         },
       });
 

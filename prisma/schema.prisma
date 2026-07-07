@@ -38,20 +38,20 @@ model Strategy {
 }
 
 model Contract {
-  id                         Int             @id @default(autoincrement())
+  id                         Int            @id @default(autoincrement())
   chainId                    Int
   address                    String
   description                String
   lastBlockNumber            Int
-  status                     ContractStatus  @default(Live)
-  lastLeaderboardBlockNumber Int             @default(0)
+  status                     ContractStatus @default(Live)
+  lastLeaderboardBlockNumber Int            @default(0)
   backendUrl                 String?
-  fromBlock                  Int             @default(0)
-  platform                   Platform        @default(GNS)
+  fromBlock                  Int            @default(0)
+  platform                   Platform       @default(GNS)
   toBlock                    Int?
-  version                    Version         @default(V9)
-  followerBots               Bot[]           @relation("followerBots")
-  leaderBots                 Bot[]           @relation("leaderBots")
+  version                    Version        @default(V9)
+  followerBots               Bot[]          @relation("followerBots")
+  leaderBots                 Bot[]          @relation("leaderBots")
   sltprequests               SLTPRequest[]
   actions                    Action[]
 
@@ -152,9 +152,9 @@ model SimulationPlan {
   totalLeaderPnl   Float @default(0)
   totalFollowerPnl Float @default(0)
 
-  simulationBots   SimulationBot[]
-  simulation       Simulation?                 @relation(fields: [simulationId], references: [id])
-  cache            SimulationPlanCache?
+  simulationBots SimulationBot[]
+  simulation     Simulation?          @relation(fields: [simulationId], references: [id])
+  cache          SimulationPlanCache?
 
   @@index([simulationId, startAt])
 }
@@ -180,11 +180,23 @@ model SimulationResearch {
   scoreFormular  String @default("RiskAdjustedCopyScore")
   sizingFormular String @default("ScoreScaledCollateralSizing")
 
+  cursor          DateTime?
+  status          SimulationStatus @default(Created)
+  progressPhase   String?
+  progressMessage String?
+  progressPercent Float            @default(0)
+  totalRanges     Int              @default(0)
+  completedRanges Int              @default(0)
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  lastError       String?
+
   simulations Simulation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([status, createdAt])
   @@index([createdAt])
 }
 
@@ -222,15 +234,15 @@ model Simulation {
   progressMessage String?
   progressPercent Float            @default(0)
 
-  selectedLeaderCount Int   @default(10)
-  trade               Json  @default("{\"min\":3,\"max\":1000000}")
-  r2                  Json  @default("{\"min\":0.5,\"max\":1}")
-  slope               Json  @default("{\"min\":0,\"max\":1000000000}")
+  selectedLeaderCount Int  @default(10)
+  trade               Json @default("{\"min\":3,\"max\":1000000}")
+  r2                  Json @default("{\"min\":0.5,\"max\":1}")
+  slope               Json @default("{\"min\":0,\"max\":1000000000}")
 
-  standardCollateralUsd Float @default(100)
-  collateral            Json  @default("{\"min\":0,\"max\":1000000000}")
-  leverage              Json  @default("{\"min\":0,\"max\":50}")
-  score                 Json  @default("{\"min\":0,\"max\":1}")
+  standardCollateralUsd Float  @default(100)
+  collateral            Json   @default("{\"min\":0,\"max\":1000000000}")
+  leverage              Json   @default("{\"min\":0,\"max\":50}")
+  score                 Json   @default("{\"min\":0,\"max\":1}")
   scoreFormular         String @default("RiskAdjustedCopyScore")
   sizingFormular        String @default("ScoreScaledCollateralSizing")
 
@@ -249,8 +261,9 @@ model Simulation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  research         SimulationResearch?       @relation(fields: [researchId], references: [id], onDelete: SetNull)
-  simulationPlans  SimulationPlan[]
+  research        SimulationResearch? @relation(fields: [researchId], references: [id], onDelete: SetNull)
+  simulationPlans SimulationPlan[]
+
   @@index([status, createdAt])
   @@index([platform, startAt, endAt])
   @@index([researchId, createdAt])
@@ -310,7 +323,7 @@ model SimulationBot {
   avgPnlPercentageByCollateral Float @default(0)
   avgLeverage                  Float @default(0)
 
-  simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id])
+  simulationPlan SimulationPlan      @relation(fields: [simulationPlanId], references: [id])
   cache          SimulationBotCache?
 
   @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, minCollateral, maxCollateral, minLeverage, maxLeverage])
@@ -318,31 +331,31 @@ model SimulationBot {
 }
 
 model SimulationBotCache {
-  id                           Int      @id @default(autoincrement())
-  simulationBotId              Int      @unique
-  completed                    Boolean  @default(false)
-  rebuilding                   Boolean  @default(false)
-  rebuildRequested             Boolean  @default(false)
+  id                           Int       @id @default(autoincrement())
+  simulationBotId              Int       @unique
+  completed                    Boolean   @default(false)
+  rebuilding                   Boolean   @default(false)
+  rebuildRequested             Boolean   @default(false)
   lastFetchedAt                DateTime?
-  openedPositions              Int      @default(0)
-  totalPositions               Int      @default(0)
-  totalLeaderPnl               Float    @default(0)
-  totalFollowerPnl             Float    @default(0)
-  maxDuration                  Float    @default(0)
-  avgDuration                  Float    @default(0)
-  avgPnl                       Float    @default(0)
-  avgPositivePnl               Float    @default(0)
-  avgNegativePnl               Float    @default(0)
-  avgSize                      Float    @default(0)
-  avgCollateral                Float    @default(0)
-  avgPnlPercentageBySize       Float    @default(0)
-  avgPnlPercentageByCollateral Float    @default(0)
-  avgLeverage                  Float    @default(0)
-  positionsJson                String   @default("[]")
-  followerPositionPnlsJson     String   @default("[]")
+  openedPositions              Int       @default(0)
+  totalPositions               Int       @default(0)
+  totalLeaderPnl               Float     @default(0)
+  totalFollowerPnl             Float     @default(0)
+  maxDuration                  Float     @default(0)
+  avgDuration                  Float     @default(0)
+  avgPnl                       Float     @default(0)
+  avgPositivePnl               Float     @default(0)
+  avgNegativePnl               Float     @default(0)
+  avgSize                      Float     @default(0)
+  avgCollateral                Float     @default(0)
+  avgPnlPercentageBySize       Float     @default(0)
+  avgPnlPercentageByCollateral Float     @default(0)
+  avgLeverage                  Float     @default(0)
+  positionsJson                String    @default("[]")
+  followerPositionPnlsJson     String    @default("[]")
   lastError                    String?
-  createdAt                    DateTime @default(now())
-  updatedAt                    DateTime @updatedAt
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
   simulationBot SimulationBot                 @relation(fields: [simulationBotId], references: [id], onDelete: Cascade)
   eventLogs     SimulationBotCachedEventLog[]
@@ -369,20 +382,20 @@ model SimulationBotCachedEventLog {
 }
 
 model SimulationPlanCache {
-  id               Int      @id @default(autoincrement())
-  simulationPlanId Int      @unique
-  completed        Boolean  @default(false)
-  rebuilding       Boolean  @default(false)
-  completedBots    Int      @default(0)
-  incompleteBots   Int      @default(0)
-  openedPositions  Int      @default(0)
-  totalPositions   Int      @default(0)
-  totalLeaderPnl   Float    @default(0)
-  totalFollowerPnl Float    @default(0)
+  id               Int       @id @default(autoincrement())
+  simulationPlanId Int       @unique
+  completed        Boolean   @default(false)
+  rebuilding       Boolean   @default(false)
+  completedBots    Int       @default(0)
+  incompleteBots   Int       @default(0)
+  openedPositions  Int       @default(0)
+  totalPositions   Int       @default(0)
+  totalLeaderPnl   Float     @default(0)
+  totalFollowerPnl Float     @default(0)
   lastBuiltAt      DateTime?
   lastError        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
 }

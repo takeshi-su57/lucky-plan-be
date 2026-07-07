@@ -444,6 +444,36 @@ export class SimulationResearch {
   @Field(() => SimulationSizingFormular)
   sizingFormular: SimulationSizingFormular;
 
+  @Field(() => SimulationStatus)
+  status: SimulationStatus;
+
+  @Field(() => Date, { nullable: true })
+  cursor: Date | null;
+
+  @Field(() => String, { nullable: true })
+  progressPhase: string | null;
+
+  @Field(() => String, { nullable: true })
+  progressMessage: string | null;
+
+  @Field(() => Float)
+  progressPercent: number;
+
+  @Field(() => Int)
+  totalRanges: number;
+
+  @Field(() => Int)
+  completedRanges: number;
+
+  @Field(() => Date, { nullable: true })
+  startedAt: Date | null;
+
+  @Field(() => Date, { nullable: true })
+  finishedAt: Date | null;
+
+  @Field(() => String, { nullable: true })
+  lastError: string | null;
+
   @Field(() => Int)
   totalSimulations: number;
 
