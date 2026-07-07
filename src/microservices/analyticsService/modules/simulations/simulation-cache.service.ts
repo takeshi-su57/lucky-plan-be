@@ -85,7 +85,6 @@ export class SimulationCacheService {
           : {
               date: {
                 gte: bot.startedAt,
-                ...(bot.stoppedAt ? { lt: bot.stoppedAt } : {}),
               },
             }),
       },
@@ -110,30 +109,17 @@ export class SimulationCacheService {
       bot as SimulationBotWithContract,
       newLogRecords,
     );
-    const trackedPositionKeys = this.getLifetimeOpenedPositionKeys(
-      bot,
-      cachedHistories,
-    );
+    const cacheableSourceEventLogIds = this.getCacheableSourceEventLogIds(bot, [
+      ...cachedHistories,
+      ...newHistories,
+    ]);
 
-    for (const history of newHistories) {
-      if (this.isOpenedDuringBotLifetime(bot, history)) {
-        trackedPositionKeys.add(this.getHistoryPositionKey(history));
-      }
-    }
-
-    if (trackedPositionKeys.size === 0) {
+    if (cacheableSourceEventLogIds.size === 0) {
       return { count: 0 };
     }
 
-    const historyBySourceEventLogId = new Map(
-      newHistories.map((history) => [history.id, history]),
-    );
     const cacheableLogRecords = newLogRecords.filter((record) => {
-      const history = historyBySourceEventLogId.get(record.sourceEventLogId);
-
-      return (
-        history && trackedPositionKeys.has(this.getHistoryPositionKey(history))
-      );
+      return cacheableSourceEventLogIds.has(record.sourceEventLogId);
     });
 
     if (cacheableLogRecords.length === 0) {
@@ -180,48 +166,105 @@ export class SimulationCacheService {
     );
   }
 
-  private getLifetimeOpenedPositionKeys(
-    bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
-    histories: PerpTradeHistory[],
-  ) {
-    const positionKeys = new Set<string>();
+  private sortHistoriesByEventOrder(histories: PerpTradeHistory[]) {
+    return [...histories].sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
 
-    for (const history of histories) {
-      if (this.isOpenedDuringBotLifetime(bot, history)) {
-        positionKeys.add(this.getHistoryPositionKey(history));
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+
+      return a.id - b.id;
+    });
+  }
+
+  private getHistoriesGroupedByPositionKey(histories: PerpTradeHistory[]) {
+    const groupedByPositionKey = new Map<string, PerpTradeHistory[]>();
+
+    for (const history of this.sortHistoriesByEventOrder(histories)) {
+      const positionKey = this.getHistoryPositionKey(history);
+      const existing = groupedByPositionKey.get(positionKey);
+
+      if (existing) {
+        existing.push(history);
+      } else {
+        groupedByPositionKey.set(positionKey, [history]);
       }
     }
 
-    return positionKeys;
+    return groupedByPositionKey;
+  }
+
+  private getCacheableSourceEventLogIds(
+    bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
+    histories: PerpTradeHistory[],
+  ) {
+    const sourceEventLogIds = new Set<number>();
+
+    for (const positionHistories of this.getHistoriesGroupedByPositionKey(
+      histories,
+    ).values()) {
+      for (let i = 0; i < positionHistories.length; i++) {
+        const history = positionHistories[i];
+
+        if (!this.isOpenedDuringBotLifetime(bot, history)) {
+          continue;
+        }
+
+        for (let j = i; j < positionHistories.length; j++) {
+          const nextHistory = positionHistories[j];
+
+          if (
+            j > i &&
+            nextHistory.operation === PerpTradeHistoryOperation.OPEN
+          ) {
+            break;
+          }
+
+          sourceEventLogIds.add(nextHistory.id);
+
+          if (nextHistory.operation === PerpTradeHistoryOperation.CLOSE) {
+            break;
+          }
+        }
+      }
+    }
+
+    return sourceEventLogIds;
   }
 
   isBotCacheComplete(
     bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
     histories: PerpTradeHistory[],
   ) {
-    const openedKeys = new Set<string>();
-    const closedKeys = new Set<string>();
+    for (const positionHistories of this.getHistoriesGroupedByPositionKey(
+      histories,
+    ).values()) {
+      for (let i = 0; i < positionHistories.length; i++) {
+        const history = positionHistories[i];
 
-    for (const history of histories) {
-      const isDuringLifetime =
-        history.date >= bot.startedAt &&
-        (!bot.stoppedAt || history.date <= bot.stoppedAt);
+        if (!this.isOpenedDuringBotLifetime(bot, history)) {
+          continue;
+        }
 
-      if (
-        isDuringLifetime &&
-        history.operation === PerpTradeHistoryOperation.OPEN
-      ) {
-        openedKeys.add(`${history.contractId}:${history.positionKey}`);
-      }
+        let closed = false;
 
-      if (history.operation === PerpTradeHistoryOperation.CLOSE) {
-        closedKeys.add(`${history.contractId}:${history.positionKey}`);
-      }
-    }
+        for (let j = i + 1; j < positionHistories.length; j++) {
+          const nextHistory = positionHistories[j];
 
-    for (const positionKey of openedKeys) {
-      if (!closedKeys.has(positionKey)) {
-        return false;
+          if (nextHistory.operation === PerpTradeHistoryOperation.OPEN) {
+            break;
+          }
+
+          if (nextHistory.operation === PerpTradeHistoryOperation.CLOSE) {
+            closed = true;
+            break;
+          }
+        }
+
+        if (!closed) {
+          return false;
+        }
       }
     }
 
@@ -231,7 +274,7 @@ export class SimulationCacheService {
   buildHistoriesFromCachedLogs(
     bot: SimulationBotWithContract,
     cachedLogs: CachedEventLogRecord[],
-  ) {
+  ): PerpTradeHistory[] {
     const contractById = new Map(
       bot.leaderContracts.map((contract) => [contract.id, contract]),
     );

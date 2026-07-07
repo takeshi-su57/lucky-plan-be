@@ -164,40 +164,40 @@ export class EventLogsService {
           continue;
         }
 
-        if (filters.stoppedAt && history.date > filters.stoppedAt) {
-          break;
+        if (filters.stoppedAt && history.date >= filters.stoppedAt) {
+          continue;
         }
 
         if (
           filters.minCollateral !== undefined &&
           history.collateralInUsd < filters.minCollateral
         ) {
-          break;
+          continue;
         }
 
         if (
           filters.maxCollateral !== undefined &&
           history.collateralInUsd > filters.maxCollateral
         ) {
-          break;
+          continue;
         }
 
         if (
           filters.minLeverage !== undefined &&
           history.leverage < filters.minLeverage
         ) {
-          break;
+          continue;
         }
 
         if (filters.maxLeverage && history.leverage > filters.maxLeverage) {
-          break;
+          continue;
         }
 
         if (
           filters.maxLeverage &&
           history.pair.toLowerCase().includes('degen')
         ) {
-          break;
+          continue;
         }
 
         openedPositions++;
@@ -214,6 +214,13 @@ export class EventLogsService {
 
         for (let j = i; j < histories.length; j++) {
           const nextHistory = histories[j];
+
+          if (
+            j > i &&
+            nextHistory.operation === PerpTradeHistoryOperation.OPEN
+          ) {
+            break;
+          }
 
           if (
             platform === Platform.GNS &&

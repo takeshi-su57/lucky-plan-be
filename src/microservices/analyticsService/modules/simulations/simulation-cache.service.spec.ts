@@ -93,6 +93,7 @@ describe('SimulationCacheService', () => {
         collateralUsdPrice: 1,
         date: new Date('2026-05-03T00:00:00.000Z'),
         contractId: 12,
+        chainId: 42161,
         platform: Platform.GNS,
       },
     ];
@@ -140,6 +141,7 @@ describe('SimulationCacheService', () => {
         collateralUsdPrice: 1,
         date: new Date('2026-05-03T00:00:00.000Z'),
         contractId: 12,
+        chainId: 42161,
         platform: Platform.GNS,
       },
       {
@@ -162,11 +164,58 @@ describe('SimulationCacheService', () => {
         collateralUsdPrice: 1,
         date: new Date('2026-05-10T00:00:00.000Z'),
         contractId: 12,
+        chainId: 42161,
         platform: Platform.GNS,
       },
     ];
 
     expect(service.isBotCacheComplete(bot, histories)).toBe(true);
+  });
+
+  it('keeps bot cache incomplete when a reused GMX key close belongs to a later lifecycle', () => {
+    const bot = {
+      id: 3,
+      mode: BotMode.Default,
+      ratio: 1,
+      maxLeverage: 50,
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      stoppedAt: new Date('2026-05-05T00:00:00.000Z'),
+      leaderPlatform: Platform.GMX,
+      leaderContracts: [
+        {
+          id: 12,
+          platform: Platform.GMX,
+          version: Version.V1,
+          chainId: 42161,
+        },
+      ],
+    } as any;
+
+    const histories: PerpTradeHistory[] = [
+      history({
+        id: 1,
+        positionKey: 'reused',
+        operation: PerpTradeHistoryOperation.OPEN,
+        date: new Date('2026-05-02T00:00:00.000Z'),
+        platform: Platform.GMX,
+      }),
+      history({
+        id: 2,
+        positionKey: 'reused',
+        operation: PerpTradeHistoryOperation.OPEN,
+        date: new Date('2026-05-06T00:00:00.000Z'),
+        platform: Platform.GMX,
+      }),
+      history({
+        id: 3,
+        positionKey: 'reused',
+        operation: PerpTradeHistoryOperation.CLOSE,
+        date: new Date('2026-05-07T00:00:00.000Z'),
+        platform: Platform.GMX,
+      }),
+    ];
+
+    expect(service.isBotCacheComplete(bot, histories)).toBe(false);
   });
 
   function sourceLog(
@@ -207,9 +256,10 @@ describe('SimulationCacheService', () => {
       collateralUsdPrice: 1,
       date: new Date('2026-05-02T00:00:00.000Z'),
       contractId: 12,
+      chainId: 42161,
       platform: Platform.GNS,
       ...overrides,
-    };
+    } as PerpTradeHistory;
   }
 
   it('caches only logs for positions opened during the simulation bot lifetime', async () => {
@@ -279,7 +329,6 @@ describe('SimulationCacheService', () => {
         platform: Platform.GNS,
         date: {
           gte: new Date('2026-05-01T00:00:00.000Z'),
-          lt: new Date('2026-05-03T00:00:00.000Z'),
         },
       },
       orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
@@ -545,6 +594,7 @@ describe('SimulationCacheService', () => {
         collateralUsdPrice: 1,
         date: new Date('2026-05-03T00:00:00.000Z'),
         contractId: 12,
+        chainId: 42161,
         platform: Platform.GNS,
       },
       {
@@ -567,6 +617,7 @@ describe('SimulationCacheService', () => {
         collateralUsdPrice: 1,
         date: new Date('2026-05-06T00:00:00.000Z'),
         contractId: 12,
+        chainId: 42161,
         platform: Platform.GNS,
       },
     ];
