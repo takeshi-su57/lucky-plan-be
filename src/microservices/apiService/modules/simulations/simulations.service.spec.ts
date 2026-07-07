@@ -176,6 +176,52 @@ describe('SimulationsService API queue requests', () => {
     expect(result.sizingFormular).toBe(DEFAULT_SIZING_FORMULAR);
   });
 
+  it('rejects simulation research with more than 30 generated simulations', async () => {
+    const prisma = {
+      $transaction: jest.fn(),
+    };
+    const service = new SimulationsService(prisma as never, {} as never);
+
+    await expect(
+      service.createSimulationResearch({
+        title: 'Oversized research',
+        description: 'Too many grid combinations',
+        platform: Platform.GNS,
+        startAt: new Date('2026-07-01T00:00:00.000Z'),
+        endAt: new Date('2026-07-10T00:00:00.000Z'),
+        days: 1,
+        gapDays: 0,
+        direction: BotMode.Reversed,
+        trade: [
+          { min: 3, max: 10 },
+          { min: 11, max: 20 },
+        ],
+        r2: [
+          { min: 0.25, max: 0.5 },
+          { min: 0.51, max: 0.75 },
+        ],
+        slope: [
+          { min: 1, max: 3 },
+          { min: 4, max: 6 },
+        ],
+        collateral: [
+          { min: 10, max: 500 },
+          { min: 501, max: 1000 },
+        ],
+        leverage: [
+          { min: 10, max: 50 },
+          { min: 51, max: 75 },
+        ],
+        score: [{ min: 0.5, max: 0.8 }],
+        scoreFormular: SimulationScoreFormular.RiskAdjustedCopyScore,
+        sizingFormular: SimulationSizingFormular.ScoreScaledCollateralSizing,
+      }),
+    ).rejects.toThrow(
+      'Simulation research can generate at most 30 simulations',
+    );
+    expect(prisma.$transaction as any).not.toHaveBeenCalled();
+  });
+
   it('marks a simulation as queued without running analytics execution', async () => {
     const simulation = {
       id: 1,

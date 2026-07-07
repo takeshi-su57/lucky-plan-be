@@ -53,6 +53,7 @@ const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_COLLATERAL_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
+const MAX_SIMULATIONS_PER_RESEARCH = 30;
 
 function countSimulationPlanWindows(
   startAt: Date,
@@ -536,6 +537,12 @@ export class SimulationsService {
     if (combinations.length === 0) {
       throw new Error(
         'Simulation research produced no valid parameter combinations',
+      );
+    }
+
+    if (combinations.length > MAX_SIMULATIONS_PER_RESEARCH) {
+      throw new Error(
+        `Simulation research can generate at most ${MAX_SIMULATIONS_PER_RESEARCH} simulations`,
       );
     }
 
