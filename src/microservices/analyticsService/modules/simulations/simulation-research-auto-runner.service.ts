@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { SimulationStatus } from 'generated/prisma/enums';
 
 import { PrismaService } from 'src/global/prisma.service';
@@ -15,9 +16,11 @@ import {
   WindowRange,
 } from './utils/simulation-range.utils';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
+import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const PREBUILD_PROGRESS_PERCENT = 10;
 
 @Injectable()
 export class SimulationResearchAutoRunnerService {
@@ -25,6 +28,9 @@ export class SimulationResearchAutoRunnerService {
     private readonly prisma: PrismaService,
     private readonly simulationAutoRunnerService: SimulationAutoRunnerService,
     private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
+    @Optional()
+    @Inject(SERVICE_NAMES.REDIS_SERVICE)
+    private readonly redisClient?: ClientProxy,
   ) {}
 
   async playAutomaticResearch(id: number, now = new Date()): Promise<void> {
@@ -68,12 +74,25 @@ export class SimulationResearchAutoRunnerService {
 
       const cacheLabel = `${baseLabel} rebuild event-log cache`;
       console.time(cacheLabel);
-      await this.leaderEventLogCacheService.registerResearchRange(
+      await this.leaderEventLogCacheService.prebuildForResearch(
         research.platform,
         new Date(
           research.startAt.getTime() - LEADER_SCORING_WINDOW_DAYS * DAY_MS,
         ),
         research.endAt,
+        {
+          onProgress: async (progress) => {
+            await this.updateAndEmitResearch(id, {
+              progressPhase: 'prebuilding-event-log-cache',
+              progressMessage: `Prebuilding event-log cache ${progress.completedAddresses} / ${progress.totalAddresses} leaders`,
+              progressPercent: this.getPrebuildProgressPercent(
+                progress.completedAddressBatches,
+                progress.totalAddressBatches,
+              ),
+              totalRanges: allRanges.length,
+            });
+          },
+        },
       );
       console.timeEnd(cacheLabel);
 
@@ -150,25 +169,21 @@ export class SimulationResearchAutoRunnerService {
 
           latestRange = range;
 
-          await this.prisma.simulationResearch.update({
-            where: { id },
-            data: {
-              cursor: range.endedAt,
-              completedRanges: this.countCompletedRanges(
-                allRanges,
-                range.endedAt,
-              ),
-              totalRanges: allRanges.length,
-              progressPhase: 'range-completed',
-              progressMessage: `Completed range ${this.countCompletedRanges(
-                allRanges,
-                range.endedAt,
-              )} / ${allRanges.length}`,
-              progressPercent: this.getProgressPercent(
-                this.countCompletedRanges(allRanges, range.endedAt),
-                allRanges.length,
-              ),
-            },
+          const completedRanges = this.countCompletedRanges(
+            allRanges,
+            range.endedAt,
+          );
+
+          await this.updateAndEmitResearch(id, {
+            cursor: range.endedAt,
+            completedRanges,
+            totalRanges: allRanges.length,
+            progressPhase: 'range-completed',
+            progressMessage: `Completed range ${completedRanges} / ${allRanges.length}`,
+            progressPercent: this.getResearchProgressPercent(
+              completedRanges,
+              allRanges.length,
+            ),
           });
         } finally {
           console.timeEnd(`${rangeLabel} total`);
@@ -204,35 +219,23 @@ export class SimulationResearchAutoRunnerService {
         allRanges.at(-1) !== undefined &&
         cursor.getTime() >= allRanges.at(-1)!.endedAt.getTime());
 
-    await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        status: completed
-          ? SimulationStatus.Completed
-          : SimulationStatus.Paused,
-        progressPhase: completed ? 'completed' : 'paused',
-        progressMessage: completed
-          ? 'Research automation completed'
-          : 'Paused until more historical data is available',
-        progressPercent: this.getProgressPercent(
-          completedRanges,
-          allRanges.length,
-        ),
-        totalRanges: allRanges.length,
-        ...(completed
-          ? {
-              completedRanges,
-              finishedAt: new Date(),
-            }
-          : {}),
-      },
-      include: {
-        simulations: {
-          select: {
-            status: true,
-          },
-        },
-      },
+    await this.updateAndEmitResearch(id, {
+      status: completed ? SimulationStatus.Completed : SimulationStatus.Paused,
+      progressPhase: completed ? 'completed' : 'paused',
+      progressMessage: completed
+        ? 'Research automation completed'
+        : 'Paused until more historical data is available',
+      progressPercent: this.getProgressPercent(
+        completedRanges,
+        allRanges.length,
+      ),
+      totalRanges: allRanges.length,
+      ...(completed
+        ? {
+            completedRanges,
+            finishedAt: new Date(),
+          }
+        : {}),
     });
   }
 
@@ -246,20 +249,17 @@ export class SimulationResearchAutoRunnerService {
       range.startedAt,
     );
 
-    await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        totalRanges: allRanges.length,
+    await this.updateAndEmitResearch(id, {
+      totalRanges: allRanges.length,
+      completedRanges,
+      progressPhase: 'range-processing',
+      progressMessage: `Processing range ${completedRanges + 1} / ${
+        allRanges.length
+      }`,
+      progressPercent: this.getResearchProgressPercent(
         completedRanges,
-        progressPhase: 'range-processing',
-        progressMessage: `Processing range ${completedRanges + 1} / ${
-          allRanges.length
-        }`,
-        progressPercent: this.getProgressPercent(
-          completedRanges,
-          allRanges.length,
-        ),
-      },
+        allRanges.length,
+      ),
     });
   }
 
@@ -276,51 +276,29 @@ export class SimulationResearchAutoRunnerService {
       allRanges.at(-1) !== undefined &&
       latestRange.endedAt.getTime() >= allRanges.at(-1)!.endedAt.getTime();
 
-    await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        status: completed
-          ? SimulationStatus.Completed
-          : SimulationStatus.Paused,
-        cursor: latestRange?.endedAt ?? undefined,
-        completedRanges,
-        totalRanges: allRanges.length,
-        progressPhase: completed ? 'completed' : 'paused',
-        progressMessage: completed
-          ? 'Research automation completed'
-          : 'Paused until more historical data is available',
-        progressPercent: completed
-          ? 100
-          : this.getProgressPercent(completedRanges, allRanges.length),
-        ...(completed ? { finishedAt: new Date() } : {}),
-      },
-      include: {
-        simulations: {
-          select: {
-            status: true,
-          },
-        },
-      },
+    await this.updateAndEmitResearch(id, {
+      status: completed ? SimulationStatus.Completed : SimulationStatus.Paused,
+      cursor: latestRange?.endedAt ?? undefined,
+      completedRanges,
+      totalRanges: allRanges.length,
+      progressPhase: completed ? 'completed' : 'paused',
+      progressMessage: completed
+        ? 'Research automation completed'
+        : 'Paused until more historical data is available',
+      progressPercent: completed
+        ? 100
+        : this.getResearchProgressPercent(completedRanges, allRanges.length),
+      ...(completed ? { finishedAt: new Date() } : {}),
     });
   }
 
   private async failResearch(id: number, error: unknown) {
-    await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        status: SimulationStatus.Failed,
-        progressPhase: 'failed',
-        progressMessage: 'Research automation failed',
-        lastError: getReadableError(error),
-        finishedAt: new Date(),
-      },
-      include: {
-        simulations: {
-          select: {
-            status: true,
-          },
-        },
-      },
+    await this.updateAndEmitResearch(id, {
+      status: SimulationStatus.Failed,
+      progressPhase: 'failed',
+      progressMessage: 'Research automation failed',
+      lastError: getReadableError(error),
+      finishedAt: new Date(),
     });
   }
 
@@ -335,5 +313,68 @@ export class SimulationResearchAutoRunnerService {
     }
 
     return (completedRanges / totalRanges) * 100;
+  }
+
+  private getPrebuildProgressPercent(
+    completedAddressBatches: number,
+    totalAddressBatches: number,
+  ) {
+    return Math.min(
+      PREBUILD_PROGRESS_PERCENT,
+      this.getProgressPercent(completedAddressBatches, totalAddressBatches) *
+        (PREBUILD_PROGRESS_PERCENT / 100),
+    );
+  }
+
+  private getResearchProgressPercent(
+    completedRanges: number,
+    totalRanges: number,
+  ) {
+    return (
+      PREBUILD_PROGRESS_PERCENT +
+      this.getProgressPercent(completedRanges, totalRanges) *
+        ((100 - PREBUILD_PROGRESS_PERCENT) / 100)
+    );
+  }
+
+  private async updateAndEmitResearch(
+    id: number,
+    data: Record<string, unknown>,
+  ) {
+    const research = await this.prisma.simulationResearch.update({
+      where: { id },
+      data: data as any,
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    await this.emitSimulationResearchUpdated(research);
+
+    return research;
+  }
+
+  private async emitSimulationResearchUpdated(research: any) {
+    if (!this.redisClient) {
+      return;
+    }
+
+    const simulations = research.simulations || [];
+
+    await this.redisClient.emit(
+      PATTERNS.Simulations.SimulationResearchUpdated,
+      {
+        ...research,
+        totalSimulations: simulations.length,
+        completedSimulations: simulations.filter(
+          (simulation: { status: SimulationStatus }) =>
+            simulation.status === SimulationStatus.Completed,
+        ).length,
+      },
+    );
   }
 }

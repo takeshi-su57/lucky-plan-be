@@ -88,7 +88,7 @@ type CopySimulationResult = {
 };
 
 const CANDIDATE_BATCH_SIZE = 100;
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 100;
 const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const PLATFORM_MIN_FEE_USD = 0.5;
@@ -157,13 +157,8 @@ export class SimulationLeaderEvaluatorService {
       const batchAddresses = records.map((record) =>
         record.address.toLowerCase(),
       );
-      const activeBatch = await this.filterRecentlyActiveCandidateAddresses(
-        simulation,
-        batchAddresses,
-        range,
-      );
 
-      candidateAddresses.push(...activeBatch);
+      candidateAddresses.push(...batchAddresses);
 
       if (records.length < CANDIDATE_BATCH_SIZE) {
         break;
@@ -171,60 +166,6 @@ export class SimulationLeaderEvaluatorService {
     }
 
     return candidateAddresses;
-  }
-
-  private async filterRecentlyActiveCandidateAddresses(
-    simulation: Simulation,
-    candidateAddresses: string[],
-    range: WindowRange,
-  ) {
-    const recentActivityCutoff = dayjs(range.startedAt)
-      .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
-      .toDate();
-    const prefilteredAddresses: string[] = [];
-
-    for (
-      let offset = 0;
-      offset < candidateAddresses.length;
-      offset += CANDIDATE_BATCH_SIZE
-    ) {
-      const addressBatch = candidateAddresses.slice(
-        offset,
-        offset + CANDIDATE_BATCH_SIZE,
-      );
-
-      const filteredBatch = await mapWithConcurrency(
-        addressBatch,
-        BATCH_SIZE,
-        async (address) => {
-          // Cheap prefilter only: count recent raw trade-history events.
-          // Position reconstruction and closed-position minTrades checks happen later.
-          const recentTradeHistoryCount =
-            await this.leaderEventLogCacheService.countRecentEvents(
-              simulation.platform,
-              address,
-              recentActivityCutoff,
-              range.startedAt,
-            );
-
-          if (recentTradeHistoryCount === 0) {
-            return null;
-          }
-
-          if (recentTradeHistoryCount < simulation.trade.min) {
-            return null;
-          }
-
-          return address;
-        },
-      );
-
-      prefilteredAddresses.push(
-        ...filteredBatch.filter((address): address is string => !!address),
-      );
-    }
-
-    return prefilteredAddresses;
   }
 
   async evaluateLeadersForRange(
@@ -335,6 +276,22 @@ export class SimulationLeaderEvaluatorService {
         scoringStartedAt,
         before,
       );
+    const recentActivityCutoff = dayjs(before)
+      .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
+      .toDate();
+    const recentTradeHistoryCount = cachedRecords.filter(
+      (record) =>
+        record.date.getTime() >= recentActivityCutoff.getTime() &&
+        record.date.getTime() < before.getTime(),
+    ).length;
+
+    if (recentTradeHistoryCount === 0) {
+      return [];
+    }
+
+    if (recentTradeHistoryCount < simulation.trade.min) {
+      return [];
+    }
 
     const histories = this.eventLogsToHistories(cachedRecords, contractById);
 

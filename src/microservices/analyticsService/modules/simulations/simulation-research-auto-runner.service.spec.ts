@@ -71,12 +71,30 @@ describe('SimulationResearchAutoRunnerService', () => {
     };
     const leaderEventLogCacheService = {
       clear: jest.fn(async () => undefined),
-      registerResearchRange: jest.fn(async (..._args: unknown[]) => undefined),
+      prebuildForResearch: jest.fn(async (...args: unknown[]) => {
+        const options = args[3] as {
+          onProgress?: (progress: {
+            completedAddressBatches: number;
+            totalAddressBatches: number;
+            completedAddresses: number;
+            totalAddresses: number;
+          }) => Promise<void>;
+        };
+
+        await options.onProgress?.({
+          completedAddressBatches: 1,
+          totalAddressBatches: 2,
+          completedAddresses: 100,
+          totalAddresses: 200,
+        });
+      }),
     };
+    const redisClient = { emit: jest.fn(async () => undefined) };
     const service = new SimulationResearchAutoRunnerService(
       prisma as never,
       simulationRunner as never,
       leaderEventLogCacheService as never,
+      redisClient as never,
     );
 
     await service.playAutomaticResearch(31);
@@ -102,11 +120,29 @@ describe('SimulationResearchAutoRunnerService', () => {
       },
     });
     expect(leaderEventLogCacheService.clear).toHaveBeenCalledTimes(1);
-    expect(leaderEventLogCacheService.registerResearchRange).toHaveBeenCalledWith(
+    expect(leaderEventLogCacheService.prebuildForResearch).toHaveBeenCalledWith(
       Platform.GNS,
       new Date('2026-01-02T00:00:00.000Z'),
       new Date('2026-07-04T00:00:00.000Z'),
+      expect.objectContaining({ onProgress: expect.any(Function) }),
     );
+    expect(prisma.simulationResearch.update as any).toHaveBeenCalledWith({
+      where: { id: 31 },
+      data: {
+        progressPhase: 'prebuilding-event-log-cache',
+        progressMessage: 'Prebuilding event-log cache 100 / 200 leaders',
+        progressPercent: 5,
+        totalRanges: 3,
+      },
+      include: {
+        simulations: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    expect(redisClient.emit).toHaveBeenCalled();
     expect(
       simulationRunner.loadSimulationRangeProcessingContext,
     ).toHaveBeenCalledTimes(1);
@@ -178,7 +214,7 @@ describe('SimulationResearchAutoRunnerService', () => {
     };
     const leaderEventLogCacheService = {
       clear: jest.fn(async () => undefined),
-      registerResearchRange: jest.fn(async (..._args: unknown[]) => undefined),
+      prebuildForResearch: jest.fn(async (..._args: unknown[]) => undefined),
     };
     const service = new SimulationResearchAutoRunnerService(
       prisma as never,
@@ -192,7 +228,7 @@ describe('SimulationResearchAutoRunnerService', () => {
     );
 
     expect(simulationRunner.processSimulationRange).not.toHaveBeenCalled();
-    expect(leaderEventLogCacheService.registerResearchRange).not.toHaveBeenCalled();
+    expect(leaderEventLogCacheService.prebuildForResearch).not.toHaveBeenCalled();
     expect(prisma.simulationResearch.update as any).toHaveBeenCalledWith({
       where: { id: 31 },
       data: {

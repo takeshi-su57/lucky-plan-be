@@ -21,10 +21,17 @@ type LeaderEventLogCacheMeta = {
   filePath: string;
 };
 
-type RegisteredResearchRange = {
-  platform: Platform;
-  startedAt: Date;
-  endedAt: Date;
+const EVENT_LOG_PREBUILD_BATCH_SIZE = 100;
+
+export type EventLogPrebuildProgress = {
+  completedAddressBatches: number;
+  totalAddressBatches: number;
+  completedAddresses: number;
+  totalAddresses: number;
+};
+
+type EventLogPrebuildOptions = {
+  onProgress?: (progress: EventLogPrebuildProgress) => Promise<void>;
 };
 
 @Injectable()
@@ -35,7 +42,6 @@ export class SimulationLeaderEventLogCacheService {
     string,
     LeaderEventLogCacheMeta
   >();
-  private registeredResearchRange: RegisteredResearchRange | null = null;
   private readonly eventLogCacheDir = join(
     process.cwd(),
     '.cache',
@@ -44,18 +50,114 @@ export class SimulationLeaderEventLogCacheService {
 
   async clear() {
     this.leaderEventLogCacheMeta.clear();
-    this.registeredResearchRange = null;
     await fs.rm(this.eventLogCacheDir, { recursive: true, force: true });
     await fs.mkdir(this.eventLogCacheDir, { recursive: true });
   }
 
-  async registerResearchRange(
+  async prebuildForResearch(
     platform: Platform,
     startedAt: Date,
     endedAt: Date,
+    options: EventLogPrebuildOptions = {},
   ) {
     await this.clear();
-    this.registeredResearchRange = { platform, startedAt, endedAt };
+
+    const leaderAddressGroups = await this.prisma.perpTradingEventLog.groupBy({
+      by: ['address'],
+      where: {
+        platform,
+        date: {
+          gte: startedAt,
+          lt: endedAt,
+        },
+      },
+      orderBy: {
+        address: 'asc',
+      },
+    });
+    const leaderAddresses = [
+      ...new Set(
+        leaderAddressGroups.map((group) => group.address.toLowerCase()),
+      ),
+    ];
+    const totalAddressBatches = Math.ceil(
+      leaderAddresses.length / EVENT_LOG_PREBUILD_BATCH_SIZE,
+    );
+
+    for (
+      let offset = 0;
+      offset < leaderAddresses.length;
+      offset += EVENT_LOG_PREBUILD_BATCH_SIZE
+    ) {
+      const label = `prebuilt from ${offset * EVENT_LOG_PREBUILD_BATCH_SIZE} to ${(offset + 1) * EVENT_LOG_PREBUILD_BATCH_SIZE}`;
+      console.time(label);
+
+      const addressBatch = leaderAddresses.slice(
+        offset,
+        offset + EVENT_LOG_PREBUILD_BATCH_SIZE,
+      );
+
+      console.time(`fetching from db : ${label}`);
+
+      const records = await this.prisma.perpTradingEventLog.findMany({
+        select: {
+          id: true,
+          address: true,
+          date: true,
+          block: true,
+          contractId: true,
+          platform: true,
+          jsonLog: true,
+        },
+        where: {
+          address: { in: addressBatch },
+          platform,
+          date: {
+            gte: startedAt,
+            lt: endedAt,
+          },
+        },
+        orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      });
+
+      console.timeEnd(`fetching from db : ${label}`);
+
+      const recordsByAddress = new Map<string, CachedLeaderEventLogRecord[]>();
+
+      records.forEach((record) => {
+        const normalizedAddress = record.address.toLowerCase();
+        const addressRecords = recordsByAddress.get(normalizedAddress) ?? [];
+        addressRecords.push({
+          ...record,
+          address: normalizedAddress,
+          date: new Date(record.date),
+        });
+        recordsByAddress.set(normalizedAddress, addressRecords);
+      });
+
+      console.time(`writing to file : ${label}`);
+
+      for (const address of addressBatch) {
+        await this.writeCachedEventLogs(
+          platform,
+          address,
+          recordsByAddress.get(address) ?? [],
+        );
+      }
+
+      console.timeEnd(`writing to file : ${label}`);
+
+      await options.onProgress?.({
+        completedAddressBatches:
+          Math.floor(offset / EVENT_LOG_PREBUILD_BATCH_SIZE) + 1,
+        totalAddressBatches,
+        completedAddresses: Math.min(
+          offset + addressBatch.length,
+          leaderAddresses.length,
+        ),
+        totalAddresses: leaderAddresses.length,
+      });
+    }
   }
 
   async readLeaderEventLogs(
@@ -69,33 +171,12 @@ export class SimulationLeaderEventLogCacheService {
     );
 
     if (!cacheMeta) {
-      const records = await this.fetchAndCacheLeaderEventLogs(
-        platform,
-        address,
-      );
-
-      return this.filterEventLogsByRange(records, startedAt, endedAt);
+      return [];
     }
 
     const records = await this.readCachedEventLogs(cacheMeta.filePath);
 
     return this.filterEventLogsByRange(records, startedAt, endedAt);
-  }
-
-  async countRecentEvents(
-    platform: Platform,
-    address: string,
-    startedAt: Date,
-    endedAt: Date,
-  ) {
-    const records = await this.readLeaderEventLogs(
-      platform,
-      address,
-      startedAt,
-      endedAt,
-    );
-
-    return records.length;
   }
 
   private getCacheKey(platform: Platform, address: string) {
@@ -119,49 +200,6 @@ export class SimulationLeaderEventLogCacheService {
       ...record,
       date: new Date(record.date),
     }));
-  }
-
-  private async fetchAndCacheLeaderEventLogs(
-    platform: Platform,
-    address: string,
-  ) {
-    const registeredRange = this.registeredResearchRange;
-    const normalizedAddress = address.toLowerCase();
-
-    if (!registeredRange || registeredRange.platform !== platform) {
-      return [];
-    }
-
-    const records = await this.prisma.perpTradingEventLog.findMany({
-      select: {
-        id: true,
-        address: true,
-        date: true,
-        block: true,
-        contractId: true,
-        platform: true,
-        jsonLog: true,
-      },
-      where: {
-        address: normalizedAddress,
-        platform,
-        date: {
-          gte: registeredRange.startedAt,
-          lt: registeredRange.endedAt,
-        },
-      },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
-    });
-
-    const cachedRecords = records.map((record) => ({
-      ...record,
-      address: normalizedAddress,
-      date: new Date(record.date),
-    }));
-
-    await this.writeCachedEventLogs(platform, normalizedAddress, cachedRecords);
-
-    return cachedRecords;
   }
 
   private filterEventLogsByRange(

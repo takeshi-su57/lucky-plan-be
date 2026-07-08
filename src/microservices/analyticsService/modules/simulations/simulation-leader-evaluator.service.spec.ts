@@ -6,11 +6,10 @@ import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.
 describe('SimulationLeaderEvaluatorService', () => {
   const createCacheService = () =>
     ({
-      countRecentEvents: jest.fn(async () => 3),
       readLeaderEventLogs: jest.fn(async () => []),
     });
 
-  it('prefilters candidate activity in batches of 100 addresses', async () => {
+  it('loads candidate addresses in pages without event-log activity filtering', async () => {
     const candidateRecords = Array.from({ length: 101 }, (_, index) => ({
       address: `0xleader${index}`,
     }));
@@ -21,21 +20,7 @@ describe('SimulationLeaderEvaluatorService', () => {
         ),
       },
     };
-    let activeCountRequests = 0;
-    let maxActiveCountRequests = 0;
-    const cacheService = {
-      ...createCacheService(),
-      countRecentEvents: jest.fn(async () => {
-        activeCountRequests += 1;
-        maxActiveCountRequests = Math.max(
-          maxActiveCountRequests,
-          activeCountRequests,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        activeCountRequests -= 1;
-        return 3;
-      }),
-    };
+    const cacheService = createCacheService();
     const service = new SimulationLeaderEvaluatorService(
       prisma as never,
       {} as never,
@@ -55,9 +40,10 @@ describe('SimulationLeaderEvaluatorService', () => {
     );
 
     expect(result).toHaveLength(101);
+    expect(result[0]).toBe('0xleader0');
+    expect(result[100]).toBe('0xleader100');
     expect(prisma.pnlSnapshotV2.findMany).toHaveBeenCalledTimes(2);
-    expect(cacheService.countRecentEvents).toHaveBeenCalledTimes(101);
-    expect(maxActiveCountRequests).toBe(10);
+    expect(cacheService.readLeaderEventLogs).not.toHaveBeenCalled();
   });
 
   it('filters evaluated leaders outside the simulation score range', async () => {
@@ -162,7 +148,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     );
 
     expect(loadLeaderPositionsByLeaderUntil).toHaveBeenCalledTimes(21);
-    expect(maxActiveLoads).toBe(10);
+    expect(maxActiveLoads).toBe(21);
     expect(loadLeaderPositionsByLeaderUntil.mock.calls[0][0]).toBe(
       leaderAddresses[0],
     );
@@ -201,6 +187,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       {
         id: 1,
         platform: Platform.GNS,
+        trade: { min: 1, max: 100 },
         collateral: { min: 10, max: 500 },
         leverage: { min: 1, max: 100 },
       },
@@ -217,12 +204,65 @@ describe('SimulationLeaderEvaluatorService', () => {
     );
   });
 
+  it('filters inactive leaders while loading cached leader positions', async () => {
+    const cachedRecords = [
+      {
+        id: 1,
+        address: '0xleader',
+        platform: Platform.GNS,
+        date: new Date('2026-03-28T00:00:00.000Z'),
+        block: 1,
+        contractId: 11,
+        jsonLog: '{}',
+      },
+      {
+        id: 2,
+        address: '0xleader',
+        platform: Platform.GNS,
+        date: new Date('2026-03-29T00:00:00.000Z'),
+        block: 2,
+        contractId: 11,
+        jsonLog: '{}',
+      },
+    ];
+    const eventLogsService = {
+      convertToPerpTradePositionsWithSummary: jest.fn(() => ({
+        positions: [],
+      })),
+    };
+    const service = new SimulationLeaderEvaluatorService(
+      {} as never,
+      eventLogsService as never,
+      {
+        readLeaderEventLogs: jest.fn(async () => cachedRecords),
+      } as never,
+    );
+
+    const positions = await (service as any).loadLeaderPositionsByLeaderUntil(
+      '0xLeader',
+      {
+        id: 1,
+        platform: Platform.GNS,
+        trade: { min: 3, max: 100 },
+        collateral: { min: 10, max: 500 },
+        leverage: { min: 1, max: 100 },
+      },
+      new Map(),
+      new Date('2026-04-02T00:00:00.000Z'),
+    );
+
+    expect(positions).toEqual([]);
+    expect(
+      eventLogsService.convertToPerpTradePositionsWithSummary,
+    ).not.toHaveBeenCalled();
+  });
+
   it('converts cached leader event logs returned from the cache service', async () => {
     const cachedRecord = {
       id: 1,
       address: '0xleader',
       platform: Platform.GNS,
-      date: new Date('2026-03-01T00:00:00.000Z'),
+      date: new Date('2026-03-28T00:00:00.000Z'),
       block: 1,
       contractId: 11,
       jsonLog: '{}',
@@ -253,6 +293,7 @@ describe('SimulationLeaderEvaluatorService', () => {
       {
         id: 1,
         platform: Platform.GNS,
+        trade: { min: 1, max: 100 },
         collateral: { min: 10, max: 500 },
         leverage: { min: 1, max: 100 },
       },
