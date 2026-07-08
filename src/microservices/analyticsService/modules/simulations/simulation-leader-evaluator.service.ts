@@ -88,7 +88,7 @@ type CopySimulationResult = {
 };
 
 const CANDIDATE_BATCH_SIZE = 100;
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 200;
 const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const PLATFORM_MIN_FEE_USD = 0.5;

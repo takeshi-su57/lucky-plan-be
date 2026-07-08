@@ -21,7 +21,7 @@ type LeaderEventLogCacheMeta = {
   filePath: string;
 };
 
-const EVENT_LOG_PREBUILD_BATCH_SIZE = 100;
+const EVENT_LOG_PREBUILD_BATCH_SIZE = 1000;
 
 export type EventLogPrebuildProgress = {
   completedAddressBatches: number;
