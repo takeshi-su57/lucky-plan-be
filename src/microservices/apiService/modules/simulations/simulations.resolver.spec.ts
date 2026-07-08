@@ -33,10 +33,8 @@ describe('SimulationsResolver authorization', () => {
   );
 
   it.each([
-    'createSimulation',
     'createSimulationResearch',
     'updateSimulation',
-    'playAutoSimulation',
     'cancelSimulation',
     'playAutoResearch',
     'pauseResearch',

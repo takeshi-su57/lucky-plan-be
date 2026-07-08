@@ -26,7 +26,6 @@ import {
   CreateSimulationPlanInput,
   CreateSimulationBotInput,
   UpdateSimulationBotInput,
-  CreateSimulationInput,
   CreateSimulationResearchInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
@@ -43,13 +42,6 @@ export class SimulationsResolver {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
-  @Mutation(() => Simulation)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  createSimulation(@Args('input') input: CreateSimulationInput) {
-    return this.simulationsService.createSimulation(input);
-  }
-
   @Mutation(() => SimulationResearch)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -64,13 +56,6 @@ export class SimulationsResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   updateSimulation(@Args('input') input: UpdateSimulationInput) {
     return this.simulationsService.updateSimulation(input);
-  }
-
-  @Mutation(() => Simulation)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  playAutoSimulation(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.playAutoSimulation(id);
   }
 
   @Mutation(() => Simulation)

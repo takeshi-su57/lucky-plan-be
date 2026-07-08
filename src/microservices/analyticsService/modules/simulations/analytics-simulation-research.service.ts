@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { SimulationStatus } from 'generated/prisma/enums';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { SimulationResearch } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
 
 @Injectable()
@@ -12,16 +11,14 @@ export class AnalyticsSimulationResearchService {
     private readonly simulationResearchAutoRunnerService: SimulationResearchAutoRunnerService,
   ) {}
 
-  async processNextQueuedResearch(
-    now = new Date(),
-  ): Promise<SimulationResearch | null> {
+  async processNextQueuedResearch(now = new Date()): Promise<void> {
     const research = await this.prisma.simulationResearch.findFirst({
       where: { status: SimulationStatus.Queued },
       orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
     if (!research) {
-      return null;
+      return;
     }
 
     const claim = await this.prisma.simulationResearch.updateMany({
@@ -37,11 +34,9 @@ export class AnalyticsSimulationResearchService {
     });
 
     if (claim.count === 0) {
-      return null;
+      return;
     }
 
-    return this.simulationResearchAutoRunnerService.playQueuedResearch(
-      research.id,
-    );
+    this.simulationResearchAutoRunnerService.playQueuedResearch(research.id);
   }
 }

@@ -12,17 +12,12 @@ import {
   cumulative,
   sum,
 } from './utils/simulation-automation.utils';
-import { getReadableError } from 'src/utils';
-import {
-  buildSimulationRanges,
-  WindowRange,
-} from './utils/simulation-range.utils';
+import { WindowRange } from './utils/simulation-range.utils';
 import {
   CandidateEvaluation,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
-import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import {
   SimulationPlan,
@@ -46,36 +41,29 @@ const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_COLLATERAL_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE: ValueRange = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE: ValueRange = { min: 0, max: 1 };
-const LEADER_STALE_AFTER_MONTHS = 1;
-
-type AutoSimulationRunMode = 'manual' | 'queue';
-
-type AutoSimulationRunOptions = {
-  mode: AutoSimulationRunMode;
-  horizon?: Date;
-  runInBackground: boolean;
+export type SimulationRangeProcessingContext = {
+  allRanges: WindowRange[];
+  platformContracts: {
+    id: number;
+    platform: Platform;
+    chainId: number;
+    version: any;
+  }[];
+  contractById: Map<
+    number,
+    { id: number; platform: Platform; chainId: number; version: any }
+  >;
 };
 
 @Injectable()
 export class SimulationAutoRunnerService {
-  private readonly activeAutoSimulationRunIds = new Set<number>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationCacheService: SimulationCacheService,
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
-    private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
   ) {}
-
-  clearActiveRun(id: number) {
-    this.activeAutoSimulationRunIds.delete(id);
-  }
-
-  isAutoSimulationActive(id: number) {
-    return this.activeAutoSimulationRunIds.has(id);
-  }
 
   static getTerminalStatusForHorizon(input: {
     cursor: Date;
@@ -97,7 +85,7 @@ export class SimulationAutoRunnerService {
       : SimulationStatus.Paused;
   }
 
-  private mapSimulation(record: any): Simulation {
+  mapSimulation(record: any): Simulation {
     return {
       ...record,
       trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
@@ -205,6 +193,137 @@ export class SimulationAutoRunnerService {
     );
   }
 
+  async loadSimulationRangeProcessingContext(
+    platform: Platform,
+    allRanges: WindowRange[],
+  ): Promise<SimulationRangeProcessingContext> {
+    const platformContracts = await this.prisma.contract.findMany({
+      where: { platform },
+      orderBy: [{ chainId: 'asc' }, { id: 'asc' }],
+    });
+
+    if (platformContracts.length === 0) {
+      throw new Error(`No contracts found for platform ${platform}`);
+    }
+
+    return {
+      allRanges,
+      platformContracts,
+      contractById: new Map(
+        platformContracts.map((contract) => [contract.id, contract]),
+      ),
+    };
+  }
+
+  async processSimulationRange(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+  ): Promise<Simulation | null> {
+    const currentRecord = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const current = currentRecord ? this.mapSimulation(currentRecord) : null;
+
+    if (!current || current.status === SimulationStatus.Cancelled) {
+      return null;
+    }
+
+    const selectingSimulation = await this.prisma.simulation.update({
+      where: { id: simulationId },
+      data: {
+        progressPhase: 'leader-selection',
+        progressMessage: `Selecting leaders for ${dayjs(range.startedAt).format(
+          'YYYY-MM-DD',
+        )}`,
+      },
+    });
+    await this.emitSimulationUpdated(selectingSimulation);
+
+    const simulationPlan = await this.createSimulationPlanForRange(
+      current,
+      range,
+    );
+
+    console.time(`findCandidateLeaders`);
+
+    const candidateLeaders =
+      await this.simulationLeaderEvaluatorService.findCandidateLeaders(
+        current,
+        range,
+      );
+
+    console.timeEnd(`findCandidateLeaders`);
+
+    console.time(`evaluateLeadersForRange`);
+
+    const evaluatedCandidates =
+      await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+        current,
+        candidateLeaders,
+        range,
+        context.contractById,
+      );
+
+    console.timeEnd(`evaluateLeadersForRange`);
+
+    const selectedCandidates = evaluatedCandidates.sort(
+      (a, b) => b.score - a.score,
+    );
+
+    await this.createSimulationBotsForSelections(
+      simulationPlan.id,
+      range.startedAt,
+      range.endedAt,
+      current,
+      selectedCandidates,
+      context.platformContracts,
+    );
+
+    const completedPlans = context.allRanges.filter(
+      (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
+    ).length;
+
+    const completedPlanWindowSimulation = await this.prisma.simulation.update({
+      where: { id: simulationId },
+      data: {
+        cursor: range.endedAt,
+        completedPlans,
+        progressPhase: 'plan-window-completed',
+        progressMessage: `Completed ${dayjs(range.startedAt).format(
+          'YYYY-MM-DD',
+        )}`,
+        progressPercent:
+          context.allRanges.length > 0
+            ? (completedPlans / context.allRanges.length) * 100
+            : 100,
+      },
+    });
+    await this.emitSimulationUpdated(completedPlanWindowSimulation);
+    return this.mapSimulation(completedPlanWindowSimulation);
+  }
+
+  async aggregateSimulationThroughCursor(id: number, allRanges: WindowRange[]) {
+    const latestRecord = await this.prisma.simulation.findUnique({
+      where: { id },
+    });
+    const latest = latestRecord ? this.mapSimulation(latestRecord) : null;
+
+    if (!latest?.cursor) {
+      return;
+    }
+
+    await this.aggregateSimulation(id, {
+      status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
+        cursor: latest.cursor,
+        endAt: latest.endAt,
+        completedPlans: latest.completedPlans,
+        totalSimulationPlans: allRanges.length,
+      }),
+      through: latest.cursor,
+    });
+  }
+
   private async getSimulationPlanForUpdate(
     id: number,
   ): Promise<SimulationPlan | null> {
@@ -227,326 +346,6 @@ export class SimulationAutoRunnerService {
       PATTERNS.Simulations.SimulationPlanUpdated,
       simulationPlan,
     );
-  }
-
-  async playAutoSimulation(id: number): Promise<Simulation> {
-    return this.startAutoSimulation(id, {
-      mode: 'manual',
-      runInBackground: true,
-    });
-  }
-
-  async playQueuedAutoSimulation(
-    id: number,
-    horizon: Date,
-  ): Promise<Simulation> {
-    return this.startAutoSimulation(id, {
-      mode: 'queue',
-      horizon,
-      runInBackground: false,
-    });
-  }
-
-  private async startAutoSimulation(
-    id: number,
-    options: AutoSimulationRunOptions,
-  ): Promise<Simulation> {
-    const simulationRecord = await this.prisma.simulation.findUnique({
-      where: { id },
-    });
-    const simulation = simulationRecord
-      ? this.mapSimulation(simulationRecord)
-      : null;
-
-    if (!simulation) {
-      throw new Error('Simulation not found');
-    }
-
-    if (
-      simulation.status === SimulationStatus.Running &&
-      this.activeAutoSimulationRunIds.has(id)
-    ) {
-      throw new Error('Simulation is already running');
-    }
-
-    const totalSimulationPlans = buildSimulationRanges(
-      simulation.startAt,
-      simulation.endAt,
-      { days: simulation.days, gapDays: simulation.gapDays },
-    ).length;
-
-    const updatedSimulation = await this.prisma.simulation.update({
-      where: { id },
-      data: {
-        status: SimulationStatus.Running,
-        error: null,
-        totalSimulationPlans,
-        progressPhase: 'accepted',
-        progressMessage: 'Auto simulation accepted',
-        progressPercent:
-          totalSimulationPlans > 0
-            ? (simulation.completedPlans / totalSimulationPlans) * 100
-            : 100,
-      },
-    });
-    await this.emitSimulationUpdated(updatedSimulation);
-
-    this.activeAutoSimulationRunIds.add(id);
-
-    if (options.runInBackground) {
-      setTimeout(() => {
-        void this.runAutoSimulation(id, options);
-      }, 0);
-    } else {
-      await this.runAutoSimulation(id, options);
-    }
-
-    return this.mapSimulation(updatedSimulation);
-  }
-
-  private async runAutoSimulation(
-    id: number,
-    options: AutoSimulationRunOptions,
-  ) {
-    if (!this.activeAutoSimulationRunIds.has(id)) {
-      this.activeAutoSimulationRunIds.add(id);
-    }
-
-    try {
-      const simulationRecord = await this.prisma.simulation.findUnique({
-        where: { id },
-      });
-      const simulation = simulationRecord
-        ? this.mapSimulation(simulationRecord)
-        : null;
-
-      if (!simulation) {
-        return;
-      }
-
-      const allRanges = buildSimulationRanges(
-        simulation.startAt,
-        simulation.endAt,
-        { days: simulation.days, gapDays: simulation.gapDays },
-      );
-      const horizon = options.horizon ?? simulation.endAt;
-      const startedAt = simulation.cursor ?? simulation.startAt;
-      const ranges = allRanges.filter(
-        (range) =>
-          range.endedAt.getTime() > startedAt.getTime() &&
-          range.endedAt.getTime() <= horizon.getTime(),
-      );
-      if (ranges.length === 0) {
-        const status = SimulationAutoRunnerService.getTerminalStatusForHorizon({
-          cursor: simulation.cursor ?? simulation.startAt,
-          endAt: simulation.endAt,
-          completedPlans: simulation.completedPlans,
-          totalSimulationPlans: allRanges.length,
-        });
-        const isCompleted = status === SimulationStatus.Completed;
-        const pausedSimulation = await this.prisma.simulation.update({
-          where: { id },
-          data: {
-            status,
-            progressPhase: isCompleted ? 'completed' : 'paused',
-            progressMessage: isCompleted
-              ? 'Auto simulation completed'
-              : 'Paused until more historical data is available',
-            ...(isCompleted ? { progressPercent: 100 } : {}),
-          },
-        });
-        await this.emitSimulationUpdated(pausedSimulation);
-        return;
-      }
-
-      const platformContracts = await this.prisma.contract.findMany({
-        where: { platform: simulation.platform },
-        orderBy: [{ chainId: 'asc' }, { id: 'asc' }],
-      });
-
-      if (platformContracts.length === 0) {
-        throw new Error(
-          `No contracts found for platform ${simulation.platform}`,
-        );
-      }
-
-      const contractById = new Map(
-        platformContracts.map((contract) => [contract.id, contract]),
-      );
-      const selectedCandidateByAddress = new Map<string, CandidateEvaluation>();
-      let previousRange = await this.seedCandidatesFromPreviousPlan(
-        simulation,
-        allRanges,
-        ranges[0],
-        selectedCandidateByAddress,
-      );
-
-      for (const range of ranges) {
-        const currentRecord = await this.prisma.simulation.findUnique({
-          where: { id },
-        });
-        const current = currentRecord
-          ? this.mapSimulation(currentRecord)
-          : null;
-
-        if (!current || current.status === SimulationStatus.Cancelled) {
-          return;
-        }
-
-        const selectingSimulation = await this.prisma.simulation.update({
-          where: { id },
-          data: {
-            progressPhase: 'leader-selection',
-            progressMessage: `Selecting leaders for ${dayjs(
-              range.startedAt,
-            ).format('YYYY-MM-DD')}`,
-          },
-        });
-        await this.emitSimulationUpdated(selectingSimulation);
-
-        const simulationPlan = await this.createSimulationPlanForRange(
-          current,
-          range,
-        );
-
-        if (!previousRange) {
-          const candidateLeaders =
-            await this.simulationLeaderEvaluatorService.findCandidateLeaders(
-              current,
-              range,
-            );
-
-          const selectedCandidates =
-            await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-              current,
-              candidateLeaders,
-              range,
-              contractById,
-            );
-
-          selectedCandidates.forEach((candidate) => {
-            selectedCandidateByAddress.set(
-              candidate.leaderAddress.toLowerCase(),
-              candidate,
-            );
-          });
-        } else {
-          const changedLeaderAddresses =
-            await this.simulationLeaderEvaluatorService.findChangedLeaderAddresses(
-              current,
-              {
-                startedAt: previousRange.startedAt,
-                endedAt: range.startedAt,
-              },
-            );
-
-          changedLeaderAddresses.forEach((leaderAddress) => {
-            selectedCandidateByAddress.delete(leaderAddress.toLowerCase());
-          });
-
-          const filteredChangedLeaderAddresses =
-            changedLeaderAddresses.length > 0
-              ? await this.simulationLeaderEvaluatorService.filterCandidateLeaderAddresses(
-                  current,
-                  changedLeaderAddresses,
-                  range,
-                )
-              : [];
-
-          const changedSelectedCandidates =
-            filteredChangedLeaderAddresses.length > 0
-              ? await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-                  current,
-                  filteredChangedLeaderAddresses,
-                  range,
-                  contractById,
-                )
-              : [];
-
-          changedSelectedCandidates.forEach((candidate) => {
-            selectedCandidateByAddress.set(
-              candidate.leaderAddress.toLowerCase(),
-              candidate,
-            );
-          });
-        }
-
-        await this.hydrateMissingLastEventAt(
-          current,
-          selectedCandidateByAddress,
-          range.startedAt,
-        );
-        this.removeStaleCandidates(selectedCandidateByAddress, range.startedAt);
-
-        const selectedCandidates = [
-          ...selectedCandidateByAddress.values(),
-        ].sort((a, b) => b.score - a.score);
-
-        await this.createSimulationBotsForSelections(
-          simulationPlan.id,
-          range.startedAt,
-          range.endedAt,
-          current,
-          selectedCandidates,
-          platformContracts,
-        );
-
-        const completedPlans = allRanges.filter(
-          (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
-        ).length;
-
-        const completedPlanWindowSimulation =
-          await this.prisma.simulation.update({
-            where: { id },
-            data: {
-              cursor: range.endedAt,
-              completedPlans,
-              progressPhase: 'plan-window-completed',
-              progressMessage: `Completed ${dayjs(range.startedAt).format(
-                'YYYY-MM-DD',
-              )}`,
-              progressPercent:
-                allRanges.length > 0
-                  ? (completedPlans / allRanges.length) * 100
-                  : 100,
-            },
-          });
-        await this.emitSimulationUpdated(completedPlanWindowSimulation);
-        previousRange = range;
-      }
-
-      const latestRecord = await this.prisma.simulation.findUnique({
-        where: { id },
-      });
-      const latest = latestRecord ? this.mapSimulation(latestRecord) : null;
-
-      if (!latest?.cursor) {
-        return;
-      }
-
-      await this.aggregateSimulation(id, {
-        status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
-          cursor: latest.cursor,
-          endAt: latest.endAt,
-          completedPlans: latest.completedPlans,
-          totalSimulationPlans: allRanges.length,
-        }),
-        through: latest.cursor,
-      });
-    } catch (error) {
-      const failedSimulation = await this.prisma.simulation.update({
-        where: { id },
-        data: {
-          status: SimulationStatus.Failed,
-          progressPhase: 'failed',
-          progressMessage: 'Auto simulation failed',
-          error: getReadableError(error),
-        },
-      });
-      await this.emitSimulationUpdated(failedSimulation);
-    } finally {
-      this.activeAutoSimulationRunIds.delete(id);
-    }
   }
 
   private async createSimulationPlanForRange(
@@ -590,131 +389,6 @@ export class SimulationAutoRunnerService {
     await this.emitSimulationPlanUpdated(simulationPlan.id);
 
     return simulationPlan;
-  }
-
-  private getPreviousRange(
-    allRanges: WindowRange[],
-    range: WindowRange,
-  ): WindowRange | null {
-    const rangeIndex = allRanges.findIndex(
-      (item) =>
-        item.startedAt.getTime() === range.startedAt.getTime() &&
-        item.endedAt.getTime() === range.endedAt.getTime(),
-    );
-
-    return rangeIndex > 0 ? allRanges[rangeIndex - 1] : null;
-  }
-
-  private async seedCandidatesFromPreviousPlan(
-    simulation: Simulation,
-    allRanges: WindowRange[],
-    firstRange: WindowRange | undefined,
-    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
-  ): Promise<WindowRange | null> {
-    await this.leaderEventLogCacheService.clear();
-
-    if (!firstRange) {
-      return null;
-    }
-
-    const previousRange = this.getPreviousRange(allRanges, firstRange);
-
-    if (!previousRange) {
-      return null;
-    }
-
-    const previousPlan = await this.prisma.simulationPlan.findFirst({
-      where: {
-        simulationId: simulation.id,
-        startAt: previousRange.startedAt,
-        endAt: previousRange.endedAt,
-      },
-      include: {
-        simulationBots: {
-          where: {
-            leaderPlatform: simulation.platform,
-          },
-        },
-      },
-    });
-
-    if (!previousPlan) {
-      return null;
-    }
-
-    previousPlan.simulationBots.forEach((bot) => {
-      selectedCandidateByAddress.set(bot.leaderAddress.toLowerCase(), {
-        leaderAddress: bot.leaderAddress,
-        lastEventAt: null,
-        score: bot.score,
-        suggestedRatio: bot.ratio,
-        suggestedCollateralUsd: 0,
-        rawTotalPnlUsd: 0,
-        rawSlope: 0,
-        rawR2: 0,
-        rawTradeCount: 0,
-        copiedNetPnlUsd: 0,
-        copiedDrawdownUsd: 0,
-      });
-    });
-
-    return previousRange;
-  }
-
-  private async hydrateMissingLastEventAt(
-    simulation: Simulation,
-    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
-    before: Date,
-  ) {
-    const addressesMissingLastEventAt = [
-      ...selectedCandidateByAddress.entries(),
-    ]
-      .filter(([, candidate]) => !candidate.lastEventAt)
-      .map(([address]) => address);
-
-    if (addressesMissingLastEventAt.length === 0) {
-      return;
-    }
-
-    const lastEventAtByLeader =
-      await this.simulationLeaderEvaluatorService.getLastEventAtByLeader(
-        simulation,
-        addressesMissingLastEventAt,
-        before,
-      );
-
-    addressesMissingLastEventAt.forEach((address) => {
-      const candidate = selectedCandidateByAddress.get(address);
-      const lastEventAt = lastEventAtByLeader.get(address);
-
-      if (!candidate || !lastEventAt) {
-        return;
-      }
-
-      selectedCandidateByAddress.set(address, {
-        ...candidate,
-        lastEventAt,
-      });
-    });
-  }
-
-  private removeStaleCandidates(
-    selectedCandidateByAddress: Map<string, CandidateEvaluation>,
-    startedAt: Date,
-  ) {
-    const staleCutoff = dayjs(startedAt)
-      .subtract(LEADER_STALE_AFTER_MONTHS, 'month')
-      .toDate()
-      .getTime();
-
-    for (const [address, candidate] of selectedCandidateByAddress) {
-      if (
-        !candidate.lastEventAt ||
-        candidate.lastEventAt.getTime() < staleCutoff
-      ) {
-        selectedCandidateByAddress.delete(address);
-      }
-    }
   }
 
   private async createSimulationBotsForSelections(
@@ -853,7 +527,7 @@ export class SimulationAutoRunnerService {
         status: options.status,
         progressPhase: isCompleted ? 'completed' : 'paused',
         progressMessage: isCompleted
-          ? 'Auto simulation completed'
+          ? 'Simulation result completed'
           : 'Paused until more historical data is available',
         ...(isCompleted ? { progressPercent: 100 } : {}),
         completedPlans: plans.length,

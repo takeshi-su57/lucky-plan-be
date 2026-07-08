@@ -3,6 +3,7 @@ import { BotMode, Platform, SimulationStatus } from 'generated/prisma/enums';
 
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { PATTERNS } from 'src/utils/constants';
+import { buildSimulationRanges } from './utils/simulation-range.utils';
 
 describe('SimulationAutoRunnerService queue helpers', () => {
   const emitClient = {
@@ -24,18 +25,34 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     jest.clearAllMocks();
   });
 
-  it('reports whether a simulation id is active locally', () => {
-    const service = Object.create(
-      SimulationAutoRunnerService.prototype,
-    ) as SimulationAutoRunnerService;
+  async function processSimulationRanges(
+    service: SimulationAutoRunnerService,
+    simulation: any,
+    horizon: Date,
+  ) {
+    const allRanges = buildSimulationRanges(
+      simulation.startAt,
+      simulation.endAt,
+      { days: simulation.days, gapDays: simulation.gapDays },
+    );
+    const startedAt = simulation.cursor ?? simulation.startAt;
+    const ranges = allRanges.filter(
+      (range) =>
+        range.endedAt.getTime() > startedAt.getTime() &&
+        range.endedAt.getTime() <= horizon.getTime(),
+    );
 
-    (
-      service as unknown as { activeAutoSimulationRunIds: Set<number> }
-    ).activeAutoSimulationRunIds = new Set([7]);
+    const context = await service.loadSimulationRangeProcessingContext(
+      simulation.platform,
+      allRanges,
+    );
 
-    expect(service.isAutoSimulationActive(7)).toBe(true);
-    expect(service.isAutoSimulationActive(8)).toBe(false);
-  });
+    for (const range of ranges) {
+      await service.processSimulationRange(simulation.id, range, context);
+    }
+
+    return { allRanges, ranges };
+  }
 
   it('uses Paused as the terminal status for a partial queued run', () => {
     expect(
@@ -79,7 +96,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cursor: null,
       status: SimulationStatus.Running,
       progressPhase: 'accepted',
-      progressMessage: 'Auto simulation accepted',
+      progressMessage: 'Simulation range accepted',
       progressPercent: 0,
       selectedLeaderCount: 10,
       trade: { min: 3, max: 100 },
@@ -133,7 +150,6 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       {} as never,
       {} as never,
       client as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
 
     await service.emitSimulationUpdated(simulation as never);
@@ -175,7 +191,6 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cacheService as never,
       {} as never,
       emitClient as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
 
     await (service as any).createSimulationBotsForSelections(
@@ -231,7 +246,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     );
   });
 
-  it('evaluates the first plan directly and carries leaders into the next plan', async () => {
+  it('evaluates candidates freshly for each plan range', async () => {
     const simulation = {
       id: 10,
       title: 'Windowed simulation',
@@ -244,7 +259,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cursor: null,
       status: SimulationStatus.Running,
       progressPhase: 'accepted',
-      progressMessage: 'Auto simulation accepted',
+      progressMessage: 'Simulation range accepted',
       progressPercent: 0,
       selectedLeaderCount: 10,
       trade: { min: 3, max: 100 },
@@ -272,11 +287,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     };
     const prisma = {
       simulation: {
-        findUnique: (jest.fn() as any)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(latestSimulation),
+        findUnique: jest.fn(async () => latestSimulation),
         update: jest.fn(async ({ data }: any) => ({
           ...simulation,
           ...data,
@@ -294,15 +305,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       },
     };
     const evaluator = {
-      findCandidateLeaders: (jest.fn() as any).mockResolvedValueOnce([
-        '0xday1',
-      ]),
-      findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValueOnce([
-        '0xday2',
-      ]),
-      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValueOnce([
-        '0xday2',
-      ]),
+      findCandidateLeaders: (jest.fn() as any)
+        .mockResolvedValueOnce(['0xday1'])
+        .mockResolvedValueOnce(['0xday2']),
       evaluateLeadersForRange: (jest.fn() as any)
         .mockResolvedValueOnce([
           {
@@ -318,14 +323,12 @@ describe('SimulationAutoRunnerService queue helpers', () => {
             lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
           },
         ]),
-      getLastEventAtByLeader: jest.fn(async () => new Map()),
     };
     const service = new SimulationAutoRunnerService(
       prisma as never,
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
     const createSimulationPlanForRange = jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -338,18 +341,14 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       .spyOn(service as any, 'aggregateSimulation')
       .mockResolvedValue(undefined);
 
-    await (service as any).runAutoSimulation(10, {
-      mode: 'queue',
-      horizon: new Date('2026-04-03T00:00:00.000Z'),
-      runInBackground: false,
-    });
+    await processSimulationRanges(
+      service,
+      simulation,
+      new Date('2026-04-03T00:00:00.000Z'),
+    );
 
-    expect(
-      (service as any).leaderEventLogCacheService.clear,
-    ).toHaveBeenCalledTimes(1);
     expect(createSimulationPlanForRange).toHaveBeenCalledTimes(2);
-    expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(1);
-    expect(evaluator.findChangedLeaderAddresses).toHaveBeenCalledTimes(1);
+    expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(2);
     expect(evaluator.evaluateLeadersForRange).toHaveBeenCalledTimes(2);
     expect(evaluator.evaluateLeadersForRange.mock.calls[0][1]).toEqual([
       '0xday1',
@@ -368,7 +367,6 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     ]);
     expect(createSimulationBotsForSelections.mock.calls[1][4]).toEqual([
       expect.objectContaining({ leaderAddress: '0xday2', score: 0.9 }),
-      expect.objectContaining({ leaderAddress: '0xday1', score: 0.7 }),
     ]);
   });
 
@@ -385,7 +383,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cursor: null,
       status: SimulationStatus.Running,
       progressPhase: 'accepted',
-      progressMessage: 'Auto simulation accepted',
+      progressMessage: 'Simulation range accepted',
       progressPercent: 0,
       selectedLeaderCount: 10,
       trade: { min: 3, max: 100 },
@@ -437,36 +435,23 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       },
     };
     const evaluator = {
-      findCandidateLeaders: jest.fn(async () => [
-        '0xcarry',
-        '0xstale',
-        '0xchanged',
-      ]),
-      findChangedLeaderAddresses: (jest.fn() as any)
-        .mockResolvedValueOnce(['0xchanged', '0xnew', '0xrejected'])
-        .mockResolvedValueOnce([]),
-      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
-        '0xnew',
-      ]),
+      findCandidateLeaders: (jest.fn() as any)
+        .mockResolvedValueOnce(['0xchanged', '0xcarry'])
+        .mockResolvedValueOnce(['0xnew', '0xcarry'])
+        .mockResolvedValueOnce(['0xnew', '0xcarry']),
       evaluateLeadersForRange: (jest.fn() as any)
         .mockResolvedValueOnce([
-          {
-            leaderAddress: '0xcarry',
-            score: 0.7,
-            suggestedRatio: 1,
-            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
-          },
-          {
-            leaderAddress: '0xstale',
-            score: 0.6,
-            suggestedRatio: 1,
-            lastEventAt: new Date('2026-02-20T00:00:00.000Z'),
-          },
           {
             leaderAddress: '0xchanged',
             score: 0.8,
             suggestedRatio: 1,
             lastEventAt: new Date('2026-03-25T00:00:00.000Z'),
+          },
+          {
+            leaderAddress: '0xcarry',
+            score: 0.7,
+            suggestedRatio: 1,
+            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
           },
         ])
         .mockResolvedValueOnce([
@@ -476,15 +461,33 @@ describe('SimulationAutoRunnerService queue helpers', () => {
             suggestedRatio: 1,
             lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
           },
+          {
+            leaderAddress: '0xcarry',
+            score: 0.7,
+            suggestedRatio: 1,
+            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            leaderAddress: '0xnew',
+            score: 0.9,
+            suggestedRatio: 1,
+            lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
+          },
+          {
+            leaderAddress: '0xcarry',
+            score: 0.7,
+            suggestedRatio: 1,
+            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
+          },
         ]),
-      getLastEventAtByLeader: jest.fn(async () => new Map()),
     };
     const service = new SimulationAutoRunnerService(
       prisma as never,
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -498,27 +501,16 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       .spyOn(service as any, 'aggregateSimulation')
       .mockResolvedValue(undefined);
 
-    await (service as any).runAutoSimulation(13, {
-      mode: 'queue',
-      horizon: new Date('2026-04-04T00:00:00.000Z'),
-      runInBackground: false,
-    });
-
-    expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(1);
-    expect(evaluator.findChangedLeaderAddresses).toHaveBeenCalledTimes(2);
-    expect(evaluator.findChangedLeaderAddresses.mock.calls[0][1]).toEqual({
-      startedAt: new Date('2026-04-01T00:00:00.000Z'),
-      endedAt: new Date('2026-04-02T00:00:00.000Z'),
-    });
-    expect(evaluator.filterCandidateLeaderAddresses).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 13 }),
-      ['0xchanged', '0xnew', '0xrejected'],
-      expect.objectContaining({
-        startedAt: new Date('2026-04-02T00:00:00.000Z'),
-      }),
+    await processSimulationRanges(
+      service,
+      simulation,
+      new Date('2026-04-04T00:00:00.000Z'),
     );
+
+    expect(evaluator.findCandidateLeaders).toHaveBeenCalledTimes(3);
     expect(evaluator.evaluateLeadersForRange.mock.calls[1][1]).toEqual([
       '0xnew',
+      '0xcarry',
     ]);
     expect(createSimulationBotsForSelections.mock.calls[0][4]).toEqual([
       expect.objectContaining({ leaderAddress: '0xchanged', score: 0.8 }),
@@ -534,7 +526,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     ]);
   });
 
-  it('seeds carried leaders from the previous persisted plan when a queued simulation resumes mid-run', async () => {
+  it('evaluates fresh candidates when a queued simulation resumes mid-run', async () => {
     const simulation = {
       id: 14,
       title: 'Resumed dynamic simulation',
@@ -612,12 +604,9 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       },
     };
     const evaluator = {
-      findCandidateLeaders: jest.fn(async () => ['0xshould-not-run']),
-      findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValue([
+      findCandidateLeaders: jest.fn(async (..._args: unknown[]) => [
         '0xnew',
-      ]),
-      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
-        '0xnew',
+        '0xcarry',
       ]),
       evaluateLeadersForRange: jest.fn(async () => [
         {
@@ -626,18 +615,19 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           suggestedRatio: 1,
           lastEventAt: new Date('2026-04-02T12:00:00.000Z'),
         },
+        {
+          leaderAddress: '0xcarry',
+          score: 0.7,
+          suggestedRatio: 2,
+          lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
+        },
       ]),
-      getLastEventAtByLeader: jest.fn(
-        async () =>
-          new Map([['0xcarry', new Date('2026-04-01T12:00:00.000Z')]]),
-      ),
     };
     const service = new SimulationAutoRunnerService(
       prisma as never,
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -649,19 +639,17 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       .spyOn(service as any, 'aggregateSimulation')
       .mockResolvedValue(undefined);
 
-    await (service as any).runAutoSimulation(14, {
-      mode: 'queue',
-      horizon: new Date('2026-04-03T00:00:00.000Z'),
-      runInBackground: false,
-    });
+    await processSimulationRanges(
+      service,
+      simulation,
+      new Date('2026-04-03T00:00:00.000Z'),
+    );
 
-    expect(evaluator.findCandidateLeaders).not.toHaveBeenCalled();
-    expect(evaluator.findChangedLeaderAddresses).toHaveBeenCalledWith(
+    expect(evaluator.findCandidateLeaders).toHaveBeenCalledWith(
       expect.objectContaining({ id: 14 }),
-      {
-        startedAt: new Date('2026-04-01T00:00:00.000Z'),
-        endedAt: new Date('2026-04-02T00:00:00.000Z'),
-      },
+      expect.objectContaining({
+        startedAt: new Date('2026-04-01T03:00:00.000Z'),
+      }),
     );
     expect(createSimulationBotsForSelections.mock.calls[0][4]).toEqual([
       expect.objectContaining({ leaderAddress: '0xnew', score: 0.9 }),
@@ -673,7 +661,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     ]);
   });
 
-  it('resumes incrementally from an empty previous persisted leader list', async () => {
+  it('evaluates fresh candidates when resuming without previous persisted leaders', async () => {
     const simulation = {
       id: 15,
       title: 'Empty resume simulation',
@@ -744,13 +732,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       },
     };
     const evaluator = {
-      findCandidateLeaders: jest.fn(async () => ['0xshould-not-run']),
-      findChangedLeaderAddresses: (jest.fn() as any).mockResolvedValue([
-        '0xnew',
-      ]),
-      filterCandidateLeaderAddresses: (jest.fn() as any).mockResolvedValue([
-        '0xnew',
-      ]),
+      findCandidateLeaders: jest.fn(async (..._args: unknown[]) => ['0xnew']),
       evaluateLeadersForRange: jest.fn(async () => [
         {
           leaderAddress: '0xnew',
@@ -759,14 +741,12 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           lastEventAt: new Date('2026-04-02T12:00:00.000Z'),
         },
       ]),
-      getLastEventAtByLeader: jest.fn(async () => new Map()),
     };
     const service = new SimulationAutoRunnerService(
       prisma as never,
       {} as never,
       evaluator as never,
       { emit: jest.fn(async () => undefined) } as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -778,19 +758,17 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       .spyOn(service as any, 'aggregateSimulation')
       .mockResolvedValue(undefined);
 
-    await (service as any).runAutoSimulation(15, {
-      mode: 'queue',
-      horizon: new Date('2026-04-03T00:00:00.000Z'),
-      runInBackground: false,
-    });
+    await processSimulationRanges(
+      service,
+      simulation,
+      new Date('2026-04-03T00:00:00.000Z'),
+    );
 
-    expect(evaluator.findCandidateLeaders).not.toHaveBeenCalled();
-    expect(evaluator.findChangedLeaderAddresses).toHaveBeenCalledWith(
+    expect(evaluator.findCandidateLeaders).toHaveBeenCalledWith(
       expect.objectContaining({ id: 15 }),
-      {
-        startedAt: new Date('2026-04-01T00:00:00.000Z'),
-        endedAt: new Date('2026-04-02T00:00:00.000Z'),
-      },
+      expect.objectContaining({
+        startedAt: new Date('2026-04-01T03:00:00.000Z'),
+      }),
     );
     expect(createSimulationBotsForSelections.mock.calls[0][4]).toEqual([
       expect.objectContaining({ leaderAddress: '0xnew', score: 0.9 }),
@@ -812,7 +790,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       cursor: null,
       status: SimulationStatus.Running,
       progressPhase: 'accepted',
-      progressMessage: 'Auto simulation accepted',
+      progressMessage: 'Simulation range accepted',
       progressPercent: 0,
       selectedLeaderCount: 10,
       trade: { min: 3, max: 100 },
@@ -841,11 +819,7 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     };
     const prisma = {
       simulation: {
-        findUnique: (jest.fn() as any)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(simulation)
-          .mockResolvedValueOnce(latestSimulation),
+        findUnique: jest.fn(async () => latestSimulation),
         update: jest.fn(async ({ data }: any) => ({
           ...simulation,
           ...data,
@@ -865,16 +839,12 @@ describe('SimulationAutoRunnerService queue helpers', () => {
     const evaluator = {
       findCandidateLeaders: jest.fn(async () => []),
       evaluateLeadersForRange: jest.fn(async () => []),
-      findChangedLeaderAddresses: jest.fn(async () => []),
-      filterCandidateLeaderAddresses: jest.fn(async () => []),
-      getLastEventAtByLeader: jest.fn(async () => new Map()),
     };
     const service = new SimulationAutoRunnerService(
       prisma as never,
       {} as never,
       evaluator as never,
       emitClient as never,
-      { clear: jest.fn(async () => undefined) } as never,
     );
     jest
       .spyOn(service as any, 'createSimulationPlanForRange')
@@ -886,11 +856,16 @@ describe('SimulationAutoRunnerService queue helpers', () => {
       .spyOn(service as any, 'aggregateSimulation')
       .mockResolvedValue(undefined);
 
-    await (service as any).runAutoSimulation(12, {
-      mode: 'queue',
-      horizon: new Date('2026-07-10T00:00:00.000Z'),
-      runInBackground: false,
-    });
+    const allRanges = buildSimulationRanges(
+      simulation.startAt,
+      simulation.endAt,
+      {
+        days: simulation.days,
+        gapDays: simulation.gapDays,
+      },
+    );
+
+    await service.aggregateSimulationThroughCursor(12, allRanges);
 
     expect(aggregateSimulation).toHaveBeenCalledWith(12, {
       status: SimulationStatus.Completed,

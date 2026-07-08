@@ -6,7 +6,6 @@ import {
   CreateSimulationPlanInput,
   CreateSimulationBotInput,
   UpdateSimulationBotInput,
-  CreateSimulationInput,
   CreateSimulationResearchInput,
   FloatMinMaxInput,
   IntMinMaxInput,
@@ -91,51 +90,10 @@ export class SimulationsService {
     private readonly redisClient?: ClientProxy,
   ) {}
 
-  private logDebug(message: string, metadata?: Record<string, unknown>) {
-    this.logger.debug(
-      metadata ? `${message} ${JSON.stringify(metadata)}` : message,
-    );
-  }
-
   private logWarn(message: string, metadata?: Record<string, unknown>) {
     this.logger.warn(
       metadata ? `${message} ${JSON.stringify(metadata)}` : message,
     );
-  }
-
-  private validateSimulationInput(input: CreateSimulationInput) {
-    if (new Date(input.startAt).getTime() >= new Date(input.endAt).getTime()) {
-      throw new Error('Simulation startAt must be before endAt');
-    }
-
-    if (
-      input.standardCollateralUsd <
-        API_SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
-      input.standardCollateralUsd >
-        API_SIMULATION_SYSTEM_CONFIG.maxCollateralUsd
-    ) {
-      throw new Error(
-        'standardCollateralUsd must be between system minCollateralUsd and maxCollateralUsd',
-      );
-    }
-
-    this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
-    this.validateIntMinMaxPair('trade', input.trade);
-    this.validateFloatMinMaxPair('r2', input.r2, {
-      minAllowed: 0,
-      maxAllowed: 1,
-    });
-    this.validateFloatMinMaxPair('slope', input.slope, { minAllowed: 0 });
-    this.validateFloatMinMaxPair('collateral', input.collateral, {
-      minAllowed: 0,
-    });
-    this.validateFloatMinMaxPair('leverage', input.leverage, {
-      minAllowed: 0,
-    });
-    this.validateFloatMinMaxPair('score', input.score, {
-      minAllowed: 0,
-      maxAllowed: 1,
-    });
   }
 
   private validateSimulationUpdate(input: UpdateSimulationInput) {
@@ -642,57 +600,6 @@ export class SimulationsService {
     return this.mapSimulationResearch(research);
   }
 
-  async createSimulation(input: CreateSimulationInput): Promise<Simulation> {
-    this.validateSimulationInput(input);
-
-    const days = input.days ?? 1;
-    const gapDays = input.gapDays ?? 0;
-    const totalSimulationPlans = countSimulationPlanWindows(
-      input.startAt,
-      input.endAt,
-      days,
-      gapDays,
-    );
-
-    const simulation = await this.prisma.simulation.create({
-      data: {
-        ...input,
-        direction: input.direction,
-        trade: this.serializeRange(input.trade),
-        r2: this.serializeRange(input.r2),
-        slope: this.serializeRange(input.slope),
-        collateral: this.serializeRange(input.collateral),
-        leverage: this.serializeRange(input.leverage),
-        score: this.serializeRange(input.score),
-        scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
-        sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
-        startAt: dayjs(input.startAt).startOf('day').toDate(),
-        endAt: dayjs(input.endAt).startOf('day').toDate(),
-        days,
-        gapDays,
-        status: SimulationStatus.Created,
-        progressPhase: 'created',
-        progressMessage: 'Simulation created',
-        progressPercent: 0,
-        totalSimulationPlans,
-      },
-    });
-
-    this.logDebug('Auto simulation created', {
-      simulationId: simulation.id,
-      platform: simulation.platform,
-      startAt: simulation.startAt,
-      endAt: simulation.endAt,
-      totalSimulationPlans: simulation.totalSimulationPlans,
-      trade: simulation.trade,
-      r2: simulation.r2,
-      slope: simulation.slope,
-      minRatio: API_SIMULATION_SYSTEM_CONFIG.minRatio,
-    });
-
-    return this.mapSimulation(simulation);
-  }
-
   async updateSimulation(input: UpdateSimulationInput): Promise<Simulation> {
     this.validateSimulationUpdate(input);
 
@@ -968,7 +875,7 @@ export class SimulationsService {
       },
     });
 
-    this.logWarn('Auto simulation cancelled', { simulationId: id });
+    this.logWarn('Simulation cancelled', { simulationId: id });
 
     const mapped = this.mapSimulation(simulation);
     await this.emitSimulationUpdated(mapped);
@@ -1132,42 +1039,6 @@ export class SimulationsService {
 
     const mapped = this.mapSimulationResearch(updated);
     await this.emitSimulationResearchUpdated(id);
-
-    return mapped;
-  }
-
-  async playAutoSimulation(id: number): Promise<Simulation> {
-    const simulation = await this.prisma.simulation.findUnique({
-      where: { id },
-    });
-
-    if (!simulation) {
-      throw new Error('Simulation not found');
-    }
-
-    if (simulation.status === SimulationStatus.Cancelled) {
-      throw new Error('Cannot queue a cancelled simulation');
-    }
-
-    if (simulation.status === SimulationStatus.Completed) {
-      return this.mapSimulation(simulation);
-    }
-
-    const updated = await this.prisma.simulation.update({
-      where: { id },
-      data: {
-        status:
-          simulation.status === SimulationStatus.Running
-            ? SimulationStatus.Running
-            : SimulationStatus.Paused,
-        error: null,
-        progressPhase: 'queued',
-        progressMessage: 'Simulation queued for analytics automation',
-      },
-    });
-
-    const mapped = this.mapSimulation(updated);
-    await this.emitSimulationUpdated(mapped);
 
     return mapped;
   }

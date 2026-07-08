@@ -35,7 +35,7 @@ describe('API simulation module boundary', () => {
       'SimulationAutoRunnerService',
       'SimulationCacheService',
       'SimulationLeaderEvaluatorService',
-      'processNextQueuedAutoSimulation',
+      ['processNextQueued', 'AutoSimulation'].join(''),
       'getAutomationStatusPriority',
     ];
 

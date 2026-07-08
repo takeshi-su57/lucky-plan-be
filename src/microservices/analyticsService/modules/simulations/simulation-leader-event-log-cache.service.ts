@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 
 import { Platform } from 'generated/prisma/enums';
+import { PrismaService } from 'src/global/prisma.service';
 
 export type CachedLeaderEventLogRecord = {
   id: number;
@@ -18,13 +19,15 @@ type LeaderEventLogCacheMeta = {
   platform: Platform;
   address: string;
   filePath: string;
-  cachedUntil?: Date;
-  fetchedUntil: Date;
+  firstEventAt?: Date;
+  lastEventAt?: Date;
   count: number;
 };
 
 @Injectable()
 export class SimulationLeaderEventLogCacheService {
+  constructor(private readonly prisma: PrismaService) {}
+
   private readonly leaderEventLogCacheMeta = new Map<
     string,
     LeaderEventLogCacheMeta
@@ -41,59 +44,107 @@ export class SimulationLeaderEventLogCacheService {
     await fs.mkdir(this.eventLogCacheDir, { recursive: true });
   }
 
-  getRefreshStartedAt(
+  async rebuildForResearch(platform: Platform, startedAt: Date, endedAt: Date) {
+    await this.clear();
+
+    const leaderAddressGroups = await this.prisma.perpTradingEventLog.groupBy({
+      by: ['address'],
+      where: {
+        platform,
+        date: {
+          gte: startedAt,
+          lt: endedAt,
+        },
+      },
+      orderBy: {
+        address: 'asc',
+      },
+    });
+    const leaderAddresses = [
+      ...new Set(
+        leaderAddressGroups.map((group) => group.address.toLowerCase()),
+      ),
+    ];
+
+    for (const address of leaderAddresses) {
+      const records = await this.prisma.perpTradingEventLog.findMany({
+        select: {
+          id: true,
+          address: true,
+          date: true,
+          block: true,
+          contractId: true,
+          platform: true,
+          jsonLog: true,
+        },
+        where: {
+          address,
+          platform,
+          date: {
+            gte: startedAt,
+            lt: endedAt,
+          },
+        },
+        orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      });
+
+      await this.writeCachedEventLogs(
+        platform,
+        address,
+        records.map((record) => ({
+          ...record,
+          address,
+          date: new Date(record.date),
+        })),
+      );
+    }
+  }
+
+  async readLeaderEventLogs(
     platform: Platform,
     address: string,
-    fallbackStartedAt: Date,
+    startedAt: Date,
+    endedAt: Date,
   ) {
     const cacheMeta = this.leaderEventLogCacheMeta.get(
       this.getCacheKey(platform, address),
     );
 
-    return (
-      cacheMeta?.cachedUntil || cacheMeta?.fetchedUntil || fallbackStartedAt
+    if (!cacheMeta) {
+      return [];
+    }
+
+    const records = await this.readCachedEventLogs(cacheMeta.filePath);
+
+    return records.filter(
+      (record) =>
+        record.date.getTime() >= startedAt.getTime() &&
+        record.date.getTime() < endedAt.getTime(),
     );
   }
 
-  async updateCache(
+  async countRecentEvents(
     platform: Platform,
     address: string,
-    freshRecords: CachedLeaderEventLogRecord[],
-    scoringStartedAt: Date,
-    fetchedUntil: Date,
+    startedAt: Date,
+    endedAt: Date,
   ) {
-    const normalizedAddress = address.toLowerCase();
-    const refreshStartedAt = this.getRefreshStartedAt(
+    const records = await this.readLeaderEventLogs(
       platform,
-      normalizedAddress,
-      scoringStartedAt,
+      address,
+      startedAt,
+      endedAt,
     );
+
+    return records.length;
+  }
+
+  getLastEventAt(platform: Platform, address: string) {
     const cacheMeta = this.leaderEventLogCacheMeta.get(
-      this.getCacheKey(platform, normalizedAddress),
-    );
-    const cachedRecords = cacheMeta
-      ? await this.readCachedEventLogs(cacheMeta.filePath)
-      : [];
-    const records = this.mergeEventLogRecords([
-      ...cachedRecords,
-      ...freshRecords,
-    ]).filter(
-      (record) =>
-        record.date.getTime() >= scoringStartedAt.getTime() &&
-        record.date.getTime() < fetchedUntil.getTime(),
+      this.getCacheKey(platform, address),
     );
 
-    await this.writeCachedEventLogs(
-      platform,
-      normalizedAddress,
-      records,
-      fetchedUntil,
-    );
-
-    return {
-      refreshStartedAt,
-      records,
-    };
+    return cacheMeta?.lastEventAt ?? null;
   }
 
   private getCacheKey(platform: Platform, address: string) {
@@ -123,28 +174,21 @@ export class SimulationLeaderEventLogCacheService {
     platform: Platform,
     address: string,
     records: CachedLeaderEventLogRecord[],
-    fetchedUntil: Date,
   ) {
     await fs.mkdir(this.eventLogCacheDir, { recursive: true });
     const filePath = this.getCachePath(platform, address);
     const temporaryPath = `${filePath}.tmp`;
-    const latestRecord = records.reduce<CachedLeaderEventLogRecord | null>(
-      (latest, record) =>
-        !latest || record.date.getTime() > latest.date.getTime()
-          ? record
-          : latest,
-      null,
-    );
+    const orderedRecords = this.mergeEventLogRecords(records);
 
-    await fs.writeFile(temporaryPath, JSON.stringify(records), 'utf8');
+    await fs.writeFile(temporaryPath, JSON.stringify(orderedRecords), 'utf8');
     await fs.rename(temporaryPath, filePath);
     this.leaderEventLogCacheMeta.set(this.getCacheKey(platform, address), {
       platform,
       address,
       filePath,
-      cachedUntil: latestRecord?.date,
-      fetchedUntil,
-      count: records.length,
+      firstEventAt: orderedRecords.at(0)?.date,
+      lastEventAt: orderedRecords.at(-1)?.date,
+      count: orderedRecords.length,
     });
   }
 

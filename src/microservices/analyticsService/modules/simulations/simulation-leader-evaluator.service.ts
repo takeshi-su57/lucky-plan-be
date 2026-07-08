@@ -146,53 +146,6 @@ export class SimulationLeaderEvaluatorService {
     return candidateAddresses;
   }
 
-  async filterCandidateLeaderAddresses(
-    simulation: Simulation,
-    leaderAddresses: string[],
-    range: WindowRange,
-  ) {
-    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const normalizedAddresses = [
-      ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
-    ];
-
-    if (normalizedAddresses.length === 0) {
-      return [];
-    }
-
-    const records = await this.prisma.pnlSnapshotV2.findMany({
-      where: {
-        platform: simulation.platform,
-        dateStr,
-        address: {
-          in: normalizedAddresses,
-        },
-        accUSDPnl:
-          simulation.direction === BotMode.Default
-            ? {
-                gte: 50,
-              }
-            : {
-                lte: -50,
-              },
-      },
-      select: {
-        address: true,
-      },
-      orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
-    });
-
-    const candidateAddresses = records.map((record) =>
-      record.address.toLowerCase(),
-    );
-
-    return this.filterRecentlyActiveCandidateAddresses(
-      simulation,
-      candidateAddresses,
-      range,
-    );
-  }
-
   private async filterRecentlyActiveCandidateAddresses(
     simulation: Simulation,
     candidateAddresses: string[],
@@ -213,104 +166,30 @@ export class SimulationLeaderEvaluatorService {
         offset + CANDIDATE_BATCH_SIZE,
       );
 
-      const activeLeaderGroups = await this.prisma.perpTradingEventLog.groupBy({
-        by: ['address'],
-        where: {
-          platform: simulation.platform,
-          address: {
-            in: addressBatch,
-          },
-          date: {
-            gte: recentActivityCutoff,
-            lt: range.startedAt,
-          },
-        },
-        _count: {
-          address: true,
-        },
-      });
-      const eventCountByAddress = new Map(
-        activeLeaderGroups.map((group) => [
-          group.address.toLowerCase(),
-          group._count.address,
-        ]),
-      );
-
-      addressBatch.forEach((address) => {
+      for (const address of addressBatch) {
         // Cheap prefilter only: count recent raw trade-history events.
         // Position reconstruction and closed-position minTrades checks happen later.
-        const recentTradeHistoryCount = eventCountByAddress.get(address) || 0;
+        const recentTradeHistoryCount =
+          await this.leaderEventLogCacheService.countRecentEvents(
+            simulation.platform,
+            address,
+            recentActivityCutoff,
+            range.startedAt,
+          );
 
         if (recentTradeHistoryCount === 0) {
-          return;
+          continue;
         }
 
         if (recentTradeHistoryCount < simulation.trade.min) {
-          return;
+          continue;
         }
 
         prefilteredAddresses.push(address);
-      });
+      }
     }
 
     return prefilteredAddresses;
-  }
-
-  async findChangedLeaderAddresses(simulation: Simulation, range: WindowRange) {
-    const records = await this.prisma.perpTradingEventLog.groupBy({
-      by: ['address'],
-      where: {
-        platform: simulation.platform,
-        date: {
-          gte: range.startedAt,
-          lt: range.endedAt,
-        },
-      },
-    });
-
-    return records
-      .map((record) => record.address.toLowerCase())
-      .sort((a, b) => a.localeCompare(b));
-  }
-
-  async getLastEventAtByLeader(
-    simulation: Simulation,
-    leaderAddresses: string[],
-    before: Date,
-  ) {
-    const normalizedAddresses = [
-      ...new Set(leaderAddresses.map((address) => address.toLowerCase())),
-    ];
-
-    if (normalizedAddresses.length === 0) {
-      return new Map<string, Date>();
-    }
-
-    const groups = await this.prisma.perpTradingEventLog.groupBy({
-      by: ['address'],
-      where: {
-        platform: simulation.platform,
-        address: {
-          in: normalizedAddresses,
-        },
-        date: {
-          lt: before,
-        },
-      },
-      _max: {
-        date: true,
-      },
-    });
-
-    const lastEventAtByLeader = new Map(
-      groups.flatMap((group) =>
-        group._max.date
-          ? [[group.address.toLowerCase(), group._max.date] as const]
-          : [],
-      ),
-    );
-
-    return lastEventAtByLeader;
   }
 
   async evaluateLeadersForRange(
@@ -323,25 +202,33 @@ export class SimulationLeaderEvaluatorService {
     const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}] evaluateLeadersForRange`;
     console.time(`${baseLabel} total leaders=${leaderAddresses.length}`);
     const evaluations: CandidateEvaluation[] = [];
-    console.time(`${baseLabel} getLastEventAtByLeader`);
-    const lastEventAtByLeader = await this.getLastEventAtByLeader(
-      simulation,
-      leaderAddresses,
-      range.startedAt,
-    );
-    console.timeEnd(`${baseLabel} getLastEventAtByLeader`);
 
     console.log(`${baseLabel} leaderAddresses ${leaderAddresses.length}`);
 
     console.time(`${baseLabel} leaderLoop`);
+
+    let leaderLoadTime = 0;
+    let leaderEvaluateTime = 0;
+    let maxLoadTime = 0;
+    let maxEvaluateTime = 0;
+
     for (const leaderAddress of leaderAddresses) {
+      const loadLeaderStartedAt = Date.now();
+
       const positions = await this.loadLeaderPositionsByLeaderUntil(
         leaderAddress,
         simulation,
         contractById,
         range.startedAt,
       );
-      console.time(`${baseLabel} evaluateLeader`);
+
+      const leaderEvaluateStartedAt = Date.now();
+
+      leaderLoadTime += leaderEvaluateStartedAt - loadLeaderStartedAt;
+      maxLoadTime = Math.max(
+        maxLoadTime,
+        leaderEvaluateStartedAt - loadLeaderStartedAt,
+      );
 
       const closedPositions = this.getClosedPositionsBefore(
         positions,
@@ -360,18 +247,31 @@ export class SimulationLeaderEvaluatorService {
           ? 'SCORE_OUT_OF_RANGE'
           : null);
 
+      leaderEvaluateTime += Date.now() - leaderEvaluateStartedAt;
+      maxEvaluateTime = Math.max(
+        maxEvaluateTime,
+        Date.now() - leaderEvaluateStartedAt,
+      );
+
       if (rejectedReason) {
-        console.timeEnd(`${baseLabel} evaluateLeader`);
         continue;
       }
 
       evaluations.push({
         ...evaluation,
-        lastEventAt: lastEventAtByLeader.get(leaderAddress.toLowerCase()),
+        lastEventAt: this.leaderEventLogCacheService.getLastEventAt(
+          simulation.platform,
+          leaderAddress,
+        ),
       });
-      console.timeEnd(`${baseLabel} evaluateLeader`);
     }
     console.timeEnd(`${baseLabel} leaderLoop`);
+    console.log(
+      `total leader loading=${leaderLoadTime}, max leader loading=${maxLoadTime}`,
+    );
+    console.log(
+      `total leader evaluating=${leaderEvaluateTime}, max leader evaluating=${maxEvaluateTime}`,
+    );
 
     console.timeEnd(`${baseLabel} total leaders=${leaderAddresses.length}`);
 
@@ -388,54 +288,14 @@ export class SimulationLeaderEvaluatorService {
     const scoringStartedAt = dayjs(before)
       .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
       .toDate();
-    const dateStr = dayjs(before).format('YYYY-MM-DD');
-    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}] loadLeaderPositionsByLeaderUntil`;
-    const refreshStartedAt =
-      this.leaderEventLogCacheService.getRefreshStartedAt(
+
+    const cachedRecords =
+      await this.leaderEventLogCacheService.readLeaderEventLogs(
         simulation.platform,
         normalizedLeaderAddress,
-        scoringStartedAt,
-      );
-
-    console.time(`${baseLabel} total address=${normalizedLeaderAddress}`);
-    console.time(`${baseLabel} dbQuery`);
-    const records = await this.prisma.perpTradingEventLog.findMany({
-      select: {
-        id: true,
-        address: true,
-        date: true,
-        block: true,
-        contractId: true,
-        platform: true,
-        jsonLog: true,
-      },
-      where: {
-        address: normalizedLeaderAddress,
-        platform: simulation.platform,
-        date: {
-          gte: refreshStartedAt,
-          lt: before,
-        },
-      },
-      orderBy: [
-        { address: 'asc' },
-        { date: 'asc' },
-        { block: 'asc' },
-        { id: 'asc' },
-      ],
-    });
-    console.timeEnd(`${baseLabel} dbQuery`);
-
-    const { records: cachedRecords } =
-      await this.leaderEventLogCacheService.updateCache(
-        simulation.platform,
-        normalizedLeaderAddress,
-        records,
         scoringStartedAt,
         before,
       );
-
-    console.time(`${baseLabel} convertToPerpTradePositionsWithSummary`);
 
     const histories = this.eventLogsToHistories(cachedRecords, contractById);
 
@@ -452,10 +312,6 @@ export class SimulationLeaderEvaluatorService {
       );
 
     const positions = positionsWithSummary.positions;
-
-    console.timeEnd(`${baseLabel} convertToPerpTradePositionsWithSummary`);
-
-    console.timeEnd(`${baseLabel} total address=${normalizedLeaderAddress}`);
 
     return positions;
   }
