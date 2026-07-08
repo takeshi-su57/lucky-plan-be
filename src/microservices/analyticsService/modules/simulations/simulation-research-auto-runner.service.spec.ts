@@ -71,7 +71,7 @@ describe('SimulationResearchAutoRunnerService', () => {
     };
     const leaderEventLogCacheService = {
       clear: jest.fn(async () => undefined),
-      rebuildForResearch: jest.fn(async (..._args: unknown[]) => undefined),
+      registerResearchRange: jest.fn(async (..._args: unknown[]) => undefined),
     };
     const service = new SimulationResearchAutoRunnerService(
       prisma as never,
@@ -79,10 +79,10 @@ describe('SimulationResearchAutoRunnerService', () => {
       leaderEventLogCacheService as never,
     );
 
-    await service.playQueuedResearch(31);
+    await service.playAutomaticResearch(31);
 
     expect(timeSpy).toHaveBeenCalledWith(
-      '[simulation:research-auto:31] playQueuedResearch total',
+      '[simulation:research-auto:31] playAutomaticResearch total',
     );
     expect(timeSpy).toHaveBeenCalledWith(
       '[simulation:research-auto:31] rebuild event-log cache',
@@ -91,7 +91,7 @@ describe('SimulationResearchAutoRunnerService', () => {
       '[simulation:research-auto:31] range 1/3 2026-06-30 total',
     );
     expect(timeEndSpy).toHaveBeenCalledWith(
-      '[simulation:research-auto:31] playQueuedResearch total',
+      '[simulation:research-auto:31] playAutomaticResearch total',
     );
     expect(prisma.simulationResearch.findUnique as any).toHaveBeenCalledWith({
       where: { id: 31 },
@@ -102,7 +102,7 @@ describe('SimulationResearchAutoRunnerService', () => {
       },
     });
     expect(leaderEventLogCacheService.clear).toHaveBeenCalledTimes(1);
-    expect(leaderEventLogCacheService.rebuildForResearch).toHaveBeenCalledWith(
+    expect(leaderEventLogCacheService.registerResearchRange).toHaveBeenCalledWith(
       Platform.GNS,
       new Date('2026-01-02T00:00:00.000Z'),
       new Date('2026-07-04T00:00:00.000Z'),
@@ -178,7 +178,7 @@ describe('SimulationResearchAutoRunnerService', () => {
     };
     const leaderEventLogCacheService = {
       clear: jest.fn(async () => undefined),
-      rebuildForResearch: jest.fn(async (..._args: unknown[]) => undefined),
+      registerResearchRange: jest.fn(async (..._args: unknown[]) => undefined),
     };
     const service = new SimulationResearchAutoRunnerService(
       prisma as never,
@@ -186,10 +186,13 @@ describe('SimulationResearchAutoRunnerService', () => {
       leaderEventLogCacheService as never,
     );
 
-    await service.playQueuedResearch(31, new Date('2026-06-30T12:00:00.000Z'));
+    await service.playAutomaticResearch(
+      31,
+      new Date('2026-06-30T12:00:00.000Z'),
+    );
 
     expect(simulationRunner.processSimulationRange).not.toHaveBeenCalled();
-    expect(leaderEventLogCacheService.rebuildForResearch).not.toHaveBeenCalled();
+    expect(leaderEventLogCacheService.registerResearchRange).not.toHaveBeenCalled();
     expect(prisma.simulationResearch.update as any).toHaveBeenCalledWith({
       where: { id: 31 },
       data: {

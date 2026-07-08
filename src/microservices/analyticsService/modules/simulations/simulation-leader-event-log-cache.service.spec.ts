@@ -8,7 +8,7 @@ import { Platform } from 'generated/prisma/enums';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 
 describe('SimulationLeaderEventLogCacheService', () => {
-  it('rebuilds a research cache into per-address files and reads windowed records', async () => {
+  it('registers a research range and lazily caches per-address event logs', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'leader-event-log-cache-'));
     const records = [
       {
@@ -41,10 +41,6 @@ describe('SimulationLeaderEventLogCacheService', () => {
     ];
     const prisma = {
       perpTradingEventLog: {
-        groupBy: jest.fn(async (..._args: unknown[]) => [
-          { address: '0xLeaderA' },
-          { address: '0xLeaderB' },
-        ]),
         findMany: jest.fn(async ({ where }: any) =>
           records.filter(
             (record) =>
@@ -60,47 +56,47 @@ describe('SimulationLeaderEventLogCacheService', () => {
     (service as any).eventLogCacheDir = cacheDir;
 
     try {
-      await service.rebuildForResearch(
+      await service.registerResearchRange(
         Platform.GNS,
         new Date('2026-03-01T00:00:00.000Z'),
         new Date('2026-03-04T00:00:00.000Z'),
       );
 
-      const recordsForLeader = await service.readLeaderEventLogs(
+      expect(prisma.perpTradingEventLog.findMany).not.toHaveBeenCalled();
+
+      const firstRead = await service.readLeaderEventLogs(
         Platform.GNS,
         '0xLeaderA',
         new Date('2026-03-01T12:00:00.000Z'),
         new Date('2026-03-03T00:00:00.000Z'),
       );
+      const secondRead = await service.readLeaderEventLogs(
+        Platform.GNS,
+        '0xLeaderA',
+        new Date('2026-03-01T00:00:00.000Z'),
+        new Date('2026-03-02T12:00:00.000Z'),
+      );
 
-      expect(recordsForLeader).toEqual([
+      expect(firstRead).toEqual([
         expect.objectContaining({ id: 2 }),
       ]);
-      expect(prisma.perpTradingEventLog.groupBy).toHaveBeenCalledWith({
-        by: ['address'],
-        where: {
-          platform: Platform.GNS,
-          date: {
-            gte: new Date('2026-03-01T00:00:00.000Z'),
-            lt: new Date('2026-03-04T00:00:00.000Z'),
-          },
-        },
-        orderBy: {
-          address: 'asc',
-        },
-      });
-      expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledTimes(2);
+      expect(secondRead).toEqual([
+        expect.objectContaining({ id: 1 }),
+        expect.objectContaining({ id: 2 }),
+      ]);
+      expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             address: '0xleadera',
             platform: Platform.GNS,
+            date: {
+              gte: new Date('2026-03-01T00:00:00.000Z'),
+              lt: new Date('2026-03-04T00:00:00.000Z'),
+            },
           }),
           orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
         }),
-      );
-      expect(service.getLastEventAt(Platform.GNS, '0xLeaderA')).toEqual(
-        new Date('2026-03-02T00:00:00.000Z'),
       );
       expect(existsSync(join(cacheDir, 'GNS-0xleadera.json'))).toBe(true);
     } finally {

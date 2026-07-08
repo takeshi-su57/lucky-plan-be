@@ -56,7 +56,6 @@ function valueMatchesRange(value: number, range: ValueRange) {
 
 export type CandidateEvaluation = {
   leaderAddress: string;
-  lastEventAt?: Date | null;
   score: number;
   suggestedRatio: number;
   suggestedCollateralUsd: number;
@@ -89,9 +88,37 @@ type CopySimulationResult = {
 };
 
 const CANDIDATE_BATCH_SIZE = 100;
+const BATCH_SIZE = 10;
 const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const PLATFORM_MIN_FEE_USD = 0.5;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    for (;;) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      results[index] = await fn(items[index], index);
+    }
+  }
+
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  return results;
+}
 
 @Injectable()
 export class SimulationLeaderEvaluatorService {
@@ -166,27 +193,35 @@ export class SimulationLeaderEvaluatorService {
         offset + CANDIDATE_BATCH_SIZE,
       );
 
-      for (const address of addressBatch) {
-        // Cheap prefilter only: count recent raw trade-history events.
-        // Position reconstruction and closed-position minTrades checks happen later.
-        const recentTradeHistoryCount =
-          await this.leaderEventLogCacheService.countRecentEvents(
-            simulation.platform,
-            address,
-            recentActivityCutoff,
-            range.startedAt,
-          );
+      const filteredBatch = await mapWithConcurrency(
+        addressBatch,
+        BATCH_SIZE,
+        async (address) => {
+          // Cheap prefilter only: count recent raw trade-history events.
+          // Position reconstruction and closed-position minTrades checks happen later.
+          const recentTradeHistoryCount =
+            await this.leaderEventLogCacheService.countRecentEvents(
+              simulation.platform,
+              address,
+              recentActivityCutoff,
+              range.startedAt,
+            );
 
-        if (recentTradeHistoryCount === 0) {
-          continue;
-        }
+          if (recentTradeHistoryCount === 0) {
+            return null;
+          }
 
-        if (recentTradeHistoryCount < simulation.trade.min) {
-          continue;
-        }
+          if (recentTradeHistoryCount < simulation.trade.min) {
+            return null;
+          }
 
-        prefilteredAddresses.push(address);
-      }
+          return address;
+        },
+      );
+
+      prefilteredAddresses.push(
+        ...filteredBatch.filter((address): address is string => !!address),
+      );
     }
 
     return prefilteredAddresses;
@@ -212,59 +247,63 @@ export class SimulationLeaderEvaluatorService {
     let maxLoadTime = 0;
     let maxEvaluateTime = 0;
 
-    for (const leaderAddress of leaderAddresses) {
-      const loadLeaderStartedAt = Date.now();
+    const evaluationResults = await mapWithConcurrency(
+      leaderAddresses,
+      BATCH_SIZE,
+      async (leaderAddress) => {
+        const loadLeaderStartedAt = Date.now();
 
-      const positions = await this.loadLeaderPositionsByLeaderUntil(
-        leaderAddress,
-        simulation,
-        contractById,
-        range.startedAt,
-      );
-
-      const leaderEvaluateStartedAt = Date.now();
-
-      leaderLoadTime += leaderEvaluateStartedAt - loadLeaderStartedAt;
-      maxLoadTime = Math.max(
-        maxLoadTime,
-        leaderEvaluateStartedAt - loadLeaderStartedAt,
-      );
-
-      const closedPositions = this.getClosedPositionsBefore(
-        positions,
-        range.startedAt,
-      );
-
-      const evaluation = this.evaluateLeaderPositionsForSimulation(
-        leaderAddress,
-        closedPositions,
-        simulation,
-      );
-
-      const rejectedReason =
-        evaluation.rejectedReason ||
-        (!valueMatchesRange(evaluation.score, simulation.score)
-          ? 'SCORE_OUT_OF_RANGE'
-          : null);
-
-      leaderEvaluateTime += Date.now() - leaderEvaluateStartedAt;
-      maxEvaluateTime = Math.max(
-        maxEvaluateTime,
-        Date.now() - leaderEvaluateStartedAt,
-      );
-
-      if (rejectedReason) {
-        continue;
-      }
-
-      evaluations.push({
-        ...evaluation,
-        lastEventAt: this.leaderEventLogCacheService.getLastEventAt(
-          simulation.platform,
+        const positions = await this.loadLeaderPositionsByLeaderUntil(
           leaderAddress,
-        ),
-      });
-    }
+          simulation,
+          contractById,
+          range.startedAt,
+        );
+
+        const leaderEvaluateStartedAt = Date.now();
+
+        leaderLoadTime += leaderEvaluateStartedAt - loadLeaderStartedAt;
+        maxLoadTime = Math.max(
+          maxLoadTime,
+          leaderEvaluateStartedAt - loadLeaderStartedAt,
+        );
+
+        const closedPositions = this.getClosedPositionsBefore(
+          positions,
+          range.startedAt,
+        );
+
+        const evaluation = this.evaluateLeaderPositionsForSimulation(
+          leaderAddress,
+          closedPositions,
+          simulation,
+        );
+
+        const rejectedReason =
+          evaluation.rejectedReason ||
+          (!valueMatchesRange(evaluation.score, simulation.score)
+            ? 'SCORE_OUT_OF_RANGE'
+            : null);
+
+        leaderEvaluateTime += Date.now() - leaderEvaluateStartedAt;
+        maxEvaluateTime = Math.max(
+          maxEvaluateTime,
+          Date.now() - leaderEvaluateStartedAt,
+        );
+
+        if (rejectedReason) {
+          return null;
+        }
+
+        return evaluation;
+      },
+    );
+
+    evaluations.push(
+      ...evaluationResults.filter(
+        (evaluation): evaluation is CandidateEvaluation => !!evaluation,
+      ),
+    );
     console.timeEnd(`${baseLabel} leaderLoop`);
     console.log(
       `total leader loading=${leaderLoadTime}, max leader loading=${maxLoadTime}`,

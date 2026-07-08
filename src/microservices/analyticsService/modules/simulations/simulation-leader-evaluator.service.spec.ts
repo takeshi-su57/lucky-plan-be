@@ -7,7 +7,6 @@ describe('SimulationLeaderEvaluatorService', () => {
   const createCacheService = () =>
     ({
       countRecentEvents: jest.fn(async () => 3),
-      getLastEventAt: jest.fn(() => new Date('2026-04-01T00:00:00.000Z')),
       readLeaderEventLogs: jest.fn(async () => []),
     });
 
@@ -22,9 +21,20 @@ describe('SimulationLeaderEvaluatorService', () => {
         ),
       },
     };
+    let activeCountRequests = 0;
+    let maxActiveCountRequests = 0;
     const cacheService = {
       ...createCacheService(),
-      countRecentEvents: jest.fn(async () => 3),
+      countRecentEvents: jest.fn(async () => {
+        activeCountRequests += 1;
+        maxActiveCountRequests = Math.max(
+          maxActiveCountRequests,
+          activeCountRequests,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        activeCountRequests -= 1;
+        return 3;
+      }),
     };
     const service = new SimulationLeaderEvaluatorService(
       prisma as never,
@@ -47,6 +57,7 @@ describe('SimulationLeaderEvaluatorService', () => {
     expect(result).toHaveLength(101);
     expect(prisma.pnlSnapshotV2.findMany).toHaveBeenCalledTimes(2);
     expect(cacheService.countRecentEvents).toHaveBeenCalledTimes(101);
+    expect(maxActiveCountRequests).toBe(10);
   });
 
   it('filters evaluated leaders outside the simulation score range', async () => {
@@ -99,12 +110,11 @@ describe('SimulationLeaderEvaluatorService', () => {
       {
         leaderAddress: '0xequal',
         score: 0.5,
-        lastEventAt: new Date('2026-04-01T00:00:00.000Z'),
       },
     ]);
   });
 
-  it('evaluates leaders one at a time so event logs can be cached per address', async () => {
+  it('evaluates leaders with bounded parallelism while preserving input order', async () => {
     const service = new SimulationLeaderEvaluatorService(
       {
         perpTradingEventLog: {
@@ -118,9 +128,17 @@ describe('SimulationLeaderEvaluatorService', () => {
       { length: 21 },
       (_, index) => `0xleader${index}`,
     );
+    let activeLoads = 0;
+    let maxActiveLoads = 0;
     const loadLeaderPositionsByLeaderUntil = jest
       .spyOn(service as any, 'loadLeaderPositionsByLeaderUntil')
-      .mockResolvedValue([]);
+      .mockImplementation(async () => {
+        activeLoads += 1;
+        maxActiveLoads = Math.max(maxActiveLoads, activeLoads);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        activeLoads -= 1;
+        return [];
+      });
     jest
       .spyOn(service as any, 'evaluateLeaderPositionsForSimulation')
       .mockImplementation(((leaderAddress: string) => ({
@@ -128,7 +146,7 @@ describe('SimulationLeaderEvaluatorService', () => {
         score: 0.5,
       })) as any);
 
-    await service.evaluateLeadersForRange(
+    const evaluations = await service.evaluateLeadersForRange(
       {
         id: 1,
         platform: Platform.GNS,
@@ -144,11 +162,15 @@ describe('SimulationLeaderEvaluatorService', () => {
     );
 
     expect(loadLeaderPositionsByLeaderUntil).toHaveBeenCalledTimes(21);
+    expect(maxActiveLoads).toBe(10);
     expect(loadLeaderPositionsByLeaderUntil.mock.calls[0][0]).toBe(
       leaderAddresses[0],
     );
     expect(loadLeaderPositionsByLeaderUntil.mock.calls[20][0]).toBe(
       leaderAddresses[20],
+    );
+    expect(evaluations.map((evaluation) => evaluation.leaderAddress)).toEqual(
+      leaderAddresses,
     );
   });
 

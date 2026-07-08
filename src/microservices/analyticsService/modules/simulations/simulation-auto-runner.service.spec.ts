@@ -313,14 +313,12 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           {
             leaderAddress: '0xday1',
             score: 0.7,
-            lastEventAt: new Date('2026-03-31T00:00:00.000Z'),
           },
         ])
         .mockResolvedValueOnce([
           {
             leaderAddress: '0xday2',
             score: 0.9,
-            lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
           },
         ]),
     };
@@ -445,13 +443,11 @@ describe('SimulationAutoRunnerService queue helpers', () => {
             leaderAddress: '0xchanged',
             score: 0.8,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-03-25T00:00:00.000Z'),
           },
           {
             leaderAddress: '0xcarry',
             score: 0.7,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
           },
         ])
         .mockResolvedValueOnce([
@@ -459,13 +455,11 @@ describe('SimulationAutoRunnerService queue helpers', () => {
             leaderAddress: '0xnew',
             score: 0.9,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
           },
           {
             leaderAddress: '0xcarry',
             score: 0.7,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
           },
         ])
         .mockResolvedValueOnce([
@@ -473,13 +467,11 @@ describe('SimulationAutoRunnerService queue helpers', () => {
             leaderAddress: '0xnew',
             score: 0.9,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
           },
           {
             leaderAddress: '0xcarry',
             score: 0.7,
             suggestedRatio: 1,
-            lastEventAt: new Date('2026-03-20T00:00:00.000Z'),
           },
         ]),
     };
@@ -613,13 +605,11 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           leaderAddress: '0xnew',
           score: 0.9,
           suggestedRatio: 1,
-          lastEventAt: new Date('2026-04-02T12:00:00.000Z'),
         },
         {
           leaderAddress: '0xcarry',
           score: 0.7,
           suggestedRatio: 2,
-          lastEventAt: new Date('2026-04-01T12:00:00.000Z'),
         },
       ]),
     };
@@ -738,7 +728,6 @@ describe('SimulationAutoRunnerService queue helpers', () => {
           leaderAddress: '0xnew',
           score: 0.9,
           suggestedRatio: 1,
-          lastEventAt: new Date('2026-04-02T12:00:00.000Z'),
         },
       ]),
     };

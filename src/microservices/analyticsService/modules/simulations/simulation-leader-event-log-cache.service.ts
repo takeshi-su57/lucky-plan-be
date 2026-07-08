@@ -19,9 +19,12 @@ type LeaderEventLogCacheMeta = {
   platform: Platform;
   address: string;
   filePath: string;
-  firstEventAt?: Date;
-  lastEventAt?: Date;
-  count: number;
+};
+
+type RegisteredResearchRange = {
+  platform: Platform;
+  startedAt: Date;
+  endedAt: Date;
 };
 
 @Injectable()
@@ -32,6 +35,7 @@ export class SimulationLeaderEventLogCacheService {
     string,
     LeaderEventLogCacheMeta
   >();
+  private registeredResearchRange: RegisteredResearchRange | null = null;
   private readonly eventLogCacheDir = join(
     process.cwd(),
     '.cache',
@@ -40,64 +44,18 @@ export class SimulationLeaderEventLogCacheService {
 
   async clear() {
     this.leaderEventLogCacheMeta.clear();
+    this.registeredResearchRange = null;
     await fs.rm(this.eventLogCacheDir, { recursive: true, force: true });
     await fs.mkdir(this.eventLogCacheDir, { recursive: true });
   }
 
-  async rebuildForResearch(platform: Platform, startedAt: Date, endedAt: Date) {
+  async registerResearchRange(
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+  ) {
     await this.clear();
-
-    const leaderAddressGroups = await this.prisma.perpTradingEventLog.groupBy({
-      by: ['address'],
-      where: {
-        platform,
-        date: {
-          gte: startedAt,
-          lt: endedAt,
-        },
-      },
-      orderBy: {
-        address: 'asc',
-      },
-    });
-    const leaderAddresses = [
-      ...new Set(
-        leaderAddressGroups.map((group) => group.address.toLowerCase()),
-      ),
-    ];
-
-    for (const address of leaderAddresses) {
-      const records = await this.prisma.perpTradingEventLog.findMany({
-        select: {
-          id: true,
-          address: true,
-          date: true,
-          block: true,
-          contractId: true,
-          platform: true,
-          jsonLog: true,
-        },
-        where: {
-          address,
-          platform,
-          date: {
-            gte: startedAt,
-            lt: endedAt,
-          },
-        },
-        orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
-      });
-
-      await this.writeCachedEventLogs(
-        platform,
-        address,
-        records.map((record) => ({
-          ...record,
-          address,
-          date: new Date(record.date),
-        })),
-      );
-    }
+    this.registeredResearchRange = { platform, startedAt, endedAt };
   }
 
   async readLeaderEventLogs(
@@ -111,16 +69,17 @@ export class SimulationLeaderEventLogCacheService {
     );
 
     if (!cacheMeta) {
-      return [];
+      const records = await this.fetchAndCacheLeaderEventLogs(
+        platform,
+        address,
+      );
+
+      return this.filterEventLogsByRange(records, startedAt, endedAt);
     }
 
     const records = await this.readCachedEventLogs(cacheMeta.filePath);
 
-    return records.filter(
-      (record) =>
-        record.date.getTime() >= startedAt.getTime() &&
-        record.date.getTime() < endedAt.getTime(),
-    );
+    return this.filterEventLogsByRange(records, startedAt, endedAt);
   }
 
   async countRecentEvents(
@@ -137,14 +96,6 @@ export class SimulationLeaderEventLogCacheService {
     );
 
     return records.length;
-  }
-
-  getLastEventAt(platform: Platform, address: string) {
-    const cacheMeta = this.leaderEventLogCacheMeta.get(
-      this.getCacheKey(platform, address),
-    );
-
-    return cacheMeta?.lastEventAt ?? null;
   }
 
   private getCacheKey(platform: Platform, address: string) {
@@ -170,6 +121,61 @@ export class SimulationLeaderEventLogCacheService {
     }));
   }
 
+  private async fetchAndCacheLeaderEventLogs(
+    platform: Platform,
+    address: string,
+  ) {
+    const registeredRange = this.registeredResearchRange;
+    const normalizedAddress = address.toLowerCase();
+
+    if (!registeredRange || registeredRange.platform !== platform) {
+      return [];
+    }
+
+    const records = await this.prisma.perpTradingEventLog.findMany({
+      select: {
+        id: true,
+        address: true,
+        date: true,
+        block: true,
+        contractId: true,
+        platform: true,
+        jsonLog: true,
+      },
+      where: {
+        address: normalizedAddress,
+        platform,
+        date: {
+          gte: registeredRange.startedAt,
+          lt: registeredRange.endedAt,
+        },
+      },
+      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+    });
+
+    const cachedRecords = records.map((record) => ({
+      ...record,
+      address: normalizedAddress,
+      date: new Date(record.date),
+    }));
+
+    await this.writeCachedEventLogs(platform, normalizedAddress, cachedRecords);
+
+    return cachedRecords;
+  }
+
+  private filterEventLogsByRange(
+    records: CachedLeaderEventLogRecord[],
+    startedAt: Date,
+    endedAt: Date,
+  ) {
+    return records.filter(
+      (record) =>
+        record.date.getTime() >= startedAt.getTime() &&
+        record.date.getTime() < endedAt.getTime(),
+    );
+  }
+
   private async writeCachedEventLogs(
     platform: Platform,
     address: string,
@@ -186,9 +192,6 @@ export class SimulationLeaderEventLogCacheService {
       platform,
       address,
       filePath,
-      firstEventAt: orderedRecords.at(0)?.date,
-      lastEventAt: orderedRecords.at(-1)?.date,
-      count: orderedRecords.length,
     });
   }
 

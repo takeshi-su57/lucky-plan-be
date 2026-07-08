@@ -6,8 +6,8 @@ import { AnalyticsSimulationResearchService } from './analytics-simulation-resea
 function research(overrides: Record<string, unknown> = {}) {
   return {
     id: 21,
-    title: 'Queued research',
-    description: 'Research queued for automation',
+    title: 'Automation research',
+    description: 'Research ready for automation',
     platform: Platform.GNS,
     startAt: new Date('2026-07-01T00:00:00.000Z'),
     endAt: new Date('2026-07-10T00:00:00.000Z'),
@@ -23,9 +23,9 @@ function research(overrides: Record<string, unknown> = {}) {
     scoreFormular: 'RiskAdjustedCopyScore',
     sizingFormular: 'ScoreScaledCollateralSizing',
     cursor: null,
-    status: SimulationStatus.Queued,
-    progressPhase: 'queued',
-    progressMessage: 'Research queued for analytics automation',
+    status: SimulationStatus.Created,
+    progressPhase: 'created',
+    progressMessage: 'Research created',
     progressPercent: 0,
     totalRanges: 9,
     completedRanges: 0,
@@ -39,16 +39,16 @@ function research(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AnalyticsSimulationResearchService', () => {
-  it('claims the next queued research and delegates it to the research runner', async () => {
-    const queuedResearch = research({ id: 21 });
+  it('claims the next created research and delegates it to the research runner', async () => {
+    const createdResearch = research({ id: 21 });
     const prisma = {
       simulationResearch: {
-        findFirst: jest.fn(async () => queuedResearch),
+        findFirst: jest.fn(async () => createdResearch),
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
     };
     const runner = {
-      playQueuedResearch: jest.fn(async () =>
+      playAutomaticResearch: jest.fn(async () =>
         research({ id: 21, status: SimulationStatus.Running }),
       ),
     };
@@ -58,14 +58,31 @@ describe('AnalyticsSimulationResearchService', () => {
     );
     const now = new Date('2026-07-07T12:00:00.000Z');
 
-    const result = await service.processNextQueuedResearch(now);
+    const result = await service.processNextAutomaticResearch(now);
 
     expect(prisma.simulationResearch.findFirst as any).toHaveBeenCalledWith({
-      where: { status: SimulationStatus.Queued },
+      where: {
+        status: {
+          in: [
+            SimulationStatus.Created,
+            SimulationStatus.Paused,
+            SimulationStatus.Queued,
+          ],
+        },
+      },
       orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
     expect(prisma.simulationResearch.updateMany as any).toHaveBeenCalledWith({
-      where: { id: 21, status: SimulationStatus.Queued },
+      where: {
+        id: 21,
+        status: {
+          in: [
+            SimulationStatus.Created,
+            SimulationStatus.Paused,
+            SimulationStatus.Queued,
+          ],
+        },
+      },
       data: {
         status: SimulationStatus.Running,
         startedAt: now,
@@ -75,11 +92,34 @@ describe('AnalyticsSimulationResearchService', () => {
         progressMessage: 'Research automation started',
       },
     });
-    expect(runner.playQueuedResearch as any).toHaveBeenCalledWith(21);
+    expect(runner.playAutomaticResearch as any).toHaveBeenCalledWith(21);
     expect(result).toEqual(expect.objectContaining({ id: 21 }));
   });
 
-  it('returns null when there is no queued research', async () => {
+  it('resumes paused research automatically', async () => {
+    const pausedResearch = research({ id: 23, status: SimulationStatus.Paused });
+    const prisma = {
+      simulationResearch: {
+        findFirst: jest.fn(async () => pausedResearch),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    const runner = {
+      playAutomaticResearch: jest.fn(async () =>
+        research({ id: 23, status: SimulationStatus.Running }),
+      ),
+    };
+    const service = new AnalyticsSimulationResearchService(
+      prisma as never,
+      runner as never,
+    );
+
+    await service.processNextAutomaticResearch();
+
+    expect(runner.playAutomaticResearch as any).toHaveBeenCalledWith(23);
+  });
+
+  it('returns null when there is no automatic research', async () => {
     const prisma = {
       simulationResearch: {
         findFirst: jest.fn(async () => null),
@@ -87,18 +127,18 @@ describe('AnalyticsSimulationResearchService', () => {
       },
     };
     const runner = {
-      playQueuedResearch: jest.fn(),
+      playAutomaticResearch: jest.fn(),
     };
     const service = new AnalyticsSimulationResearchService(
       prisma as never,
       runner as never,
     );
 
-    const result = await service.processNextQueuedResearch();
+    const result = await service.processNextAutomaticResearch();
 
     expect(result).toBeNull();
     expect(prisma.simulationResearch.updateMany).not.toHaveBeenCalled();
-    expect(runner.playQueuedResearch).not.toHaveBeenCalled();
+    expect(runner.playAutomaticResearch).not.toHaveBeenCalled();
   });
 
   it('does not delegate when another worker already claimed the research', async () => {
@@ -109,16 +149,16 @@ describe('AnalyticsSimulationResearchService', () => {
       },
     };
     const runner = {
-      playQueuedResearch: jest.fn(),
+      playAutomaticResearch: jest.fn(),
     };
     const service = new AnalyticsSimulationResearchService(
       prisma as never,
       runner as never,
     );
 
-    const result = await service.processNextQueuedResearch();
+    const result = await service.processNextAutomaticResearch();
 
     expect(result).toBeNull();
-    expect(runner.playQueuedResearch).not.toHaveBeenCalled();
+    expect(runner.playAutomaticResearch).not.toHaveBeenCalled();
   });
 });

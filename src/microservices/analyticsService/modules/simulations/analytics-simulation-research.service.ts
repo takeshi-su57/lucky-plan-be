@@ -4,6 +4,12 @@ import { SimulationStatus } from 'generated/prisma/enums';
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
 
+const AUTOMATIC_RESEARCH_STATUSES = [
+  SimulationStatus.Created,
+  SimulationStatus.Paused,
+  SimulationStatus.Queued,
+];
+
 @Injectable()
 export class AnalyticsSimulationResearchService {
   constructor(
@@ -11,9 +17,9 @@ export class AnalyticsSimulationResearchService {
     private readonly simulationResearchAutoRunnerService: SimulationResearchAutoRunnerService,
   ) {}
 
-  async processNextQueuedResearch(now = new Date()): Promise<void> {
+  async processNextAutomaticResearch(now = new Date()) {
     const research = await this.prisma.simulationResearch.findFirst({
-      where: { status: SimulationStatus.Queued },
+      where: { status: { in: AUTOMATIC_RESEARCH_STATUSES } },
       orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
@@ -22,7 +28,7 @@ export class AnalyticsSimulationResearchService {
     }
 
     const claim = await this.prisma.simulationResearch.updateMany({
-      where: { id: research.id, status: SimulationStatus.Queued },
+      where: { id: research.id, status: { in: AUTOMATIC_RESEARCH_STATUSES } },
       data: {
         status: SimulationStatus.Running,
         startedAt: now,
@@ -37,6 +43,6 @@ export class AnalyticsSimulationResearchService {
       return;
     }
 
-    this.simulationResearchAutoRunnerService.playQueuedResearch(research.id);
+    this.simulationResearchAutoRunnerService.playAutomaticResearch(research.id);
   }
 }

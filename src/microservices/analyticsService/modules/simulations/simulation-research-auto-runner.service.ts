@@ -27,9 +27,9 @@ export class SimulationResearchAutoRunnerService {
     private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
   ) {}
 
-  async playQueuedResearch(id: number, now = new Date()): Promise<void> {
+  async playAutomaticResearch(id: number, now = new Date()): Promise<void> {
     const baseLabel = `[simulation:research-auto:${id}]`;
-    const totalLabel = `${baseLabel} playQueuedResearch total`;
+    const totalLabel = `${baseLabel} playAutomaticResearch total`;
     console.time(totalLabel);
 
     try {
@@ -68,7 +68,7 @@ export class SimulationResearchAutoRunnerService {
 
       const cacheLabel = `${baseLabel} rebuild event-log cache`;
       console.time(cacheLabel);
-      await this.leaderEventLogCacheService.rebuildForResearch(
+      await this.leaderEventLogCacheService.registerResearchRange(
         research.platform,
         new Date(
           research.startAt.getTime() - LEADER_SCORING_WINDOW_DAYS * DAY_MS,

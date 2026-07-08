@@ -15,7 +15,7 @@ export class SimulationResearchAutomationCronService {
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
-  async processQueuedResearch() {
+  async processAutomaticResearch() {
     if (this.isProcessing) {
       return;
     }
@@ -23,12 +23,12 @@ export class SimulationResearchAutomationCronService {
     this.isProcessing = true;
 
     try {
-      await this.simulationResearchService.processNextQueuedResearch();
+      await this.simulationResearchService.processNextAutomaticResearch();
     } catch (error) {
       await this.logger.nativeLog({
         severity: 'Error',
         summary:
-          'analytics.simulationResearchAutomationCron>processQueuedResearch',
+          'analytics.simulationResearchAutomationCron>processAutomaticResearch',
         details: getReadableError(error),
       });
     } finally {

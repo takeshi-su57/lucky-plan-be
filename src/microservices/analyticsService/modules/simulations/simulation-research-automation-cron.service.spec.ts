@@ -5,23 +5,23 @@ import { SimulationResearchAutomationCronService } from './simulation-research-a
 describe('SimulationResearchAutomationCronService', () => {
   it('does not process another research while a tick is active', async () => {
     let resolveRun: (() => void) | undefined;
-    const processNextQueuedResearch = jest.fn(
+    const processNextAutomaticResearch = jest.fn(
       () =>
         new Promise<null>((resolve) => {
           resolveRun = () => resolve(null);
         }),
     );
     const service = new SimulationResearchAutomationCronService(
-      { processNextQueuedResearch } as never,
+      { processNextAutomaticResearch } as never,
       { nativeLog: jest.fn() } as never,
     );
 
-    const firstTick = service.processQueuedResearch();
+    const firstTick = service.processAutomaticResearch();
     await Promise.resolve();
-    await service.processQueuedResearch();
+    await service.processAutomaticResearch();
     resolveRun?.();
     await firstTick;
 
-    expect(processNextQueuedResearch).toHaveBeenCalledTimes(1);
+    expect(processNextAutomaticResearch).toHaveBeenCalledTimes(1);
   });
 });
