@@ -16,6 +16,8 @@ export type CreatePerpTradingEventLogInput = {
 
   logIndex: number;
 
+  transactionHash: string;
+
   date: Date;
 };
 

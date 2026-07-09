@@ -97,7 +97,10 @@ describe('AnalyticsSimulationResearchService', () => {
   });
 
   it('resumes paused research automatically', async () => {
-    const pausedResearch = research({ id: 23, status: SimulationStatus.Paused });
+    const pausedResearch = research({
+      id: 23,
+      status: SimulationStatus.Paused,
+    });
     const prisma = {
       simulationResearch: {
         findFirst: jest.fn(async () => pausedResearch),

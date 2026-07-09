@@ -34,9 +34,6 @@ registerEnumType(Version, {
 
 @ObjectType()
 export class PerpTradingEventLog {
-  @Field(() => Int)
-  id: number;
-
   @Field()
   address: string;
 
@@ -57,6 +54,9 @@ export class PerpTradingEventLog {
 
   @Field(() => Int)
   logIndex: number;
+
+  @Field()
+  transactionHash: string;
 
   @Field(() => Date)
   date: Date;

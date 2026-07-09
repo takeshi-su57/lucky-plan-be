@@ -59,19 +59,19 @@ model Contract {
 }
 
 model PerpTradingEventLog {
-  id         Int      @id @default(autoincrement())
-  contractId Int
-  jsonLog    String
-  usdPnl     Float
-  block      Int
-  logIndex   Int
-  date       DateTime
-  address    String
-  platform   Platform
+  contractId       Int
+  jsonLog          String
+  usdPnl           Float
+  block            Int
+  logIndex         Int
+  transactionHash  String
+  date             DateTime
+  address          String
+  platform         Platform
 
-  @@unique([address, contractId, block, logIndex])
-  @@index([platform, address, date, block, id])
-  @@index([platform, date, block, id])
+  @@id([contractId, block, logIndex])
+  @@index([platform, address, date, block, logIndex, contractId])
+  @@index([platform, date, block, logIndex, contractId])
 }
 
 model PnlSnapshotV2 {
@@ -365,12 +365,13 @@ model SimulationBotCache {
 model SimulationBotCachedEventLog {
   id                   Int      @id @default(autoincrement())
   simulationBotCacheId Int
-  sourceEventLogId     Int
+  sourceEventLogKey    String   @db.VarChar(255)
   contractId           Int
   address              String   @db.VarChar(255)
   platform             Platform
   block                Int
   logIndex             Int
+  transactionHash      String
   date                 DateTime
   jsonLog              String
   usdPnl               Float
@@ -378,8 +379,8 @@ model SimulationBotCachedEventLog {
 
   simulationBotCache SimulationBotCache @relation(fields: [simulationBotCacheId], references: [id], onDelete: Cascade)
 
-  @@unique([simulationBotCacheId, sourceEventLogId])
-  @@index([simulationBotCacheId, date, block, id])
+  @@unique([simulationBotCacheId, sourceEventLogKey])
+  @@index([simulationBotCacheId, date, block, logIndex, contractId])
 }
 
 model SimulationPlanCache {

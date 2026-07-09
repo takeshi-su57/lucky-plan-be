@@ -14,6 +14,12 @@ import { PnlSnapshotV2DetailsPaginatedResponse } from './entities/event-logs.ent
 import { Contract } from '../contracts/entities/contract.entity';
 import { getWeb3Info } from 'src/web3/utils';
 import { EventLogsService } from './event-logs.service';
+import {
+  EventLogOrderCursor,
+  getEventLogCursorWhere,
+  getEventLogOrderBy,
+  getEventLogStableId,
+} from './event-log-identity.utils';
 
 function parseKey(key: string) {
   return JSON.parse(key) as {
@@ -112,15 +118,11 @@ export class PnlSnapshotsService {
               {
                 address: 'asc',
               },
-              {
-                date: 'asc',
-              },
-              {
-                block: 'asc',
-              },
+              ...getEventLogOrderBy(),
             ],
             select: {
-              id: true,
+              block: true,
+              logIndex: true,
               address: true,
               contractId: true,
               jsonLog: true,
@@ -173,7 +175,7 @@ export class PnlSnapshotsService {
 
             return {
               ...history,
-              id: record.id,
+              id: getEventLogStableId(record),
               date: record.date,
               chainId: contract.chainId,
               contractId: record.contractId,
@@ -314,7 +316,7 @@ export class PnlSnapshotsService {
       const substractTime = Date.now();
 
       // substract pnl by outdated pnl snapshot
-      let cursorId: number | null = null;
+      let cursor: EventLogOrderCursor | null = null;
 
       const pastLowerBound = lowerBound - timestampGapByThreeMonthPnlSnapshot;
       const pastUpperBound = upperBound - timestampGapByThreeMonthPnlSnapshot;
@@ -325,56 +327,22 @@ export class PnlSnapshotsService {
         await this.logger.nativeLog({
           severity: 'Debug',
           summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
-          details: `substract pnl by outdated pnl snapshot ${cursorId}`,
+          details: `substract pnl by outdated pnl snapshot ${cursor ? getEventLogStableId(cursor) : null}`,
         });
 
-        const records: PerpTradingEventLog[] = cursorId
-          ? await this.prismaService.perpTradingEventLog.findMany({
-              skip: 1,
-              take: BATCH_SIZE,
-              cursor: {
-                id: cursorId,
+        const records: PerpTradingEventLog[] =
+          await this.prismaService.perpTradingEventLog.findMany({
+            take: BATCH_SIZE,
+            where: {
+              platform,
+              date: {
+                gte: new Date(pastLowerBound),
+                lt: new Date(pastUpperBound),
               },
-              where: {
-                platform,
-                date: {
-                  gte: new Date(pastLowerBound),
-                  lt: new Date(pastUpperBound),
-                },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            })
-          : await this.prismaService.perpTradingEventLog.findMany({
-              take: BATCH_SIZE,
-              where: {
-                date: {
-                  gte: new Date(pastLowerBound),
-                  lt: new Date(pastUpperBound),
-                },
-                platform,
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            });
+              ...(cursor ? getEventLogCursorWhere(cursor) : {}),
+            },
+            orderBy: getEventLogOrderBy(),
+          });
 
         if (records.length === 0) {
           break;
@@ -395,7 +363,7 @@ export class PnlSnapshotsService {
           tempCache1.clear();
         }
 
-        cursorId = records[records.length - 1].id;
+        cursor = records[records.length - 1];
       }
 
       const cachedKeys1 = Array.from(tempCache1.keys());
@@ -411,7 +379,7 @@ export class PnlSnapshotsService {
         details: `substract pnl by outdated pnl snapshot ${substractTime - Date.now()}ms`,
       });
 
-      let currentCursorId: number | null = null;
+      let currentCursor: EventLogOrderCursor | null = null;
 
       const tempCache = new Map<string, number>();
 
@@ -420,56 +388,22 @@ export class PnlSnapshotsService {
         this.logger.nativeLog({
           severity: 'Debug',
           summary: `PnlSnapshotsV2Service>dynamicSnapshotBuild: ${platform} ${dateStr}`,
-          details: `add pnl by perp trading event logs ${currentCursorId}`,
+          details: `add pnl by perp trading event logs ${currentCursor ? getEventLogStableId(currentCursor) : null}`,
         });
 
-        const records: PerpTradingEventLog[] = currentCursorId
-          ? await this.prismaService.perpTradingEventLog.findMany({
-              skip: 1,
-              take: BATCH_SIZE,
-              cursor: {
-                id: currentCursorId,
+        const records: PerpTradingEventLog[] =
+          await this.prismaService.perpTradingEventLog.findMany({
+            take: BATCH_SIZE,
+            where: {
+              platform,
+              date: {
+                gte: new Date(lowerBound),
+                lt: new Date(upperBound),
               },
-              where: {
-                platform,
-                date: {
-                  gte: new Date(lowerBound),
-                  lt: new Date(upperBound),
-                },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            })
-          : await this.prismaService.perpTradingEventLog.findMany({
-              take: BATCH_SIZE,
-              where: {
-                platform,
-                date: {
-                  gte: new Date(lowerBound),
-                  lt: new Date(upperBound),
-                },
-              },
-              orderBy: [
-                {
-                  date: 'asc',
-                },
-                {
-                  block: 'asc',
-                },
-                {
-                  id: 'asc',
-                },
-              ],
-            });
+              ...(currentCursor ? getEventLogCursorWhere(currentCursor) : {}),
+            },
+            orderBy: getEventLogOrderBy(),
+          });
 
         if (records.length === 0) {
           break;
@@ -490,7 +424,7 @@ export class PnlSnapshotsService {
           tempCache.clear();
         }
 
-        currentCursorId = records[records.length - 1].id;
+        currentCursor = records[records.length - 1];
       }
 
       const cachedKeys = Array.from(tempCache.keys());
@@ -673,9 +607,7 @@ export class PnlSnapshotsService {
       });
 
       const tempCache = new Map<string, number>();
-      let lastDate: Date | null = null;
-      let lastBlock: number | null = null;
-      let lastId: number | null = null;
+      let lastCursor: EventLogOrderCursor | null = null;
 
       const startedTime = Date.now();
 
@@ -684,18 +616,18 @@ export class PnlSnapshotsService {
         await this.logger.nativeLog({
           severity: 'Debug',
           summary: `PnlSnapshotsV2Service>buildSnapshots`,
-          details: `find many perp trading event logs lastId=${lastId}`,
+          details: `find many perp trading event logs lastCursor=${lastCursor ? getEventLogStableId(lastCursor) : null}`,
         });
 
         const chunkRecords: Omit<PerpTradingEventLog, 'jsonLog'>[] =
           await this.prismaService.perpTradingEventLog.findMany({
             take: BATCH_SIZE,
             select: {
-              id: true,
               contractId: true,
               usdPnl: true,
               block: true,
               logIndex: true,
+              transactionHash: true,
               date: true,
               address: true,
               platform: true,
@@ -705,34 +637,9 @@ export class PnlSnapshotsService {
               date: {
                 lte: upperBound,
               },
-              ...(lastDate != null
-                ? {
-                    OR: [
-                      { date: { gt: lastDate } },
-                      {
-                        date: lastDate,
-                        block: { gt: lastBlock! },
-                      },
-                      {
-                        date: lastDate,
-                        block: lastBlock!,
-                        id: { gt: lastId! },
-                      },
-                    ],
-                  }
-                : {}),
+              ...(lastCursor ? getEventLogCursorWhere(lastCursor) : {}),
             },
-            orderBy: [
-              {
-                date: 'asc',
-              },
-              {
-                block: 'asc',
-              },
-              {
-                id: 'asc',
-              },
-            ],
+            orderBy: getEventLogOrderBy(),
           });
 
         if (chunkRecords.length === 0) {
@@ -740,9 +647,7 @@ export class PnlSnapshotsService {
         }
 
         const lastRecord = chunkRecords[chunkRecords.length - 1];
-        lastDate = lastRecord.date;
-        lastBlock = lastRecord.block;
-        lastId = lastRecord.id;
+        lastCursor = lastRecord;
 
         for (const record of chunkRecords) {
           const overallKey = getKey(record.address, record.platform);

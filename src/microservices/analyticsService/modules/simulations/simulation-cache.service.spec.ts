@@ -11,6 +11,10 @@ import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import {
+  getEventLogOrderBy,
+  getEventLogStableId,
+} from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 import { SimulationCacheService } from './simulation-cache.service';
 
 const eventLogsService = {
@@ -222,7 +226,6 @@ describe('SimulationCacheService', () => {
     overrides: Partial<PerpTradingEventLog>,
   ): PerpTradingEventLog {
     return {
-      id: 10,
       address: '0xabc',
       contractId: 12,
       platform: Platform.GNS,
@@ -230,6 +233,7 @@ describe('SimulationCacheService', () => {
       usdPnl: 1,
       block: 100,
       logIndex: 1,
+      transactionHash: '0xtx1',
       date: new Date('2026-05-02T00:00:00.000Z'),
       ...overrides,
     } as PerpTradingEventLog;
@@ -280,17 +284,18 @@ describe('SimulationCacheService', () => {
 
     const sourceLogs: PerpTradingEventLog[] = [
       sourceLog({
-        id: 10,
+        logIndex: 1,
+        transactionHash: '0xtx1',
         date: new Date('2026-05-02T00:00:00.000Z'),
       }),
       sourceLog({
-        id: 11,
         logIndex: 2,
+        transactionHash: '0xtx2',
         date: new Date('2026-05-02T00:00:00.000Z'),
       }),
       sourceLog({
-        id: 12,
         logIndex: 3,
+        transactionHash: '0xtx3',
         date: new Date('2026-05-02T00:00:00.000Z'),
       }),
     ];
@@ -302,19 +307,19 @@ describe('SimulationCacheService', () => {
     });
     jest.spyOn(service, 'buildHistoriesFromCachedLogs').mockReturnValueOnce([
       history({
-        id: 10,
+        id: getEventLogStableId(sourceLogs[0]),
         positionKey: 'tracked',
         operation: PerpTradeHistoryOperation.OPEN,
         date: new Date('2026-05-02T00:00:00.000Z'),
       }),
       history({
-        id: 11,
+        id: getEventLogStableId(sourceLogs[1]),
         positionKey: 'tracked',
         operation: PerpTradeHistoryOperation.INCREASE_SIZE,
         date: new Date('2026-05-02T12:00:00.000Z'),
       }),
       history({
-        id: 12,
+        id: getEventLogStableId(sourceLogs[2]),
         positionKey: 'unrelated',
         operation: PerpTradeHistoryOperation.CLOSE,
         date: new Date('2026-05-02T13:00:00.000Z'),
@@ -331,30 +336,32 @@ describe('SimulationCacheService', () => {
           gte: new Date('2026-05-01T00:00:00.000Z'),
         },
       },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      orderBy: getEventLogOrderBy(),
     });
     expect(prisma.simulationBotCachedEventLog.createMany).toHaveBeenCalledWith({
       data: [
         {
           simulationBotCacheId: 33,
-          sourceEventLogId: 10,
+          sourceEventLogKey: '12:100:1',
           contractId: 12,
           address: '0xabc',
           platform: Platform.GNS,
           block: 100,
           logIndex: 1,
+          transactionHash: '0xtx1',
           date: new Date('2026-05-02T00:00:00.000Z'),
           jsonLog: '{}',
           usdPnl: 1,
         },
         {
           simulationBotCacheId: 33,
-          sourceEventLogId: 11,
+          sourceEventLogKey: '12:100:2',
           contractId: 12,
           address: '0xabc',
           platform: Platform.GNS,
           block: 100,
           logIndex: 2,
+          transactionHash: '0xtx2',
           date: new Date('2026-05-02T00:00:00.000Z'),
           jsonLog: '{}',
           usdPnl: 1,
@@ -381,22 +388,23 @@ describe('SimulationCacheService', () => {
     } as any;
     const existingLast = {
       id: 8,
-      sourceEventLogId: 10,
+      sourceEventLogKey: '12:100:1',
       date: new Date('2026-05-02T00:00:00.000Z'),
       block: 100,
       logIndex: 1,
+      contractId: 12,
     };
     const sourceLogs: PerpTradingEventLog[] = [
       sourceLog({
-        id: 11,
         usdPnl: 2,
         logIndex: 2,
+        transactionHash: '0xtx2',
         date: new Date('2026-05-02T00:00:00.000Z'),
       }),
       sourceLog({
-        id: 12,
         usdPnl: 3,
         logIndex: 3,
+        transactionHash: '0xtx3',
         date: new Date('2026-05-04T00:00:00.000Z'),
       }),
     ];
@@ -412,7 +420,11 @@ describe('SimulationCacheService', () => {
       .spyOn(service, 'buildHistoriesFromCachedLogs')
       .mockReturnValueOnce([
         history({
-          id: 10,
+          id: getEventLogStableId({
+            contractId: 12,
+            block: 100,
+            logIndex: 1,
+          }),
           positionKey: 'tracked',
           operation: PerpTradeHistoryOperation.OPEN,
           date: new Date('2026-05-02T00:00:00.000Z'),
@@ -420,13 +432,13 @@ describe('SimulationCacheService', () => {
       ])
       .mockReturnValueOnce([
         history({
-          id: 11,
+          id: getEventLogStableId(sourceLogs[0]),
           positionKey: 'tracked',
           operation: PerpTradeHistoryOperation.CLOSE,
           date: new Date('2026-05-02T00:00:00.000Z'),
         }),
         history({
-          id: 12,
+          id: getEventLogStableId(sourceLogs[1]),
           positionKey: 'unrelated-future',
           operation: PerpTradeHistoryOperation.OPEN,
           date: new Date('2026-05-04T00:00:00.000Z'),
@@ -441,18 +453,19 @@ describe('SimulationCacheService', () => {
         platform: Platform.GNS,
         date: { gte: existingLast.date },
       },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      orderBy: getEventLogOrderBy(),
     });
     expect(prisma.simulationBotCachedEventLog.createMany).toHaveBeenCalledWith({
       data: [
         {
           simulationBotCacheId: 33,
-          sourceEventLogId: 11,
+          sourceEventLogKey: '12:100:2',
           contractId: 12,
           address: '0xabc',
           platform: Platform.GNS,
           block: 100,
           logIndex: 2,
+          transactionHash: '0xtx2',
           date: new Date('2026-05-02T00:00:00.000Z'),
           jsonLog: '{}',
           usdPnl: 2,

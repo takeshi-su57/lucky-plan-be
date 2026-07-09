@@ -23,6 +23,10 @@ import {
 import { PrismaService } from 'src/global/prisma.service';
 import { EventLogsService } from '../trade-histories/event-logs.service';
 import { getWeb3Info } from 'src/web3/utils';
+import {
+  getEventLogOrderBy,
+  getEventLogStableId,
+} from '../trade-histories/event-log-identity.utils';
 import { BotMode, SimulationStatus } from 'generated/prisma/enums';
 import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
@@ -405,17 +409,7 @@ export class SimulationPlansService {
               : {}),
           },
         },
-        orderBy: [
-          {
-            date: 'asc',
-          },
-          {
-            block: 'asc',
-          },
-          {
-            id: 'asc',
-          },
-        ],
+        orderBy: getEventLogOrderBy(),
       });
 
       const positionsWithSummary =
@@ -440,7 +434,7 @@ export class SimulationPlansService {
               return history
                 ? {
                     ...history,
-                    id: record.id,
+                    id: getEventLogStableId(record),
                     date: record.date,
                     chainId: contract.chainId,
                     contractId: record.contractId,

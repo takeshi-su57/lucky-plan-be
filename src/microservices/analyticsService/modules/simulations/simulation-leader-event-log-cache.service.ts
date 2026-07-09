@@ -4,12 +4,17 @@ import { join } from 'path';
 
 import { Platform } from 'generated/prisma/enums';
 import { PrismaService } from 'src/global/prisma.service';
+import {
+  compareEventLogOrder,
+  getEventLogOrderBy,
+  getEventLogSourceKey,
+} from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 
 export type CachedLeaderEventLogRecord = {
-  id: number;
   address: string;
   date: Date;
   block: number;
+  logIndex: number;
   contractId: number;
   platform: Platform;
   jsonLog: string;
@@ -101,10 +106,10 @@ export class SimulationLeaderEventLogCacheService {
 
       const records = await this.prisma.perpTradingEventLog.findMany({
         select: {
-          id: true,
           address: true,
           date: true,
           block: true,
+          logIndex: true,
           contractId: true,
           platform: true,
           jsonLog: true,
@@ -117,7 +122,7 @@ export class SimulationLeaderEventLogCacheService {
             lt: endedAt,
           },
         },
-        orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+        orderBy: getEventLogOrderBy(),
       });
 
       console.timeEnd(`fetching from db : ${label}`);
@@ -234,10 +239,10 @@ export class SimulationLeaderEventLogCacheService {
   }
 
   private mergeEventLogRecords(records: CachedLeaderEventLogRecord[]) {
-    const recordById = new Map<number, CachedLeaderEventLogRecord>();
+    const recordById = new Map<string, CachedLeaderEventLogRecord>();
 
     records.forEach((record) => {
-      recordById.set(record.id, {
+      recordById.set(getEventLogSourceKey(record), {
         ...record,
         address: record.address.toLowerCase(),
         date: new Date(record.date),
@@ -251,15 +256,7 @@ export class SimulationLeaderEventLogCacheService {
         return addressComparison;
       }
 
-      const dateComparison = a.date.getTime() - b.date.getTime();
-
-      if (dateComparison !== 0) {
-        return dateComparison;
-      }
-
-      const blockComparison = a.block - b.block;
-
-      return blockComparison !== 0 ? blockComparison : a.id - b.id;
+      return compareEventLogOrder(a, b);
     });
   }
 }

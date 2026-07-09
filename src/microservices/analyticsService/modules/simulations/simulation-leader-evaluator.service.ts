@@ -25,6 +25,7 @@ import {
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { WindowRange } from './utils/simulation-range.utils';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
+import { getEventLogStableId } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 
 type ValueRange = {
   min: number;
@@ -452,8 +453,9 @@ export class SimulationLeaderEvaluatorService {
 
   private eventLogsToHistories(
     records: {
-      id: number;
       date: Date;
+      block: number;
+      logIndex: number;
       contractId: number;
       platform: Platform;
       jsonLog: string;
@@ -479,7 +481,7 @@ export class SimulationLeaderEvaluatorService {
         return history
           ? {
               ...history,
-              id: record.id,
+              id: getEventLogStableId(record),
               date: record.date,
               chainId: contract.chainId,
               contractId: record.contractId,

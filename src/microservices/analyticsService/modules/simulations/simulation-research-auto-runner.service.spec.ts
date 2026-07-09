@@ -228,7 +228,9 @@ describe('SimulationResearchAutoRunnerService', () => {
     );
 
     expect(simulationRunner.processSimulationRange).not.toHaveBeenCalled();
-    expect(leaderEventLogCacheService.prebuildForResearch).not.toHaveBeenCalled();
+    expect(
+      leaderEventLogCacheService.prebuildForResearch,
+    ).not.toHaveBeenCalled();
     expect(prisma.simulationResearch.update as any).toHaveBeenCalledWith({
       where: { id: 31 },
       data: {

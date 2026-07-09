@@ -4,10 +4,9 @@ import { BotMode, Platform } from 'generated/prisma/enums';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 
 describe('SimulationLeaderEvaluatorService', () => {
-  const createCacheService = () =>
-    ({
-      readLeaderEventLogs: jest.fn(async () => []),
-    });
+  const createCacheService = () => ({
+    readLeaderEventLogs: jest.fn(async () => []),
+  });
 
   it('loads candidate addresses in pages without event-log activity filtering', async () => {
     const candidateRecords = Array.from({ length: 101 }, (_, index) => ({

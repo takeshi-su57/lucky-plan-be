@@ -6,35 +6,36 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { Platform } from 'generated/prisma/enums';
 
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
+import { getEventLogOrderBy } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 
 describe('SimulationLeaderEventLogCacheService', () => {
   it('prebuilds a research cache into per-address files and reads windowed records from cache', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'leader-event-log-cache-'));
     const records = [
       {
-        id: 3,
         address: '0xLeaderB',
         platform: Platform.GNS,
         date: new Date('2026-03-03T00:00:00.000Z'),
         block: 3,
+        logIndex: 1,
         contractId: 11,
         jsonLog: '{}',
       },
       {
-        id: 2,
         address: '0xLeaderA',
         platform: Platform.GNS,
         date: new Date('2026-03-02T00:00:00.000Z'),
         block: 2,
+        logIndex: 1,
         contractId: 11,
         jsonLog: '{}',
       },
       {
-        id: 1,
         address: '0xLeaderA',
         platform: Platform.GNS,
         date: new Date('2026-03-01T00:00:00.000Z'),
         block: 1,
+        logIndex: 1,
         contractId: 11,
         jsonLog: '{}',
       },
@@ -97,12 +98,10 @@ describe('SimulationLeaderEventLogCacheService', () => {
         new Date('2026-03-02T12:00:00.000Z'),
       );
 
-      expect(firstRead).toEqual([
-        expect.objectContaining({ id: 2 }),
-      ]);
+      expect(firstRead).toEqual([expect.objectContaining({ block: 2 })]);
       expect(secondRead).toEqual([
-        expect.objectContaining({ id: 1 }),
-        expect.objectContaining({ id: 2 }),
+        expect.objectContaining({ block: 1 }),
+        expect.objectContaining({ block: 2 }),
       ]);
       expect(prisma.perpTradingEventLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -114,7 +113,7 @@ describe('SimulationLeaderEventLogCacheService', () => {
               lt: new Date('2026-03-04T00:00:00.000Z'),
             },
           }),
-          orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+          orderBy: getEventLogOrderBy(),
         }),
       );
       expect(existsSync(join(cacheDir, 'GNS-0xleadera.json'))).toBe(true);

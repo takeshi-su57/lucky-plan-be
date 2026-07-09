@@ -15,6 +15,11 @@ import {
   PerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
+import {
+  getEventLogOrderBy,
+  getEventLogSourceKey,
+  getEventLogStableId,
+} from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 
 type SimulationBotWithContract = SimulationBot & {
   leaderContracts: Pick<Contract, 'id' | 'platform' | 'version' | 'chainId'>[];
@@ -23,7 +28,6 @@ type SimulationBotWithContract = SimulationBot & {
 
 type CachedEventLogRecord = Pick<
   PerpTradingEventLog,
-  | 'id'
   | 'address'
   | 'contractId'
   | 'platform'
@@ -31,9 +35,10 @@ type CachedEventLogRecord = Pick<
   | 'usdPnl'
   | 'block'
   | 'logIndex'
+  | 'transactionHash'
   | 'date'
 > & {
-  sourceEventLogId?: number;
+  sourceEventLogKey?: string;
 };
 
 @Injectable()
@@ -72,7 +77,7 @@ export class SimulationCacheService {
   ) {
     const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany({
       where: { simulationBotCacheId: cacheId },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      orderBy: getEventLogOrderBy(),
     });
     const existingLast = cachedLogs.at(-1);
 
@@ -88,7 +93,7 @@ export class SimulationCacheService {
               },
             }),
       },
-      orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+      orderBy: getEventLogOrderBy(),
     });
 
     if (newLogs.length === 0) {
@@ -119,7 +124,7 @@ export class SimulationCacheService {
     }
 
     const cacheableLogRecords = newLogRecords.filter((record) => {
-      return cacheableSourceEventLogIds.has(record.sourceEventLogId);
+      return cacheableSourceEventLogIds.has(getEventLogStableId(record));
     });
 
     if (cacheableLogRecords.length === 0) {
@@ -127,7 +132,7 @@ export class SimulationCacheService {
     }
 
     return this.prisma.simulationBotCachedEventLog.createMany({
-      data: cacheableLogRecords.map(({ id: _id, ...record }) => record),
+      data: cacheableLogRecords,
       skipDuplicates: true,
     });
   }
@@ -137,14 +142,14 @@ export class SimulationCacheService {
     log: PerpTradingEventLog,
   ) {
     return {
-      id: log.id,
       simulationBotCacheId: cacheId,
-      sourceEventLogId: log.id,
+      sourceEventLogKey: getEventLogSourceKey(log),
       contractId: log.contractId,
       address: log.address,
       platform: log.platform,
       block: log.block,
       logIndex: log.logIndex,
+      transactionHash: log.transactionHash,
       date: log.date,
       jsonLog: log.jsonLog,
       usdPnl: log.usdPnl,
@@ -298,7 +303,7 @@ export class SimulationCacheService {
         return history
           ? {
               ...history,
-              id: record.sourceEventLogId ?? record.id,
+              id: getEventLogStableId(record),
               date: record.date,
               chainId: contract.chainId,
               contractId: record.contractId,
@@ -436,7 +441,7 @@ export class SimulationCacheService {
       const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany(
         {
           where: { simulationBotCacheId: cache.id },
-          orderBy: [{ date: 'asc' }, { block: 'asc' }, { id: 'asc' }],
+          orderBy: getEventLogOrderBy(),
         },
       );
 

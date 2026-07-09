@@ -12,6 +12,10 @@ import {
 } from './entities/event-logs.entity';
 import { Contract } from '../contracts/entities/contract.entity';
 import { getWeb3Info } from 'src/web3/utils';
+import {
+  getEventLogOrderBy,
+  getEventLogStableId,
+} from './event-log-identity.utils';
 
 @Injectable()
 export class EventLogsService {
@@ -28,6 +32,7 @@ export class EventLogsService {
       data: inputs.map((input) => ({
         ...input,
       })),
+      skipDuplicates: true,
     });
   }
 
@@ -60,17 +65,7 @@ export class EventLogsService {
             }
           : {}),
       },
-      orderBy: [
-        {
-          date: 'asc',
-        },
-        {
-          block: 'asc',
-        },
-        {
-          id: 'asc',
-        },
-      ],
+      orderBy: getEventLogOrderBy(),
     });
 
     return this.convertToPerpTradePositionsWithSummary(
@@ -90,7 +85,7 @@ export class EventLogsService {
           return history
             ? {
                 ...history,
-                id: record.id,
+                id: getEventLogStableId(record),
                 date: record.date,
                 chainId: contract.chainId,
                 contractId: record.contractId,
