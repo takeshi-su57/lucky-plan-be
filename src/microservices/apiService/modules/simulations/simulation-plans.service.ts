@@ -28,7 +28,10 @@ import {
   getEventLogStableId,
 } from '../trade-histories/event-log-identity.utils';
 import { BotMode, SimulationStatus } from 'generated/prisma/enums';
-import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
+import {
+  PerpTradeHistory,
+  PerpTradeHistoryOperation,
+} from '../trade-histories/entities/event-logs.entity';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 
 function sum(values: number[]) {
@@ -462,6 +465,10 @@ export class SimulationPlansService {
           const simulationHistories: SimulationTradeHistory[] = [];
 
           for (const history of histories) {
+            if (history.operation === PerpTradeHistoryOperation.PNL_WITHDRAW) {
+              continue;
+            }
+
             const followerUsdFee =
               history.usdFee !== 0
                 ? Math.min(-0.5, history.usdFee * bot.ratio)

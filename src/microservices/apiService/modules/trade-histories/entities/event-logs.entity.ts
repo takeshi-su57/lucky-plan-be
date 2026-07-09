@@ -18,6 +18,7 @@ export enum PerpTradeHistoryOperation {
   DECREASE_SIZE = 'decreaseSize',
   INCREASE_LEVERAGE = 'increaseLeverage',
   DECREASE_LEVERAGE = 'decreaseLeverage',
+  PNL_WITHDRAW = 'pnlWithdraw',
 }
 
 registerEnumType(PerpTradeHistoryOperation, {

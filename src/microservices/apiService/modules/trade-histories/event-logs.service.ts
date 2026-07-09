@@ -222,14 +222,22 @@ export class EventLogsService {
             (nextHistory.operation ===
               PerpTradeHistoryOperation.INCREASE_LEVERAGE ||
               nextHistory.operation ===
-                PerpTradeHistoryOperation.DECREASE_LEVERAGE)
+                PerpTradeHistoryOperation.DECREASE_LEVERAGE ||
+              nextHistory.operation === PerpTradeHistoryOperation.PNL_WITHDRAW)
           ) {
             nextHistory.collateralUsdPrice = prevCollateralUsdPrice;
           } else {
             prevCollateralUsdPrice = nextHistory.collateralUsdPrice;
           }
 
-          tempPnl += +nextHistory.usdPnl;
+          if (
+            platform === Platform.GNS &&
+            nextHistory.operation === PerpTradeHistoryOperation.PNL_WITHDRAW
+          ) {
+            tempPnl += +nextHistory.usdPnl * nextHistory.collateralUsdPrice;
+          } else {
+            tempPnl += +nextHistory.usdPnl;
+          }
 
           maxSizeIn = Math.max(maxSizeIn, +nextHistory.sizeInUsd);
           maxCollaterals = Math.max(
