@@ -96,6 +96,13 @@ const publicRpcProviders = {
     'https://polygon-pokt.nodies.app',
     'https://polygon.drpc.org',
     'https://polygon.rpc.subquery.network/public',
+    'https://polygon.gateway.tenderly.co',
+    'https://rpc-mainnet.matic.quiknode.pro',
+    'https://polygon.lava.build',
+    'https://polygon-public.nodies.app',
+    'https://rpc.sentio.xyz/matic',
+    'https://poly.api.pocket.network',
+    'https://api.zan.top/polygon-mainnet',
   ],
   8453: [
     'https://1rpc.io/base',
@@ -109,6 +116,12 @@ const publicRpcProviders = {
     'https://base.api.onfinality.io/public',
     'https://rpc.therpc.io/base',
     'https://base.blockpi.network/v1/rpc/public',
+    'https://rpc.baseazul.dev',
+    'https://base.rpc.sentio.xyz',
+    'https://base-mainnet.gateway.tatum.io',
+    'https://rpc.nodeflare.app/base/public',
+    'https://base.rpc.blxrbdn.com',
+    'https://rpcbase.hairylabs.io/rpc',
   ],
   42161: [
     'https://arb1.arbitrum.io/rpc',
@@ -120,6 +133,15 @@ const publicRpcProviders = {
     'https://arbitrum.drpc.org',
     'https://rpc.therpc.io/arbitrum',
     'https://arb-pokt.nodies.app',
+    'https://arb-one-mainnet.gateway.tatum.io',
+    'https://public-arb-mainnet.fastnode.io',
+    'https://api.zan.top/arb-one',
+    'https://arb-one.api.pocket.network',
+    'https://arbitrum.gateway.tenderly.co',
+    'https://arb1.lava.build',
+    'https://arbitrum.api.onfinality.io/public',
+    'https://rpc.nodeflare.app/arb/public',
+    'https://arbitrum-one-public.nodies.app',
   ],
   421614: [
     'https://sepolia-rollup.arbitrum.io/rpc',
@@ -143,10 +165,20 @@ const publicRpcProviders = {
     'https://endpoints.omniatech.io/v1/avax/mainnet/public',
     'https://avalanche-c-chain-rpc.publicnode.com',
     'https://0xrpc.io/avax',
+    'https://spectrum-01.simplystaking.xyz/avalanche-mn-rpc/ext/bc/C/rpc',
+    'https://avalanche.api.onfinality.io/public/ext/bc/C/rpc',
+    'https://1rpc.io/avax/c',
+    'https://rpc.nodeflare.app/avax/public',
+    'https://avalanche.rpc.sentio.xyz',
+    'https://avalanche-mainnet.gateway.tenderly.co',
+    'https://avax.api.pocket.network',
+    'https://rpc.poolz.finance/avalanche',
+    'https://rpc.swiftnodes.io/rpc/avalanche',
   ],
   4326: [
     'https://rpc-megaeth-mainnet.globalstake.io',
     'https://mainnet.megaeth.com/rpc',
+    'https://megaeth.drpc.org',
   ],
 };
 
@@ -287,11 +319,20 @@ export class EvmChainsService {
     const chainPublicRpcProviders =
       publicRpcProviders[chain.id as keyof typeof publicRpcProviders] || [];
 
-    const rawProviders = chainPublicRpcProviders.map((url, index) => ({
-      id: `public:${chain.id}:${index}`,
-      provider: 'public',
-      url,
-    }));
+    const clients: AggressivePublicClient[] = chainPublicRpcProviders.map(
+      (url, index) => ({
+        id: `public:${chain.id}:${index}`,
+        provider: 'public',
+        url,
+        client: createPublicClient({
+          chain,
+          transport: http(url, { batch: true }),
+          batch: {
+            multicall: true,
+          },
+        }),
+      }),
+    );
 
     Object.values(privateRPCProviders).forEach((provider) => {
       const network =
@@ -301,38 +342,38 @@ export class EvmChainsService {
         return;
       }
 
-      provider.tokens.forEach((token, index) => {
-        rawProviders.push({
-          id: `${provider.provider}:${chain.id}:${index}`,
-          provider: provider.provider,
-          url: provider.getUrl(network, token),
-        });
+      const urls = provider.tokens.map((token) =>
+        provider.getUrl(network, token),
+      );
+
+      if (urls.length === 0) {
+        return;
+      }
+
+      clients.push({
+        id: `${provider.provider}:${chain.id}`,
+        provider: provider.provider,
+        url: `${provider.provider}:${urls.length}-tokens`,
+        client: createPublicClient({
+          chain,
+          transport: fallback(urls.map((url) => http(url, { batch: true }))),
+          batch: {
+            multicall: true,
+          },
+        }),
       });
     });
 
     const urls = new Set<string>();
 
-    return rawProviders
-      .filter(({ url }) => {
-        if (urls.has(url)) {
-          return false;
-        }
+    return clients.filter(({ url }) => {
+      if (urls.has(url)) {
+        return false;
+      }
 
-        urls.add(url);
-        return true;
-      })
-      .map(({ id, provider, url }) => ({
-        id,
-        provider,
-        url,
-        client: createPublicClient({
-          chain,
-          transport: http(url, { batch: true }),
-          batch: {
-            multicall: true,
-          },
-        }),
-      }));
+      urls.add(url);
+      return true;
+    });
   }
 
   private getChainByChainId(chainId: number): Chain | null {

@@ -47,7 +47,7 @@ export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 3000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
@@ -243,7 +243,7 @@ export class LeaderboardService {
         fromBlock,
         endBlock,
         workers,
-        basePenaltyMs: options.basePenaltyMs ?? 1_000,
+        basePenaltyMs: options.basePenaltyMs ?? 2_100,
         maxPenaltyMs: options.maxPenaltyMs ?? 60 * 60_000,
       });
     } catch (err) {
