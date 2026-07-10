@@ -372,34 +372,20 @@ export class LeaderboardService {
         .length,
       completedTasks: tasks.filter((task) => task.status === 'completed')
         .length,
-      workingWorkers: workers
-        .filter((worker) => worker.isBusy)
-        .map((worker) => this.getWorkerReport(worker)),
-      availableWorkers: workers
-        .filter((worker) => !worker.isBusy && worker.availableAt <= now)
-        .map((worker) => this.getWorkerReport(worker)),
+      workingWorkers: workers.filter((worker) => worker.isBusy).length,
+      availableWorkers: workers.filter(
+        (worker) => !worker.isBusy && worker.availableAt <= now,
+      ).length,
       penaltyWorkers: workers
         .filter((worker) => !worker.isBusy && worker.availableAt > now)
-        .sort((a, b) => b.penaltyLevel - a.penaltyLevel)
-        .map((worker) => ({
-          ...this.getWorkerReport(worker),
-          penaltyLevel: worker.penaltyLevel,
-          availableInMs: Math.max(worker.availableAt - now, 0),
-        })),
+        .sort((a, b) => b.penaltyLevel - a.penaltyLevel).length,
     };
 
     this.logger.log({
       severity: 'Info',
       summary: 'leaderboard>aggressiveAdaptionReport',
-      details: JSON.stringify(report),
+      details: JSON.stringify(report, null, 2),
     });
-  }
-
-  private getWorkerReport(worker: AggressiveWorker) {
-    return {
-      id: worker.id,
-      url: this.getSlicedUrl(worker.url),
-    };
   }
 
   private getSlicedUrl(url: string) {
