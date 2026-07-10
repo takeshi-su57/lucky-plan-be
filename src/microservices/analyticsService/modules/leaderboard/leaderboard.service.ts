@@ -47,7 +47,7 @@ export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 4000n;
+  static BATCH_SIZE = 3000n;
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
@@ -386,14 +386,6 @@ export class LeaderboardService {
       summary: 'leaderboard>aggressiveAdaptionReport',
       details: JSON.stringify(report, null, 2),
     });
-  }
-
-  private getSlicedUrl(url: string) {
-    if (url.length <= 32) {
-      return url;
-    }
-
-    return `${url.slice(0, 24)}...${url.slice(-8)}`;
   }
 
   private createAggressiveTasks(fromBlock: bigint, endBlock: bigint) {
