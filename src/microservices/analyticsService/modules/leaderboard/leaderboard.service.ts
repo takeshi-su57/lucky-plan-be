@@ -29,7 +29,7 @@ type AggressiveAdaptionOptions = {
 type AggressiveTask = {
   fromBlock: bigint;
   toBlock: bigint;
-  status: 'pending' | 'processing' | 'completed';
+  status: 'created' | 'processing' | 'failed' | 'completed';
   attempts: number;
 };
 
@@ -47,7 +47,7 @@ export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
-  static BATCH_SIZE = 2000n;
+  static BATCH_SIZE = 4000n;
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
@@ -149,11 +149,11 @@ export class LeaderboardService {
           blockNumber: fromBlock,
         });
 
-        const perpTradeEventLogs = this.getPerpTradeEventLogs(
-          contract,
-          fromBlock,
-          toBlock,
-          eventLogs,
+        const perpTradeEventLogs = eventLogs.filter((log) =>
+          getWeb3Info(
+            contract.platform,
+            contract.version,
+          ).tradeEventNames.includes(log.eventLog.eventName),
         );
 
         await this.handlePerpTradeEventLogs({
@@ -243,7 +243,7 @@ export class LeaderboardService {
         fromBlock,
         endBlock,
         workers,
-        basePenaltyMs: options.basePenaltyMs ?? 5_000,
+        basePenaltyMs: options.basePenaltyMs ?? 1_000,
         maxPenaltyMs: options.maxPenaltyMs ?? 60 * 60_000,
       });
     } catch (err) {
@@ -282,12 +282,20 @@ export class LeaderboardService {
     let nextCheckpointIndex = 0;
 
     await new Promise<void>((resolve) => {
+      const reportInterval = setInterval(() => {
+        this.reportAggressiveAdaptionTasks(contract, tasks, workers);
+      }, 60_000);
+      const finish = () => {
+        clearInterval(reportInterval);
+        resolve();
+      };
+
       const schedule = () => {
         if (
           this.isReceivedKillProcess ||
           tasks.every((task) => task.status === 'completed')
         ) {
-          resolve();
+          finish();
           return;
         }
 
@@ -297,7 +305,9 @@ export class LeaderboardService {
         );
 
         for (const worker of availableWorkers) {
-          const task = tasks.find((item) => item.status === 'pending');
+          const task =
+            tasks.find((item) => item.status === 'failed') ||
+            tasks.find((item) => item.status === 'created');
 
           if (!task) {
             break;
@@ -316,6 +326,12 @@ export class LeaderboardService {
                   contract.id,
                   Number(tasks[nextCheckpointIndex].toBlock),
                 );
+
+                this.logger.log({
+                  severity: 'Info',
+                  summary: 'leaderboard>startAggressiveAdaption',
+                  details: `chainId:${contract.chainId} block:${Number(task.fromBlock)} - ${Number(task.toBlock)}`,
+                });
                 nextCheckpointIndex++;
               }
             })
@@ -323,7 +339,9 @@ export class LeaderboardService {
         }
 
         const hasBusyWorker = workers.some((worker) => worker.isBusy);
-        const hasRunnableTask = tasks.some((task) => task.status === 'pending');
+        const hasRunnableTask = tasks.some(
+          (task) => task.status === 'created' || task.status === 'failed',
+        );
 
         if (!hasBusyWorker && hasRunnableTask) {
           const nextAvailableAt = Math.min(
@@ -335,6 +353,61 @@ export class LeaderboardService {
 
       schedule();
     });
+  }
+
+  private reportAggressiveAdaptionTasks(
+    contract: Contract,
+    tasks: AggressiveTask[],
+    workers: AggressiveWorker[],
+  ) {
+    const now = Date.now();
+    const report = {
+      contractId: contract.id,
+      chainId: contract.chainId,
+      remainingTasks: tasks.filter((task) => task.status !== 'completed')
+        .length,
+      createdTasks: tasks.filter((task) => task.status === 'created').length,
+      failedTasks: tasks.filter((task) => task.status === 'failed').length,
+      processingTasks: tasks.filter((task) => task.status === 'processing')
+        .length,
+      completedTasks: tasks.filter((task) => task.status === 'completed')
+        .length,
+      workingWorkers: workers
+        .filter((worker) => worker.isBusy)
+        .map((worker) => this.getWorkerReport(worker)),
+      availableWorkers: workers
+        .filter((worker) => !worker.isBusy && worker.availableAt <= now)
+        .map((worker) => this.getWorkerReport(worker)),
+      penaltyWorkers: workers
+        .filter((worker) => !worker.isBusy && worker.availableAt > now)
+        .sort((a, b) => b.penaltyLevel - a.penaltyLevel)
+        .map((worker) => ({
+          ...this.getWorkerReport(worker),
+          penaltyLevel: worker.penaltyLevel,
+          availableInMs: Math.max(worker.availableAt - now, 0),
+        })),
+    };
+
+    this.logger.log({
+      severity: 'Info',
+      summary: 'leaderboard>aggressiveAdaptionReport',
+      details: JSON.stringify(report),
+    });
+  }
+
+  private getWorkerReport(worker: AggressiveWorker) {
+    return {
+      id: worker.id,
+      url: this.getSlicedUrl(worker.url),
+    };
+  }
+
+  private getSlicedUrl(url: string) {
+    if (url.length <= 32) {
+      return url;
+    }
+
+    return `${url.slice(0, 24)}...${url.slice(-8)}`;
   }
 
   private createAggressiveTasks(fromBlock: bigint, endBlock: bigint) {
@@ -350,7 +423,7 @@ export class LeaderboardService {
       tasks.push({
         fromBlock: cursor,
         toBlock,
-        status: 'pending',
+        status: 'created',
         attempts: 0,
       });
 
@@ -378,12 +451,6 @@ export class LeaderboardService {
     worker.isBusy = true;
 
     try {
-      this.logger.log({
-        severity: 'Info',
-        summary: 'leaderboard>startAggressiveAdaption',
-        details: `worker:${worker.id} contractId:${contract.id} block:${Number(task.fromBlock)} - ${Number(task.toBlock)}`,
-      });
-
       const eventLogs = await this.fetchEventLogs({
         contract,
         getLogs: async (address) =>
@@ -397,11 +464,11 @@ export class LeaderboardService {
         worker.client,
         task.fromBlock,
       );
-      const perpTradeEventLogs = this.getPerpTradeEventLogs(
-        contract,
-        task.fromBlock,
-        task.toBlock,
-        eventLogs,
+      const perpTradeEventLogs = eventLogs.filter((log) =>
+        getWeb3Info(
+          contract.platform,
+          contract.version,
+        ).tradeEventNames.includes(log.eventLog.eventName),
       );
 
       await this.handlePerpTradeEventLogs({
@@ -413,7 +480,7 @@ export class LeaderboardService {
       task.status = 'completed';
       worker.penaltyLevel = Math.max(worker.penaltyLevel - 1, 0);
     } catch (err) {
-      task.status = 'pending';
+      task.status = 'failed';
       worker.penaltyLevel += 1;
       worker.availableAt =
         Date.now() +
@@ -425,7 +492,7 @@ export class LeaderboardService {
       this.logger.log({
         severity: 'Error',
         summary: 'leaderboard>startAggressiveAdaption',
-        details: `worker:${worker.id} contractId:${contract.id} block:${Number(task.fromBlock)} - ${Number(task.toBlock)} ${getReadableError(err)}`,
+        details: `worker:${worker.id} chainId:${contract.id} block:${Number(task.fromBlock)} - ${Number(task.toBlock)} ${getReadableError(err)}`,
       });
     } finally {
       worker.isBusy = false;
@@ -515,37 +582,6 @@ export class LeaderboardService {
           return a.blockNumber - b.blockNumber;
         }
       });
-  }
-
-  private getPerpTradeEventLogs(
-    contract: Contract,
-    fromBlock: bigint,
-    toBlock: bigint,
-    eventLogs: {
-      eventLog: any;
-      blockNumber: number;
-      logIndex: number;
-      transactionHash: string;
-    }[],
-  ) {
-    const eventNamesMap: Record<string, number> = {};
-
-    eventLogs.forEach((log) => {
-      eventNamesMap[log.eventLog.eventName] =
-        (eventNamesMap[log.eventLog.eventName] || 0) + 1;
-    });
-
-    this.logger.log({
-      severity: 'Info',
-      summary: 'leaderboard>startAdaption',
-      details: `chainId:${contract.chainId} contractId:${contract.id} block:${Number(fromBlock)} - ${Number(toBlock)} - ${JSON.stringify(eventNamesMap, null, 2)}`,
-    });
-
-    return eventLogs.filter((log) =>
-      getWeb3Info(contract.platform, contract.version).tradeEventNames.includes(
-        log.eventLog.eventName,
-      ),
-    );
   }
 
   private async getValidBlockFromClient(
