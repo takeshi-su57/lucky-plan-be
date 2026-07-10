@@ -159,6 +159,13 @@ export type Web3Configuration = {
   used: number;
 };
 
+export type AggressivePublicClient = {
+  id: string;
+  provider: string;
+  url: string;
+  client: PublicClient;
+};
+
 @Injectable()
 export class EvmChainsService {
   readonly availableChains: Chain[];
@@ -166,6 +173,7 @@ export class EvmChainsService {
   readonly privatePublicClients: Record<number, PublicClient>;
   readonly paidPublicClients: Record<number, PublicClient>;
   readonly paidPublicWSClients: Record<number, PublicClient>;
+  private aggressivePublicClients: Record<number, AggressivePublicClient[]>;
   private readSemaphores: Record<number, Record<ChainPriority, Semaphore>>;
   private writeMutexs: Record<number, Record<string, Mutex>>;
   private walletClients: Record<number, Record<string, WalletClient>>;
@@ -185,6 +193,7 @@ export class EvmChainsService {
     this.privatePublicClients = {};
     this.paidPublicClients = {};
     this.paidPublicWSClients = {};
+    this.aggressivePublicClients = {};
     this.walletClients = {};
     this.readSemaphores = {};
     this.writeMutexs = {};
@@ -260,6 +269,9 @@ export class EvmChainsService {
         ),
       }) as unknown as PublicClient;
 
+      this.aggressivePublicClients[chain.id] =
+        this.createAggressivePublicClients(chain);
+
       this.readSemaphores[chain.id] = {
         [ChainPriority.HIGH]: new Semaphore(30),
         [ChainPriority.MEDIUM]: new Semaphore(5),
@@ -267,6 +279,60 @@ export class EvmChainsService {
       };
       this.writeMutexs[chain.id] = {};
     });
+  }
+
+  private createAggressivePublicClients(
+    chain: Chain,
+  ): AggressivePublicClient[] {
+    const chainPublicRpcProviders =
+      publicRpcProviders[chain.id as keyof typeof publicRpcProviders] || [];
+
+    const rawProviders = chainPublicRpcProviders.map((url, index) => ({
+      id: `public:${chain.id}:${index}`,
+      provider: 'public',
+      url,
+    }));
+
+    Object.values(privateRPCProviders).forEach((provider) => {
+      const network =
+        provider.networks[chain.id as keyof typeof provider.networks];
+
+      if (!network) {
+        return;
+      }
+
+      provider.tokens.forEach((token, index) => {
+        rawProviders.push({
+          id: `${provider.provider}:${chain.id}:${index}`,
+          provider: provider.provider,
+          url: provider.getUrl(network, token),
+        });
+      });
+    });
+
+    const urls = new Set<string>();
+
+    return rawProviders
+      .filter(({ url }) => {
+        if (urls.has(url)) {
+          return false;
+        }
+
+        urls.add(url);
+        return true;
+      })
+      .map(({ id, provider, url }) => ({
+        id,
+        provider,
+        url,
+        client: createPublicClient({
+          chain,
+          transport: http(url, { batch: true }),
+          batch: {
+            multicall: true,
+          },
+        }),
+      }));
   }
 
   private getChainByChainId(chainId: number): Chain | null {
@@ -343,6 +409,14 @@ export class EvmChainsService {
     }
 
     return this.paidPublicWSClients[chainId];
+  }
+
+  getAggressivePublicClients(chainId: number): AggressivePublicClient[] {
+    if (!this.isValidChainId(chainId)) {
+      throw new Error('Invalid chainId');
+    }
+
+    return this.aggressivePublicClients[chainId];
   }
 
   private walletClient(

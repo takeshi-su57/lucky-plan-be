@@ -1,8 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { Platform, Version } from 'generated/prisma/client';
+import { ContractStatus, Platform, Version } from 'generated/prisma/client';
 
 import { LeaderboardService } from './leaderboard.service';
 import { getWeb3Info } from 'src/web3/utils';
+import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
 
 jest.mock('src/web3/utils', () => ({
   getWeb3Info: jest.fn(),
@@ -10,6 +11,16 @@ jest.mock('src/web3/utils', () => ({
 
 jest.mock('src/web3/web3/evm-adapter.service', () => ({
   EvmAdapterService: class {},
+}));
+
+jest.mock('src/web3/web3/evm-chains.service', () => ({
+  EvmChainsService: class {},
+}));
+
+jest.mock('src/utils', () => ({
+  getReadableError: (error: unknown) =>
+    error instanceof Error ? error.message : String(error),
+  delay: jest.fn(async () => undefined),
 }));
 
 describe('LeaderboardService', () => {
@@ -25,6 +36,7 @@ describe('LeaderboardService', () => {
       eventToPerpTradeHistory,
     });
     const service = new LeaderboardService(
+      {} as never,
       {} as never,
       {} as never,
       { createManyPerpTradingEventLogs } as never,
@@ -81,6 +93,7 @@ describe('LeaderboardService', () => {
     const service = new LeaderboardService(
       {} as never,
       {} as never,
+      {} as never,
       { createManyPerpTradingEventLogs } as never,
       {} as never,
       {} as never,
@@ -105,5 +118,106 @@ describe('LeaderboardService', () => {
     });
 
     expect(createManyPerpTradingEventLogs).toHaveBeenCalledWith([]);
+  });
+
+  it('aggressive adaption retries failed tasks and advances checkpoint only through contiguous completed ranges', async () => {
+    const originalBatchSize = LeaderboardService.BATCH_SIZE;
+    LeaderboardService.BATCH_SIZE = 2000n;
+
+    const worker1GetLogs = jest
+      .fn<() => Promise<any[]>>()
+      .mockRejectedValueOnce(new Error('rpc unavailable'))
+      .mockResolvedValueOnce([]);
+    const worker2GetLogs = jest
+      .fn<() => Promise<any[]>>()
+      .mockResolvedValue([]);
+    const worker1 = {
+      id: 'worker-1',
+      url: 'https://rpc-1',
+      client: {
+        getLogs: worker1GetLogs,
+        getBlock: jest.fn(async () => ({ timestamp: 1_700_000_000n })),
+      },
+    };
+    const worker2 = {
+      id: 'worker-2',
+      url: 'https://rpc-2',
+      client: {
+        getLogs: worker2GetLogs,
+        getBlock: jest.fn(async () => ({ timestamp: 1_700_000_000n })),
+      },
+    };
+    const updateLastLeaderboardBlockNumber = jest.fn(async () => ({}));
+    const service = new LeaderboardService(
+      {
+        getLatestFinalizedBlock: jest.fn(async () => ({ number: 4001n })),
+      } as never,
+      {
+        getAggressivePublicClients: jest.fn(() => [worker1, worker2]),
+      } as never,
+      {
+        findOne: jest.fn(async () => ({
+          id: 7,
+          chainId: 42161,
+          status: ContractStatus.Live,
+          platform: Platform.GMX,
+          version: Version.V2,
+          address: '0x0000000000000000000000000000000000000001',
+          fromBlock: 1,
+          toBlock: 4001,
+          lastLeaderboardBlockNumber: 0,
+        })),
+        updateLastLeaderboardBlockNumber,
+      } as never,
+      { createManyPerpTradingEventLogs: jest.fn(async () => []) } as never,
+      { log: jest.fn() } as never,
+      { perpTradingEventLog: { deleteMany: jest.fn() } } as never,
+    );
+
+    try {
+      await service.startAdaption(7, false, {
+        basePenaltyMs: 1,
+        maxPenaltyMs: 1,
+      });
+    } finally {
+      LeaderboardService.BATCH_SIZE = originalBatchSize;
+    }
+
+    expect(
+      worker1GetLogs.mock.calls.length + worker2GetLogs.mock.calls.length,
+    ).toBe(3);
+    expect(updateLastLeaderboardBlockNumber.mock.calls).toEqual([
+      [7, 2001],
+      [7, 4001],
+    ]);
+  });
+
+  it('fetches Avantis event logs from the trading callback and trading contracts', async () => {
+    const service = new LeaderboardService(
+      {} as never,
+      {} as never,
+      {} as never,
+      { createManyPerpTradingEventLogs: jest.fn(async () => []) } as never,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
+    const getLogs = jest.fn(async () => []);
+
+    const eventLogs = await (service as any).fetchEventLogs({
+      contract: {
+        id: 7,
+        chainId: 8453,
+        platform: Platform.AVNT,
+        version: Version.V1,
+        address: '0x0000000000000000000000000000000000000001',
+      },
+      getLogs,
+    });
+
+    expect(eventLogs).toEqual([]);
+    expect(getLogs.mock.calls).toEqual([
+      [avntContractAddresses.TradingCallback],
+      [avntContractAddresses.Trading],
+    ]);
   });
 });
