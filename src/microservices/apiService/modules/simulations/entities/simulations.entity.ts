@@ -61,6 +61,18 @@ export class SimulationValueRange {
 }
 
 @ObjectType()
+export class SimulationTradeRangeGroup {
+  @Field(() => [SimulationTradeRange])
+  ranges: SimulationTradeRange[];
+}
+
+@ObjectType()
+export class SimulationValueRangeGroup {
+  @Field(() => [SimulationValueRange])
+  ranges: SimulationValueRange[];
+}
+
+@ObjectType()
 export class SimulationBot {
   @Field(() => Int)
   id: number;
@@ -305,26 +317,26 @@ export class Simulation {
   @Field(() => Int)
   selectedLeaderCount: number;
 
-  @Field(() => SimulationTradeRange)
-  trade: SimulationTradeRange;
+  @Field(() => [SimulationTradeRange])
+  trade: SimulationTradeRange[];
 
-  @Field(() => SimulationValueRange)
-  r2: SimulationValueRange;
+  @Field(() => [SimulationValueRange])
+  r2: SimulationValueRange[];
 
-  @Field(() => SimulationValueRange)
-  slope: SimulationValueRange;
+  @Field(() => [SimulationValueRange])
+  slope: SimulationValueRange[];
 
   @Field(() => Float)
   standardCollateralUsd: number;
 
-  @Field(() => SimulationValueRange)
-  collateral: SimulationValueRange;
+  @Field(() => [SimulationValueRange])
+  collateral: SimulationValueRange[];
 
-  @Field(() => SimulationValueRange)
-  leverage: SimulationValueRange;
+  @Field(() => [SimulationValueRange])
+  leverage: SimulationValueRange[];
 
-  @Field(() => SimulationValueRange)
-  score: SimulationValueRange;
+  @Field(() => [SimulationValueRange])
+  score: SimulationValueRange[];
 
   @Field(() => SimulationScoreFormular)
   scoreFormular: SimulationScoreFormular;
@@ -420,23 +432,23 @@ export class SimulationResearch {
   @Field(() => BotMode)
   direction: BotMode;
 
-  @Field(() => [SimulationTradeRange])
-  trade: SimulationTradeRange[];
+  @Field(() => [SimulationTradeRangeGroup])
+  trade: SimulationTradeRangeGroup[];
 
-  @Field(() => [SimulationValueRange])
-  r2: SimulationValueRange[];
+  @Field(() => [SimulationValueRangeGroup])
+  r2: SimulationValueRangeGroup[];
 
-  @Field(() => [SimulationValueRange])
-  slope: SimulationValueRange[];
+  @Field(() => [SimulationValueRangeGroup])
+  slope: SimulationValueRangeGroup[];
 
-  @Field(() => [SimulationValueRange])
-  collateral: SimulationValueRange[];
+  @Field(() => [SimulationValueRangeGroup])
+  collateral: SimulationValueRangeGroup[];
 
-  @Field(() => [SimulationValueRange])
-  leverage: SimulationValueRange[];
+  @Field(() => [SimulationValueRangeGroup])
+  leverage: SimulationValueRangeGroup[];
 
-  @Field(() => [SimulationValueRange])
-  score: SimulationValueRange[];
+  @Field(() => [SimulationValueRangeGroup])
+  score: SimulationValueRangeGroup[];
 
   @Field(() => SimulationScoreFormular)
   scoreFormular: SimulationScoreFormular;

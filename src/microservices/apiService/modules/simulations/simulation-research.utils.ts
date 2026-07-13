@@ -11,7 +11,22 @@ export type ValueRange = {
   max: number;
 };
 
+/** A group is one grid value. Values inside it are alternatives (OR). */
+export type RangeGroup = {
+  ranges: ValueRange[];
+};
+
 export type SimulationParameterGridInput = {
+  direction: BotMode;
+  trade: RangeGroup[];
+  r2: RangeGroup[];
+  slope: RangeGroup[];
+  collateral: RangeGroup[];
+  leverage: RangeGroup[];
+  score: RangeGroup[];
+};
+
+export type SimulationParameterCombination = {
   direction: BotMode;
   trade: ValueRange[];
   r2: ValueRange[];
@@ -19,16 +34,6 @@ export type SimulationParameterGridInput = {
   collateral: ValueRange[];
   leverage: ValueRange[];
   score: ValueRange[];
-};
-
-export type SimulationParameterCombination = {
-  direction: BotMode;
-  trade: ValueRange;
-  r2: ValueRange;
-  slope: ValueRange;
-  collateral: ValueRange;
-  leverage: ValueRange;
-  score: ValueRange;
 };
 
 function roundRangeValue(value: number) {
@@ -114,11 +119,14 @@ export function valueMatchesAnyRange(value: number, ranges: ValueRange[]) {
 }
 
 export function getMinimumRangeMin(ranges: ValueRange[]) {
-  if (ranges.length === 0) {
-    return 0;
-  }
-
   return Math.min(...ranges.map((range) => range.min));
+}
+
+export function getRangeEnvelope(ranges: ValueRange[]): ValueRange {
+  return {
+    min: Math.min(...ranges.map((range) => range.min)),
+    max: Math.max(...ranges.map((range) => range.max)),
+  };
 }
 
 export function buildValueRangePairs(
@@ -148,22 +156,22 @@ export function buildSimulationParameterGrid(
   for (const trade of input.trade) {
     for (const r2 of input.r2) {
       for (const slope of input.slope) {
-        const normalizedSlope = normalizeAbsoluteSlopeBounds(slope);
+        const normalizedSlope = slope.ranges.map(normalizeAbsoluteSlopeBounds);
 
         for (const collateral of input.collateral) {
           for (const leverage of input.leverage) {
             for (const score of input.score) {
               combinations.push({
                 direction: input.direction,
-                trade: { ...trade },
-                r2: { ...r2 },
-                slope: {
-                  min: normalizedSlope.minSlope,
-                  max: normalizedSlope.maxSlope,
-                },
-                collateral: { ...collateral },
-                leverage: { ...leverage },
-                score: { ...score },
+                trade: trade.ranges.map((range) => ({ ...range })),
+                r2: r2.ranges.map((range) => ({ ...range })),
+                slope: normalizedSlope.map((range) => ({
+                  min: range.minSlope,
+                  max: range.maxSlope,
+                })),
+                collateral: collateral.ranges.map((range) => ({ ...range })),
+                leverage: leverage.ranges.map((range) => ({ ...range })),
+                score: score.ranges.map((range) => ({ ...range })),
               });
             }
           }

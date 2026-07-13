@@ -110,6 +110,8 @@ export class EventLogsService {
       maxCollateral?: number;
       minLeverage?: number;
       maxLeverage?: number;
+      collateralRanges?: Array<{ min: number; max: number }>;
+      leverageRanges?: Array<{ min: number; max: number }>;
     },
   ): PerpTradePositionsWithSummary {
     const sortedHistories = [...histories]
@@ -160,6 +162,27 @@ export class EventLogsService {
         }
 
         if (filters.stoppedAt && history.date >= filters.stoppedAt) {
+          continue;
+        }
+
+        if (
+          filters.collateralRanges &&
+          !filters.collateralRanges.some(
+            (range) =>
+              history.collateralInUsd >= range.min &&
+              history.collateralInUsd <= range.max,
+          )
+        ) {
+          continue;
+        }
+
+        if (
+          filters.leverageRanges &&
+          !filters.leverageRanges.some(
+            (range) =>
+              history.leverage >= range.min && history.leverage <= range.max,
+          )
+        ) {
           continue;
         }
 

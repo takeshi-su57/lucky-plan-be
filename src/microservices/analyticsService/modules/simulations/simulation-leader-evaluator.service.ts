@@ -55,6 +55,10 @@ function valueMatchesRange(value: number, range: ValueRange) {
   return value >= range.min && value <= range.max;
 }
 
+function valueMatchesAnyRange(value: number, ranges: ValueRange[]) {
+  return ranges.some((range) => valueMatchesRange(value, range));
+}
+
 export type CandidateEvaluation = {
   leaderAddress: string;
   score: number;
@@ -223,7 +227,7 @@ export class SimulationLeaderEvaluatorService {
 
         const rejectedReason =
           evaluation.rejectedReason ||
-          (!valueMatchesRange(evaluation.score, simulation.score)
+          (!valueMatchesAnyRange(evaluation.score, simulation.score)
             ? 'SCORE_OUT_OF_RANGE'
             : null);
 
@@ -290,7 +294,10 @@ export class SimulationLeaderEvaluatorService {
       return [];
     }
 
-    if (recentTradeHistoryCount < simulation.trade.min) {
+    if (
+      recentTradeHistoryCount <
+      Math.min(...simulation.trade.map((range) => range.min))
+    ) {
       return [];
     }
 
@@ -301,10 +308,8 @@ export class SimulationLeaderEvaluatorService {
         simulation.platform,
         histories,
         {
-          minCollateral: simulation.collateral.min,
-          maxCollateral: simulation.collateral.max,
-          minLeverage: simulation.leverage.min,
-          maxLeverage: simulation.leverage.max,
+          collateralRanges: simulation.collateral,
+          leverageRanges: simulation.leverage,
         },
       );
 
@@ -340,12 +345,11 @@ export class SimulationLeaderEvaluatorService {
       copiedNetPnlUsd: 0,
       copiedDrawdownUsd: 0,
     };
-    const effectiveSlopeRange = getDirectionalSlopeRange(
-      simulation.direction,
-      simulation.slope,
+    const effectiveSlopeRanges = simulation.slope.map((range) =>
+      getDirectionalSlopeRange(simulation.direction, range),
     );
 
-    if (!valueMatchesRange(rawTradeCount, simulation.trade)) {
+    if (!valueMatchesAnyRange(rawTradeCount, simulation.trade)) {
       return { ...baseEvaluation, rejectedReason: 'TRADE_COUNT_OUT_OF_RANGE' };
     }
 
@@ -362,11 +366,11 @@ export class SimulationLeaderEvaluatorService {
       };
     }
 
-    if (!valueMatchesRange(rawTrend.slope, effectiveSlopeRange)) {
+    if (!valueMatchesAnyRange(rawTrend.slope, effectiveSlopeRanges)) {
       return { ...baseEvaluation, rejectedReason: 'SLOPE_OUT_OF_RANGE' };
     }
 
-    if (!valueMatchesRange(rawTrend.r2, simulation.r2)) {
+    if (!valueMatchesAnyRange(rawTrend.r2, simulation.r2)) {
       return { ...baseEvaluation, rejectedReason: 'R2_OUT_OF_RANGE' };
     }
 
@@ -446,7 +450,7 @@ export class SimulationLeaderEvaluatorService {
       totalCostUsd: copied.totalCostUsd,
       grossProfitUsd: copied.grossProfitUsd,
       topTradeProfitUsd: copied.topTradeProfitUsd,
-      minTrades: simulation.trade.min,
+      minTrades: Math.min(...simulation.trade.map((range) => range.min)),
       maxCopiedDrawdownUsd: SIMULATION_SYSTEM_CONFIG.maxCollateralUsd,
     });
   }

@@ -60,6 +60,22 @@ export class FloatMinMaxInput {
 }
 
 @InputType()
+export class IntRangeGroupInput {
+  @ValidateNested({ each: true })
+  @Type(() => IntMinMaxInput)
+  @Field(() => [IntMinMaxInput])
+  ranges: IntMinMaxInput[];
+}
+
+@InputType()
+export class FloatRangeGroupInput {
+  @ValidateNested({ each: true })
+  @Type(() => FloatMinMaxInput)
+  @Field(() => [FloatMinMaxInput])
+  ranges: FloatMinMaxInput[];
+}
+
+@InputType()
 export class CreateSimulationPlanInput {
   @IsNotEmpty()
   @IsString()
@@ -220,34 +236,34 @@ export class CreateSimulationResearchInput {
   direction: BotMode;
 
   @ValidateNested({ each: true })
-  @Type(() => IntMinMaxInput)
-  @Field(() => [IntMinMaxInput])
-  trade: IntMinMaxInput[];
+  @Type(() => IntRangeGroupInput)
+  @Field(() => [IntRangeGroupInput])
+  trade: IntRangeGroupInput[];
 
   @ValidateNested({ each: true })
-  @Type(() => FloatMinMaxInput)
-  @Field(() => [FloatMinMaxInput])
-  r2: FloatMinMaxInput[];
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  r2: FloatRangeGroupInput[];
 
   @ValidateNested({ each: true })
-  @Type(() => FloatMinMaxInput)
-  @Field(() => [FloatMinMaxInput])
-  slope: FloatMinMaxInput[];
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  slope: FloatRangeGroupInput[];
 
   @ValidateNested({ each: true })
-  @Type(() => FloatMinMaxInput)
-  @Field(() => [FloatMinMaxInput])
-  collateral: FloatMinMaxInput[];
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  collateral: FloatRangeGroupInput[];
 
   @ValidateNested({ each: true })
-  @Type(() => FloatMinMaxInput)
-  @Field(() => [FloatMinMaxInput])
-  leverage: FloatMinMaxInput[];
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  leverage: FloatRangeGroupInput[];
 
   @ValidateNested({ each: true })
-  @Type(() => FloatMinMaxInput)
-  @Field(() => [FloatMinMaxInput])
-  score: FloatMinMaxInput[];
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  score: FloatRangeGroupInput[];
 
   @IsEnum(SimulationScoreFormular)
   @Field(() => SimulationScoreFormular, {

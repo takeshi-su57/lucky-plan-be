@@ -65,6 +65,16 @@ export class SimulationAutoRunnerService {
     private readonly redisClient: ClientProxy,
   ) {}
 
+  private normalizeResearchGroups(value: unknown) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.map((item: any) =>
+      Array.isArray(item?.ranges) ? item : { ranges: [item] },
+    );
+  }
+
   static getTerminalStatusForHorizon(input: {
     cursor: Date;
     endAt: Date;
@@ -86,16 +96,19 @@ export class SimulationAutoRunnerService {
   }
 
   mapSimulation(record: any): Simulation {
+    const ranges = (value: unknown, fallback: ValueRange) =>
+      Array.isArray(value)
+        ? (value as ValueRange[])
+        : [(value as ValueRange) ?? fallback];
+
     return {
       ...record,
-      trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
-      r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
-      slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
-      collateral:
-        (record.collateral as ValueRange | null) ?? DEFAULT_COLLATERAL_RANGE,
-      leverage:
-        (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
-      score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
+      trade: ranges(record.trade, DEFAULT_TRADE_RANGE),
+      r2: ranges(record.r2, DEFAULT_R2_RANGE),
+      slope: ranges(record.slope, DEFAULT_SLOPE_RANGE),
+      collateral: ranges(record.collateral, DEFAULT_COLLATERAL_RANGE),
+      leverage: ranges(record.leverage, DEFAULT_LEVERAGE_RANGE),
+      score: ranges(record.score, DEFAULT_SCORE_RANGE),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
         DEFAULT_SCORE_FORMULAR,
@@ -123,12 +136,12 @@ export class SimulationAutoRunnerService {
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
       direction: record.direction,
-      trade: record.trade as any,
-      r2: record.r2 as any,
-      slope: record.slope as any,
-      collateral: (record.collateral as ValueRange[] | null) ?? [],
-      leverage: (record.leverage as ValueRange[] | null) ?? [],
-      score: (record.score as ValueRange[] | null) ?? [],
+      trade: this.normalizeResearchGroups(record.trade),
+      r2: this.normalizeResearchGroups(record.r2),
+      slope: this.normalizeResearchGroups(record.slope),
+      collateral: this.normalizeResearchGroups(record.collateral),
+      leverage: this.normalizeResearchGroups(record.leverage),
+      score: this.normalizeResearchGroups(record.score),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
         DEFAULT_SCORE_FORMULAR,
@@ -428,10 +441,14 @@ export class SimulationAutoRunnerService {
       mode: simulation.direction,
       ratio: candidate.suggestedRatio,
       score: candidate.score,
-      minCollateral: simulation.collateral.min,
-      maxCollateral: simulation.collateral.max,
-      minLeverage: simulation.leverage.min,
-      maxLeverage: simulation.leverage.max,
+      minCollateral: Math.min(
+        ...simulation.collateral.map((range) => range.min),
+      ),
+      maxCollateral: Math.max(
+        ...simulation.collateral.map((range) => range.max),
+      ),
+      minLeverage: Math.min(...simulation.leverage.map((range) => range.min)),
+      maxLeverage: Math.max(...simulation.leverage.map((range) => range.max)),
     }));
 
     if (botInputs.length === 0) {

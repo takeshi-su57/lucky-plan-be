@@ -29,6 +29,7 @@ import { SimulationPlansService } from './simulation-plans.service';
 import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import {
   buildSimulationParameterGrid,
+  RangeGroup,
   ValueRange,
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
@@ -298,42 +299,47 @@ export class SimulationsService {
       throw new Error('score must contain at least one range');
     }
 
-    input.trade.forEach((range, index) =>
-      this.validateMinMaxRange(`trade[${index}]`, range, {
-        minAllowed: 1,
-        integer: true,
-      }),
-    );
-    input.r2.forEach((range, index) =>
-      this.validateMinMaxRange(`r2[${index}]`, range, {
-        minAllowed: 0,
-        maxAllowed: 1,
-      }),
-    );
-    input.slope.forEach((range, index) =>
-      this.validateMinMaxRange(`slope[${index}]`, range, {
-        minAllowed: 0,
-      }),
-    );
+    const validateGroups = (
+      name: string,
+      groups: Array<{ ranges: ValueRange[] }>,
+      options: { minAllowed?: number; maxAllowed?: number; integer?: boolean },
+    ) =>
+      groups.forEach((group, groupIndex) => {
+        if (group.ranges.length === 0) {
+          throw new Error(
+            `${name}[${groupIndex}] must contain at least one range`,
+          );
+        }
+        group.ranges.forEach((range, rangeIndex) =>
+          this.validateMinMaxRange(
+            `${name}[${groupIndex}].ranges[${rangeIndex}]`,
+            range,
+            options,
+          ),
+        );
+      });
 
-    input.leverage.forEach((range, index) =>
-      this.validateMinMaxRange(`leverage[${index}]`, range, {
-        minAllowed: 0,
-      }),
-    );
-
-    input.collateral.forEach((range, index) =>
-      this.validateMinMaxRange(`collateral[${index}]`, range, {
-        minAllowed: 0,
-      }),
-    );
-
-    input.score.forEach((range, index) =>
-      this.validateMinMaxRange(`score[${index}]`, range, {
-        minAllowed: 0,
-        maxAllowed: 1,
-      }),
-    );
+    validateGroups('trade', input.trade, {
+      minAllowed: 1,
+      integer: true,
+    });
+    validateGroups('r2', input.r2, {
+      minAllowed: 0,
+      maxAllowed: 1,
+    });
+    validateGroups('slope', input.slope, {
+      minAllowed: 0,
+    });
+    validateGroups('leverage', input.leverage, {
+      minAllowed: 0,
+    });
+    validateGroups('collateral', input.collateral, {
+      minAllowed: 0,
+    });
+    validateGroups('score', input.score, {
+      minAllowed: 0,
+      maxAllowed: 1,
+    });
 
     this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
   }
@@ -353,6 +359,34 @@ export class SimulationsService {
       min: range.min,
       max: range.max,
     })) as any;
+  }
+
+  private serializeRangeGroups(groups: RangeGroup[]) {
+    return groups.map((group) => ({
+      ranges: this.serializeRanges(group.ranges),
+    })) as any;
+  }
+
+  private normalizeSimulationRanges(value: unknown, fallback: ValueRange) {
+    if (Array.isArray(value)) {
+      return value as ValueRange[];
+    }
+
+    return [(value as ValueRange | null) ?? fallback];
+  }
+
+  private normalizeResearchGroups(value: unknown) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.map((item) =>
+      item &&
+      typeof item === 'object' &&
+      Array.isArray((item as RangeGroup).ranges)
+        ? item
+        : { ranges: [item] },
+    ) as RangeGroup[];
   }
 
   private serializeRange(range: { min: number; max: number }) {
@@ -385,12 +419,12 @@ export class SimulationsService {
       days,
       gapDays,
       direction: record.direction,
-      trade: record.trade as any,
-      r2: record.r2 as any,
-      slope: record.slope as any,
-      collateral: (record.collateral as ValueRange[] | null) ?? [],
-      leverage: (record.leverage as ValueRange[] | null) ?? [],
-      score: (record.score as ValueRange[] | null) ?? [],
+      trade: this.normalizeResearchGroups(record.trade),
+      r2: this.normalizeResearchGroups(record.r2),
+      slope: this.normalizeResearchGroups(record.slope),
+      collateral: this.normalizeResearchGroups(record.collateral),
+      leverage: this.normalizeResearchGroups(record.leverage),
+      score: this.normalizeResearchGroups(record.score),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
         DEFAULT_SCORE_FORMULAR,
@@ -539,12 +573,12 @@ export class SimulationsService {
           days,
           gapDays,
           direction: input.direction,
-          trade: this.serializeRanges(trade),
-          r2: this.serializeRanges(r2),
-          slope: this.serializeRanges(slope),
-          collateral: this.serializeRanges(collateral),
-          leverage: this.serializeRanges(leverage),
-          score: this.serializeRanges(score),
+          trade: this.serializeRangeGroups(trade),
+          r2: this.serializeRangeGroups(r2),
+          slope: this.serializeRangeGroups(slope),
+          collateral: this.serializeRangeGroups(collateral),
+          leverage: this.serializeRangeGroups(leverage),
+          score: this.serializeRangeGroups(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
           status: SimulationStatus.Created,
@@ -573,13 +607,13 @@ export class SimulationsService {
           progressPercent: 0,
           totalSimulationPlans,
           selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
-          trade: this.serializeRange(combination.trade),
-          r2: this.serializeRange(combination.r2),
-          slope: this.serializeRange(combination.slope),
+          trade: this.serializeRanges(combination.trade),
+          r2: this.serializeRanges(combination.r2),
+          slope: this.serializeRanges(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
-          collateral: this.serializeRange(combination.collateral),
-          leverage: this.serializeRange(combination.leverage),
-          score: this.serializeRange(combination.score),
+          collateral: this.serializeRanges(combination.collateral),
+          leverage: this.serializeRanges(combination.leverage),
+          score: this.serializeRanges(combination.score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
         })),
@@ -663,14 +697,18 @@ export class SimulationsService {
       ...record,
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
-      trade: (record.trade as ValueRange | null) ?? DEFAULT_TRADE_RANGE,
-      r2: (record.r2 as ValueRange | null) ?? DEFAULT_R2_RANGE,
-      slope: (record.slope as ValueRange | null) ?? DEFAULT_SLOPE_RANGE,
-      collateral:
-        (record.collateral as ValueRange | null) ?? DEFAULT_COLLATERAL_RANGE,
-      leverage:
-        (record.leverage as ValueRange | null) ?? DEFAULT_LEVERAGE_RANGE,
-      score: (record.score as ValueRange | null) ?? DEFAULT_SCORE_RANGE,
+      trade: this.normalizeSimulationRanges(record.trade, DEFAULT_TRADE_RANGE),
+      r2: this.normalizeSimulationRanges(record.r2, DEFAULT_R2_RANGE),
+      slope: this.normalizeSimulationRanges(record.slope, DEFAULT_SLOPE_RANGE),
+      collateral: this.normalizeSimulationRanges(
+        record.collateral,
+        DEFAULT_COLLATERAL_RANGE,
+      ),
+      leverage: this.normalizeSimulationRanges(
+        record.leverage,
+        DEFAULT_LEVERAGE_RANGE,
+      ),
+      score: this.normalizeSimulationRanges(record.score, DEFAULT_SCORE_RANGE),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
         DEFAULT_SCORE_FORMULAR,
