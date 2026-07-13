@@ -18,13 +18,21 @@ export class AnalyticsSimulationResearchService {
   ) {}
 
   async processNextAutomaticResearch(now = new Date()) {
+    const runningResearch = await this.prisma.simulationResearch.findFirst({
+      where: { status: SimulationStatus.Running },
+    });
+
+    if (runningResearch) {
+      return null;
+    }
+
     const research = await this.prisma.simulationResearch.findFirst({
       where: { status: { in: AUTOMATIC_RESEARCH_STATUSES } },
       orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
     if (!research) {
-      return;
+      return null;
     }
 
     const claim = await this.prisma.simulationResearch.updateMany({
@@ -40,9 +48,11 @@ export class AnalyticsSimulationResearchService {
     });
 
     if (claim.count === 0) {
-      return;
+      return null;
     }
 
-    this.simulationResearchAutoRunnerService.playAutomaticResearch(research.id);
+    return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
+      research.id,
+    );
   }
 }

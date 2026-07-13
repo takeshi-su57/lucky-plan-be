@@ -39,11 +39,38 @@ function research(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AnalyticsSimulationResearchService', () => {
+  it('does not start another research while one is already running', async () => {
+    const prisma = {
+      simulationResearch: {
+        findFirst: jest.fn(async () =>
+          research({ id: 24, status: SimulationStatus.Running }),
+        ),
+        updateMany: jest.fn(),
+      },
+    };
+    const runner = { playAutomaticResearch: jest.fn() };
+    const service = new AnalyticsSimulationResearchService(
+      prisma as never,
+      runner as never,
+    );
+
+    const result = await service.processNextAutomaticResearch();
+
+    expect(prisma.simulationResearch.findFirst as any).toHaveBeenCalledWith({
+      where: { status: SimulationStatus.Running },
+    });
+    expect(result).toBeNull();
+    expect(prisma.simulationResearch.updateMany).not.toHaveBeenCalled();
+    expect(runner.playAutomaticResearch).not.toHaveBeenCalled();
+  });
+
   it('claims the next created research and delegates it to the research runner', async () => {
     const createdResearch = research({ id: 21 });
     const prisma = {
       simulationResearch: {
-        findFirst: jest.fn(async () => createdResearch),
+        findFirst: jest.fn(async ({ where }) =>
+          where.status === SimulationStatus.Running ? null : createdResearch,
+        ),
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
     };
@@ -103,7 +130,9 @@ describe('AnalyticsSimulationResearchService', () => {
     });
     const prisma = {
       simulationResearch: {
-        findFirst: jest.fn(async () => pausedResearch),
+        findFirst: jest.fn(async ({ where }) =>
+          where.status === SimulationStatus.Running ? null : pausedResearch,
+        ),
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
     };
@@ -147,7 +176,11 @@ describe('AnalyticsSimulationResearchService', () => {
   it('does not delegate when another worker already claimed the research', async () => {
     const prisma = {
       simulationResearch: {
-        findFirst: jest.fn(async () => research({ id: 22 })),
+        findFirst: jest.fn(async ({ where }) =>
+          where.status === SimulationStatus.Running
+            ? null
+            : research({ id: 22 }),
+        ),
         updateMany: jest.fn(async () => ({ count: 0 })),
       },
     };
