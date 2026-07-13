@@ -39,7 +39,40 @@ function research(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AnalyticsSimulationResearchService', () => {
-  it('does not start another research while one is already running', async () => {
+  it('keeps the local automation flow exclusive until the active research finishes', async () => {
+    let finishResearch: (() => void) | undefined;
+    const prisma = {
+      simulationResearch: {
+        findFirst: jest.fn(async ({ where }) =>
+          where.status === SimulationStatus.Running ? null : research(),
+        ),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    const runner = {
+      playAutomaticResearch: jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishResearch = resolve;
+          }),
+      ),
+    };
+    const service = new AnalyticsSimulationResearchService(
+      prisma as never,
+      runner as never,
+    );
+
+    const firstRun = service.processNextAutomaticResearch();
+    await new Promise((resolve) => setImmediate(resolve));
+    await service.processNextAutomaticResearch();
+    finishResearch!();
+    await firstRun;
+
+    expect(runner.playAutomaticResearch).toHaveBeenCalledTimes(1);
+    expect(prisma.simulationResearch.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes the persisted running research after a process restart', async () => {
     const prisma = {
       simulationResearch: {
         findFirst: jest.fn(async () =>
@@ -48,7 +81,11 @@ describe('AnalyticsSimulationResearchService', () => {
         updateMany: jest.fn(),
       },
     };
-    const runner = { playAutomaticResearch: jest.fn() };
+    const runner = {
+      playAutomaticResearch: jest.fn(async () =>
+        research({ id: 24, status: SimulationStatus.Running }),
+      ),
+    };
     const service = new AnalyticsSimulationResearchService(
       prisma as never,
       runner as never,
@@ -59,9 +96,9 @@ describe('AnalyticsSimulationResearchService', () => {
     expect(prisma.simulationResearch.findFirst as any).toHaveBeenCalledWith({
       where: { status: SimulationStatus.Running },
     });
-    expect(result).toBeNull();
+    expect(result).toEqual(expect.objectContaining({ id: 24 }));
     expect(prisma.simulationResearch.updateMany).not.toHaveBeenCalled();
-    expect(runner.playAutomaticResearch).not.toHaveBeenCalled();
+    expect(runner.playAutomaticResearch as any).toHaveBeenCalledWith(24);
   });
 
   it('claims the next created research and delegates it to the research runner', async () => {

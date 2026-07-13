@@ -12,18 +12,24 @@ const AUTOMATIC_RESEARCH_STATUSES = [
 
 @Injectable()
 export class AnalyticsSimulationResearchService {
+  private activeResearchId: number | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationResearchAutoRunnerService: SimulationResearchAutoRunnerService,
   ) {}
 
   async processNextAutomaticResearch(now = new Date()) {
+    if (this.activeResearchId !== null) {
+      return null;
+    }
+
     const runningResearch = await this.prisma.simulationResearch.findFirst({
       where: { status: SimulationStatus.Running },
     });
 
     if (runningResearch) {
-      return null;
+      return await this.runResearch(runningResearch.id);
     }
 
     const research = await this.prisma.simulationResearch.findFirst({
@@ -51,8 +57,22 @@ export class AnalyticsSimulationResearchService {
       return null;
     }
 
-    return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
-      research.id,
-    );
+    return await this.runResearch(research.id);
+  }
+
+  private async runResearch(id: number) {
+    if (this.activeResearchId !== null) {
+      return null;
+    }
+
+    this.activeResearchId = id;
+
+    try {
+      return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
+        id,
+      );
+    } finally {
+      this.activeResearchId = null;
+    }
   }
 }
