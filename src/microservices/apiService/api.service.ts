@@ -96,7 +96,9 @@ export class ApiService {
   }
 
   startSubService(serviceName: string) {
-    const child = spawn('yarn', ['start'], {
+    const command = process.platform === 'win32' ? 'yarn.cmd' : 'yarn';
+
+    const child = spawn(command, ['start'], {
       env: {
         ...process.env,
         SERVICE: serviceName,
