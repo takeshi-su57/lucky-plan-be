@@ -96,35 +96,51 @@ export class ApiService {
   }
 
   startSubService(serviceName: string) {
-    const command = process.platform === 'win32' ? 'yarn.cmd' : 'yarn';
+    const isWindows = process.platform === 'win32';
 
-    const child = spawn(command, ['start'], {
+    const command = isWindows ? 'cmd.exe' : 'yarn';
+
+    const args = isWindows ? ['/d', '/s', '/c', 'yarn start'] : ['start'];
+
+    const child = spawn(command, args, {
+      cwd: process.cwd(),
       env: {
         ...process.env,
         SERVICE: serviceName,
       },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
 
-    child.stdout.on('data', (data) => {
+    child.stdout?.on('data', (data) => {
       this.logger.log({
         severity: 'Info',
         summary: serviceName,
-        details: `${data}`,
+        details: data.toString(),
       });
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr?.on('data', (data) => {
       this.logger.log({
         severity: 'Error',
         summary: serviceName,
-        details: `${data}`,
+        details: data.toString(),
       });
     });
 
-    child.on('exit', (code) => {
+    child.on('error', (error) => {
       this.logger.nativeLog({
-        severity: 'Info',
-        summary: `[${serviceName}] exited with code ${code}`,
+        severity: 'Error',
+        summary: `[${serviceName}] failed to start`,
+        details: error.stack ?? error.message,
+      });
+    });
+
+    child.on('exit', (code, signal) => {
+      this.logger.nativeLog({
+        severity: code === 0 ? 'Info' : 'Error',
+        summary: `[${serviceName}] exited`,
+        details: `code=${code}, signal=${signal}`,
       });
     });
 
