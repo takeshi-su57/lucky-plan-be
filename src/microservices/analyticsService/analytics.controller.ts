@@ -63,13 +63,6 @@ export class AnalyticsController implements OnApplicationBootstrap {
           platform,
           dayjs(new Date()).format('YYYY-MM-DD'),
         );
-
-        await this.pnlSnapshotService.removePnlSnapshot(
-          platform,
-          dayjs(new Date())
-            .subtract(360 * 2, 'days')
-            .format('YYYY-MM-DD'),
-        );
       }
     } catch (err) {
       await this.logger.nativeLog({
