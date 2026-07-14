@@ -98,11 +98,9 @@ export class ApiService {
   startSubService(serviceName: string) {
     const isWindows = process.platform === 'win32';
 
-    const command = isWindows ? 'cmd.exe' : 'yarn';
+    const command = isWindows ? 'npm.cmd' : 'npm';
 
-    const args = isWindows ? ['/d', '/s', '/c', 'yarn start'] : ['start'];
-
-    const child = spawn(command, args, {
+    const child = spawn(command, ['run', 'start'], {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -110,6 +108,7 @@ export class ApiService {
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      shell: isWindows,
     });
 
     child.stdout?.on('data', (data) => {
