@@ -72,7 +72,7 @@ export class SimulationResearchAutoRunnerService {
         return;
       }
 
-      const cacheLabel = `${baseLabel} rebuild event-log cache`;
+      const cacheLabel = `${baseLabel} prepare event-log cache`;
       console.time(cacheLabel);
       await this.leaderEventLogCacheService.prebuildForResearch(
         research.platform,
@@ -197,10 +197,6 @@ export class SimulationResearchAutoRunnerService {
       await this.failResearch(id, error);
       return;
     } finally {
-      const clearCacheLabel = `${baseLabel} clear event-log cache`;
-      console.time(clearCacheLabel);
-      await this.leaderEventLogCacheService.clear();
-      console.timeEnd(clearCacheLabel);
       console.timeEnd(totalLabel);
     }
   }

@@ -70,7 +70,6 @@ describe('SimulationResearchAutoRunnerService', () => {
       aggregateSimulationThroughCursor: jest.fn(async () => undefined),
     };
     const leaderEventLogCacheService = {
-      clear: jest.fn(async () => undefined),
       prebuildForResearch: jest.fn(async (...args: unknown[]) => {
         const options = args[3] as {
           onProgress?: (progress: {
@@ -103,7 +102,7 @@ describe('SimulationResearchAutoRunnerService', () => {
       '[simulation:research-auto:31] playAutomaticResearch total',
     );
     expect(timeSpy).toHaveBeenCalledWith(
-      '[simulation:research-auto:31] rebuild event-log cache',
+      '[simulation:research-auto:31] prepare event-log cache',
     );
     expect(timeSpy).toHaveBeenCalledWith(
       '[simulation:research-auto:31] range 1/3 2026-06-30 total',
@@ -119,7 +118,6 @@ describe('SimulationResearchAutoRunnerService', () => {
         },
       },
     });
-    expect(leaderEventLogCacheService.clear).toHaveBeenCalledTimes(1);
     expect(leaderEventLogCacheService.prebuildForResearch).toHaveBeenCalledWith(
       Platform.GNS,
       new Date('2026-01-02T00:00:00.000Z'),
