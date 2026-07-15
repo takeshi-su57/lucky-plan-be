@@ -7,6 +7,7 @@ import {
   CreateSimulationBotInput,
   UpdateSimulationBotInput,
   CreateSimulationResearchInput,
+  UpdateSimulationResearchInput,
   FloatMinMaxInput,
   IntMinMaxInput,
   UpdateSimulationInput,
@@ -690,6 +691,73 @@ export class SimulationsService {
     await this.emitSimulationUpdated(mapped);
 
     return mapped;
+  }
+
+  async updateSimulationResearch(
+    input: UpdateSimulationResearchInput,
+  ): Promise<SimulationResearch> {
+    const title = input.title.trim();
+    const description = input.description.trim();
+
+    if (!title || !description) {
+      throw new Error('Simulation research title and description are required');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const research = await tx.simulationResearch.findUnique({
+        where: { id: input.id },
+        include: { simulations: { select: { id: true } } },
+      });
+
+      if (!research) {
+        throw new Error('Simulation research not found');
+      }
+
+      const simulationIds = research.simulations.map(
+        (simulation) => simulation.id,
+      );
+      await tx.simulationResearch.update({
+        where: { id: input.id },
+        data: { title, description },
+      });
+
+      if (simulationIds.length > 0) {
+        await tx.simulation.updateMany({
+          where: { id: { in: simulationIds } },
+          data: { title, description },
+        });
+
+        const plans = await tx.simulationPlan.findMany({
+          where: { simulationId: { in: simulationIds } },
+          select: { id: true, startAt: true },
+        });
+        await Promise.all(
+          plans.map((plan) =>
+            tx.simulationPlan.update({
+              where: { id: plan.id },
+              data: {
+                title: `${title} ${dayjs(plan.startAt).format('YYYY-MM-DD')}`,
+                description,
+              },
+            }),
+          ),
+        );
+      }
+
+      return tx.simulationResearch.findUniqueOrThrow({
+        where: { id: input.id },
+        include: { simulations: true },
+      });
+    });
+
+    await this.emitSimulationResearchUpdated(input.id);
+    await Promise.all(
+      updated.simulations.map((simulation) =>
+        this.emitSimulationUpdated(this.mapSimulation(simulation)),
+      ),
+    );
+
+    return this.mapSimulationResearch(updated);
   }
 
   private mapSimulation(record: any): Simulation {

@@ -1,6 +1,19 @@
-import { Controller, Inject } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { PubSub } from 'graphql-subscriptions';
+import { AuthGuard } from '@nestjs/passport';
+import { Request, Response } from 'express';
+import { UserPermission } from 'generated/prisma/client';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PATTERNS, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -9,10 +22,41 @@ import {
   SimulationPlan,
   SimulationResearch,
 } from './entities/simulations.entity';
+import { SimulationResearchReportService } from './simulation-research-report.service';
 
 @Controller()
 export class SimulationsController {
-  constructor(@Inject(PUB_SUB) private readonly pubSub: PubSub) {}
+  constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly simulationResearchReportService: SimulationResearchReportService,
+  ) {}
+
+  @Get('simulation-researches/:id/reports/ai')
+  @UseGuards(AuthGuard('jwt'))
+  async downloadAiReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() request: Request & { user?: { permission?: UserPermission } },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // The route is protected by the JWT guard. Keep exports restricted to the
+    // same operational roles that can create and manage simulations.
+    if (
+      request.user?.permission !== UserPermission.Admin &&
+      request.user?.permission !== UserPermission.Trader
+    ) {
+      throw new ForbiddenException(
+        'A Trader or Admin role is required to export research',
+      );
+    }
+    const report =
+      await this.simulationResearchReportService.buildAiStandardZip(id);
+    response.setHeader('Content-Type', 'application/zip');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="simulation-research-${id}-ai-standard.zip"`,
+    );
+    return report;
+  }
 
   @EventPattern(PATTERNS.Simulations.SimulationResearchUpdated)
   async handleSimulationResearchUpdated(

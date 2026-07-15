@@ -27,6 +27,7 @@ import {
   CreateSimulationBotInput,
   UpdateSimulationBotInput,
   CreateSimulationResearchInput,
+  UpdateSimulationResearchInput,
   UpdateSimulationInput,
 } from './dto/simulations.input';
 import { Roles } from '../auth/roles.decorator';
@@ -49,6 +50,15 @@ export class SimulationsResolver {
     @Args('input') input: CreateSimulationResearchInput,
   ) {
     return this.simulationsService.createSimulationResearch(input);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Trader)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  updateSimulationResearch(
+    @Args('input') input: UpdateSimulationResearchInput,
+  ) {
+    return this.simulationsService.updateSimulationResearch(input);
   }
 
   @Mutation(() => Simulation)

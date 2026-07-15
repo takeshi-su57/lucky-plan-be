@@ -277,3 +277,19 @@ export class CreateSimulationResearchInput {
   })
   sizingFormular?: SimulationSizingFormular;
 }
+
+@InputType()
+export class UpdateSimulationResearchInput {
+  @Field(() => Int)
+  id: number;
+
+  @IsNotEmpty()
+  @IsString()
+  @Field()
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Field()
+  description: string;
+}
