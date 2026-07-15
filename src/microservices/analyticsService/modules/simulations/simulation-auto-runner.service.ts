@@ -39,6 +39,7 @@ const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_COLLATERAL_RANGE: ValueRange = { min: 0, max: 1000000000 };
+const DEFAULT_SIZE_RANGE: ValueRange = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE: ValueRange = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE: ValueRange = { min: 0, max: 1 };
 export type SimulationRangeProcessingContext = {
@@ -107,6 +108,7 @@ export class SimulationAutoRunnerService {
       r2: ranges(record.r2, DEFAULT_R2_RANGE),
       slope: ranges(record.slope, DEFAULT_SLOPE_RANGE),
       collateral: ranges(record.collateral, DEFAULT_COLLATERAL_RANGE),
+      size: ranges(record.size, DEFAULT_SIZE_RANGE),
       leverage: ranges(record.leverage, DEFAULT_LEVERAGE_RANGE),
       score: ranges(record.score, DEFAULT_SCORE_RANGE),
       scoreFormular:
@@ -140,6 +142,7 @@ export class SimulationAutoRunnerService {
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
       collateral: this.normalizeResearchGroups(record.collateral),
+      size: this.normalizeResearchGroups(record.size),
       leverage: this.normalizeResearchGroups(record.leverage),
       score: this.normalizeResearchGroups(record.score),
       scoreFormular:

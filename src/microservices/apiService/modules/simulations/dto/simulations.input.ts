@@ -189,6 +189,9 @@ export class UpdateSimulationInput {
   collateral?: FloatMinMaxInput | null;
 
   @Field(() => FloatMinMaxInput, { nullable: true })
+  size?: FloatMinMaxInput | null;
+
+  @Field(() => FloatMinMaxInput, { nullable: true })
   leverage?: FloatMinMaxInput | null;
 
   @Field(() => FloatMinMaxInput, { nullable: true })
@@ -254,6 +257,11 @@ export class CreateSimulationResearchInput {
   @Type(() => FloatRangeGroupInput)
   @Field(() => [FloatRangeGroupInput])
   collateral: FloatRangeGroupInput[];
+
+  @ValidateNested({ each: true })
+  @Type(() => FloatRangeGroupInput)
+  @Field(() => [FloatRangeGroupInput])
+  size: FloatRangeGroupInput[];
 
   @ValidateNested({ each: true })
   @Type(() => FloatRangeGroupInput)

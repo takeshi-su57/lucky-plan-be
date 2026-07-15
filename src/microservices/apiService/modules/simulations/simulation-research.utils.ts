@@ -22,6 +22,7 @@ export type SimulationParameterGridInput = {
   r2: RangeGroup[];
   slope: RangeGroup[];
   collateral: RangeGroup[];
+  size?: RangeGroup[];
   leverage: RangeGroup[];
   score: RangeGroup[];
 };
@@ -32,6 +33,7 @@ export type SimulationParameterCombination = {
   r2: ValueRange[];
   slope: ValueRange[];
   collateral: ValueRange[];
+  size: ValueRange[];
   leverage: ValueRange[];
   score: ValueRange[];
 };
@@ -159,20 +161,25 @@ export function buildSimulationParameterGrid(
         const normalizedSlope = slope.ranges.map(normalizeAbsoluteSlopeBounds);
 
         for (const collateral of input.collateral) {
-          for (const leverage of input.leverage) {
-            for (const score of input.score) {
-              combinations.push({
-                direction: input.direction,
-                trade: trade.ranges.map((range) => ({ ...range })),
-                r2: r2.ranges.map((range) => ({ ...range })),
-                slope: normalizedSlope.map((range) => ({
-                  min: range.minSlope,
-                  max: range.maxSlope,
-                })),
-                collateral: collateral.ranges.map((range) => ({ ...range })),
-                leverage: leverage.ranges.map((range) => ({ ...range })),
-                score: score.ranges.map((range) => ({ ...range })),
-              });
+          for (const size of input.size ?? [
+            { ranges: [{ min: 0, max: 1000000000 }] },
+          ]) {
+            for (const leverage of input.leverage) {
+              for (const score of input.score) {
+                combinations.push({
+                  direction: input.direction,
+                  trade: trade.ranges.map((range) => ({ ...range })),
+                  r2: r2.ranges.map((range) => ({ ...range })),
+                  slope: normalizedSlope.map((range) => ({
+                    min: range.minSlope,
+                    max: range.maxSlope,
+                  })),
+                  collateral: collateral.ranges.map((range) => ({ ...range })),
+                  size: size.ranges.map((range) => ({ ...range })),
+                  leverage: leverage.ranges.map((range) => ({ ...range })),
+                  score: score.ranges.map((range) => ({ ...range })),
+                });
+              }
             }
           }
         }

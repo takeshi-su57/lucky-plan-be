@@ -309,6 +309,7 @@ export class SimulationLeaderEvaluatorService {
         histories,
         {
           collateralRanges: simulation.collateral,
+          sizeRanges: simulation.size,
           leverageRanges: simulation.leverage,
         },
       );

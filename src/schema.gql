@@ -245,6 +245,7 @@ input CreateSimulationResearchInput {
   r2: [FloatRangeGroupInput!]!
   score: [FloatRangeGroupInput!]!
   scoreFormular: SimulationScoreFormular! = RiskAdjustedCopyScore
+  size: [FloatRangeGroupInput!]!
   sizingFormular: SimulationSizingFormular! = ScoreScaledCollateralSizing
   slope: [FloatRangeGroupInput!]!
   startAt: Date!
@@ -829,6 +830,7 @@ type Simulation {
   score: [SimulationValueRange!]!
   scoreFormular: SimulationScoreFormular!
   selectedLeaderCount: Int!
+  size: [SimulationValueRange!]!
   sizingFormular: SimulationSizingFormular!
   slope: [SimulationValueRange!]!
   standardCollateralUsd: Float!
@@ -996,6 +998,7 @@ type SimulationResearch {
   r2: [SimulationValueRangeGroup!]!
   score: [SimulationValueRangeGroup!]!
   scoreFormular: SimulationScoreFormular!
+  size: [SimulationValueRangeGroup!]!
   sizingFormular: SimulationSizingFormular!
   slope: [SimulationValueRangeGroup!]!
   startAt: Date!
@@ -1036,6 +1039,7 @@ type SimulationResearchDetails {
   score: [SimulationValueRangeGroup!]!
   scoreFormular: SimulationScoreFormular!
   simulations: [Simulation!]!
+  size: [SimulationValueRangeGroup!]!
   sizingFormular: SimulationSizingFormular!
   slope: [SimulationValueRangeGroup!]!
   startAt: Date!
@@ -1210,6 +1214,7 @@ input UpdateSimulationInput {
   score: FloatMinMaxInput
   scoreFormular: SimulationScoreFormular
   selectedLeaderCount: Int
+  size: FloatMinMaxInput
   sizingFormular: SimulationSizingFormular
   slope: FloatMinMaxInput
   standardCollateralUsd: Float

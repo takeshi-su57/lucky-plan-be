@@ -111,6 +111,7 @@ export class EventLogsService {
       minLeverage?: number;
       maxLeverage?: number;
       collateralRanges?: Array<{ min: number; max: number }>;
+      sizeRanges?: Array<{ min: number; max: number }>;
       leverageRanges?: Array<{ min: number; max: number }>;
     },
   ): PerpTradePositionsWithSummary {
@@ -171,6 +172,16 @@ export class EventLogsService {
             (range) =>
               history.collateralInUsd >= range.min &&
               history.collateralInUsd <= range.max,
+          )
+        ) {
+          continue;
+        }
+
+        if (
+          filters.sizeRanges &&
+          !filters.sizeRanges.some(
+            (range) =>
+              history.sizeInUsd >= range.min && history.sizeInUsd <= range.max,
           )
         ) {
           continue;

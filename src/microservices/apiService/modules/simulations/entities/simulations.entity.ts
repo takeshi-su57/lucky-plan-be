@@ -333,6 +333,9 @@ export class Simulation {
   collateral: SimulationValueRange[];
 
   @Field(() => [SimulationValueRange])
+  size: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
   leverage: SimulationValueRange[];
 
   @Field(() => [SimulationValueRange])
@@ -443,6 +446,9 @@ export class SimulationResearch {
 
   @Field(() => [SimulationValueRangeGroup])
   collateral: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  size: SimulationValueRangeGroup[];
 
   @Field(() => [SimulationValueRangeGroup])
   leverage: SimulationValueRangeGroup[];

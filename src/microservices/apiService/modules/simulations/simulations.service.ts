@@ -52,6 +52,7 @@ const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE = { min: 0.5, max: 1 };
 const DEFAULT_SLOPE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_COLLATERAL_RANGE = { min: 0, max: 1000000000 };
+const DEFAULT_SIZE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
 const MAX_SIMULATIONS_PER_RESEARCH = 30;
@@ -139,6 +140,10 @@ export class SimulationsService {
       this.validateFloatMinMaxPair('collateral', input.collateral, {
         minAllowed: 0,
       });
+    }
+
+    if (input.size !== undefined && input.size !== null) {
+      this.validateFloatMinMaxPair('size', input.size, { minAllowed: 0 });
     }
 
     if (input.score !== undefined && input.score !== null) {
@@ -296,6 +301,10 @@ export class SimulationsService {
       throw new Error('collateral must contain at least one range');
     }
 
+    if (input.size.length === 0) {
+      throw new Error('size must contain at least one range');
+    }
+
     if (input.score.length === 0) {
       throw new Error('score must contain at least one range');
     }
@@ -335,6 +344,9 @@ export class SimulationsService {
       minAllowed: 0,
     });
     validateGroups('collateral', input.collateral, {
+      minAllowed: 0,
+    });
+    validateGroups('size', input.size, {
       minAllowed: 0,
     });
     validateGroups('score', input.score, {
@@ -424,6 +436,7 @@ export class SimulationsService {
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
       collateral: this.normalizeResearchGroups(record.collateral),
+      size: this.normalizeResearchGroups(record.size),
       leverage: this.normalizeResearchGroups(record.leverage),
       score: this.normalizeResearchGroups(record.score),
       scoreFormular:
@@ -529,6 +542,7 @@ export class SimulationsService {
     const r2 = input.r2;
     const slope = input.slope;
     const collateral = input.collateral;
+    const size = input.size;
     const leverage = input.leverage;
     const score = input.score;
 
@@ -538,6 +552,7 @@ export class SimulationsService {
       r2,
       slope,
       collateral,
+      size,
       leverage,
       score,
     });
@@ -578,6 +593,7 @@ export class SimulationsService {
           r2: this.serializeRangeGroups(r2),
           slope: this.serializeRangeGroups(slope),
           collateral: this.serializeRangeGroups(collateral),
+          size: this.serializeRangeGroups(size),
           leverage: this.serializeRangeGroups(leverage),
           score: this.serializeRangeGroups(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
@@ -613,6 +629,7 @@ export class SimulationsService {
           slope: this.serializeRanges(combination.slope),
           standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
           collateral: this.serializeRanges(combination.collateral),
+          size: this.serializeRanges(combination.size),
           leverage: this.serializeRanges(combination.leverage),
           score: this.serializeRanges(combination.score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
@@ -672,6 +689,10 @@ export class SimulationsService {
         collateral:
           input.collateral !== undefined && input.collateral !== null
             ? this.serializeRange(input.collateral)
+            : undefined,
+        size:
+          input.size !== undefined && input.size !== null
+            ? this.serializeRange(input.size)
             : undefined,
         leverage:
           input.leverage !== undefined && input.leverage !== null
@@ -772,6 +793,7 @@ export class SimulationsService {
         record.collateral,
         DEFAULT_COLLATERAL_RANGE,
       ),
+      size: this.normalizeSimulationRanges(record.size, DEFAULT_SIZE_RANGE),
       leverage: this.normalizeSimulationRanges(
         record.leverage,
         DEFAULT_LEVERAGE_RANGE,

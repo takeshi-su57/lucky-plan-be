@@ -175,6 +175,7 @@ model SimulationResearch {
   slope Json @default("[]")
 
   collateral     Json   @default("[]")
+  size           Json   @default("[]")
   leverage       Json   @default("[]")
   score          Json   @default("[]")
   scoreFormular  String @default("RiskAdjustedCopyScore")
@@ -242,6 +243,7 @@ model Simulation {
 
   standardCollateralUsd Float  @default(100)
   collateral            Json   @default("{\"min\":0,\"max\":1000000000}")
+  size                  Json   @default("{\"min\":0,\"max\":1000000000}")
   leverage              Json   @default("{\"min\":0,\"max\":50}")
   score                 Json   @default("{\"min\":0,\"max\":1}")
   scoreFormular         String @default("RiskAdjustedCopyScore")
