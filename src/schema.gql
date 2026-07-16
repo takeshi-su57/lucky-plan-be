@@ -932,8 +932,8 @@ type SimulationEdge {
 }
 
 type SimulationEvaluatorWorkerCacheView {
-  coveredEndAt: String
-  coveredStartAt: String
+  coveredEndAt: Date
+  coveredStartAt: Date
   lastError: String
   platform: String!
   status: String!
@@ -951,8 +951,8 @@ type SimulationEvaluatorWorkerView {
   displayName: String!
   id: String!
   lastError: String
-  lastHeartbeatAt: String
-  lastTaskAt: String
+  lastHeartbeatAt: Date
+  lastTaskAt: Date
   platformCaches: [SimulationEvaluatorWorkerCacheView!]!
   prebuildProgress: SimulationEvaluatorWorkerPrebuildProgressView
   runtimeStatus: String!

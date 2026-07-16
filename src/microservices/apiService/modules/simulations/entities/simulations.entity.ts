@@ -534,8 +534,10 @@ export class SimulationResearchConnection {
 class SimulationEvaluatorWorkerCacheView {
   @Field(() => String) platform: string;
   @Field(() => String) status: string;
-  @Field(() => String, { nullable: true }) coveredStartAt: Date | null;
-  @Field(() => String, { nullable: true }) coveredEndAt: Date | null;
+  @Field(() => Date, { nullable: true })
+  coveredStartAt: Date | null;
+  @Field(() => Date, { nullable: true })
+  coveredEndAt: Date | null;
   @Field(() => String, { nullable: true }) lastError: string | null;
 }
 
@@ -553,8 +555,9 @@ export class SimulationEvaluatorWorkerView {
   @Field(() => String) displayName: string;
   @Field(() => String) authorizationStatus: string;
   @Field(() => String) runtimeStatus: string;
-  @Field(() => String, { nullable: true }) lastHeartbeatAt: Date | null;
-  @Field(() => String, { nullable: true }) lastTaskAt: Date | null;
+  @Field(() => Date, { nullable: true })
+  lastHeartbeatAt: Date | null;
+  @Field(() => Date, { nullable: true }) lastTaskAt: Date | null;
   @Field(() => String, { nullable: true }) lastError: string | null;
   @Field(() => [SimulationEvaluatorWorkerCacheView])
   platformCaches: SimulationEvaluatorWorkerCacheView[];
