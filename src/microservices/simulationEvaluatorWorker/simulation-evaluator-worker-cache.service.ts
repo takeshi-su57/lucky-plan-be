@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { DatabaseSync } from 'node:sqlite';
 import { promises as fs } from 'fs';
 import { generateKeyPairSync, randomUUID } from 'crypto';
+import { createInterface } from 'readline/promises';
 import { dirname, join } from 'path';
 import { hostname } from 'os';
 
@@ -32,6 +33,7 @@ export class SimulationEvaluatorWorkerCacheService
   implements OnModuleInit, OnModuleDestroy
 {
   private database?: DatabaseSync;
+  private identity?: SimulationEvaluatorWorkerIdentity;
   private readonly cacheDir = join(
     process.cwd(),
     ...SIMULATION_EVALUATOR.workerCacheDirectory,
@@ -61,45 +63,77 @@ export class SimulationEvaluatorWorkerCacheService
         PRIMARY KEY (platform, address, started_at, ended_at)
       ) STRICT;
     `);
-    const identity = this.getWorkerIdentity();
+    const columns = this.database
+      .prepare('PRAGMA table_info(worker_identity)')
+      .all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'display_name')) {
+      this.database.exec('ALTER TABLE worker_identity ADD COLUMN display_name TEXT');
+    }
+    this.identity = this.readWorkerIdentity() || (await this.createWorkerIdentity());
+    const identity = this.identity;
     console.log(
       `[simulation-evaluator-worker] Worker ID: ${identity.workerId} (${identity.displayName})`,
     );
   }
 
   getWorkerIdentity(): SimulationEvaluatorWorkerIdentity {
+    if (!this.identity) {
+      throw new Error('Simulation evaluator worker identity has not initialized');
+    }
+    return this.identity;
+  }
+
+  private readWorkerIdentity(): SimulationEvaluatorWorkerIdentity | undefined {
     const database = this.getDatabase();
     const existing = database
       .prepare(
-        'SELECT worker_id, public_key, private_key FROM worker_identity WHERE id = 1',
+        'SELECT worker_id, display_name, public_key, private_key FROM worker_identity WHERE id = 1',
       )
       .get() as
-      | { worker_id: string; public_key: string; private_key: string }
+      | {
+          worker_id: string;
+          display_name: string | null;
+          public_key: string;
+          private_key: string;
+        }
       | undefined;
     if (existing) {
       return {
         workerId: existing.worker_id,
-        displayName: this.getDisplayName(existing.worker_id),
+        displayName: existing.display_name || this.getDisplayName(existing.worker_id),
         publicKey: existing.public_key,
         privateKey: existing.private_key,
       };
     }
 
+    return undefined;
+  }
+
+  private async createWorkerIdentity(): Promise<SimulationEvaluatorWorkerIdentity> {
+    const database = this.getDatabase();
     const { publicKey, privateKey } = generateKeyPairSync('ed25519');
 
     const identity = {
-      workerId: randomUUID(),
-      displayName: this.getDisplayName(),
+      workerId: '',
+      displayName: '',
       publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
       privateKey: privateKey
         .export({ type: 'pkcs8', format: 'pem' })
         .toString(),
     };
+    const displayName = await this.getInitialDisplayName();
+    identity.displayName = displayName;
+    identity.workerId = `${displayName}_${randomUUID()}`;
     database
       .prepare(
-        'INSERT INTO worker_identity (id, worker_id, public_key, private_key) VALUES (1, ?, ?, ?)',
+        'INSERT INTO worker_identity (id, worker_id, display_name, public_key, private_key) VALUES (1, ?, ?, ?, ?)',
       )
-      .run(identity.workerId, identity.publicKey, identity.privateKey);
+      .run(
+        identity.workerId,
+        identity.displayName,
+        identity.publicKey,
+        identity.privateKey,
+      );
     return identity;
   }
 
@@ -115,6 +149,40 @@ export class SimulationEvaluatorWorkerCacheService
     if (configuredName) return configuredName.slice(0, 128);
     if (hostname()) return hostname().slice(0, 128);
     return `worker-${workerId?.slice(0, 8) || 'unknown'}`;
+  }
+
+  private async getInitialDisplayName() {
+    const configuredName = process.env.SIMULATION_EVALUATOR_WORKER_NAME?.trim();
+    if (configuredName) return this.validateWorkerName(configuredName);
+
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      throw new Error(
+        'SIMULATION_EVALUATOR_WORKER_NAME is required for a first non-interactive worker start',
+      );
+    }
+
+    const readline = createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      while (true) {
+        const name = await readline.question('Simulation evaluator worker name: ');
+        try {
+          return this.validateWorkerName(name.trim());
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : String(error));
+        }
+      }
+    } finally {
+      readline.close();
+    }
+  }
+
+  private validateWorkerName(value: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value)) {
+      throw new Error(
+        'Worker name must be 1-64 characters: letters, numbers, hyphens, or underscores',
+      );
+    }
+    return value;
   }
 
   onModuleDestroy() {

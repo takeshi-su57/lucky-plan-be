@@ -161,7 +161,7 @@ export class SimulationEvaluatorWorkerEvaluationService {
       recordsProcessed += chunk.eventLogs.length;
       bytesDownloaded += chunk.compressedBytes;
 
-      await this.client.heartbeat(taskId, leaseToken, {
+      this.client.reportTaskProgress(taskId, leaseToken, {
         progressRecords: recordsProcessed,
         progressBytes: bytesDownloaded,
         progressMessage: `Cached ${recordsProcessed.toLocaleString()} event logs`,

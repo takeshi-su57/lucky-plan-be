@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { sign } from 'crypto';
+import { randomUUID, sign } from 'crypto';
 import { gunzipSync } from 'zlib';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
@@ -21,14 +21,38 @@ export type ClaimedEvaluatorTask = {
   leaseExpiresAt: string;
 };
 
+type TaskProgressEvent = {
+  id: string;
+  type: 'task-progress';
+  taskId: string;
+  leaseToken: string;
+  progressRecords: number;
+  progressBytes: number;
+  progressMessage: string;
+};
+
+type TaskHeartbeatEvent = {
+  id: string;
+  type: 'task-heartbeat';
+  taskId: string;
+  leaseToken: string;
+};
+
+type WorkerHeartbeatEvent = TaskProgressEvent | TaskHeartbeatEvent;
+
 @Injectable()
 export class SimulationEvaluatorWorkerClientService {
   constructor(private readonly cache: SimulationEvaluatorWorkerCacheService) {}
+  private readonly pendingHeartbeatEvents = new Map<
+    string,
+    WorkerHeartbeatEvent
+  >();
+  private activeTask?: { taskId: string; leaseToken: string };
 
-  async enroll() {
+  async joinHeartbeat() {
     const identity = this.cache.getWorkerIdentity();
     const response = await this.unsignedRequest(
-      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.enrollment}`,
+      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.heartbeat}`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -42,13 +66,72 @@ export class SimulationEvaluatorWorkerClientService {
     return (await response.json()) as { authorizationStatus: string };
   }
 
-  async presence() {
-    await this.request(
-      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.presence}`,
+  async heartbeat() {
+    const events = [
+      ...(this.activeTask
+        ? [
+            {
+              id: randomUUID(),
+              type: 'task-heartbeat' as const,
+              ...this.activeTask,
+            },
+          ]
+        : []),
+      ...this.pendingHeartbeatEvents.values(),
+    ];
+    const queuedEvents = new Map(
+      events
+        .filter((event) => event.type === 'task-progress')
+        .map((event) => [event.id, event]),
+    );
+    const response = await this.request(
+      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.heartbeat}`,
       {
         method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ events }),
       },
     );
+    const result = (await response.json()) as { acceptedEventIds: string[] };
+    for (const id of result.acceptedEventIds) {
+      const sent = queuedEvents.get(id);
+      if (sent && this.pendingHeartbeatEvents.get(id) === sent) {
+        this.pendingHeartbeatEvents.delete(id);
+      }
+    }
+  }
+
+  reportTaskProgress(
+    taskId: string,
+    leaseToken: string,
+    progress: {
+      progressRecords: number;
+      progressBytes: number;
+      progressMessage: string;
+    },
+  ) {
+    const existing = [...this.pendingHeartbeatEvents.values()].find(
+      (event) => event.type === 'task-progress' && event.taskId === taskId,
+    );
+    const event: TaskProgressEvent = {
+      id: existing?.id || randomUUID(),
+      type: 'task-progress',
+      taskId,
+      leaseToken,
+      ...progress,
+    };
+    this.pendingHeartbeatEvents.set(event.id, event);
+  }
+
+  beginTask(taskId: string, leaseToken: string) {
+    this.activeTask = { taskId, leaseToken };
+  }
+
+  endTask(taskId: string) {
+    if (this.activeTask?.taskId === taskId) this.activeTask = undefined;
+    for (const [id, event] of this.pendingHeartbeatEvents) {
+      if (event.taskId === taskId) this.pendingHeartbeatEvents.delete(id);
+    }
   }
 
   async poll() {
@@ -140,25 +223,6 @@ export class SimulationEvaluatorWorkerClientService {
       } | null;
       done: boolean;
     };
-  }
-
-  async heartbeat(
-    taskId: string,
-    leaseToken: string,
-    progress?: {
-      progressRecords: number;
-      progressBytes: number;
-      progressMessage: string;
-    },
-  ) {
-    await this.request(
-      `${SIMULATION_EVALUATOR.gateway.task(taskId)}/heartbeat`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ leaseToken, ...progress }),
-      },
-    );
   }
 
   async complete(

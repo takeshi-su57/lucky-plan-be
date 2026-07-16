@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 
@@ -6,27 +6,41 @@ import { SimulationEvaluatorWorkerClientService } from './simulation-evaluator-w
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
 
 @Injectable()
-export class SimulationEvaluatorWorkerRuntimeService implements OnModuleInit {
+export class SimulationEvaluatorWorkerRuntimeService
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor(
     private readonly client: SimulationEvaluatorWorkerClientService,
     private readonly evaluator: SimulationEvaluatorWorkerEvaluationService,
   ) {}
 
+  private heartbeat?: NodeJS.Timeout;
+  private approved = false;
+  private heartbeatInFlight = false;
+
   onModuleInit() {
+    this.heartbeat = setInterval(
+      () => void this.sendHeartbeat(),
+      SIMULATION_EVALUATOR.heartbeatIntervalMs,
+    );
     void this.run();
+  }
+
+  onModuleDestroy() {
+    if (this.heartbeat) clearInterval(this.heartbeat);
   }
 
   private async run() {
     while (true) {
       try {
-        const enrollment = await this.client.enroll();
-
-        if (enrollment.authorizationStatus !== 'Approved') {
-          await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
-          continue;
+        if (!this.approved) {
+          const enrollment = await this.client.joinHeartbeat();
+          this.approved = enrollment.authorizationStatus === 'Approved';
+          if (!this.approved) {
+            await this.delay(SIMULATION_EVALUATOR.enrollmentRetryDelayMs);
+            continue;
+          }
         }
-
-        await this.client.presence();
 
         const { task } = await this.client.poll();
 
@@ -38,7 +52,7 @@ export class SimulationEvaluatorWorkerRuntimeService implements OnModuleInit {
         await this.processTask(task);
       } catch (error) {
         console.error('[simulation-evaluator-worker]', error);
-        await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
+        await this.delay(SIMULATION_EVALUATOR.enrollmentRetryDelayMs);
       }
     }
   }
@@ -48,12 +62,7 @@ export class SimulationEvaluatorWorkerRuntimeService implements OnModuleInit {
     kind: SimulationEvaluatorTaskKind;
     leaseToken: string;
   }) {
-    const heartbeat = setInterval(() => {
-      void this.client.heartbeat(task.id, task.leaseToken).catch((error) => {
-        console.error('[simulation-evaluator-worker] heartbeat failed', error);
-      });
-    }, SIMULATION_EVALUATOR.heartbeatIntervalMs);
-
+    this.client.beginTask(task.id, task.leaseToken);
     try {
       const { input } = await this.client.getInput(task.id, task.leaseToken);
       let result: Record<string, unknown>;
@@ -86,9 +95,23 @@ export class SimulationEvaluatorWorkerRuntimeService implements OnModuleInit {
           error instanceof Error ? error.message : String(error),
         )
         .catch(() => undefined);
-      throw error;
+      console.error('[simulation-evaluator-worker] task failed', error);
     } finally {
-      clearInterval(heartbeat);
+      this.client.endTask(task.id);
+    }
+  }
+
+  private async sendHeartbeat() {
+    if (this.heartbeatInFlight) return;
+    this.heartbeatInFlight = true;
+    try {
+      if (!this.approved) return;
+      await this.client.heartbeat();
+    } catch (error) {
+      console.error('[simulation-evaluator-worker] heartbeat failed', error);
+      this.approved = false;
+    } finally {
+      this.heartbeatInFlight = false;
     }
   }
 

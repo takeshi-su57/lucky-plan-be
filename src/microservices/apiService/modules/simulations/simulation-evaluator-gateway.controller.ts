@@ -40,6 +40,18 @@ type EnrollmentRequest = {
   displayName?: string;
   publicKey?: string;
 };
+type WorkerHeartbeatEvent = {
+  id?: string;
+  type?: string;
+  taskId?: string;
+  leaseToken?: string;
+  progressRecords?: number;
+  progressBytes?: number;
+  progressMessage?: string;
+};
+type WorkerHeartbeatRequest = EnrollmentRequest & {
+  events?: WorkerHeartbeatEvent[];
+};
 
 @Controller(SIMULATION_EVALUATOR.gateway.basePath)
 export class SimulationEvaluatorGatewayController {
@@ -49,38 +61,82 @@ export class SimulationEvaluatorGatewayController {
     private readonly auth: SimulationEvaluatorWorkerAuthService,
   ) {}
 
-  @Post('enroll')
-  async enroll(@Body() body: EnrollmentRequest) {
-    if (
-      !body.workerId ||
-      !body.publicKey ||
-      body.workerId.length > 128 ||
-      (body.displayName !== undefined && body.displayName.length > 128) ||
-      body.publicKey.length > 10_000
-    ) {
-      throw new BadRequestException('workerId and publicKey are required');
-    }
-
-    return {
-      authorizationStatus: await this.auth.enroll(
-        body.workerId,
-        body.publicKey,
-        body.displayName,
-      ),
-    };
-  }
-
-  @Post('presence')
-  async presence(
+  @Post('heartbeat')
+  async workerHeartbeat(
+    @Body() body: WorkerHeartbeatRequest,
     @Headers() headers: Record<string, string | string[] | undefined>,
   ) {
+    const hasSignature = Boolean(
+      headers['x-simulation-worker-id'] ||
+      headers['x-simulation-worker-timestamp'] ||
+      headers['x-simulation-worker-signature'],
+    );
+
+    if (!hasSignature) {
+      if (
+        !body.workerId ||
+        !body.publicKey ||
+        body.workerId.length > 128 ||
+        (body.displayName !== undefined && body.displayName.length > 128) ||
+        body.publicKey.length > 10_000
+      ) {
+        throw new BadRequestException('workerId and publicKey are required');
+      }
+      return {
+        authorizationStatus: await this.auth.enroll(
+          body.workerId,
+          body.publicKey,
+          body.displayName,
+        ),
+      };
+    }
+
     const workerId = await this.authorize(
       headers,
       'POST',
-      '/internal/simulation-evaluator/presence',
+      '/internal/simulation-evaluator/heartbeat',
     );
     await this.auth.recordPresence(workerId);
-    return { accepted: true };
+    const events = body.events || [];
+    if (!Array.isArray(events) || events.length > 100) {
+      throw new BadRequestException('events must contain at most 100 items');
+    }
+    const acceptedEventIds: string[] = [];
+    for (const event of events) {
+      if (
+        !['task-heartbeat', 'task-progress'].includes(event.type || '') ||
+        !event.id ||
+        !event.taskId ||
+        !event.leaseToken ||
+        event.id.length > 128 ||
+        event.taskId.length > 128 ||
+        event.leaseToken.length > 512
+      ) {
+        throw new BadRequestException('Invalid worker heartbeat event');
+      }
+      if (
+        event.type === 'task-progress' &&
+        (!Number.isSafeInteger(event.progressRecords) ||
+          !Number.isSafeInteger(event.progressBytes) ||
+          typeof event.progressMessage !== 'string')
+      ) {
+        throw new BadRequestException('Invalid task-progress heartbeat event');
+      }
+      await this.tasks.heartbeat(
+        event.taskId,
+        workerId,
+        event.leaseToken,
+        event.type === 'task-progress'
+          ? {
+              progressRecords: event.progressRecords,
+              progressBytes: event.progressBytes,
+              progressMessage: event.progressMessage,
+            }
+          : undefined,
+      );
+      acceptedEventIds.push(event.id);
+    }
+    return { acceptedEventIds };
   }
 
   @Post('poll')

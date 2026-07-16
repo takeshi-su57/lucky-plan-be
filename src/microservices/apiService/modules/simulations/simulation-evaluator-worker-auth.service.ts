@@ -4,13 +4,16 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { verify } from 'crypto';
 
 import {
+  SimulationEvaluatorTaskStatus,
   SimulationEvaluatorWorkerAuthorizationStatus,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
 import { PrismaService } from 'src/global/prisma.service';
+import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 
 const MAX_SIGNATURE_AGE_MS = 2 * 60_000;
 
@@ -30,26 +33,28 @@ export class SimulationEvaluatorWorkerAuthService {
     }
 
     const now = new Date();
-    await this.prisma.simulationEvaluatorWorker.updateMany({
-      where: {
-        id: workerId,
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Offline,
-      },
+    if (existing) {
+      if (
+        existing.authorizationStatus !==
+        SimulationEvaluatorWorkerAuthorizationStatus.Pending
+      ) {
+        return existing.authorizationStatus;
+      }
+      await this.prisma.simulationEvaluatorWorker.update({
+        where: { id: workerId },
+        data: {
+          ...(normalizedDisplayName
+            ? { displayName: normalizedDisplayName }
+            : {}),
+          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
+          lastHeartbeatAt: now,
+        },
+      });
+      return SimulationEvaluatorWorkerAuthorizationStatus.Pending;
+    }
+
+    await this.prisma.simulationEvaluatorWorker.create({
       data: {
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
-        lastHeartbeatAt: now,
-      },
-    });
-    const worker = await this.prisma.simulationEvaluatorWorker.upsert({
-      where: { id: workerId },
-      update: {
-        publicKey,
-        ...(normalizedDisplayName
-          ? { displayName: normalizedDisplayName }
-          : {}),
-        lastHeartbeatAt: now,
-      },
-      create: {
         id: workerId,
         publicKey,
         displayName: normalizedDisplayName,
@@ -59,7 +64,7 @@ export class SimulationEvaluatorWorkerAuthService {
         lastHeartbeatAt: now,
       },
     });
-    return worker.authorizationStatus;
+    return SimulationEvaluatorWorkerAuthorizationStatus.Pending;
   }
 
   async authenticate(input: {
@@ -114,7 +119,12 @@ export class SimulationEvaluatorWorkerAuthService {
     const becameFree = await this.prisma.simulationEvaluatorWorker.updateMany({
       where: {
         id: workerId,
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
+        runtimeStatus: {
+          in: [
+            SimulationEvaluatorWorkerRuntimeStatus.Online,
+            SimulationEvaluatorWorkerRuntimeStatus.Offline,
+          ],
+        },
       },
       data: {
         runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
@@ -133,10 +143,19 @@ export class SimulationEvaluatorWorkerAuthService {
     await this.prisma.simulationEvaluatorWorker.updateMany({
       where: {
         runtimeStatus: { not: SimulationEvaluatorWorkerRuntimeStatus.Offline },
-        lastHeartbeatAt: { lt: new Date(Date.now() - 90_000) },
+        lastHeartbeatAt: {
+          lt: new Date(
+            Date.now() - SIMULATION_EVALUATOR.workerHeartbeatTimeoutMs,
+          ),
+        },
       },
       data: { runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Offline },
     });
+  }
+
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async reconcileOfflineWorkerSchedule() {
+    await this.reconcileOfflineWorkers();
   }
 
   async approve(workerId: string) {
@@ -164,15 +183,20 @@ export class SimulationEvaluatorWorkerAuthService {
   }
 
   async removeRejected(workerId: string) {
+    const activeTask = await this.prisma.simulationEvaluatorTask.findFirst({
+      where: { workerId, status: SimulationEvaluatorTaskStatus.Claimed },
+      select: { id: true },
+    });
+    if (activeTask) {
+      throw new ConflictException(
+        'A worker with an active task cannot be removed',
+      );
+    }
     const deleted = await this.prisma.simulationEvaluatorWorker.deleteMany({
-      where: {
-        id: workerId,
-        authorizationStatus:
-          SimulationEvaluatorWorkerAuthorizationStatus.Rejected,
-      },
+      where: { id: workerId },
     });
     if (deleted.count === 0) {
-      throw new NotFoundException('Rejected worker request was not found');
+      throw new NotFoundException('Simulation evaluator worker was not found');
     }
     return true;
   }
