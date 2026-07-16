@@ -35,7 +35,11 @@ type EventLogRequest = LeaseRequest & {
     contractId?: number;
   };
 };
-type EnrollmentRequest = { workerId?: string; publicKey?: string };
+type EnrollmentRequest = {
+  workerId?: string;
+  displayName?: string;
+  publicKey?: string;
+};
 
 @Controller(SIMULATION_EVALUATOR.gateway.basePath)
 export class SimulationEvaluatorGatewayController {
@@ -51,6 +55,7 @@ export class SimulationEvaluatorGatewayController {
       !body.workerId ||
       !body.publicKey ||
       body.workerId.length > 128 ||
+      (body.displayName !== undefined && body.displayName.length > 128) ||
       body.publicKey.length > 10_000
     ) {
       throw new BadRequestException('workerId and publicKey are required');
@@ -60,6 +65,7 @@ export class SimulationEvaluatorGatewayController {
       authorizationStatus: await this.auth.enroll(
         body.workerId,
         body.publicKey,
+        body.displayName,
       ),
     };
   }

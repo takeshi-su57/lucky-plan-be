@@ -255,6 +255,7 @@ enum SimulationEvaluatorWorkerPlatformCacheStatus {
 
 model SimulationEvaluatorWorker {
   id                  String                                      @id
+  displayName         String?
   publicKey           String?                                     @unique
   authorizationStatus SimulationEvaluatorWorkerAuthorizationStatus @default(Pending)
   runtimeStatus       SimulationEvaluatorWorkerRuntimeStatus      @default(Offline)

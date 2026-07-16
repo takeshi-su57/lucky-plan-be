@@ -550,6 +550,7 @@ class SimulationEvaluatorWorkerPrebuildProgressView {
 @ObjectType()
 export class SimulationEvaluatorWorkerView {
   @Field(() => String) id: string;
+  @Field(() => String) displayName: string;
   @Field(() => String) authorizationStatus: string;
   @Field(() => String) runtimeStatus: string;
   @Field(() => String, { nullable: true }) lastHeartbeatAt: Date | null;

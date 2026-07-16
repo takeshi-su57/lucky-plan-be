@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { promises as fs } from 'fs';
 import { generateKeyPairSync, randomUUID } from 'crypto';
 import { dirname, join } from 'path';
+import { hostname } from 'os';
 
 import { Platform } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
@@ -17,6 +18,13 @@ export type WorkerCachedEventLog = {
   transactionHash: string;
   jsonLog: string;
   usdPnl: number;
+};
+
+export type SimulationEvaluatorWorkerIdentity = {
+  workerId: string;
+  displayName: string;
+  publicKey: string;
+  privateKey: string;
 };
 
 @Injectable()
@@ -53,11 +61,16 @@ export class SimulationEvaluatorWorkerCacheService
         PRIMARY KEY (platform, address, started_at, ended_at)
       ) STRICT;
     `);
+    const identity = this.getWorkerIdentity();
+    console.log(
+      `[simulation-evaluator-worker] Worker ID: ${identity.workerId} (${identity.displayName})`,
+    );
   }
 
-  getWorkerIdentity() {
-    const existing = this.database
-      ?.prepare(
+  getWorkerIdentity(): SimulationEvaluatorWorkerIdentity {
+    const database = this.getDatabase();
+    const existing = database
+      .prepare(
         'SELECT worker_id, public_key, private_key FROM worker_identity WHERE id = 1',
       )
       .get() as
@@ -66,6 +79,7 @@ export class SimulationEvaluatorWorkerCacheService
     if (existing) {
       return {
         workerId: existing.worker_id,
+        displayName: this.getDisplayName(existing.worker_id),
         publicKey: existing.public_key,
         privateKey: existing.private_key,
       };
@@ -75,17 +89,32 @@ export class SimulationEvaluatorWorkerCacheService
 
     const identity = {
       workerId: randomUUID(),
+      displayName: this.getDisplayName(),
       publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
       privateKey: privateKey
         .export({ type: 'pkcs8', format: 'pem' })
         .toString(),
     };
-    this.database
-      ?.prepare(
+    database
+      .prepare(
         'INSERT INTO worker_identity (id, worker_id, public_key, private_key) VALUES (1, ?, ?, ?)',
       )
       .run(identity.workerId, identity.publicKey, identity.privateKey);
     return identity;
+  }
+
+  private getDatabase() {
+    if (!this.database) {
+      throw new Error('Simulation evaluator worker cache has not initialized');
+    }
+    return this.database;
+  }
+
+  private getDisplayName(workerId?: string) {
+    const configuredName = process.env.SIMULATION_EVALUATOR_WORKER_NAME?.trim();
+    if (configuredName) return configuredName.slice(0, 128);
+    if (hostname()) return hostname().slice(0, 128);
+    return `worker-${workerId?.slice(0, 8) || 'unknown'}`;
   }
 
   onModuleDestroy() {

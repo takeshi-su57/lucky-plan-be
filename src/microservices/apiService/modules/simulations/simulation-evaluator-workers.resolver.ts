@@ -47,6 +47,7 @@ export class SimulationEvaluatorWorkersResolver {
       const task = taskByWorkerId.get(worker.id);
       return {
         ...worker,
+        displayName: worker.displayName || `worker-${worker.id.slice(0, 8)}`,
         prebuildProgress: task
           ? {
               taskId: task.id,
@@ -71,6 +72,13 @@ export class SimulationEvaluatorWorkersResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   rejectSimulationEvaluatorWorker(@Args('workerId') workerId: string) {
     return this.auth.reject(workerId);
+  }
+
+  @Mutation(() => Boolean)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  removeRejectedSimulationEvaluatorWorker(@Args('workerId') workerId: string) {
+    return this.auth.removeRejected(workerId);
   }
 
   @Mutation(() => String)

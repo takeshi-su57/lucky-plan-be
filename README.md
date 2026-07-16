@@ -178,7 +178,7 @@ Run an external evaluator worker:
 $env:SERVICE="SIMULATION_EVALUATOR_WORKER_SERVICE"; npm run start:prod
 ```
 
-Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite identity and event-log cache at `.cache/simulation-evaluator-worker` in the source directory. On first startup it requests enrollment; an administrator must approve it in the worker control panel before it receives work. Nginx terminates HTTPS in front of `API_SERVICE`; workers never receive Postgres, Redis, or BullMQ credentials.
+Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite identity and event-log cache at `.cache/simulation-evaluator-worker` in the source directory. This directory contains the worker ID and key pair, so it must persist across restarts. Set `SIMULATION_EVALUATOR_WORKER_NAME` to a recognizable label (for example, `evaluator-eu-1`) so administrators can identify the worker in the control panel. On first startup it requests enrollment; an administrator must approve it in the worker control panel before it receives work. Nginx terminates HTTPS in front of `API_SERVICE`; workers never receive Postgres, Redis, or BullMQ credentials.
 
 On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
 

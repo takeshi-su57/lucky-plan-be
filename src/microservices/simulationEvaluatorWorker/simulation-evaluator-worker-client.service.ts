@@ -34,6 +34,7 @@ export class SimulationEvaluatorWorkerClientService {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           workerId: identity.workerId,
+          displayName: identity.displayName,
           publicKey: identity.publicKey,
         }),
       },

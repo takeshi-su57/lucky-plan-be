@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { verify } from 'crypto';
@@ -17,7 +18,8 @@ const MAX_SIGNATURE_AGE_MS = 2 * 60_000;
 export class SimulationEvaluatorWorkerAuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async enroll(workerId: string, publicKey: string) {
+  async enroll(workerId: string, publicKey: string, displayName?: string) {
+    const normalizedDisplayName = displayName?.trim() || null;
     const existing = await this.prisma.simulationEvaluatorWorker.findUnique({
       where: { id: workerId },
     });
@@ -42,11 +44,15 @@ export class SimulationEvaluatorWorkerAuthService {
       where: { id: workerId },
       update: {
         publicKey,
+        ...(normalizedDisplayName
+          ? { displayName: normalizedDisplayName }
+          : {}),
         lastHeartbeatAt: now,
       },
       create: {
         id: workerId,
         publicKey,
+        displayName: normalizedDisplayName,
         authorizationStatus:
           SimulationEvaluatorWorkerAuthorizationStatus.Pending,
         runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
@@ -155,5 +161,19 @@ export class SimulationEvaluatorWorkerAuthService {
         runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Offline,
       },
     });
+  }
+
+  async removeRejected(workerId: string) {
+    const deleted = await this.prisma.simulationEvaluatorWorker.deleteMany({
+      where: {
+        id: workerId,
+        authorizationStatus:
+          SimulationEvaluatorWorkerAuthorizationStatus.Rejected,
+      },
+    });
+    if (deleted.count === 0) {
+      throw new NotFoundException('Rejected worker request was not found');
+    }
+    return true;
   }
 }
