@@ -1,4 +1,8 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 
@@ -7,7 +11,7 @@ import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluat
 
 @Injectable()
 export class SimulationEvaluatorWorkerRuntimeService
-  implements OnModuleInit, OnModuleDestroy
+  implements OnApplicationBootstrap, OnModuleDestroy
 {
   constructor(
     private readonly client: SimulationEvaluatorWorkerClientService,
@@ -18,7 +22,10 @@ export class SimulationEvaluatorWorkerRuntimeService
   private approved = false;
   private heartbeatInFlight = false;
 
-  onModuleInit() {
+  onApplicationBootstrap() {
+    // The cache service creates/loads the worker identity during module
+    // initialization. Starting here guarantees it is available before the
+    // first enrollment or heartbeat request.
     this.heartbeat = setInterval(
       () => void this.sendHeartbeat(),
       SIMULATION_EVALUATOR.heartbeatIntervalMs,
@@ -109,7 +116,9 @@ export class SimulationEvaluatorWorkerRuntimeService
       await this.client.heartbeat();
     } catch (error) {
       console.error('[simulation-evaluator-worker] heartbeat failed', error);
-      this.approved = false;
+      // A transport error must not stop task heartbeats. Doing so lets an
+      // otherwise healthy long-running task lose its lease after one dropped
+      // connection. Keep the enrollment state and let the next interval retry.
     } finally {
       this.heartbeatInFlight = false;
     }

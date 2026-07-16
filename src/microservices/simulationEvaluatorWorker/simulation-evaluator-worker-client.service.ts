@@ -271,8 +271,12 @@ export class SimulationEvaluatorWorkerClientService {
       identity.privateKey,
     ).toString('base64');
 
+    // A hung TCP request used to keep heartbeatInFlight true indefinitely.
+    // Keep the timeout comfortably below the task lease so a later interval
+    // can renew a long-running prebuild lease.
     const response = await fetch(new URL(path, baseUrl), {
       ...init,
+      signal: init.signal ?? AbortSignal.timeout(20_000),
       headers: {
         'x-simulation-worker-id': identity.workerId,
         'x-simulation-worker-timestamp': timestamp,
@@ -297,7 +301,10 @@ export class SimulationEvaluatorWorkerClientService {
       throw new Error('SIMULATION_EVALUATOR_GATEWAY_URL is required');
     }
 
-    const response = await fetch(new URL(path, baseUrl), init);
+    const response = await fetch(new URL(path, baseUrl), {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(20_000),
+    });
 
     if (!response.ok) {
       throw new Error(
