@@ -148,6 +148,7 @@ export class SimulationEvaluatorWorkerEvaluationService {
       null;
     let recordsProcessed = 0;
     let bytesDownloaded = 0;
+    let totalRecords = 0;
 
     while (true) {
       const chunk = await this.client.getPrebuildChunk(
@@ -158,13 +159,24 @@ export class SimulationEvaluatorWorkerEvaluationService {
 
       await this.cache.mergeEventLogs(chunk.eventLogs);
 
+      totalRecords = chunk.totalRecords ?? totalRecords;
       recordsProcessed += chunk.eventLogs.length;
       bytesDownloaded += chunk.compressedBytes;
+      const progressPercent = totalRecords
+        ? Math.min(100, (recordsProcessed / totalRecords) * 100)
+        : chunk.done
+          ? 100
+          : 0;
 
       this.client.reportTaskProgress(taskId, leaseToken, {
+        progressPercent,
         progressRecords: recordsProcessed,
+        progressTotalRecords: totalRecords,
         progressBytes: bytesDownloaded,
-        progressMessage: `Cached ${recordsProcessed.toLocaleString()} event logs`,
+        progressMessage:
+          totalRecords || chunk.done
+            ? `Cached ${recordsProcessed.toLocaleString()} of ${totalRecords.toLocaleString()} event logs (${progressPercent.toFixed(1)}%)`
+            : 'Checking event logs to cache',
       });
 
       if (chunk.done) {
@@ -181,6 +193,8 @@ export class SimulationEvaluatorWorkerEvaluationService {
       coveredStartAt: startedAt.toISOString(),
       coveredEndAt: endedAt.toISOString(),
       progressRecords: recordsProcessed,
+      progressTotalRecords: totalRecords,
+      progressPercent: 100,
       progressBytes: bytesDownloaded,
     };
   }

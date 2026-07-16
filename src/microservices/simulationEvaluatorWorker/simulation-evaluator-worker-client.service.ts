@@ -26,7 +26,9 @@ type TaskProgressEvent = {
   type: 'task-progress';
   taskId: string;
   leaseToken: string;
+  progressPercent: number;
   progressRecords: number;
+  progressTotalRecords: number;
   progressBytes: number;
   progressMessage: string;
 };
@@ -105,7 +107,9 @@ export class SimulationEvaluatorWorkerClientService {
     taskId: string,
     leaseToken: string,
     progress: {
+      progressPercent: number;
       progressRecords: number;
+      progressTotalRecords: number;
       progressBytes: number;
       progressMessage: string;
     },
@@ -181,6 +185,7 @@ export class SimulationEvaluatorWorkerClientService {
         logIndex: number;
       } | null;
       done: boolean;
+      totalRecords?: number;
     };
     return { ...chunk, compressedBytes: compressed.length };
   }

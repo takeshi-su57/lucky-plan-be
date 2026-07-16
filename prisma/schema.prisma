@@ -289,7 +289,7 @@ model SimulationEvaluatorWorkerPlatformCache {
 
   worker SimulationEvaluatorWorker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
-  @@unique([workerId, platform])
+  @@unique([workerId, platform, coveredStartAt, coveredEndAt])
   @@index([platform, status, coveredStartAt, coveredEndAt])
 }
 
@@ -445,6 +445,7 @@ model SimulationEvaluatorTask {
   progressMessage String?
   progressBytes   BigInt @default(0)
   progressRecords BigInt @default(0)
+  progressTotalRecords BigInt @default(0)
 
   simulation     Simulation?    @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   simulationPlan SimulationPlan? @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)

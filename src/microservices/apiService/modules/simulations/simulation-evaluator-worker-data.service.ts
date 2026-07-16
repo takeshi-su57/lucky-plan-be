@@ -148,6 +148,16 @@ export class SimulationEvaluatorWorkerDataService {
     const taskInput = task.input as EvaluationTaskInput;
     const platform = this.getPlatform(taskInput);
     const window = this.getEventLogWindow(taskInput);
+    const where = {
+      platform,
+      date: { gte: window.startedAt, lt: window.endedAt },
+    };
+
+    // Count only once per task, on the first chunk. The worker carries the
+    // value forward while subsequent chunk requests stay inexpensive.
+    const totalRecords = input.cursor
+      ? undefined
+      : await this.prisma.perpTradingEventLog.count({ where });
 
     const eventLogs = await this.prisma.perpTradingEventLog.findMany({
       select: {
@@ -162,8 +172,7 @@ export class SimulationEvaluatorWorkerDataService {
         usdPnl: true,
       },
       where: {
-        platform,
-        date: { gte: window.startedAt, lt: window.endedAt },
+        ...where,
         ...(input.cursor
           ? {
               OR: [
@@ -189,6 +198,7 @@ export class SimulationEvaluatorWorkerDataService {
 
     return {
       eventLogs,
+      totalRecords,
       nextCursor: last
         ? {
             contractId: last.contractId,

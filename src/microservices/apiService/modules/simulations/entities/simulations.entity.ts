@@ -546,6 +546,8 @@ class SimulationEvaluatorWorkerPrebuildProgressView {
   @Field(() => String) taskId: string;
   @Field(() => String) message: string;
   @Field(() => String) records: string;
+  @Field(() => String) totalRecords: string;
+  @Field(() => Float) percent: number;
   @Field(() => String) bytes: string;
 }
 

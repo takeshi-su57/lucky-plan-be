@@ -942,8 +942,10 @@ type SimulationEvaluatorWorkerCacheView {
 type SimulationEvaluatorWorkerPrebuildProgressView {
   bytes: String!
   message: String!
+  percent: Float!
   records: String!
   taskId: String!
+  totalRecords: String!
 }
 
 type SimulationEvaluatorWorkerView {

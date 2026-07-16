@@ -19,7 +19,9 @@ import { SimulationEvaluatorWorkerAuthService } from './simulation-evaluator-wor
 
 type LeaseRequest = {
   leaseToken?: string;
+  progressPercent?: number;
   progressRecords?: number;
+  progressTotalRecords?: number;
   progressBytes?: number;
   progressMessage?: string;
 };
@@ -45,7 +47,9 @@ type WorkerHeartbeatEvent = {
   type?: string;
   taskId?: string;
   leaseToken?: string;
+  progressPercent?: number;
   progressRecords?: number;
+  progressTotalRecords?: number;
   progressBytes?: number;
   progressMessage?: string;
 };
@@ -114,29 +118,51 @@ export class SimulationEvaluatorGatewayController {
       ) {
         throw new BadRequestException('Invalid worker heartbeat event');
       }
-      if (
-        event.type === 'task-progress' &&
-        (!Number.isSafeInteger(event.progressRecords) ||
-          !Number.isSafeInteger(event.progressBytes) ||
-          typeof event.progressMessage !== 'string')
-      ) {
-        throw new BadRequestException('Invalid task-progress heartbeat event');
-      }
+      const progress = this.getTaskProgress(event);
       await this.tasks.heartbeat(
         event.taskId,
         workerId,
         event.leaseToken,
-        event.type === 'task-progress'
-          ? {
-              progressRecords: event.progressRecords,
-              progressBytes: event.progressBytes,
-              progressMessage: event.progressMessage,
-            }
-          : undefined,
+        progress,
       );
       acceptedEventIds.push(event.id);
     }
     return { acceptedEventIds };
+  }
+
+  private getTaskProgress(event: WorkerHeartbeatEvent) {
+    if (event.type !== 'task-progress') return undefined;
+    const {
+      progressPercent,
+      progressRecords,
+      progressTotalRecords,
+      progressBytes,
+      progressMessage,
+    } = event;
+    if (
+      typeof progressRecords !== 'number' ||
+      !Number.isSafeInteger(progressRecords) ||
+      progressRecords < 0 ||
+      typeof progressTotalRecords !== 'number' ||
+      !Number.isSafeInteger(progressTotalRecords) ||
+      progressTotalRecords < 0 ||
+      typeof progressPercent !== 'number' ||
+      progressPercent < 0 ||
+      progressPercent > 100 ||
+      typeof progressBytes !== 'number' ||
+      !Number.isSafeInteger(progressBytes) ||
+      progressBytes < 0 ||
+      typeof progressMessage !== 'string'
+    ) {
+      throw new BadRequestException('Invalid task-progress heartbeat event');
+    }
+    return {
+      progressPercent,
+      progressRecords,
+      progressTotalRecords,
+      progressBytes,
+      progressMessage,
+    };
   }
 
   @Post('poll')
@@ -170,9 +196,14 @@ export class SimulationEvaluatorGatewayController {
       taskId,
       workerId,
       body.leaseToken,
-      body.progressRecords !== undefined || body.progressBytes !== undefined
+      body.progressPercent !== undefined ||
+        body.progressRecords !== undefined ||
+        body.progressTotalRecords !== undefined ||
+        body.progressBytes !== undefined
         ? {
+            progressPercent: body.progressPercent,
             progressRecords: body.progressRecords,
+            progressTotalRecords: body.progressTotalRecords,
             progressBytes: body.progressBytes,
             progressMessage: body.progressMessage,
           }

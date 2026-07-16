@@ -4,7 +4,11 @@ import { Platform, UserPermission } from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationEvaluatorTaskService } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-task.service';
-import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
+import {
+  SimulationEvaluatorTaskKind,
+  SimulationEvaluatorWorkerPlatformCacheStatus,
+} from 'generated/prisma/enums';
+import { missingRanges } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-coverage';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -38,7 +42,9 @@ export class SimulationEvaluatorWorkersResolver {
         id: true,
         workerId: true,
         progressMessage: true,
+        progressPercent: true,
         progressRecords: true,
+        progressTotalRecords: true,
         progressBytes: true,
       },
     });
@@ -52,7 +58,9 @@ export class SimulationEvaluatorWorkersResolver {
           ? {
               taskId: task.id,
               message: task.progressMessage || 'Starting prebuild',
+              percent: task.progressPercent,
               records: task.progressRecords.toString(),
+              totalRecords: task.progressTotalRecords.toString(),
               bytes: task.progressBytes.toString(),
             }
           : undefined,
@@ -100,20 +108,46 @@ export class SimulationEvaluatorWorkersResolver {
       startedAt >= endedAt
     )
       throw new Error('Invalid cache range');
-    const task = await this.tasks.createTask({
-      kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
-      targetWorkerId: workerId,
-      platform: platformText as Platform,
-      requiredCacheStartAt: startedAt,
-      requiredCacheEndAt: endedAt,
-      rangeStartedAt: startedAt,
-      rangeEndedAt: endedAt,
-      input: {
-        platform: platformText,
-        eventLogWindowStartedAt: startedAt.toISOString(),
-        eventLogWindowEndedAt: endedAt.toISOString(),
-      },
-    });
-    return task.id;
+    const platform = platformText as Platform;
+    const fragments =
+      await this.prisma.simulationEvaluatorWorkerPlatformCache.findMany({
+        where: {
+          workerId,
+          platform,
+          status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+          coveredStartAt: { not: null },
+          coveredEndAt: { not: null },
+        },
+        select: { coveredStartAt: true, coveredEndAt: true },
+      });
+    const missing = missingRanges(
+      fragments.map((fragment) => ({
+        coveredStartAt: fragment.coveredStartAt!,
+        coveredEndAt: fragment.coveredEndAt!,
+      })),
+      startedAt,
+      endedAt,
+    );
+    const tasks = await Promise.all(
+      missing.map((range) =>
+        this.tasks.createTask({
+          kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
+          targetWorkerId: workerId,
+          platform,
+          requiredCacheStartAt: range.coveredStartAt,
+          requiredCacheEndAt: range.coveredEndAt,
+          rangeStartedAt: range.coveredStartAt,
+          rangeEndedAt: range.coveredEndAt,
+          input: {
+            platform,
+            eventLogWindowStartedAt: range.coveredStartAt.toISOString(),
+            eventLogWindowEndedAt: range.coveredEndAt.toISOString(),
+          },
+        }),
+      ),
+    );
+    // The GraphQL contract predates multi-fragment prebuilds. Return all task
+    // IDs while callers that only need success can continue ignoring the value.
+    return tasks.map((task) => task.id).join(',');
   }
 }

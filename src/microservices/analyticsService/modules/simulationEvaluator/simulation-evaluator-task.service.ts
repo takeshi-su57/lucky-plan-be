@@ -24,6 +24,7 @@ import {
   CreateSimulationEvaluatorTaskInput,
 } from './simulation-evaluator-task.types';
 import { SIMULATION_EVALUATOR } from './simulation-evaluator.constants';
+import { coversRange, mergeRanges } from './simulation-evaluator-coverage';
 
 @Injectable()
 export class SimulationEvaluatorTaskService
@@ -128,7 +129,7 @@ export class SimulationEvaluatorTaskService
     requiredCacheEndAt: Date,
   ) {
     const heartbeatCutoff = this.getWorkerHeartbeatCutoff();
-    return this.prisma.simulationEvaluatorWorker.count({
+    const workers = await this.prisma.simulationEvaluatorWorker.findMany({
       where: {
         authorizationStatus:
           SimulationEvaluatorWorkerAuthorizationStatus.Approved,
@@ -138,12 +139,30 @@ export class SimulationEvaluatorTaskService
           some: {
             platform,
             status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
-            coveredStartAt: { lte: requiredCacheStartAt },
-            coveredEndAt: { gte: requiredCacheEndAt },
+          },
+        },
+      },
+      include: {
+        platformCaches: {
+          where: {
+            platform,
+            status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+            coveredStartAt: { not: null },
+            coveredEndAt: { not: null },
           },
         },
       },
     });
+    return workers.filter((worker) =>
+      coversRange(
+        worker.platformCaches.map((cache) => ({
+          coveredStartAt: cache.coveredStartAt!,
+          coveredEndAt: cache.coveredEndAt!,
+        })),
+        requiredCacheStartAt,
+        requiredCacheEndAt,
+      ),
+    ).length;
   }
 
   async claimNextTask(
@@ -197,20 +216,15 @@ export class SimulationEvaluatorTaskService
       return null;
     }
 
-    const compatibleCacheClauses = worker.platformCaches
-      .filter(
-        (cache) =>
-          cache.status === SimulationEvaluatorWorkerPlatformCacheStatus.Ready &&
-          cache.coveredStartAt !== null &&
-          cache.coveredEndAt !== null,
-      )
-      .map((cache) => ({
-        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
-        platform: cache.platform,
-        requiredCacheStartAt: { gte: cache.coveredStartAt! },
-        requiredCacheEndAt: { lte: cache.coveredEndAt! },
-        OR: [{ targetWorkerId: null }, { targetWorkerId: workerId }],
-      }));
+    const readyCaches = worker.platformCaches.filter(
+      (cache) =>
+        cache.status === SimulationEvaluatorWorkerPlatformCacheStatus.Ready &&
+        cache.coveredStartAt !== null &&
+        cache.coveredEndAt !== null,
+    );
+    const cachedPlatforms = [
+      ...new Set(readyCaches.map((cache) => cache.platform)),
+    ];
 
     const readyTasks = await this.prisma.simulationEvaluatorTask.findMany({
       where: {
@@ -220,7 +234,15 @@ export class SimulationEvaluatorTaskService
             kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
             targetWorkerId: workerId,
           },
-          ...compatibleCacheClauses,
+          ...(cachedPlatforms.length
+            ? [
+                {
+                  kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+                  platform: { in: cachedPlatforms },
+                  OR: [{ targetWorkerId: null }, { targetWorkerId: workerId }],
+                },
+              ]
+            : []),
         ],
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -236,14 +258,15 @@ export class SimulationEvaluatorTaskService
         !task.requiredCacheEndAt
       )
         return false;
-      return worker.platformCaches.some(
-        (cache) =>
-          cache.platform === task.platform &&
-          cache.status === SimulationEvaluatorWorkerPlatformCacheStatus.Ready &&
-          cache.coveredStartAt !== null &&
-          cache.coveredEndAt !== null &&
-          cache.coveredStartAt <= task.requiredCacheStartAt! &&
-          cache.coveredEndAt >= task.requiredCacheEndAt!,
+      return coversRange(
+        readyCaches
+          .filter((cache) => cache.platform === task.platform)
+          .map((cache) => ({
+            coveredStartAt: cache.coveredStartAt!,
+            coveredEndAt: cache.coveredEndAt!,
+          })),
+        task.requiredCacheStartAt,
+        task.requiredCacheEndAt,
       );
     });
     if (!readyTask) {
@@ -297,24 +320,32 @@ export class SimulationEvaluatorTaskService
       readyTask.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache &&
       readyTask.platform
     ) {
-      await this.prisma.simulationEvaluatorWorkerPlatformCache.upsert({
-        where: {
-          workerId_platform: { workerId, platform: readyTask.platform },
-        },
-        update: {
-          status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
-          buildingStartAt: readyTask.requiredCacheStartAt,
-          buildingEndAt: readyTask.requiredCacheEndAt,
-          lastError: null,
-        },
-        create: {
-          workerId,
-          platform: readyTask.platform,
-          status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
-          buildingStartAt: readyTask.requiredCacheStartAt,
-          buildingEndAt: readyTask.requiredCacheEndAt,
-        },
-      });
+      const building =
+        await this.prisma.simulationEvaluatorWorkerPlatformCache.updateMany({
+          where: {
+            workerId,
+            platform: readyTask.platform,
+            status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+            buildingStartAt: readyTask.requiredCacheStartAt,
+            buildingEndAt: readyTask.requiredCacheEndAt,
+          },
+          data: {
+            status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+            buildingStartAt: readyTask.requiredCacheStartAt,
+            buildingEndAt: readyTask.requiredCacheEndAt,
+            lastError: null,
+          },
+        });
+      if (!building.count)
+        await this.prisma.simulationEvaluatorWorkerPlatformCache.create({
+          data: {
+            workerId,
+            platform: readyTask.platform,
+            status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+            buildingStartAt: readyTask.requiredCacheStartAt,
+            buildingEndAt: readyTask.requiredCacheEndAt,
+          },
+        });
     }
 
     return {
@@ -336,7 +367,9 @@ export class SimulationEvaluatorTaskService
     workerId: string,
     leaseToken: string,
     progress?: {
+      progressPercent?: number;
       progressRecords?: number;
+      progressTotalRecords?: number;
       progressBytes?: number;
       progressMessage?: string;
     },
@@ -356,8 +389,18 @@ export class SimulationEvaluatorTaskService
       },
       data: {
         leaseExpiresAt,
-        ...(Number.isSafeInteger(progress?.progressRecords)
+        ...(typeof progress?.progressPercent === 'number' &&
+        progress.progressPercent >= 0 &&
+        progress.progressPercent <= 100
+          ? { progressPercent: progress.progressPercent }
+          : {}),
+        ...(Number.isSafeInteger(progress?.progressRecords) &&
+        (progress?.progressRecords ?? -1) >= 0
           ? { progressRecords: BigInt(progress!.progressRecords!) }
+          : {}),
+        ...(Number.isSafeInteger(progress?.progressTotalRecords) &&
+        (progress?.progressTotalRecords ?? -1) >= 0
+          ? { progressTotalRecords: BigInt(progress!.progressTotalRecords!) }
           : {}),
         ...(Number.isSafeInteger(progress?.progressBytes)
           ? { progressBytes: BigInt(progress!.progressBytes!) }
@@ -432,29 +475,16 @@ export class SimulationEvaluatorTaskService
     });
     if (completed.count === 1) {
       if (task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache) {
-        await this.prisma.simulationEvaluatorWorkerPlatformCache.upsert({
-          where: {
-            workerId_platform: {
-              workerId: input.workerId,
-              platform: task.platform!,
-            },
-          },
-          update: {
-            status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
-            coveredStartAt: prebuildResult!.coveredStartAt,
-            coveredEndAt: prebuildResult!.coveredEndAt,
-            lastBuiltAt: new Date(),
-            lastError: null,
-          },
-          create: {
-            workerId: input.workerId,
-            platform: task.platform!,
-            status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
-            coveredStartAt: prebuildResult!.coveredStartAt,
-            coveredEndAt: prebuildResult!.coveredEndAt,
-            lastBuiltAt: new Date(),
-          },
-        });
+        const coverage = prebuildResult as {
+          coveredStartAt: Date;
+          coveredEndAt: Date;
+        };
+        await this.recordCompletedCacheFragment(
+          input.workerId,
+          task.platform!,
+          coverage.coveredStartAt,
+          coverage.coveredEndAt,
+        );
       }
       await this.recordWorkerHeartbeat(
         input.workerId,
@@ -491,15 +521,15 @@ export class SimulationEvaluatorTaskService
       task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache &&
       task.platform
     ) {
-      await this.prisma.simulationEvaluatorWorkerPlatformCache.upsert({
-        where: { workerId_platform: { workerId, platform: task.platform } },
-        update: {
-          status: SimulationEvaluatorWorkerPlatformCacheStatus.Failed,
-          lastError: error.slice(0, 2_000),
-        },
-        create: {
+      await this.prisma.simulationEvaluatorWorkerPlatformCache.updateMany({
+        where: {
           workerId,
           platform: task.platform,
+          status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+          buildingStartAt: task.requiredCacheStartAt,
+          buildingEndAt: task.requiredCacheEndAt,
+        },
+        data: {
           status: SimulationEvaluatorWorkerPlatformCacheStatus.Failed,
           lastError: error.slice(0, 2_000),
         },
@@ -510,6 +540,63 @@ export class SimulationEvaluatorTaskService
       SimulationEvaluatorWorkerRuntimeStatus.Free,
     );
     return true;
+  }
+
+  private async recordCompletedCacheFragment(
+    workerId: string,
+    platform: import('generated/prisma/enums').Platform,
+    coveredStartAt: Date,
+    coveredEndAt: Date,
+  ) {
+    await this.prisma.$transaction(async (prisma) => {
+      const existing =
+        await prisma.simulationEvaluatorWorkerPlatformCache.findMany({
+          where: {
+            workerId,
+            platform,
+            status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+            coveredStartAt: { not: null },
+            coveredEndAt: { not: null },
+          },
+        });
+      const merged = mergeRanges([
+        ...existing.map((cache) => ({
+          coveredStartAt: cache.coveredStartAt!,
+          coveredEndAt: cache.coveredEndAt!,
+        })),
+        { coveredStartAt, coveredEndAt },
+      ]);
+
+      // Replace the completed fragments with their normalized union. This keeps
+      // disjoint ranges, while a new bridge fragment collapses adjacent ranges.
+      await prisma.simulationEvaluatorWorkerPlatformCache.deleteMany({
+        where: {
+          workerId,
+          platform,
+          status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+        },
+      });
+      await prisma.simulationEvaluatorWorkerPlatformCache.createMany({
+        data: merged.map((range) => ({
+          workerId,
+          platform,
+          status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+          coveredStartAt: range.coveredStartAt,
+          coveredEndAt: range.coveredEndAt,
+          lastBuiltAt: new Date(),
+          lastError: null,
+        })),
+      });
+      await prisma.simulationEvaluatorWorkerPlatformCache.deleteMany({
+        where: {
+          workerId,
+          platform,
+          status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+          buildingStartAt: coveredStartAt,
+          buildingEndAt: coveredEndAt,
+        },
+      });
+    });
   }
 
   async waitForCompletedTask(taskId: string, timeoutMs = 15 * 60_000) {

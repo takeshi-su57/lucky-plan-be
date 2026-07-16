@@ -8,13 +8,13 @@ import {
 
 import { SimulationEvaluatorTaskService } from './simulation-evaluator-task.service';
 
-const EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS = 90_000;
+const EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS = 60_000;
 
 describe('SimulationEvaluatorTaskService worker freshness', () => {
   it('counts only free workers with a recent heartbeat as ready', async () => {
     const prisma = {
       simulationEvaluatorWorker: {
-        count: jest.fn(async () => 0),
+        findMany: jest.fn(async () => []),
       },
     };
     const service = new SimulationEvaluatorTaskService(prisma as never);
@@ -26,17 +26,19 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     );
 
     expect(
-      prisma.simulationEvaluatorWorker.count as unknown as jest.Mock,
-    ).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
-        lastHeartbeatAt: {
-          gte: expect.any(Date),
-        },
+      prisma.simulationEvaluatorWorker.findMany as unknown as jest.Mock,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+          lastHeartbeatAt: {
+            gte: expect.any(Date),
+          },
+        }),
       }),
-    });
+    );
     const countInput = (
-      prisma.simulationEvaluatorWorker.count as unknown as jest.Mock
+      prisma.simulationEvaluatorWorker.findMany as unknown as jest.Mock
     ).mock.calls[0]![0] as any;
     const cutoff = (countInput.where.lastHeartbeatAt as { gte: Date }).gte;
     expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(

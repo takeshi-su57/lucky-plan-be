@@ -8,6 +8,10 @@ import { hostname } from 'os';
 
 import { Platform } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
+import {
+  coversRange,
+  mergeRanges,
+} from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-coverage';
 
 export type WorkerCachedEventLog = {
   address: string;
@@ -67,9 +71,12 @@ export class SimulationEvaluatorWorkerCacheService
       .prepare('PRAGMA table_info(worker_identity)')
       .all() as { name: string }[];
     if (!columns.some((column) => column.name === 'display_name')) {
-      this.database.exec('ALTER TABLE worker_identity ADD COLUMN display_name TEXT');
+      this.database.exec(
+        'ALTER TABLE worker_identity ADD COLUMN display_name TEXT',
+      );
     }
-    this.identity = this.readWorkerIdentity() || (await this.createWorkerIdentity());
+    this.identity =
+      this.readWorkerIdentity() || (await this.createWorkerIdentity());
     const identity = this.identity;
     console.log(
       `[simulation-evaluator-worker] Worker ID: ${identity.workerId} (${identity.displayName})`,
@@ -78,7 +85,9 @@ export class SimulationEvaluatorWorkerCacheService
 
   getWorkerIdentity(): SimulationEvaluatorWorkerIdentity {
     if (!this.identity) {
-      throw new Error('Simulation evaluator worker identity has not initialized');
+      throw new Error(
+        'Simulation evaluator worker identity has not initialized',
+      );
     }
     return this.identity;
   }
@@ -100,7 +109,8 @@ export class SimulationEvaluatorWorkerCacheService
     if (existing) {
       return {
         workerId: existing.worker_id,
-        displayName: existing.display_name || this.getDisplayName(existing.worker_id),
+        displayName:
+          existing.display_name || this.getDisplayName(existing.worker_id),
         publicKey: existing.public_key,
         privateKey: existing.private_key,
       };
@@ -161,10 +171,15 @@ export class SimulationEvaluatorWorkerCacheService
       );
     }
 
-    const readline = createInterface({ input: process.stdin, output: process.stdout });
+    const readline = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     try {
       while (true) {
-        const name = await readline.question('Simulation evaluator worker name: ');
+        const name = await readline.question(
+          'Simulation evaluator worker name: ',
+        );
         try {
           return this.validateWorkerName(name.trim());
         } catch (error) {
@@ -301,20 +316,55 @@ export class SimulationEvaluatorWorkerCacheService
   }
 
   hasPlatformCoverage(platform: Platform, startedAt: Date, endedAt: Date) {
-    const row = this.database
+    const rows = this.database
       ?.prepare(
-        'SELECT 1 FROM platform_cache_coverage WHERE platform = ? AND started_at <= ? AND ended_at >= ? LIMIT 1',
+        'SELECT started_at, ended_at FROM platform_cache_coverage WHERE platform = ?',
       )
-      .get(platform, startedAt.toISOString(), endedAt.toISOString());
-    return Boolean(row);
+      .all(platform) as { started_at: string; ended_at: string }[] | undefined;
+    return coversRange(
+      (rows || []).map((row) => ({
+        coveredStartAt: new Date(row.started_at),
+        coveredEndAt: new Date(row.ended_at),
+      })),
+      startedAt,
+      endedAt,
+    );
   }
 
   markPlatformCoverage(platform: Platform, startedAt: Date, endedAt: Date) {
-    this.database
-      ?.prepare(
-        'INSERT OR IGNORE INTO platform_cache_coverage (platform, started_at, ended_at) VALUES (?, ?, ?)',
+    const database = this.getDatabase();
+    const existing = database
+      .prepare(
+        'SELECT started_at, ended_at FROM platform_cache_coverage WHERE platform = ?',
       )
-      .run(platform, startedAt.toISOString(), endedAt.toISOString());
+      .all(platform) as { started_at: string; ended_at: string }[];
+    const merged = mergeRanges([
+      ...existing.map((row) => ({
+        coveredStartAt: new Date(row.started_at),
+        coveredEndAt: new Date(row.ended_at),
+      })),
+      { coveredStartAt: startedAt, coveredEndAt: endedAt },
+    ]);
+    database.exec('BEGIN');
+    try {
+      database
+        .prepare('DELETE FROM platform_cache_coverage WHERE platform = ?')
+        .run(platform);
+      const insert = database.prepare(
+        'INSERT INTO platform_cache_coverage (platform, started_at, ended_at) VALUES (?, ?, ?)',
+      );
+      for (const range of merged) {
+        insert.run(
+          platform,
+          range.coveredStartAt.toISOString(),
+          range.coveredEndAt.toISOString(),
+        );
+      }
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   private hasAddressCoverage(
