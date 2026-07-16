@@ -115,6 +115,27 @@ export class EventLogsService {
       leverageRanges?: Array<{ min: number; max: number }>;
     },
   ): PerpTradePositionsWithSummary {
+    return EventLogsService.buildPerpTradePositionsWithSummary(
+      platform,
+      histories,
+      filters,
+    );
+  }
+
+  static buildPerpTradePositionsWithSummary(
+    platform: Platform,
+    histories: PerpTradeHistory[],
+    filters: {
+      stoppedAt?: Date;
+      minCollateral?: number;
+      maxCollateral?: number;
+      minLeverage?: number;
+      maxLeverage?: number;
+      collateralRanges?: Array<{ min: number; max: number }>;
+      sizeRanges?: Array<{ min: number; max: number }>;
+      leverageRanges?: Array<{ min: number; max: number }>;
+    },
+  ): PerpTradePositionsWithSummary {
     const sortedHistories = [...histories]
       .filter((history) => history.platform === platform)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

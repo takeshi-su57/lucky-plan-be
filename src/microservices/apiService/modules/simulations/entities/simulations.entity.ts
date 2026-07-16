@@ -529,3 +529,36 @@ export class SimulationResearchConnection {
   edges: SimulationResearchEdge[];
   @Field(() => SimulationResearchPageInfo) pageInfo: SimulationResearchPageInfo;
 }
+
+@ObjectType()
+class SimulationEvaluatorWorkerCacheView {
+  @Field(() => String) platform: string;
+  @Field(() => String) status: string;
+  @Field(() => String, { nullable: true }) coveredStartAt: Date | null;
+  @Field(() => String, { nullable: true }) coveredEndAt: Date | null;
+  @Field(() => String, { nullable: true }) lastError: string | null;
+}
+
+@ObjectType()
+class SimulationEvaluatorWorkerPrebuildProgressView {
+  @Field(() => String) taskId: string;
+  @Field(() => String) message: string;
+  @Field(() => String) records: string;
+  @Field(() => String) bytes: string;
+}
+
+@ObjectType()
+export class SimulationEvaluatorWorkerView {
+  @Field(() => String) id: string;
+  @Field(() => String) authorizationStatus: string;
+  @Field(() => String) runtimeStatus: string;
+  @Field(() => String, { nullable: true }) lastHeartbeatAt: Date | null;
+  @Field(() => String, { nullable: true }) lastTaskAt: Date | null;
+  @Field(() => String, { nullable: true }) lastError: string | null;
+  @Field(() => [SimulationEvaluatorWorkerCacheView])
+  platformCaches: SimulationEvaluatorWorkerCacheView[];
+  @Field(() => SimulationEvaluatorWorkerPrebuildProgressView, {
+    nullable: true,
+  })
+  prebuildProgress?: SimulationEvaluatorWorkerPrebuildProgressView;
+}

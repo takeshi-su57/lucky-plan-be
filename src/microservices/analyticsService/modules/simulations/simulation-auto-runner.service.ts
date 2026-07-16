@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
@@ -17,6 +17,7 @@ import {
   CandidateEvaluation,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
+import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import {
@@ -64,6 +65,8 @@ export class SimulationAutoRunnerService {
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
+    @Optional()
+    private readonly distributedSimulationEvaluatorService?: DistributedSimulationEvaluatorService,
   ) {}
 
   private normalizeResearchGroups(value: unknown) {
@@ -273,13 +276,26 @@ export class SimulationAutoRunnerService {
 
     console.time(`evaluateLeadersForRange`);
 
-    const evaluatedCandidates =
-      await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+    const canUseDistributedEvaluator =
+      this.distributedSimulationEvaluatorService &&
+      (await this.distributedSimulationEvaluatorService.canEvaluateLeadersForRange(
         current,
-        candidateLeaders,
         range,
-        context.contractById,
-      );
+      ));
+
+    const evaluatedCandidates = canUseDistributedEvaluator
+      ? await this.distributedSimulationEvaluatorService!.evaluateLeadersForRange(
+          current,
+          candidateLeaders,
+          range,
+          context.contractById,
+        )
+      : await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+          current,
+          candidateLeaders,
+          range,
+          context.contractById,
+        );
 
     console.timeEnd(`evaluateLeadersForRange`);
 
@@ -418,6 +434,7 @@ export class SimulationAutoRunnerService {
     if (selectedCandidates.length === 0 || contracts.length === 0) {
       return;
     }
+    const normalizedSimulation = this.mapSimulation(simulation);
 
     const existingBotCount = await this.prisma.simulationBot.count({
       where: { simulationPlanId },
@@ -428,7 +445,7 @@ export class SimulationAutoRunnerService {
     }
 
     const hasPlatformContract = contracts.some(
-      (contract) => contract.platform === simulation.platform,
+      (contract) => contract.platform === normalizedSimulation.platform,
     );
 
     if (!hasPlatformContract) {
@@ -437,21 +454,25 @@ export class SimulationAutoRunnerService {
 
     const botInputs = selectedCandidates.map((candidate) => ({
       leaderAddress: candidate.leaderAddress,
-      leaderPlatform: simulation.platform,
+      leaderPlatform: normalizedSimulation.platform,
       simulationPlanId,
       startedAt,
       stoppedAt,
-      mode: simulation.direction,
+      mode: normalizedSimulation.direction,
       ratio: candidate.suggestedRatio,
       score: candidate.score,
       minCollateral: Math.min(
-        ...simulation.collateral.map((range) => range.min),
+        ...normalizedSimulation.collateral.map((range) => range.min),
       ),
       maxCollateral: Math.max(
-        ...simulation.collateral.map((range) => range.max),
+        ...normalizedSimulation.collateral.map((range) => range.max),
       ),
-      minLeverage: Math.min(...simulation.leverage.map((range) => range.min)),
-      maxLeverage: Math.max(...simulation.leverage.map((range) => range.max)),
+      minLeverage: Math.min(
+        ...normalizedSimulation.leverage.map((range) => range.min),
+      ),
+      maxLeverage: Math.max(
+        ...normalizedSimulation.leverage.map((range) => range.max),
+      ),
     }));
 
     if (botInputs.length === 0) {

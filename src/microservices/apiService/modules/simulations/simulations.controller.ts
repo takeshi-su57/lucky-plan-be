@@ -36,7 +36,7 @@ export class SimulationsController {
   async downloadAiReport(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: Request & { user?: { permission?: UserPermission } },
-    @Res({ passthrough: true }) response: Response,
+    @Res() response: Response,
   ) {
     // The route is protected by the JWT guard. Keep exports restricted to the
     // same operational roles that can create and manage simulations.
@@ -50,12 +50,14 @@ export class SimulationsController {
     }
     const report =
       await this.simulationResearchReportService.buildAiStandardZip(id);
-    response.setHeader('Content-Type', 'application/zip');
-    response.setHeader(
-      'Content-Disposition',
-      `attachment; filename="simulation-research-${id}-ai-standard.zip"`,
-    );
-    return report;
+    response
+      .status(200)
+      .set({
+        'Content-Type': 'application/zip',
+        'Content-Length': report.length.toString(),
+        'Content-Disposition': `attachment; filename="simulation-research-${id}-ai-standard.zip"`,
+      })
+      .end(report);
   }
 
   @EventPattern(PATTERNS.Simulations.SimulationResearchUpdated)

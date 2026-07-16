@@ -172,6 +172,14 @@ Run the analytics worker:
 $env:SERVICE="ANALYTICS_SERVICE"; npm run start:dev
 ```
 
+Run an external evaluator worker:
+
+```bash
+$env:SERVICE="SIMULATION_EVALUATOR_WORKER_SERVICE"; npm run start:prod
+```
+
+Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite identity and event-log cache at `.cache/simulation-evaluator-worker` in the source directory. On first startup it requests enrollment; an administrator must approve it in the worker control panel before it receives work. Nginx terminates HTTPS in front of `API_SERVICE`; workers never receive Postgres, Redis, or BullMQ credentials.
+
 On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
 
 ## Useful Commands
@@ -198,7 +206,7 @@ Notes:
 The sample file lists the expected variables:
 
 - `DATABASE_URL`: Postgres connection string used by Prisma and the Prisma PG adapter.
-- `SERVICE`: one of `API_SERVICE`, `COPY_TRADING_SERVICE`, or `ANALYTICS_SERVICE`.
+- `SERVICE`: one of `API_SERVICE`, `COPY_TRADING_SERVICE`, `ANALYTICS_SERVICE`, or `SIMULATION_EVALUATOR_WORKER_SERVICE`.
 - `PORT`: API HTTP port.
 - `REDIS_HOST`, `REDIS_PORT`: Redis transport endpoint.
 - `JWT_SECRET`, `JWT_EXPIRES_IN`: auth token settings.

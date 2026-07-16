@@ -8,9 +8,11 @@ import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
 import { SimulationResearchAutomationCronService } from './simulation-research-automation-cron.service';
+import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
+import { SimulationEvaluatorModule } from '../simulationEvaluator/simulation-evaluator.module';
 
 @Module({
-  imports: [TradeHistoriesModule],
+  imports: [TradeHistoriesModule, SimulationEvaluatorModule],
   providers: [
     SimulationResearchAutomationCronService,
     SimulationAutoRunnerService,
@@ -19,6 +21,7 @@ import { SimulationResearchAutomationCronService } from './simulation-research-a
     SimulationLeaderEventLogCacheService,
     AnalyticsSimulationResearchService,
     SimulationCacheService,
+    DistributedSimulationEvaluatorService,
   ],
   exports: [AnalyticsSimulationResearchService],
 })

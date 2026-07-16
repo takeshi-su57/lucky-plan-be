@@ -6,6 +6,7 @@ import { TradeHistoriesModule } from '../apiService/modules/trade-histories/trad
 import { AnalyticsController } from './analytics.controller';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { AnalyticsSimulationsModule } from './modules/simulations/analytics-simulations.module';
+import { SimulationEvaluatorModule } from './modules/simulationEvaluator/simulation-evaluator.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AnalyticsSimulationsModule } from './modules/simulations/analytics-simu
     TradeHistoriesModule,
     LeaderboardModule,
     AnalyticsSimulationsModule,
+    SimulationEvaluatorModule,
   ],
   controllers: [AnalyticsController],
 })

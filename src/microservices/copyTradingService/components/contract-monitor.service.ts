@@ -68,6 +68,13 @@ export class ContractMonitorService extends ContractMonitor {
         );
 
         batches.push(...groupedActionItems);
+        if (groupedActionItems.at(-1)?.blockNumber !== Number(toBlock)) {
+          batches.push({
+            contract,
+            blockNumber: Number(toBlock),
+            actionItems: [],
+          });
+        }
 
         fromBlock = toBlock + 1n;
       }

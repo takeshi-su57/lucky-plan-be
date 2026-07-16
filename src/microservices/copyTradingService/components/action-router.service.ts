@@ -27,6 +27,7 @@ export class ActionRouterService extends ActionRouter {
 
   async loadContext(): Promise<void> {
     const allBots = await this.botsService.getAllActiveBots();
+    this.bots = {};
 
     allBots.forEach((bot) => {
       const arr = this.bots[bot.leaderContractId];
@@ -44,7 +45,7 @@ export class ActionRouterService extends ActionRouter {
     blockNumber: number,
     actionItems: ContractActionItem[],
   ): Promise<void> {
-    const filteredBots = this.bots[contract.id].filter(
+    const filteredBots = (this.bots[contract.id] ?? []).filter(
       (bot) => !!bot.leaderStartedBlock && bot.leaderStartedBlock < blockNumber,
     );
 
@@ -124,7 +125,7 @@ export class ActionRouterService extends ActionRouter {
     blockNumber: number,
     actionItems: ContractActionItem[],
   ): Promise<void> {
-    const filteredBots = this.bots[contract.id].filter(
+    const filteredBots = (this.bots[contract.id] ?? []).filter(
       (bot) =>
         !!bot.followerStartedBlock && bot.followerStartedBlock < blockNumber,
     );

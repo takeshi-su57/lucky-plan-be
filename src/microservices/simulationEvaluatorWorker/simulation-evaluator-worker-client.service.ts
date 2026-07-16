@@ -1,0 +1,240 @@
+import { Injectable } from '@nestjs/common';
+import { sign } from 'crypto';
+import { gunzipSync } from 'zlib';
+import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
+import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
+
+import {
+  SimulationEvaluatorWorkerCacheService,
+  WorkerCachedEventLog,
+} from './simulation-evaluator-worker-cache.service';
+
+export type ClaimedEvaluatorTask = {
+  id: string;
+  kind: SimulationEvaluatorTaskKind;
+  simulationId: number;
+  simulationPlanId: number | null;
+  rangeStartedAt: string;
+  rangeEndedAt: string;
+  inputChecksum: string;
+  leaseToken: string;
+  leaseExpiresAt: string;
+};
+
+@Injectable()
+export class SimulationEvaluatorWorkerClientService {
+  constructor(private readonly cache: SimulationEvaluatorWorkerCacheService) {}
+
+  async enroll() {
+    const identity = this.cache.getWorkerIdentity();
+    const response = await this.unsignedRequest(
+      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.enrollment}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workerId: identity.workerId,
+          publicKey: identity.publicKey,
+        }),
+      },
+    );
+    return (await response.json()) as { authorizationStatus: string };
+  }
+
+  async presence() {
+    await this.request(
+      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.presence}`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
+  async poll() {
+    const response = await this.request(
+      `${SIMULATION_EVALUATOR.gateway.basePath}${SIMULATION_EVALUATOR.gateway.poll}`,
+      {
+        method: 'POST',
+      },
+    );
+
+    return (await response.json()) as { task: ClaimedEvaluatorTask | null };
+  }
+
+  async getInput(taskId: string, leaseToken: string) {
+    const response = await this.request(
+      `${SIMULATION_EVALUATOR.gateway.task(taskId)}/input`,
+      {
+        headers: { 'x-simulation-task-lease': leaseToken },
+      },
+    );
+
+    return (await response.json()) as { input: Record<string, unknown> };
+  }
+
+  async getPrebuildChunk(
+    taskId: string,
+    leaseToken: string,
+    cursor?: { contractId: number; block: number; logIndex: number } | null,
+  ) {
+    const response = await this.request(
+      `${SIMULATION_EVALUATOR.gateway.task(taskId)}/prebuild-chunk`,
+      {
+        headers: {
+          'x-simulation-task-lease': leaseToken,
+          ...(cursor
+            ? { 'x-simulation-prebuild-cursor': JSON.stringify(cursor) }
+            : {}),
+        },
+      },
+    );
+    const compressed = Buffer.from(await response.arrayBuffer());
+    const chunk = JSON.parse(gunzipSync(compressed).toString('utf8')) as {
+      eventLogs: WorkerCachedEventLog[];
+      nextCursor: {
+        contractId: number;
+        block: number;
+        logIndex: number;
+      } | null;
+      done: boolean;
+    };
+    return { ...chunk, compressedBytes: compressed.length };
+  }
+
+  async getEventLogs(input: {
+    taskId: string;
+    leaseToken: string;
+    addresses: string[];
+    startedAt: Date;
+    endedAt: Date;
+    cursor?: {
+      date: string;
+      block: number;
+      logIndex: number;
+      contractId: number;
+    } | null;
+  }) {
+    const response = await this.request(
+      `${SIMULATION_EVALUATOR.gateway.task(input.taskId)}/event-logs`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          leaseToken: input.leaseToken,
+          addresses: input.addresses,
+          startedAt: input.startedAt.toISOString(),
+          endedAt: input.endedAt.toISOString(),
+          cursor: input.cursor,
+        }),
+      },
+    );
+
+    return (await response.json()) as {
+      eventLogs: WorkerCachedEventLog[];
+      nextCursor: {
+        date: string;
+        block: number;
+        logIndex: number;
+        contractId: number;
+      } | null;
+      done: boolean;
+    };
+  }
+
+  async heartbeat(
+    taskId: string,
+    leaseToken: string,
+    progress?: {
+      progressRecords: number;
+      progressBytes: number;
+      progressMessage: string;
+    },
+  ) {
+    await this.request(
+      `${SIMULATION_EVALUATOR.gateway.task(taskId)}/heartbeat`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ leaseToken, ...progress }),
+      },
+    );
+  }
+
+  async complete(
+    taskId: string,
+    leaseToken: string,
+    result: Record<string, unknown>,
+  ) {
+    await this.request(
+      `${SIMULATION_EVALUATOR.gateway.task(taskId)}/complete`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ leaseToken, result }),
+      },
+    );
+  }
+
+  async fail(taskId: string, leaseToken: string, error: string) {
+    await this.request(`${SIMULATION_EVALUATOR.gateway.task(taskId)}/fail`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ leaseToken, error }),
+    });
+  }
+
+  private async request(path: string, init: RequestInit = {}) {
+    const baseUrl = process.env.SIMULATION_EVALUATOR_GATEWAY_URL;
+
+    if (!baseUrl) {
+      throw new Error('SIMULATION_EVALUATOR_GATEWAY_URL is required');
+    }
+
+    const identity = this.cache.getWorkerIdentity();
+    const timestamp = Date.now().toString();
+    const method = (init.method || 'GET').toUpperCase();
+    const message = `${identity.workerId}\n${timestamp}\n${method}\n${path}`;
+
+    const signature = sign(
+      null,
+      Buffer.from(message),
+      identity.privateKey,
+    ).toString('base64');
+
+    const response = await fetch(new URL(path, baseUrl), {
+      ...init,
+      headers: {
+        'x-simulation-worker-id': identity.workerId,
+        'x-simulation-worker-timestamp': timestamp,
+        'x-simulation-worker-signature': signature,
+        ...init.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Worker gateway request failed: ${response.status} ${await response.text()}`,
+      );
+    }
+
+    return response;
+  }
+
+  private async unsignedRequest(path: string, init: RequestInit) {
+    const baseUrl = process.env.SIMULATION_EVALUATOR_GATEWAY_URL;
+
+    if (!baseUrl) {
+      throw new Error('SIMULATION_EVALUATOR_GATEWAY_URL is required');
+    }
+
+    const response = await fetch(new URL(path, baseUrl), init);
+
+    if (!response.ok) {
+      throw new Error(
+        `Worker gateway request failed: ${response.status} ${await response.text()}`,
+      );
+    }
+
+    return response;
+  }
+}

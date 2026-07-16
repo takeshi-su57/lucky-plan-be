@@ -107,7 +107,7 @@ async function mapWithConcurrency<T, R>(
   let nextIndex = 0;
 
   async function worker() {
-    for (;;) {
+    while (true) {
       const index = nextIndex;
       nextIndex += 1;
 
@@ -214,16 +214,18 @@ export class SimulationLeaderEvaluatorService {
           leaderEvaluateStartedAt - loadLeaderStartedAt,
         );
 
-        const closedPositions = this.getClosedPositionsBefore(
-          positions,
-          range.startedAt,
-        );
+        const closedPositions =
+          SimulationLeaderEvaluatorService.getClosedPositionsBefore(
+            positions,
+            range.startedAt,
+          );
 
-        const evaluation = this.evaluateLeaderPositionsForSimulation(
-          leaderAddress,
-          closedPositions,
-          simulation,
-        );
+        const evaluation =
+          SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
+            leaderAddress,
+            closedPositions,
+            simulation,
+          );
 
         const rejectedReason =
           evaluation.rejectedReason ||
@@ -301,10 +303,13 @@ export class SimulationLeaderEvaluatorService {
       return [];
     }
 
-    const histories = this.eventLogsToHistories(cachedRecords, contractById);
+    const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
+      cachedRecords,
+      contractById,
+    );
 
     const positionsWithSummary =
-      this.eventLogsService.convertToPerpTradePositionsWithSummary(
+      EventLogsService.buildPerpTradePositionsWithSummary(
         simulation.platform,
         histories,
         {
@@ -319,7 +324,7 @@ export class SimulationLeaderEvaluatorService {
     return positions;
   }
 
-  private evaluateLeaderPositionsForSimulation(
+  static evaluateLeaderPositionsForSimulation(
     leaderAddress: string,
     closedPositions: PerpTradePosition[],
     simulation: Simulation,
@@ -332,7 +337,9 @@ export class SimulationLeaderEvaluatorService {
     const rawTotalPnlUsd = sum(rawPositionPnls);
     const rawTrend = calculateTrend(cumulative(rawPositionPnls));
     const rawAvgCollateralUsd =
-      this.calculateAverageMaxDepositedUsd(closedPositions);
+      SimulationLeaderEvaluatorService.calculateAverageMaxDepositedUsd(
+        closedPositions,
+      );
 
     const baseEvaluation = {
       leaderAddress,
@@ -355,7 +362,9 @@ export class SimulationLeaderEvaluatorService {
     }
 
     const rawAvgDurationMs =
-      this.calculateAveragePositionDurationMs(closedPositions);
+      SimulationLeaderEvaluatorService.calculateAveragePositionDurationMs(
+        closedPositions,
+      );
 
     if (
       rawAvgDurationMs !== null &&
@@ -379,12 +388,13 @@ export class SimulationLeaderEvaluatorService {
       return { ...baseEvaluation, rejectedReason: 'LOW_AVG_COLLATERAL' };
     }
 
-    const preliminaryCopy = this.simulateCopyApproximation(
-      closedPositions,
-      1,
-      simulation.direction,
-    );
-    const preliminaryScore = this.scoreCandidate(
+    const preliminaryCopy =
+      SimulationLeaderEvaluatorService.simulateCopyApproximation(
+        closedPositions,
+        1,
+        simulation.direction,
+      );
+    const preliminaryScore = SimulationLeaderEvaluatorService.scoreCandidate(
       simulation,
       rawTrend,
       rawTradeCount,
@@ -399,7 +409,7 @@ export class SimulationLeaderEvaluatorService {
       minRatio: SIMULATION_SYSTEM_CONFIG.minRatio,
       maxRatio: SIMULATION_SYSTEM_CONFIG.maxRatio,
     });
-    const copied = this.simulateCopyApproximation(
+    const copied = SimulationLeaderEvaluatorService.simulateCopyApproximation(
       closedPositions,
       sizing.suggestedRatio,
       simulation.direction,
@@ -415,14 +425,14 @@ export class SimulationLeaderEvaluatorService {
     };
   }
 
-  private getClosedPositionsBefore(
+  static getClosedPositionsBefore(
     positions: PerpTradePosition[],
     before: Date,
   ) {
     const beforeTime = before.getTime();
 
     return positions.filter((position) => {
-      if (!this.isClosedPosition(position)) {
+      if (!SimulationLeaderEvaluatorService.isClosedPosition(position)) {
         return false;
       }
 
@@ -432,7 +442,7 @@ export class SimulationLeaderEvaluatorService {
     });
   }
 
-  private scoreCandidate(
+  private static scoreCandidate(
     simulation: Simulation,
     rawTrend: { slope: number; r2: number },
     rawTradeCount: number,
@@ -456,7 +466,7 @@ export class SimulationLeaderEvaluatorService {
     });
   }
 
-  private eventLogsToHistories(
+  static eventLogsToHistories(
     records: {
       date: Date;
       block: number;
@@ -497,21 +507,23 @@ export class SimulationLeaderEvaluatorService {
       .filter((item): item is PerpTradeHistory => !!item);
   }
 
-  private isClosedPosition(position: PerpTradePosition) {
+  private static isClosedPosition(position: PerpTradePosition) {
     return (
       position.histories[position.histories.length - 1]?.operation ===
       PerpTradeHistoryOperation.CLOSE
     );
   }
 
-  private calculatePositionMaxDepositedUsd(position: PerpTradePosition) {
+  private static calculatePositionMaxDepositedUsd(position: PerpTradePosition) {
     return Math.max(
       0,
       ...position.histories.map((history) => history.collateralInUsd || 0),
     );
   }
 
-  private calculateAverageMaxDepositedUsd(positions: PerpTradePosition[]) {
+  private static calculateAverageMaxDepositedUsd(
+    positions: PerpTradePosition[],
+  ) {
     if (positions.length === 0) {
       return 0;
     }
@@ -519,13 +531,15 @@ export class SimulationLeaderEvaluatorService {
     return (
       sum(
         positions.map((position) =>
-          this.calculatePositionMaxDepositedUsd(position),
+          SimulationLeaderEvaluatorService.calculatePositionMaxDepositedUsd(
+            position,
+          ),
         ),
       ) / positions.length
     );
   }
 
-  private calculateAveragePositionDurationMs(
+  private static calculateAveragePositionDurationMs(
     positions: PerpTradePosition[],
   ): number | null {
     const durations = positions
@@ -549,7 +563,7 @@ export class SimulationLeaderEvaluatorService {
     return sum(durations) / durations.length;
   }
 
-  private simulateCopyApproximation(
+  private static simulateCopyApproximation(
     positions: PerpTradePosition[],
     ratio: number,
     direction: Simulation['direction'],
@@ -559,10 +573,11 @@ export class SimulationLeaderEvaluatorService {
     const grossPositionPnls = positions.map((position) => {
       const copiedPnl = sum(
         position.histories.map((history) => {
-          const copiedFee = this.calculateCopiedPlatformFee(
-            history.usdFee,
-            ratio,
-          );
+          const copiedFee =
+            SimulationLeaderEvaluatorService.calculateCopiedPlatformFee(
+              history.usdFee,
+              ratio,
+            );
           totalCostUsd += Math.abs(copiedFee);
 
           return (
@@ -572,7 +587,11 @@ export class SimulationLeaderEvaluatorService {
         }),
       );
       const maxLoss =
-        -Math.abs(this.calculatePositionMaxDepositedUsd(position)) * ratio;
+        -Math.abs(
+          SimulationLeaderEvaluatorService.calculatePositionMaxDepositedUsd(
+            position,
+          ),
+        ) * ratio;
 
       return Math.max(maxLoss, copiedPnl);
     });
@@ -594,7 +613,7 @@ export class SimulationLeaderEvaluatorService {
     };
   }
 
-  private calculateCopiedPlatformFee(usdFee: number, ratio: number) {
+  private static calculateCopiedPlatformFee(usdFee: number, ratio: number) {
     if (usdFee === 0) {
       return 0;
     }

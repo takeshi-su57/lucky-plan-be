@@ -17,6 +17,7 @@ import {
 } from './utils/simulation-range.utils';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulation-evaluator-task.service';
 
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -31,6 +32,8 @@ export class SimulationResearchAutoRunnerService {
     @Optional()
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient?: ClientProxy,
+    @Optional()
+    private readonly evaluatorTasks?: SimulationEvaluatorTaskService,
   ) {}
 
   async playAutomaticResearch(id: number, now = new Date()): Promise<void> {
@@ -112,7 +115,6 @@ export class SimulationResearchAutoRunnerService {
           readyRanges.length
         } ${range.startedAt.toISOString().slice(0, 10)}`;
         console.time(`${rangeLabel} total`);
-        const processedSimulationIds = new Set<number>();
 
         try {
           const currentResearch =
@@ -135,37 +137,48 @@ export class SimulationResearchAutoRunnerService {
 
           await this.updateResearchProgress(id, range, allRanges);
 
+          const workerConcurrency = this.evaluatorTasks
+            ? await this.evaluatorTasks.countReadyWorkers(
+                currentResearch.platform,
+                new Date(
+                  range.startedAt.getTime() -
+                    LEADER_SCORING_WINDOW_DAYS * DAY_MS,
+                ),
+                range.startedAt,
+              )
+            : 1;
+          const simulationConcurrency = Math.max(1, workerConcurrency);
+
           const simulationsLabel = `${rangeLabel} process simulations`;
           console.time(simulationsLabel);
-          for (const simulation of currentResearch.simulations) {
-            if (!isAutomationStatusEligible(simulation.status)) {
-              continue;
-            }
-
-            const processed =
-              await this.simulationAutoRunnerService.processSimulationRange(
-                simulation.id,
-                range,
-                context,
-              );
-
-            if (!processed) {
-              continue;
-            }
-
-            processedSimulationIds.add(simulation.id);
-          }
-          console.timeEnd(simulationsLabel);
-
-          const aggregateLabel = `${rangeLabel} aggregate simulations`;
-          console.time(aggregateLabel);
-          for (const simulationId of processedSimulationIds) {
-            await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
-              simulationId,
-              allRanges,
+          const eligibleSimulations = currentResearch.simulations.filter(
+            (simulation) => isAutomationStatusEligible(simulation.status),
+          );
+          for (
+            let offset = 0;
+            offset < eligibleSimulations.length;
+            offset += simulationConcurrency
+          ) {
+            await Promise.all(
+              eligibleSimulations
+                .slice(offset, offset + simulationConcurrency)
+                .map(async (simulation) => {
+                  const processed =
+                    await this.simulationAutoRunnerService.processSimulationRange(
+                      simulation.id,
+                      range,
+                      context,
+                    );
+                  if (processed) {
+                    await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
+                      processed.id,
+                      allRanges,
+                    );
+                  }
+                }),
             );
           }
-          console.timeEnd(aggregateLabel);
+          console.timeEnd(simulationsLabel);
 
           latestRange = range;
 

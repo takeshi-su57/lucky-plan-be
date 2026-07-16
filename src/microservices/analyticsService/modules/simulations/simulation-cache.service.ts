@@ -100,6 +100,27 @@ export class SimulationCacheService {
       return { count: 0 };
     }
 
+    return this.appendProvidedEventLogsForBot(cacheId, bot, newLogs);
+  }
+
+  async appendProvidedEventLogsForBot(
+    cacheId: number,
+    bot: Pick<
+      SimulationBotWithContract,
+      | 'leaderAddress'
+      | 'leaderPlatform'
+      | 'startedAt'
+      | 'stoppedAt'
+      | 'leaderContracts'
+    >,
+    newLogs: PerpTradingEventLog[],
+  ) {
+    if (newLogs.length === 0) return { count: 0 };
+    const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany({
+      where: { simulationBotCacheId: cacheId },
+      orderBy: getEventLogOrderBy(),
+    });
+
     const cachedHistories =
       cachedLogs.length > 0
         ? this.buildHistoriesFromCachedLogs(
@@ -409,7 +430,10 @@ export class SimulationCacheService {
     return summary;
   }
 
-  async rebuildBotCache(simulationBotId: number) {
+  async rebuildBotCache(
+    simulationBotId: number,
+    options: { fetchSourceEventLogs?: boolean } = {},
+  ) {
     const bot = await this.prisma.simulationBot.findUniqueOrThrow({
       where: { id: simulationBotId },
       include: {
@@ -436,7 +460,9 @@ export class SimulationCacheService {
     });
 
     try {
-      await this.appendNewEventLogsForBot(cache.id, botWithContracts);
+      if (options.fetchSourceEventLogs !== false) {
+        await this.appendNewEventLogsForBot(cache.id, botWithContracts);
+      }
 
       const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany(
         {
@@ -547,7 +573,10 @@ export class SimulationCacheService {
     });
   }
 
-  async refreshIncompleteBotsForPlan(simulationPlanId: number) {
+  async refreshIncompleteBotsForPlan(
+    simulationPlanId: number,
+    options: { fetchSourceEventLogs?: boolean } = {},
+  ) {
     const bots = await this.prisma.simulationBot.findMany({
       where: { simulationPlanId },
       include: { cache: true },
@@ -559,7 +588,7 @@ export class SimulationCacheService {
       }
 
       if (!bot.cache || !bot.cache.completed || bot.cache.rebuildRequested) {
-        await this.rebuildBotCache(bot.id);
+        await this.rebuildBotCache(bot.id, options);
         continue;
       }
 

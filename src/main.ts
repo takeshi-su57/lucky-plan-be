@@ -9,6 +9,7 @@ import { SERVICE_NAMES } from './utils/constants';
 import { ApiModule } from './microservices/apiService/api.module';
 import { AnalyticsModule } from './microservices/analyticsService/analytics.module';
 import { CopyTradingModule } from './microservices/copyTradingService/copy-trading.module';
+import { SimulationEvaluatorWorkerModule } from './microservices/simulationEvaluatorWorker/simulation-evaluator-worker.module';
 
 import 'dotenv';
 
@@ -48,6 +49,12 @@ async function bootstrap() {
       await app.listen();
       break;
     }
+    case SERVICE_NAMES.SIMULATION_EVALUATOR_WORKER_SERVICE: {
+      await NestFactory.createApplicationContext(
+        SimulationEvaluatorWorkerModule,
+      );
+      break;
+    }
     case SERVICE_NAMES.API_SERVICE: {
       const app = await NestFactory.create<NestExpressApplication>(ApiModule);
 
@@ -74,6 +81,9 @@ async function bootstrap() {
           threshold: '1kb',
           filter: (req, res) => {
             if (req.headers.upgrade?.toLowerCase() === 'websocket') {
+              return false;
+            }
+            if (res.getHeader('Content-Type') === 'application/zip') {
               return false;
             }
 
