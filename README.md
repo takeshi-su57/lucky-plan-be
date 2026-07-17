@@ -14,15 +14,17 @@ The current implementation supports:
 - Prisma 7 with Postgres and a generated client in `generated/prisma`.
 - EVM chain reads/writes through `viem`, with semaphore-controlled reads and mutex-controlled wallet writes.
 - Platform adapters for GNS V9/V10, GMX V2, and AVNT V1.
-- Walk-forward simulation tooling that selects leaders from historical PnL, builds daily simulation plans, and evaluates reversed/default follower performance.
+- Walk-forward simulation tooling with a stable centralized flow and a worker-driven dynamic flow that evaluates research ranges concurrently.
+- External evaluator clients with administrator-controlled enrollment, pause/drain, cache prebuild, and child-process capacity.
 
 ## Runtime Architecture
 
-`src/main.ts` chooses one of three service modes:
+`src/main.ts` chooses one of four service modes:
 
 - `API_SERVICE`: starts the HTTP Nest app, GraphQL API, GraphQL subscriptions, global validation, CORS, compression, and a Redis microservice listener.
 - `COPY_TRADING_SERVICE`: starts a Redis microservice that scans configured live contracts, routes observed actions into missions/tasks, and executes available follower tasks on a schedule.
 - `ANALYTICS_SERVICE`: starts a Redis microservice that indexes historical/finalized on-chain trade logs into `PerpTradingEventLog` records, builds PnL snapshots, refreshes leaderboard data, and runs simulation automation.
+- `SIMULATION_EVALUATOR_WORKER_SERVICE`: starts an external evaluator client. It connects only to the API evaluator gateway and does not need Postgres, Redis, or BullMQ credentials.
 
 Redis is used as the Nest microservice transport, not as the primary database. Postgres is the source of truth for domain state.
 
@@ -87,6 +89,23 @@ The scanner intentionally rechecks a small block window (`TRADING_RECHECK_BLOCKS
 The analytics worker is assembled in `src/microservices/analyticsService/analytics.module.ts`.
 
 Its leaderboard module indexes finalized logs for live contracts, normalizes platform-specific trade events, calculates USD PnL per event, and stores those rows in `PerpTradingEventLog`. Its simulations module owns queued simulation automation and execution.
+
+### Simulation Research Flows
+
+Simulation research has an `executionFlow` field:
+
+- `Centralized`: the legacy/stable flow. The analytics worker evaluates eligible simulations sequentially through the in-process evaluator.
+- `DynamicExperimental`: the worker-driven flow. The analytics worker dispatches leader evaluation tasks to approved evaluator clients and batches simulation work by available client capacity. It does not fall back to the centralized evaluator.
+
+Both flows retain the same research, range, plan, and aggregate persistence contracts. Dynamic-flow timings are emitted with lightweight `console.time` labels around the research run, range context, worker-capacity lookup, ranges, and dispatch batches.
+
+### Evaluator Worker Architecture
+
+Evaluator clients are parent orchestrators. The parent is the only process that authenticates with the API gateway, owns task leases and heartbeats, accesses the local SQLite metadata store, runs cache prebuild tasks, and reports task results.
+
+For leader-evaluation tasks, the parent forks child processes up to its active capacity. Children receive task input over IPC and read the shared file-based event-log cache directly. They never access SQLite, the server, or prebuild tasks. The parent session heartbeat file makes orphaned children exit after a parent crash or restart.
+
+Administrators use the dedicated **Evaluator Workers** settings tab to approve/reject clients, prebuild cache windows, pause a client after its assigned tasks drain, resume it, and request a new child-process capacity. The UI shows requested and active capacity separately.
 
 ### Web3 Layer
 
@@ -178,7 +197,57 @@ Run an external evaluator worker:
 $env:SERVICE="SIMULATION_EVALUATOR_WORKER_SERVICE"; npm run start:prod
 ```
 
-Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite identity and event-log cache at `.cache/simulation-evaluator-worker` in the source directory. This directory contains the worker ID and key pair, so it must persist across restarts. On its first interactive start it asks for a recognizable worker name and persists an ID in the form `<name>_<uuid>`. For a non-interactive deployment, set `SIMULATION_EVALUATOR_WORKER_NAME` instead. On first startup it requests enrollment; an administrator must approve it in the worker control panel before it receives work. Nginx terminates HTTPS in front of `API_SERVICE`; workers never receive Postgres, Redis, or BullMQ credentials.
+Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite identity, parent-session heartbeat, and event-log cache at `.cache/simulation-evaluator-worker` in the source directory. This directory contains the worker ID and key pair, so it must persist across restarts and upgrades. On its first interactive start it asks for a recognizable worker name and persists an ID in the form `<name>_<uuid>`. For a non-interactive deployment, set `SIMULATION_EVALUATOR_WORKER_NAME` instead. On first startup it requests enrollment; an administrator must approve it in the dedicated **Evaluator Workers** tab before it receives work. Nginx terminates HTTPS in front of `API_SERVICE`; workers never receive Postgres, Redis, or BullMQ credentials.
+
+## Portable Evaluator Worker Release
+
+The worker can be shipped without cloning the repository or installing npm dependencies on the target machine. Build a portable Node 22+ release bundle:
+
+```bash
+npm run build:cross
+```
+
+The output is `release/evaluator-worker`. Its root stays intentionally small: `parent`, `child`, `cache-snapshot`, `scripts`, `.env`, `.env.example`, `windows.cmd`, `linux.sh`, and `README.md`. The build uses `ncc` through `npx`; that tooling is needed only by the build environment, never by the worker host.
+
+Configure `.env` in the extracted release:
+
+```env
+SIMULATION_EVALUATOR_GATEWAY_URL=https://api.example.com
+SIMULATION_EVALUATOR_WORKER_NAME=worker-01
+```
+
+Then use the single platform commander to install it as a background service:
+
+- Windows: run `windows.cmd install`; approve UAC when prompted. It creates the `LuckyEvaluatorWorker` Scheduled Task.
+- Linux: run `sudo ./linux.sh install`; it creates and starts `lucky-evaluator-worker.service`.
+
+Both commanders support `install`, `start`, `stop`, `status`, `uninstall`, `cache-export <snapshot.zip>`, and `cache-import <snapshot.zip>`.
+
+The release workflow in `.github/workflows/release-evaluator-worker.yml` builds and publishes `lucky-evaluator-worker-node22.zip` when a `worker-v*` tag is pushed. It also uploads the ZIP as a short-lived Actions artifact.
+
+### Cache Snapshots
+
+To seed a new worker without repeating a long event-log prebuild, export its portable cache snapshot:
+
+```bash
+# Windows
+windows.cmd cache-export evaluator-cache.zip
+
+# Linux
+sudo ./linux.sh cache-export evaluator-cache.zip
+```
+
+The command stops the worker, waits for the parent and its children to exit, and leaves it stopped. Copy the ZIP to the new worker and import it before starting the worker:
+
+```bash
+# Windows
+windows.cmd cache-import evaluator-cache.zip
+
+# Linux
+sudo ./linux.sh cache-import evaluator-cache.zip
+```
+
+Snapshots include event-log files, cache coverage ranges, and SHA-256 checksums. They deliberately exclude the worker identity/private key, parent session heartbeat, and prebuild checkpoints. A new machine therefore enrolls as a new worker while immediately reusing the imported cache. After approval, request prebuild for the snapshot ranges once so the server records that worker's cache coverage.
 
 On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
 
@@ -189,6 +258,7 @@ npm run build
 npm run lint
 npm run test
 npm run test:e2e
+npm run build:cross
 npm run test:cov
 npx prisma generate
 npx prisma migrate dev
@@ -198,7 +268,6 @@ npx prisma studio
 Notes:
 
 - `npm run lint` currently runs ESLint with `--fix`.
-- `test/app.e2e-spec.ts` appears to be stale: it imports `AppModule` from `api.module`, but the exported class is `ApiModule`.
 - RPC-heavy worker commands can hit public provider rate limits unless private/paid RPC tokens are configured.
 
 ## Environment Variables
@@ -214,6 +283,8 @@ The sample file lists the expected variables:
 - `DRPC_TOKENS`, `DRPC_PAID_TOKENS`, `ALCHEMY_TOKENS`: comma-separated RPC tokens.
 - `ALCHEMY_PAID_TOENS`: currently misspelled in code and sample; keep that spelling unless the code is fixed at the same time.
 - `TRADING_RECHECK_BLOCKS`: optional copy-trading scanner replay window.
+- `SIMULATION_EVALUATOR_GATEWAY_URL`: HTTPS URL of the API evaluator gateway used by external evaluator parents.
+- `SIMULATION_EVALUATOR_WORKER_NAME`: required on a first non-interactive evaluator start; becomes part of the persisted worker identity.
 
 ## Implementation Rules Of Thumb
 

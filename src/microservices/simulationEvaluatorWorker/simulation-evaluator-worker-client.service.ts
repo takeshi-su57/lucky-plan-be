@@ -49,7 +49,7 @@ export class SimulationEvaluatorWorkerClientService {
     string,
     WorkerHeartbeatEvent
   >();
-  private activeTask?: { taskId: string; leaseToken: string };
+  private readonly activeTasks = new Map<string, string>();
 
   async joinHeartbeat() {
     const identity = this.cache.getWorkerIdentity();
@@ -70,15 +70,12 @@ export class SimulationEvaluatorWorkerClientService {
 
   async heartbeat() {
     const events = [
-      ...(this.activeTask
-        ? [
-            {
-              id: randomUUID(),
-              type: 'task-heartbeat' as const,
-              ...this.activeTask,
-            },
-          ]
-        : []),
+      ...[...this.activeTasks.entries()].map(([taskId, leaseToken]) => ({
+        id: randomUUID(),
+        type: 'task-heartbeat' as const,
+        taskId,
+        leaseToken,
+      })),
       ...this.pendingHeartbeatEvents.values(),
     ];
     const queuedEvents = new Map(
@@ -128,11 +125,11 @@ export class SimulationEvaluatorWorkerClientService {
   }
 
   beginTask(taskId: string, leaseToken: string) {
-    this.activeTask = { taskId, leaseToken };
+    this.activeTasks.set(taskId, leaseToken);
   }
 
   endTask(taskId: string) {
-    if (this.activeTask?.taskId === taskId) this.activeTask = undefined;
+    this.activeTasks.delete(taskId);
     for (const [id, event] of this.pendingHeartbeatEvents) {
       if (event.taskId === taskId) this.pendingHeartbeatEvents.delete(id);
     }
