@@ -123,6 +123,7 @@ export class SimulationEvaluatorWorkerAuthService {
           in: [
             SimulationEvaluatorWorkerRuntimeStatus.Online,
             SimulationEvaluatorWorkerRuntimeStatus.Offline,
+            SimulationEvaluatorWorkerRuntimeStatus.Paused,
           ],
         },
       },

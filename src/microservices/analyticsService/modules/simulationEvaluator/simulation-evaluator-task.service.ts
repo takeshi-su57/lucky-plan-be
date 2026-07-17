@@ -12,6 +12,7 @@ import {
   SimulationEvaluatorTaskStatus,
   SimulationEvaluatorTaskKind,
   SimulationEvaluatorWorkerAuthorizationStatus,
+  SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerPlatformCacheStatus,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
@@ -133,7 +134,13 @@ export class SimulationEvaluatorTaskService
       where: {
         authorizationStatus:
           SimulationEvaluatorWorkerAuthorizationStatus.Approved,
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+        desiredState: SimulationEvaluatorWorkerDesiredState.Running,
+        runtimeStatus: {
+          in: [
+            SimulationEvaluatorWorkerRuntimeStatus.Free,
+            SimulationEvaluatorWorkerRuntimeStatus.Busy,
+          ],
+        },
         lastHeartbeatAt: { gte: heartbeatCutoff },
         platformCaches: {
           some: {
@@ -153,7 +160,7 @@ export class SimulationEvaluatorTaskService
         },
       },
     });
-    return workers.filter((worker) =>
+    const eligibleWorkers = workers.filter((worker) =>
       coversRange(
         worker.platformCaches.map((cache) => ({
           coveredStartAt: cache.coveredStartAt!,
@@ -162,7 +169,28 @@ export class SimulationEvaluatorTaskService
         requiredCacheStartAt,
         requiredCacheEndAt,
       ),
-    ).length;
+    );
+    const activeCounts = await this.prisma.simulationEvaluatorTask.groupBy({
+      by: ['workerId'],
+      where: {
+        workerId: { in: eligibleWorkers.map((worker) => worker.id) },
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+      },
+      _count: { _all: true },
+    });
+    const activeByWorkerId = new Map(
+      activeCounts.map((item) => [item.workerId, item._count._all]),
+    );
+    return eligibleWorkers.reduce(
+      (available, worker) =>
+        available +
+        Math.max(
+          0,
+          worker.activeCapacity - (activeByWorkerId.get(worker.id) || 0),
+        ),
+      0,
+    );
   }
 
   async claimNextTask(
@@ -208,7 +236,9 @@ export class SimulationEvaluatorTaskService
       !worker ||
       worker.authorizationStatus !==
         SimulationEvaluatorWorkerAuthorizationStatus.Approved ||
-      worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Free
+      (worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Free &&
+        worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Busy) ||
+      worker.desiredState !== SimulationEvaluatorWorkerDesiredState.Running
     )
       return null;
     if (!this.isWorkerHeartbeatFresh(worker.lastHeartbeatAt, now)) {
@@ -225,6 +255,21 @@ export class SimulationEvaluatorTaskService
     const cachedPlatforms = [
       ...new Set(readyCaches.map((cache) => cache.platform)),
     ];
+    const activeTasks = await this.prisma.simulationEvaluatorTask.findMany({
+      where: {
+        workerId,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { gt: now },
+      },
+      select: { kind: true },
+    });
+    const activeEvaluationCount = activeTasks.filter(
+      (task) => task.kind === SimulationEvaluatorTaskKind.EvaluateLeaders,
+    ).length;
+    const hasExclusiveTask = activeTasks.some(
+      (task) => task.kind !== SimulationEvaluatorTaskKind.EvaluateLeaders,
+    );
+    if (hasExclusiveTask) return null;
 
     const readyTasks = await this.prisma.simulationEvaluatorTask.findMany({
       where: {
@@ -232,6 +277,10 @@ export class SimulationEvaluatorTaskService
         OR: [
           {
             kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
+            targetWorkerId: workerId,
+          },
+          {
+            kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
             targetWorkerId: workerId,
           },
           ...(cachedPlatforms.length
@@ -249,9 +298,14 @@ export class SimulationEvaluatorTaskService
       take: 50,
     });
     const readyTask = readyTasks.find((task) => {
-      if (task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache) {
+      if (
+        task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache ||
+        task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity
+      ) {
+        if (activeEvaluationCount > 0) return false;
         return task.targetWorkerId === workerId;
       }
+      if (activeEvaluationCount >= worker.activeCapacity) return false;
       if (
         !task.platform ||
         !task.requiredCacheStartAt ||
@@ -291,7 +345,12 @@ export class SimulationEvaluatorTaskService
           id: workerId,
           authorizationStatus:
             SimulationEvaluatorWorkerAuthorizationStatus.Approved,
-          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+          runtimeStatus: {
+            in: [
+              SimulationEvaluatorWorkerRuntimeStatus.Free,
+              SimulationEvaluatorWorkerRuntimeStatus.Busy,
+            ],
+          },
         },
         data: { runtimeStatus, lastHeartbeatAt: now, lastTaskAt: now },
       });
@@ -458,6 +517,21 @@ export class SimulationEvaluatorTaskService
         prebuildResult.error,
       );
     }
+    const capacityResult =
+      task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity
+        ? Number(input.result.activeCapacity)
+        : null;
+    if (
+      capacityResult !== null &&
+      (!Number.isSafeInteger(capacityResult) || capacityResult < 1)
+    ) {
+      return this.fail(
+        input.taskId,
+        input.workerId,
+        input.leaseToken,
+        'invalid capacity result',
+      );
+    }
     const completed = await this.prisma.simulationEvaluatorTask.updateMany({
       where: {
         id: input.taskId,
@@ -474,6 +548,12 @@ export class SimulationEvaluatorTaskService
       },
     });
     if (completed.count === 1) {
+      if (task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity) {
+        await this.prisma.simulationEvaluatorWorker.updateMany({
+          where: { id: input.workerId },
+          data: { activeCapacity: capacityResult! },
+        });
+      }
       if (task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache) {
         const coverage = prebuildResult as {
           coveredStartAt: Date;
@@ -486,10 +566,7 @@ export class SimulationEvaluatorTaskService
           coverage.coveredEndAt,
         );
       }
-      await this.recordWorkerHeartbeat(
-        input.workerId,
-        SimulationEvaluatorWorkerRuntimeStatus.Free,
-      );
+      await this.refreshWorkerRuntimeStatus(input.workerId);
       return true;
     }
     return false;
@@ -535,10 +612,7 @@ export class SimulationEvaluatorTaskService
         },
       });
     }
-    await this.recordWorkerHeartbeat(
-      workerId,
-      SimulationEvaluatorWorkerRuntimeStatus.Free,
-    );
+    await this.refreshWorkerRuntimeStatus(workerId);
     return true;
   }
 
@@ -716,6 +790,27 @@ export class SimulationEvaluatorTaskService
         ...(options.lastTaskAt ? { lastTaskAt: options.lastTaskAt } : {}),
       },
     });
+  }
+
+  private async refreshWorkerRuntimeStatus(workerId: string) {
+    const [worker, activeTaskCount] = await Promise.all([
+      this.prisma.simulationEvaluatorWorker.findUnique({
+        where: { id: workerId },
+      }),
+      this.prisma.simulationEvaluatorTask.count({
+        where: { workerId, status: SimulationEvaluatorTaskStatus.Claimed },
+      }),
+    ]);
+    if (!worker) return;
+    await this.recordWorkerHeartbeat(
+      workerId,
+      worker.desiredState === SimulationEvaluatorWorkerDesiredState.Draining &&
+        activeTaskCount === 0
+        ? SimulationEvaluatorWorkerRuntimeStatus.Paused
+        : activeTaskCount > 0
+          ? SimulationEvaluatorWorkerRuntimeStatus.Busy
+          : SimulationEvaluatorWorkerRuntimeStatus.Free,
+    );
   }
 
   private async markExpiredWorkerOffline(workerId: string) {

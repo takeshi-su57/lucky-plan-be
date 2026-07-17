@@ -170,6 +170,7 @@ model SimulationResearch {
   days        Int      @default(1)
   gapDays     Int      @default(0)
   direction   BotMode  @default(Reversed)
+  executionFlow SimulationResearchExecutionFlow @default(Centralized)
 
   trade Json @default("[]")
   r2    Json @default("[]")
@@ -217,9 +218,17 @@ enum SimulationStatus {
   Cancelled
 }
 
+/// Centralized is the stable, sequential evaluator. DynamicExperimental uses
+/// approved evaluator workers for concurrent simulation evaluation.
+enum SimulationResearchExecutionFlow {
+  Centralized
+  DynamicExperimental
+}
+
 enum SimulationEvaluatorTaskKind {
   EvaluateLeaders
   PrebuildPlatformCache
+  SetWorkerCapacity
 }
 
 enum SimulationEvaluatorTaskStatus {
@@ -244,6 +253,13 @@ enum SimulationEvaluatorWorkerRuntimeStatus {
   Free
   Busy
   Prebuilding
+  Paused
+}
+
+enum SimulationEvaluatorWorkerDesiredState {
+  Running
+  Draining
+  Paused
 }
 
 enum SimulationEvaluatorWorkerPlatformCacheStatus {
@@ -259,6 +275,9 @@ model SimulationEvaluatorWorker {
   publicKey           String?                                     @unique
   authorizationStatus SimulationEvaluatorWorkerAuthorizationStatus @default(Pending)
   runtimeStatus       SimulationEvaluatorWorkerRuntimeStatus      @default(Offline)
+  desiredState        SimulationEvaluatorWorkerDesiredState       @default(Running)
+  desiredCapacity     Int                                         @default(1)
+  activeCapacity      Int                                         @default(1)
   lastHeartbeatAt DateTime?
   lastTaskAt      DateTime?
   lastError       String?

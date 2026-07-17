@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
@@ -15,9 +15,9 @@ import {
 import { WindowRange } from './utils/simulation-range.utils';
 import {
   CandidateEvaluation,
+  ContractContext,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
-import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import {
@@ -65,8 +65,6 @@ export class SimulationAutoRunnerService {
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
-    @Optional()
-    private readonly distributedSimulationEvaluatorService?: DistributedSimulationEvaluatorService,
   ) {}
 
   private normalizeResearchGroups(value: unknown) {
@@ -141,6 +139,7 @@ export class SimulationAutoRunnerService {
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
       direction: record.direction,
+      executionFlow: record.executionFlow,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -239,6 +238,29 @@ export class SimulationAutoRunnerService {
     range: WindowRange,
     context: SimulationRangeProcessingContext,
   ): Promise<Simulation | null> {
+    return this.processSimulationRangeWithLeaderEvaluation(
+      simulationId,
+      range,
+      context,
+      (simulation, candidateLeaders) =>
+        this.defaultLeaderEvaluation(
+          simulation,
+          candidateLeaders,
+          range,
+          context.contractById,
+        ),
+    );
+  }
+
+  async processSimulationRangeWithLeaderEvaluation(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluateLeaders: (
+      simulation: Simulation,
+      candidateLeaders: string[],
+    ) => Promise<CandidateEvaluation[]>,
+  ): Promise<Simulation | null> {
     const currentRecord = await this.prisma.simulation.findUnique({
       where: { id: simulationId },
     });
@@ -276,26 +298,10 @@ export class SimulationAutoRunnerService {
 
     console.time(`evaluateLeadersForRange`);
 
-    const canUseDistributedEvaluator =
-      this.distributedSimulationEvaluatorService &&
-      (await this.distributedSimulationEvaluatorService.canEvaluateLeadersForRange(
-        current,
-        range,
-      ));
-
-    const evaluatedCandidates = canUseDistributedEvaluator
-      ? await this.distributedSimulationEvaluatorService!.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        )
-      : await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        );
+    const evaluatedCandidates = await evaluateLeaders(
+      current,
+      candidateLeaders,
+    );
 
     console.timeEnd(`evaluateLeadersForRange`);
 
@@ -333,6 +339,20 @@ export class SimulationAutoRunnerService {
     });
     await this.emitSimulationUpdated(completedPlanWindowSimulation);
     return this.mapSimulation(completedPlanWindowSimulation);
+  }
+
+  async defaultLeaderEvaluation(
+    simulation: Simulation,
+    candidateLeaders: string[],
+    range: WindowRange,
+    contractById: Map<number, ContractContext>,
+  ): Promise<CandidateEvaluation[]> {
+    return this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+      simulation,
+      candidateLeaders,
+      range,
+      contractById,
+    );
   }
 
   async aggregateSimulationThroughCursor(id: number, allRanges: WindowRange[]) {

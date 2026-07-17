@@ -6,7 +6,12 @@ import {
   OmitType,
   registerEnumType,
 } from '@nestjs/graphql';
-import { BotMode, Platform, SimulationStatus } from 'generated/prisma/client';
+import {
+  BotMode,
+  Platform,
+  SimulationResearchExecutionFlow,
+  SimulationStatus,
+} from 'generated/prisma/client';
 
 import { PerpTradeHistory } from '../../trade-histories/entities/event-logs.entity';
 import {
@@ -20,6 +25,10 @@ registerEnumType(SimulationStatus, {
 
 registerEnumType(BotMode, {
   name: 'BotMode',
+});
+
+registerEnumType(SimulationResearchExecutionFlow, {
+  name: 'SimulationResearchExecutionFlow',
 });
 
 registerEnumType(SimulationScoreFormular, {
@@ -435,6 +444,9 @@ export class SimulationResearch {
   @Field(() => BotMode)
   direction: BotMode;
 
+  @Field(() => SimulationResearchExecutionFlow)
+  executionFlow: SimulationResearchExecutionFlow;
+
   @Field(() => [SimulationTradeRangeGroup])
   trade: SimulationTradeRangeGroup[];
 
@@ -557,6 +569,9 @@ export class SimulationEvaluatorWorkerView {
   @Field(() => String) displayName: string;
   @Field(() => String) authorizationStatus: string;
   @Field(() => String) runtimeStatus: string;
+  @Field(() => String) desiredState: string;
+  @Field(() => Int) desiredCapacity: number;
+  @Field(() => Int) activeCapacity: number;
   @Field(() => Date, { nullable: true })
   lastHeartbeatAt: Date | null;
   @Field(() => Date, { nullable: true }) lastTaskAt: Date | null;

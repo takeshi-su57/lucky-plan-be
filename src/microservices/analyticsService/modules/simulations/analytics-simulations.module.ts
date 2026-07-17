@@ -7,6 +7,7 @@ import { SimulationCacheService } from './simulation-cache.service';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
+import { SimulationResearchDynamicAutoRunnerService } from './simulation-research-dynamic-auto-runner.service';
 import { SimulationResearchAutomationCronService } from './simulation-research-automation-cron.service';
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationEvaluatorModule } from '../simulationEvaluator/simulation-evaluator.module';
@@ -17,6 +18,7 @@ import { SimulationEvaluatorModule } from '../simulationEvaluator/simulation-eva
     SimulationResearchAutomationCronService,
     SimulationAutoRunnerService,
     SimulationResearchAutoRunnerService,
+    SimulationResearchDynamicAutoRunnerService,
     SimulationLeaderEvaluatorService,
     SimulationLeaderEventLogCacheService,
     AnalyticsSimulationResearchService,

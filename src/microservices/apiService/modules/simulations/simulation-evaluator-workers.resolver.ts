@@ -6,6 +6,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { SimulationEvaluatorTaskService } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-task.service';
 import {
   SimulationEvaluatorTaskKind,
+  SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerPlatformCacheStatus,
 } from 'generated/prisma/enums';
 import { missingRanges } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-coverage';
@@ -87,6 +88,50 @@ export class SimulationEvaluatorWorkersResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   removeRejectedSimulationEvaluatorWorker(@Args('workerId') workerId: string) {
     return this.auth.removeRejected(workerId);
+  }
+
+  @Mutation(() => SimulationEvaluatorWorkerView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async pauseSimulationEvaluatorWorker(@Args('workerId') workerId: string) {
+    return this.prisma.simulationEvaluatorWorker.update({
+      where: { id: workerId },
+      data: { desiredState: SimulationEvaluatorWorkerDesiredState.Draining },
+    });
+  }
+
+  @Mutation(() => SimulationEvaluatorWorkerView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async resumeSimulationEvaluatorWorker(@Args('workerId') workerId: string) {
+    return this.prisma.simulationEvaluatorWorker.update({
+      where: { id: workerId },
+      data: { desiredState: SimulationEvaluatorWorkerDesiredState.Running },
+    });
+  }
+
+  @Mutation(() => String)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async setSimulationEvaluatorWorkerCapacity(
+    @Args('workerId') workerId: string,
+    @Args('capacity') capacity: number,
+  ) {
+    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 64) {
+      throw new Error('Capacity must be an integer from 1 to 64');
+    }
+    const worker = await this.prisma.simulationEvaluatorWorker.update({
+      where: { id: workerId },
+      data: { desiredCapacity: capacity },
+    });
+    const task = await this.tasks.createTask({
+      kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
+      targetWorkerId: worker.id,
+      rangeStartedAt: new Date(),
+      rangeEndedAt: new Date(),
+      input: { capacity },
+    });
+    return task.id;
   }
 
   @Mutation(() => String)

@@ -4,6 +4,7 @@ export const SIMULATION_EVALUATOR = {
   pollDelayMs: 2_000,
   enrollmentRetryDelayMs: 30_000,
   heartbeatIntervalMs: 5_000,
+  parentSessionTimeoutMs: 30_000,
   workerHeartbeatTimeoutMs: 60_000,
   leaseDurationMs: 90_000,
   prebuildChunkTargetBytes: 10 * 1024 * 1024,

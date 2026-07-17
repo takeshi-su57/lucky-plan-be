@@ -9,7 +9,11 @@ import {
 } from 'class-validator';
 
 import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
-import { BotMode, Platform } from 'generated/prisma/enums';
+import {
+  BotMode,
+  Platform,
+  SimulationResearchExecutionFlow,
+} from 'generated/prisma/enums';
 import {
   DEFAULT_SCORE_FORMULAR,
   DEFAULT_SIZING_FORMULAR,
@@ -237,6 +241,12 @@ export class CreateSimulationResearchInput {
 
   @Field(() => BotMode)
   direction: BotMode;
+
+  @IsEnum(SimulationResearchExecutionFlow)
+  @Field(() => SimulationResearchExecutionFlow, {
+    defaultValue: SimulationResearchExecutionFlow.Centralized,
+  })
+  executionFlow?: SimulationResearchExecutionFlow;
 
   @ValidateNested({ each: true })
   @Type(() => IntRangeGroupInput)

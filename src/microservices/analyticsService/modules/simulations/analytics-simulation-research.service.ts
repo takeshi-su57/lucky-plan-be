@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { SimulationStatus } from 'generated/prisma/enums';
+import {
+  SimulationResearchExecutionFlow,
+  SimulationStatus,
+} from 'generated/prisma/enums';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
+import { SimulationResearchDynamicAutoRunnerService } from './simulation-research-dynamic-auto-runner.service';
 
 const AUTOMATIC_RESEARCH_STATUSES = [
   SimulationStatus.Created,
@@ -17,6 +21,7 @@ export class AnalyticsSimulationResearchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationResearchAutoRunnerService: SimulationResearchAutoRunnerService,
+    private readonly simulationResearchDynamicAutoRunnerService: SimulationResearchDynamicAutoRunnerService,
   ) {}
 
   async processNextAutomaticResearch(now = new Date()) {
@@ -68,6 +73,18 @@ export class AnalyticsSimulationResearchService {
     this.activeResearchId = id;
 
     try {
+      const research = await this.prisma.simulationResearch.findUnique({
+        where: { id },
+        select: { executionFlow: true },
+      });
+      if (
+        research?.executionFlow ===
+        SimulationResearchExecutionFlow.DynamicExperimental
+      ) {
+        return await this.simulationResearchDynamicAutoRunnerService.playAutomaticResearch(
+          id,
+        );
+      }
       return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
         id,
       );
