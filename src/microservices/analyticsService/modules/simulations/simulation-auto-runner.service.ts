@@ -15,6 +15,7 @@ import {
 import { WindowRange } from './utils/simulation-range.utils';
 import {
   CandidateEvaluation,
+  ContractContext,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
@@ -141,6 +142,7 @@ export class SimulationAutoRunnerService {
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
       direction: record.direction,
+      executionFlow: record.executionFlow,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -239,6 +241,29 @@ export class SimulationAutoRunnerService {
     range: WindowRange,
     context: SimulationRangeProcessingContext,
   ): Promise<Simulation | null> {
+    return this.processSimulationRangeWithLeaderEvaluation(
+      simulationId,
+      range,
+      context,
+      (simulation, candidateLeaders) =>
+        this.defaultLeaderEvaluation(
+          simulation,
+          candidateLeaders,
+          range,
+          context.contractById,
+        ),
+    );
+  }
+
+  private async processSimulationRangeWithLeaderEvaluation(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluateLeaders: (
+      simulation: Simulation,
+      candidateLeaders: string[],
+    ) => Promise<CandidateEvaluation[]>,
+  ): Promise<Simulation | null> {
     const currentRecord = await this.prisma.simulation.findUnique({
       where: { id: simulationId },
     });
@@ -276,26 +301,10 @@ export class SimulationAutoRunnerService {
 
     console.time(`evaluateLeadersForRange`);
 
-    const canUseDistributedEvaluator =
-      this.distributedSimulationEvaluatorService &&
-      (await this.distributedSimulationEvaluatorService.canEvaluateLeadersForRange(
-        current,
-        range,
-      ));
-
-    const evaluatedCandidates = canUseDistributedEvaluator
-      ? await this.distributedSimulationEvaluatorService!.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        )
-      : await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        );
+    const evaluatedCandidates = await evaluateLeaders(
+      current,
+      candidateLeaders,
+    );
 
     console.timeEnd(`evaluateLeadersForRange`);
 
@@ -333,6 +342,67 @@ export class SimulationAutoRunnerService {
     });
     await this.emitSimulationUpdated(completedPlanWindowSimulation);
     return this.mapSimulation(completedPlanWindowSimulation);
+  }
+
+  async processSimulationRangeDynamically(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+  ): Promise<Simulation | null> {
+    return this.processSimulationRangeWithLeaderEvaluation(
+      simulationId,
+      range,
+      context,
+      (simulation, candidateLeaders) =>
+        this.dynamicLeaderEvaluation(
+          simulation,
+          candidateLeaders,
+          range,
+          context.contractById,
+        ),
+    );
+  }
+
+  async defaultLeaderEvaluation(
+    simulation: Simulation,
+    candidateLeaders: string[],
+    range: WindowRange,
+    contractById: Map<number, ContractContext>,
+  ): Promise<CandidateEvaluation[]> {
+    return this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+      simulation,
+      candidateLeaders,
+      range,
+      contractById,
+    );
+  }
+
+  async dynamicLeaderEvaluation(
+    simulation: Simulation,
+    candidateLeaders: string[],
+    range: WindowRange,
+    contractById: Map<number, ContractContext>,
+  ): Promise<CandidateEvaluation[]> {
+    const canUseDistributedEvaluator =
+      this.distributedSimulationEvaluatorService &&
+      (await this.distributedSimulationEvaluatorService.canEvaluateLeadersForRange(
+        simulation,
+        range,
+      ));
+    if (canUseDistributedEvaluator) {
+      return this.distributedSimulationEvaluatorService!.evaluateLeadersForRange(
+        simulation,
+        candidateLeaders,
+        range,
+        contractById,
+      );
+    }
+    return this.defaultLeaderEvaluation(
+      simulation,
+      candidateLeaders,
+      range,
+      contractById,
+    );
   }
 
   async aggregateSimulationThroughCursor(id: number, allRanges: WindowRange[]) {

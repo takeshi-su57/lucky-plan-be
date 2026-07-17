@@ -137,6 +137,7 @@ export class SimulationEvaluatorWorkerEvaluationService {
     }
 
     if (this.cache.hasPlatformCoverage(platform, startedAt, endedAt)) {
+      this.cache.clearPrebuildTaskCheckpoint(taskId);
       return {
         platform,
         coveredStartAt: startedAt.toISOString(),
@@ -144,13 +145,19 @@ export class SimulationEvaluatorWorkerEvaluationService {
       };
     }
 
-    let cursor: { contractId: number; block: number; logIndex: number } | null =
-      null;
-    let recordsProcessed = 0;
-    let bytesDownloaded = 0;
-    let totalRecords = 0;
+    const checkpoint = this.cache.getPrebuildTaskCheckpoint(
+      taskId,
+      platform,
+      startedAt,
+      endedAt,
+    );
+    let cursor = checkpoint?.cursor ?? null;
+    let recordsProcessed = checkpoint?.recordsProcessed ?? 0;
+    let bytesDownloaded = checkpoint?.bytesDownloaded ?? 0;
+    let totalRecords = checkpoint?.totalRecords ?? 0;
+    let done = checkpoint?.done ?? false;
 
-    while (true) {
+    while (!done) {
       const chunk = await this.client.getPrebuildChunk(
         taskId,
         leaseToken,
@@ -162,6 +169,28 @@ export class SimulationEvaluatorWorkerEvaluationService {
       totalRecords = chunk.totalRecords ?? totalRecords;
       recordsProcessed += chunk.eventLogs.length;
       bytesDownloaded += chunk.compressedBytes;
+      if (!chunk.done && !chunk.nextCursor) {
+        throw new Error('Prebuild chunk is missing a next cursor');
+      }
+      cursor = chunk.nextCursor;
+      done = chunk.done;
+
+      // Event logs are written before the cursor checkpoint. If the process
+      // stops between those writes, replaying the last idempotent batch is
+      // safe; advancing past data that was not persisted is not.
+      this.cache.savePrebuildTaskCheckpoint(
+        taskId,
+        platform,
+        startedAt,
+        endedAt,
+        {
+          cursor,
+          done,
+          recordsProcessed,
+          bytesDownloaded,
+          totalRecords,
+        },
+      );
       const progressPercent = totalRecords
         ? Math.min(100, (recordsProcessed / totalRecords) * 100)
         : chunk.done
@@ -178,15 +207,10 @@ export class SimulationEvaluatorWorkerEvaluationService {
             ? `Cached ${recordsProcessed.toLocaleString()} of ${totalRecords.toLocaleString()} event logs (${progressPercent.toFixed(1)}%)`
             : 'Checking event logs to cache',
       });
-
-      if (chunk.done) {
-        break;
-      }
-
-      cursor = chunk.nextCursor;
     }
 
     this.cache.markPlatformCoverage(platform, startedAt, endedAt);
+    this.cache.clearPrebuildTaskCheckpoint(taskId);
 
     return {
       platform,

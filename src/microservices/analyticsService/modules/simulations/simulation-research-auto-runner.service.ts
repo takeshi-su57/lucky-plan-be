@@ -17,7 +17,6 @@ import {
 } from './utils/simulation-range.utils';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulation-evaluator-task.service';
 
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,8 +31,6 @@ export class SimulationResearchAutoRunnerService {
     @Optional()
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient?: ClientProxy,
-    @Optional()
-    private readonly evaluatorTasks?: SimulationEvaluatorTaskService,
   ) {}
 
   async playAutomaticResearch(id: number, now = new Date()): Promise<void> {
@@ -137,46 +134,24 @@ export class SimulationResearchAutoRunnerService {
 
           await this.updateResearchProgress(id, range, allRanges);
 
-          const workerConcurrency = this.evaluatorTasks
-            ? await this.evaluatorTasks.countReadyWorkers(
-                currentResearch.platform,
-                new Date(
-                  range.startedAt.getTime() -
-                    LEADER_SCORING_WINDOW_DAYS * DAY_MS,
-                ),
-                range.startedAt,
-              )
-            : 1;
-          const simulationConcurrency = Math.max(1, workerConcurrency);
-
           const simulationsLabel = `${rangeLabel} process simulations`;
           console.time(simulationsLabel);
           const eligibleSimulations = currentResearch.simulations.filter(
             (simulation) => isAutomationStatusEligible(simulation.status),
           );
-          for (
-            let offset = 0;
-            offset < eligibleSimulations.length;
-            offset += simulationConcurrency
-          ) {
-            await Promise.all(
-              eligibleSimulations
-                .slice(offset, offset + simulationConcurrency)
-                .map(async (simulation) => {
-                  const processed =
-                    await this.simulationAutoRunnerService.processSimulationRange(
-                      simulation.id,
-                      range,
-                      context,
-                    );
-                  if (processed) {
-                    await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
-                      processed.id,
-                      allRanges,
-                    );
-                  }
-                }),
-            );
+          for (const simulation of eligibleSimulations) {
+            const processed =
+              await this.simulationAutoRunnerService.processSimulationRange(
+                simulation.id,
+                range,
+                context,
+              );
+            if (processed) {
+              await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
+                processed.id,
+                allRanges,
+              );
+            }
           }
           console.timeEnd(simulationsLabel);
 

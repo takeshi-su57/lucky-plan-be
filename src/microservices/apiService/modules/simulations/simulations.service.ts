@@ -25,7 +25,10 @@ import {
 } from './entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { SimulationStatus } from 'generated/prisma/enums';
+import {
+  SimulationResearchExecutionFlow,
+  SimulationStatus,
+} from 'generated/prisma/enums';
 import { SimulationPlansService } from './simulation-plans.service';
 import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import {
@@ -432,6 +435,8 @@ export class SimulationsService {
       days,
       gapDays,
       direction: record.direction,
+      executionFlow:
+        record.executionFlow ?? SimulationResearchExecutionFlow.Centralized,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -589,6 +594,7 @@ export class SimulationsService {
           days,
           gapDays,
           direction: input.direction,
+          executionFlow: input.executionFlow,
           trade: this.serializeRangeGroups(trade),
           r2: this.serializeRangeGroups(r2),
           slope: this.serializeRangeGroups(slope),
