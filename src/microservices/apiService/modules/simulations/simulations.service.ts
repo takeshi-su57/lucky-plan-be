@@ -12,7 +12,7 @@ import {
 import {
   SimulationPlanDetails,
   Simulation,
-  SimulationConnection,
+  SimulationPlan,
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
@@ -799,31 +799,6 @@ export class SimulationsService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
-    };
-  }
-
-  async getSimulations(
-    first: number,
-    after: number | null,
-  ): Promise<SimulationConnection> {
-    const records = await this.prisma.simulation.findMany({
-      skip: after ? 1 : undefined,
-      take: first,
-      cursor: after ? { id: after } : undefined,
-      orderBy: [{ id: 'desc' }],
-    });
-
-    const edges = records.map((record) => ({
-      cursor: record.id,
-      node: this.mapSimulation(record),
-    }));
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage: edges.length === first,
-        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      },
     };
   }
 

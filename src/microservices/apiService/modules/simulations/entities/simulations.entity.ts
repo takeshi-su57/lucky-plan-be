@@ -249,25 +249,6 @@ export class SimulationPlanDetails extends OmitType(SimulationPlan, [
 }
 
 @ObjectType()
-export class SimulationPlanEdge {
-  @Field(() => Int) cursor: number;
-  @Field(() => SimulationPlan) node: SimulationPlan;
-}
-
-@ObjectType()
-export class SimulationPlanPageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
-}
-
-@ObjectType()
-export class SimulationPlanConnection {
-  @Field(() => [SimulationPlanEdge])
-  edges: SimulationPlanEdge[];
-  @Field(() => SimulationPlanPageInfo) pageInfo: SimulationPlanPageInfo;
-}
-
-@ObjectType()
 export class Simulation {
   @Field(() => Int)
   id: number;
@@ -385,25 +366,6 @@ export class Simulation {
 
   @Field(() => Date)
   updatedAt: Date;
-}
-
-@ObjectType()
-export class SimulationEdge {
-  @Field(() => Int) cursor: number;
-  @Field(() => Simulation) node: Simulation;
-}
-
-@ObjectType()
-export class SimulationPageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
-}
-
-@ObjectType()
-export class SimulationConnection {
-  @Field(() => [SimulationEdge])
-  edges: SimulationEdge[];
-  @Field(() => SimulationPageInfo) pageInfo: SimulationPageInfo;
 }
 
 @ObjectType()

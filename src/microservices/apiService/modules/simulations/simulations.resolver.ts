@@ -12,12 +12,9 @@ import { PubSub } from 'graphql-subscriptions';
 
 import { SimulationsService } from './simulations.service';
 import {
-  SimulationBot,
   SimulationPlan,
   SimulationPlanDetails,
-  SimulationPlanConnection,
   Simulation,
-  SimulationConnection,
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
@@ -107,7 +104,6 @@ export class SimulationsResolver {
     return this.simulationsService.deleteSimulationResearch(id);
   }
 
-
   @Subscription(() => SimulationResearch, {
     name: SUBSCRIPTION_TOKEN.simulationResearchUpdated,
   })
@@ -138,14 +134,6 @@ export class SimulationsResolver {
   @Query(() => SimulationPlanDetails)
   getSimulationPlanById(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.getSimulationPlanById(id);
-  }
-
-  @Query(() => SimulationConnection)
-  simulations(
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
-  ) {
-    return this.simulationsService.getSimulations(first, after);
   }
 
   @Query(() => Simulation, { nullable: true })
