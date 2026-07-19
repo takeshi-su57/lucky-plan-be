@@ -3,9 +3,6 @@ import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
 import {
-  CreateSimulationPlanInput,
-  CreateSimulationBotInput,
-  UpdateSimulationBotInput,
   CreateSimulationResearchInput,
   UpdateSimulationResearchInput,
   FloatMinMaxInput,
@@ -13,10 +10,7 @@ import {
   UpdateSimulationInput,
 } from './dto/simulations.input';
 import {
-  SimulationBot,
-  SimulationPlan,
   SimulationPlanDetails,
-  SimulationPlanConnection,
   Simulation,
   SimulationConnection,
   SimulationResearch,
@@ -1169,47 +1163,6 @@ export class SimulationsService {
     await this.emitSimulationResearchUpdated(id);
 
     return mapped;
-  }
-
-  async deleteSimulationPlan(id: number): Promise<number> {
-    return await this.simulationPlansService.deleteSimulationPlan(id);
-  }
-
-  async deleteSimulationBot(id: number): Promise<number> {
-    return await this.simulationPlansService.deleteSimulationBot(id);
-  }
-
-  async createSimulationPlan(
-    input: CreateSimulationPlanInput,
-  ): Promise<SimulationPlan> {
-    return await this.simulationPlansService.createSimulationPlan(input);
-  }
-
-  async batchCreateSimulationBots(
-    inputs: CreateSimulationBotInput[],
-  ): Promise<SimulationBot[]> {
-    return await this.simulationPlansService.batchCreateSimulationBots(inputs);
-  }
-
-  async updateSimulationBot(
-    input: UpdateSimulationBotInput,
-  ): Promise<SimulationBot> {
-    return await this.simulationPlansService.updateSimulationBot(input);
-  }
-
-  async playSimulationPlan(id: number): Promise<SimulationPlan> {
-    return await this.simulationPlansService.playSimulationPlan(id);
-  }
-
-  async stopSimulationBot(id: number): Promise<SimulationBot> {
-    return await this.simulationPlansService.stopSimulationBot(id);
-  }
-
-  async getSimulationPlans(
-    first: number,
-    after: number | null,
-  ): Promise<SimulationPlanConnection> {
-    return await this.simulationPlansService.getSimulationPlans(first, after);
   }
 
   async getSimulationPlanById(id: number): Promise<SimulationPlanDetails> {
