@@ -193,6 +193,11 @@ model SimulationResearch {
   startedAt       DateTime?
   finishedAt      DateTime?
   lastError       String?
+  retryAttempts   Int      @default(0)
+  nextRetryAt     DateTime?
+  automationEnabled Boolean @default(true)
+  automationLeaseToken String? @db.VarChar(64)
+  automationLeaseExpiresAt DateTime?
 
   simulations Simulation[]
 
@@ -200,6 +205,9 @@ model SimulationResearch {
   updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
+  @@index([status, nextRetryAt])
+  @@index([automationEnabled, status, nextRetryAt])
+  @@index([status, automationLeaseExpiresAt])
   @@index([createdAt])
 }
 
@@ -454,6 +462,7 @@ model SimulationEvaluatorTask {
   rangeEndedAt         DateTime
   input                Json
   inputChecksum        String
+  dedupeKey            String?   @unique
   result               Json?
   resultChecksum       String?
 
