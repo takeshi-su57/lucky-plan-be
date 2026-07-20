@@ -59,15 +59,15 @@ model Contract {
 }
 
 model PerpTradingEventLog {
-  contractId       Int
-  jsonLog          String
-  usdPnl           Float
-  block            Int
-  logIndex         Int
-  transactionHash  String
-  date             DateTime
-  address          String
-  platform         Platform
+  contractId      Int
+  jsonLog         String
+  usdPnl          Float
+  block           Int
+  logIndex        Int
+  transactionHash String
+  date            DateTime
+  address         String
+  platform        Platform
 
   @@id([contractId, block, logIndex])
   @@index([platform, address, date, block, logIndex, contractId])
@@ -153,7 +153,7 @@ model SimulationPlan {
   totalFollowerPnl Float @default(0)
 
   simulationBots SimulationBot[]
-  simulation     Simulation?          @relation(fields: [simulationId], references: [id])
+  simulation     Simulation?               @relation(fields: [simulationId], references: [id])
   cache          SimulationPlanCache?
   evaluatorTasks SimulationEvaluatorTask[]
 
@@ -161,15 +161,15 @@ model SimulationPlan {
 }
 
 model SimulationResearch {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  platform    Platform
-  startAt     DateTime
-  endAt       DateTime
-  days        Int      @default(1)
-  gapDays     Int      @default(0)
-  direction   BotMode  @default(Reversed)
+  id            Int                             @id @default(autoincrement())
+  title         String
+  description   String
+  platform      Platform
+  startAt       DateTime
+  endAt         DateTime
+  days          Int                             @default(1)
+  gapDays       Int                             @default(0)
+  direction     BotMode                         @default(Reversed)
   executionFlow SimulationResearchExecutionFlow @default(Centralized)
 
   trade Json @default("[]")
@@ -264,28 +264,31 @@ enum SimulationEvaluatorWorkerDesiredState {
 
 enum SimulationEvaluatorWorkerPlatformCacheStatus {
   Missing
+  Queued
   Building
   Ready
   Failed
 }
 
 model SimulationEvaluatorWorker {
-  id                  String                                      @id
+  id                  String                                       @id
   displayName         String?
-  publicKey           String?                                     @unique
+  publicKey           String?                                      @unique
   authorizationStatus SimulationEvaluatorWorkerAuthorizationStatus @default(Pending)
-  runtimeStatus       SimulationEvaluatorWorkerRuntimeStatus      @default(Offline)
-  desiredState        SimulationEvaluatorWorkerDesiredState       @default(Running)
-  desiredCapacity     Int                                         @default(1)
-  activeCapacity      Int                                         @default(1)
-  lastHeartbeatAt DateTime?
-  lastTaskAt      DateTime?
-  lastError       String?
-  approvedAt      DateTime?
-  rejectedAt      DateTime?
-  disabledAt      DateTime?
-  createdAt       DateTime                        @default(now())
-  updatedAt       DateTime                        @updatedAt
+  runtimeStatus       SimulationEvaluatorWorkerRuntimeStatus       @default(Offline)
+  desiredState        SimulationEvaluatorWorkerDesiredState        @default(Running)
+  desiredCapacity     Int                                          @default(1)
+  activeCapacity      Int                                          @default(1)
+  lastHeartbeatAt     DateTime?
+  lastTaskAt          DateTime?
+  lastError           String?
+  lastDiagnostic      Json?
+  lastDiagnosticAt    DateTime?
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  disabledAt          DateTime?
+  createdAt           DateTime                                     @default(now())
+  updatedAt           DateTime                                     @updatedAt
 
   platformCaches SimulationEvaluatorWorkerPlatformCache[]
 
@@ -293,18 +296,18 @@ model SimulationEvaluatorWorker {
 }
 
 model SimulationEvaluatorWorkerPlatformCache {
-  id         Int                                        @id @default(autoincrement())
-  workerId   String
-  platform   Platform
-  status     SimulationEvaluatorWorkerPlatformCacheStatus @default(Missing)
-  coveredStartAt DateTime?
-  coveredEndAt   DateTime?
+  id              Int                                          @id @default(autoincrement())
+  workerId        String
+  platform        Platform
+  status          SimulationEvaluatorWorkerPlatformCacheStatus @default(Missing)
+  coveredStartAt  DateTime?
+  coveredEndAt    DateTime?
   buildingStartAt DateTime?
   buildingEndAt   DateTime?
-  lastError String?
-  lastBuiltAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  lastError       String?
+  lastBuiltAt     DateTime?
+  createdAt       DateTime                                     @default(now())
+  updatedAt       DateTime                                     @updatedAt
 
   worker SimulationEvaluatorWorker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
@@ -366,7 +369,7 @@ model Simulation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  research        SimulationResearch? @relation(fields: [researchId], references: [id], onDelete: SetNull)
+  research        SimulationResearch?       @relation(fields: [researchId], references: [id], onDelete: SetNull)
   simulationPlans SimulationPlan[]
   evaluatorTasks  SimulationEvaluatorTask[]
 
@@ -437,36 +440,36 @@ model SimulationBot {
 }
 
 model SimulationEvaluatorTask {
-  id       String                       @id @default(cuid())
-  kind     SimulationEvaluatorTaskKind
-  status   SimulationEvaluatorTaskStatus @default(Queued)
+  id     String                        @id @default(cuid())
+  kind   SimulationEvaluatorTaskKind
+  status SimulationEvaluatorTaskStatus @default(Queued)
 
-  simulationId     Int?
-  simulationPlanId Int?
-  platform         Platform?
-  targetWorkerId   String?
+  simulationId         Int?
+  simulationPlanId     Int?
+  platform             Platform?
+  targetWorkerId       String?
   requiredCacheStartAt DateTime?
   requiredCacheEndAt   DateTime?
-  rangeStartedAt   DateTime
-  rangeEndedAt     DateTime
-  input            Json
-  inputChecksum    String
-  result           Json?
-  resultChecksum   String?
+  rangeStartedAt       DateTime
+  rangeEndedAt         DateTime
+  input                Json
+  inputChecksum        String
+  result               Json?
+  resultChecksum       String?
 
-  workerId       String?
-  leaseToken     String?
-  leaseExpiresAt DateTime?
-  claimedAt      DateTime?
-  completedAt    DateTime?
-  lastError      String?
-  progressPercent Float @default(0)
-  progressMessage String?
-  progressBytes   BigInt @default(0)
-  progressRecords BigInt @default(0)
-  progressTotalRecords BigInt @default(0)
+  workerId             String?
+  leaseToken           String?
+  leaseExpiresAt       DateTime?
+  claimedAt            DateTime?
+  completedAt          DateTime?
+  lastError            String?
+  progressPercent      Float     @default(0)
+  progressMessage      String?
+  progressBytes        BigInt    @default(0)
+  progressRecords      BigInt    @default(0)
+  progressTotalRecords BigInt    @default(0)
 
-  simulation     Simulation?    @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  simulation     Simulation?     @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   simulationPlan SimulationPlan? @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
