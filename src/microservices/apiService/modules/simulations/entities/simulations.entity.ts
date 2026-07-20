@@ -544,6 +544,7 @@ export class SimulationResearchConnection {
 
 @ObjectType()
 class SimulationEvaluatorWorkerCacheView {
+  @Field(() => Int) id: number;
   @Field(() => String) platform: string;
   @Field(() => String) status: string;
   @Field(() => Date, { nullable: true })
@@ -576,10 +577,66 @@ export class SimulationEvaluatorWorkerView {
   lastHeartbeatAt: Date | null;
   @Field(() => Date, { nullable: true }) lastTaskAt: Date | null;
   @Field(() => String, { nullable: true }) lastError: string | null;
+  @Field(() => SimulationEvaluatorWorkerDiagnosticView, { nullable: true })
+  lastDiagnostic?: SimulationEvaluatorWorkerDiagnosticView | null;
+  @Field(() => Date, { nullable: true }) lastDiagnosticAt: Date | null;
   @Field(() => [SimulationEvaluatorWorkerCacheView])
   platformCaches: SimulationEvaluatorWorkerCacheView[];
   @Field(() => SimulationEvaluatorWorkerPrebuildProgressView, {
     nullable: true,
   })
   prebuildProgress?: SimulationEvaluatorWorkerPrebuildProgressView;
+}
+
+@ObjectType()
+class SimulationEvaluatorWorkerDiagnosticLogView {
+  @Field(() => Date) at: Date;
+  @Field(() => String) level: string;
+  @Field(() => String) message: string;
+}
+
+@ObjectType()
+class SimulationEvaluatorWorkerDiagnosticView {
+  @Field(() => Int) pid: number;
+  @Field(() => Int) uptimeSeconds: number;
+  @Field(() => Int) childCapacity: number;
+  @Field(() => Int) childCount: number;
+  @Field(() => Int) idleChildCount: number;
+  @Field(() => Int) runningTaskCount: number;
+  @Field(() => Date, { nullable: true }) lastPollAt: Date | null;
+  @Field(() => String, { nullable: true }) lastPollError: string | null;
+  @Field(() => [SimulationEvaluatorWorkerDiagnosticLogView])
+  recentLogs: SimulationEvaluatorWorkerDiagnosticLogView[];
+}
+
+@ObjectType()
+export class SimulationEvaluatorWorkerTaskView {
+  @Field(() => String) id: string;
+  @Field(() => String) kind: string;
+  @Field(() => String) status: string;
+  @Field(() => String) syncStatus: string;
+  @Field(() => String, { nullable: true }) platform: string | null;
+  @Field(() => String, { nullable: true }) targetWorkerId: string | null;
+  @Field(() => String, { nullable: true }) workerId: string | null;
+  @Field(() => Date) rangeStartedAt: Date;
+  @Field(() => Date) rangeEndedAt: Date;
+  @Field(() => Date, { nullable: true }) claimedAt: Date | null;
+  @Field(() => Date, { nullable: true }) leaseExpiresAt: Date | null;
+  @Field(() => Date, { nullable: true }) completedAt: Date | null;
+  @Field(() => Float) progressPercent: number;
+  @Field(() => String) progressMessage: string;
+  @Field(() => String) progressRecords: string;
+  @Field(() => String) progressTotalRecords: string;
+  @Field(() => String) progressBytes: string;
+  @Field(() => String, { nullable: true }) lastError: string | null;
+  @Field(() => Boolean) canCancel: boolean;
+  @Field(() => Date) createdAt: Date;
+}
+
+@ObjectType()
+export class SimulationEvaluatorWorkerTaskConnection {
+  @Field(() => [SimulationEvaluatorWorkerTaskView])
+  items: SimulationEvaluatorWorkerTaskView[];
+  @Field(() => String, { nullable: true })
+  nextCursor: string | null;
 }

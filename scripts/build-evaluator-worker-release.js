@@ -125,7 +125,17 @@ switch ($Command) {
   }
   'start' { Assert-Configuration; Start-ScheduledTask -TaskName $TaskName; Write-Host "Started $TaskName." -ForegroundColor Green }
   'stop' { Stop-Worker; Write-Host "Stopped $TaskName." -ForegroundColor Yellow }
-  'status' { Get-ScheduledTask -TaskName $TaskName | Format-List TaskName, State, TaskPath }
+  'status' {
+    $task = Get-ScheduledTask -TaskName $TaskName
+    $info = Get-ScheduledTaskInfo -TaskName $TaskName
+    [PSCustomObject]@{
+      TaskName = $task.TaskName
+      State = $task.State
+      LastRunTime = $info.LastRunTime
+      LastTaskResult = $info.LastTaskResult
+      NextRunTime = $info.NextRunTime
+    } | Format-List
+  }
   'uninstall' { Stop-Worker $true; Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue; Write-Host "Uninstalled $TaskName." -ForegroundColor Yellow }
   'cache-export' {
     Assert-Configuration

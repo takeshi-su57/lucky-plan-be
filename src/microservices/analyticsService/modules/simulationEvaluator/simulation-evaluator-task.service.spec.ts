@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import {
   Platform,
   SimulationEvaluatorWorkerAuthorizationStatus,
+  SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerPlatformCacheStatus,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
@@ -11,10 +12,24 @@ import { SimulationEvaluatorTaskService } from './simulation-evaluator-task.serv
 const EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS = 60_000;
 
 describe('SimulationEvaluatorTaskService worker freshness', () => {
-  it('counts only free workers with a recent heartbeat as ready', async () => {
+  it('uses the desired capacity to drain a worker before a scale-down task runs', () => {
+    const service = new SimulationEvaluatorTaskService({} as never);
+
+    expect(
+      (service as any).getSchedulingCapacity({
+        activeCapacity: 10,
+        desiredCapacity: 3,
+      }),
+    ).toBe(3);
+  });
+
+  it('counts eligible workers with a recent heartbeat as ready', async () => {
     const prisma = {
       simulationEvaluatorWorker: {
         findMany: jest.fn(async () => []),
+      },
+      simulationEvaluatorTask: {
+        groupBy: jest.fn(async () => []),
       },
     };
     const service = new SimulationEvaluatorTaskService(prisma as never);
@@ -30,7 +45,12 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+          runtimeStatus: {
+            in: [
+              SimulationEvaluatorWorkerRuntimeStatus.Free,
+              SimulationEvaluatorWorkerRuntimeStatus.Busy,
+            ],
+          },
           lastHeartbeatAt: {
             gte: expect.any(Date),
           },
@@ -57,6 +77,7 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
           id: 'worker-1',
           authorizationStatus:
             SimulationEvaluatorWorkerAuthorizationStatus.Approved,
+          desiredState: SimulationEvaluatorWorkerDesiredState.Running,
           runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
           lastHeartbeatAt: new Date(
             Date.now() - EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS - 1_000,

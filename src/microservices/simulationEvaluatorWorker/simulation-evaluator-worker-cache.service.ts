@@ -33,9 +33,10 @@ export type SimulationEvaluatorWorkerIdentity = {
 };
 
 export type PrebuildTaskCursor = {
-  contractId: number;
+  date: string;
   block: number;
   logIndex: number;
+  contractId: number;
 };
 
 export type PrebuildTaskCheckpoint = {
@@ -85,6 +86,7 @@ export class SimulationEvaluatorWorkerCacheService
         platform TEXT NOT NULL,
         started_at TEXT NOT NULL,
         ended_at TEXT NOT NULL,
+        cursor_date TEXT,
         cursor_contract_id INTEGER,
         cursor_block INTEGER,
         cursor_log_index INTEGER,
@@ -101,6 +103,14 @@ export class SimulationEvaluatorWorkerCacheService
     if (!columns.some((column) => column.name === 'display_name')) {
       this.database.exec(
         'ALTER TABLE worker_identity ADD COLUMN display_name TEXT',
+      );
+    }
+    const checkpointColumns = this.database
+      .prepare('PRAGMA table_info(prebuild_task_checkpoint)')
+      .all() as { name: string }[];
+    if (!checkpointColumns.some((column) => column.name === 'cursor_date')) {
+      this.database.exec(
+        'ALTER TABLE prebuild_task_checkpoint ADD COLUMN cursor_date TEXT',
       );
     }
     this.identity =
@@ -351,13 +361,14 @@ export class SimulationEvaluatorWorkerCacheService
   ): PrebuildTaskCheckpoint | null {
     const row = this.getDatabase()
       .prepare(
-        `SELECT cursor_contract_id, cursor_block, cursor_log_index, done,
+        `SELECT cursor_date, cursor_contract_id, cursor_block, cursor_log_index, done,
                 records_processed, bytes_downloaded, total_records
          FROM prebuild_task_checkpoint
          WHERE task_id = ? AND platform = ? AND started_at = ? AND ended_at = ?`,
       )
       .get(taskId, platform, startedAt.toISOString(), endedAt.toISOString()) as
       | {
+          cursor_date: string | null;
           cursor_contract_id: number | null;
           cursor_block: number | null;
           cursor_log_index: number | null;
@@ -370,16 +381,22 @@ export class SimulationEvaluatorWorkerCacheService
     if (!row) return null;
 
     const hasCursor = [
+      row.cursor_date,
       row.cursor_contract_id,
       row.cursor_block,
       row.cursor_log_index,
-    ].every(Number.isSafeInteger);
+    ].every((value) =>
+      typeof value === 'string'
+        ? !Number.isNaN(new Date(value).getTime())
+        : Number.isSafeInteger(value),
+    );
     return {
       cursor: hasCursor
         ? {
-            contractId: row.cursor_contract_id!,
+            date: row.cursor_date!,
             block: row.cursor_block!,
             logIndex: row.cursor_log_index!,
+            contractId: row.cursor_contract_id!,
           }
         : null,
       done: row.done === 1,
@@ -400,13 +417,14 @@ export class SimulationEvaluatorWorkerCacheService
       .prepare(
         `INSERT INTO prebuild_task_checkpoint (
            task_id, platform, started_at, ended_at,
-           cursor_contract_id, cursor_block, cursor_log_index, done,
+           cursor_date, cursor_contract_id, cursor_block, cursor_log_index, done,
            records_processed, bytes_downloaded, total_records, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(task_id) DO UPDATE SET
            platform = excluded.platform,
            started_at = excluded.started_at,
            ended_at = excluded.ended_at,
+           cursor_date = excluded.cursor_date,
            cursor_contract_id = excluded.cursor_contract_id,
            cursor_block = excluded.cursor_block,
            cursor_log_index = excluded.cursor_log_index,
@@ -421,6 +439,7 @@ export class SimulationEvaluatorWorkerCacheService
         platform,
         startedAt.toISOString(),
         endedAt.toISOString(),
+        checkpoint.cursor?.date ?? null,
         checkpoint.cursor?.contractId ?? null,
         checkpoint.cursor?.block ?? null,
         checkpoint.cursor?.logIndex ?? null,

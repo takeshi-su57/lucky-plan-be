@@ -158,11 +158,16 @@ export class SimulationEvaluatorWorkerEvaluationService {
     let done = checkpoint?.done ?? false;
 
     while (!done) {
-      const chunk = await this.client.getPrebuildChunk(
-        taskId,
-        leaseToken,
-        cursor,
-      );
+      let chunk;
+      try {
+        chunk = await this.client.getPrebuildChunk(taskId, leaseToken, cursor);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Cache prebuild failed while loading ${platform} logs for ${startedAt.toISOString()} to ${endedAt.toISOString()} at ${cursor ? `cursor ${JSON.stringify(cursor)}` : 'the initial chunk'}: ${detail}`,
+          { cause: error },
+        );
+      }
 
       await this.cache.mergeEventLogs(chunk.eventLogs);
 

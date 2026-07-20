@@ -187,7 +187,8 @@ export class SimulationEvaluatorTaskService
         available +
         Math.max(
           0,
-          worker.activeCapacity - (activeByWorkerId.get(worker.id) || 0),
+          this.getSchedulingCapacity(worker) -
+            (activeByWorkerId.get(worker.id) || 0),
         ),
       0,
     );
@@ -237,7 +238,12 @@ export class SimulationEvaluatorTaskService
       worker.authorizationStatus !==
         SimulationEvaluatorWorkerAuthorizationStatus.Approved ||
       (worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Free &&
-        worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Busy) ||
+        worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Busy &&
+        // A worker process can restart after the task lease has ended, leaving
+        // a stale Prebuilding status. The active-task check below prevents a
+        // second exclusive task while allowing an idle worker to self-heal.
+        worker.runtimeStatus !==
+          SimulationEvaluatorWorkerRuntimeStatus.Prebuilding) ||
       worker.desiredState !== SimulationEvaluatorWorkerDesiredState.Running
     )
       return null;
@@ -305,7 +311,12 @@ export class SimulationEvaluatorTaskService
         if (activeEvaluationCount > 0) return false;
         return task.targetWorkerId === workerId;
       }
-      if (activeEvaluationCount >= worker.activeCapacity) return false;
+      // A capacity update is an exclusive task, so it cannot run until active
+      // evaluations drain. Respect a lower desired capacity before the worker
+      // has applied the command; otherwise every freed slot is immediately
+      // refilled and scale-down can never complete under continuous load.
+      if (activeEvaluationCount >= this.getSchedulingCapacity(worker))
+        return false;
       if (
         !task.platform ||
         !task.requiredCacheStartAt ||
@@ -349,6 +360,7 @@ export class SimulationEvaluatorTaskService
             in: [
               SimulationEvaluatorWorkerRuntimeStatus.Free,
               SimulationEvaluatorWorkerRuntimeStatus.Busy,
+              SimulationEvaluatorWorkerRuntimeStatus.Prebuilding,
             ],
           },
         },
@@ -384,7 +396,12 @@ export class SimulationEvaluatorTaskService
           where: {
             workerId,
             platform: readyTask.platform,
-            status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+            status: {
+              in: [
+                SimulationEvaluatorWorkerPlatformCacheStatus.Queued,
+                SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+              ],
+            },
             buildingStartAt: readyTask.requiredCacheStartAt,
             buildingEndAt: readyTask.requiredCacheEndAt,
           },
@@ -491,6 +508,13 @@ export class SimulationEvaluatorTaskService
         leaseExpiresAt: { gt: new Date() },
       },
     });
+  }
+
+  private getSchedulingCapacity(worker: {
+    activeCapacity: number;
+    desiredCapacity: number;
+  }) {
+    return Math.min(worker.activeCapacity, worker.desiredCapacity);
   }
 
   async complete(input: CompleteSimulationEvaluatorTaskInput) {

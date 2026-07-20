@@ -8,10 +8,12 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { verify } from 'crypto';
 
 import {
+  SimulationEvaluatorTaskKind,
   SimulationEvaluatorTaskStatus,
   SimulationEvaluatorWorkerAuthorizationStatus,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/global/prisma.service';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 
@@ -38,7 +40,10 @@ export class SimulationEvaluatorWorkerAuthService {
         existing.authorizationStatus !==
         SimulationEvaluatorWorkerAuthorizationStatus.Pending
       ) {
-        return existing.authorizationStatus;
+        return {
+          authorizationStatus: existing.authorizationStatus,
+          desiredCapacity: existing.desiredCapacity,
+        };
       }
       await this.prisma.simulationEvaluatorWorker.update({
         where: { id: workerId },
@@ -50,10 +55,14 @@ export class SimulationEvaluatorWorkerAuthService {
           lastHeartbeatAt: now,
         },
       });
-      return SimulationEvaluatorWorkerAuthorizationStatus.Pending;
+      return {
+        authorizationStatus:
+          SimulationEvaluatorWorkerAuthorizationStatus.Pending,
+        desiredCapacity: existing.desiredCapacity,
+      };
     }
 
-    await this.prisma.simulationEvaluatorWorker.create({
+    const worker = await this.prisma.simulationEvaluatorWorker.create({
       data: {
         id: workerId,
         publicKey,
@@ -64,7 +73,10 @@ export class SimulationEvaluatorWorkerAuthService {
         lastHeartbeatAt: now,
       },
     });
-    return SimulationEvaluatorWorkerAuthorizationStatus.Pending;
+    return {
+      authorizationStatus: SimulationEvaluatorWorkerAuthorizationStatus.Pending,
+      desiredCapacity: worker.desiredCapacity,
+    };
   }
 
   async authenticate(input: {
@@ -116,28 +128,73 @@ export class SimulationEvaluatorWorkerAuthService {
 
   async recordPresence(workerId: string) {
     const now = new Date();
-    const becameFree = await this.prisma.simulationEvaluatorWorker.updateMany({
+    const activeTask = await this.prisma.simulationEvaluatorTask.findFirst({
       where: {
-        id: workerId,
-        runtimeStatus: {
-          in: [
-            SimulationEvaluatorWorkerRuntimeStatus.Online,
-            SimulationEvaluatorWorkerRuntimeStatus.Offline,
-            SimulationEvaluatorWorkerRuntimeStatus.Paused,
-          ],
-        },
+        workerId,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { gt: now },
       },
+      select: { kind: true },
+    });
+    await this.prisma.simulationEvaluatorWorker.update({
+      where: { id: workerId },
       data: {
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+        // A worker can restart after a task has failed or its lease has
+        // expired. Reconcile the persisted status on every heartbeat so a
+        // stale Prebuilding/Busy state cannot prevent it from polling again.
+        runtimeStatus: activeTask
+          ? activeTask.kind ===
+            SimulationEvaluatorTaskKind.PrebuildPlatformCache
+            ? SimulationEvaluatorWorkerRuntimeStatus.Prebuilding
+            : SimulationEvaluatorWorkerRuntimeStatus.Busy
+          : SimulationEvaluatorWorkerRuntimeStatus.Free,
         lastHeartbeatAt: now,
       },
     });
-    if (becameFree.count === 0) {
-      await this.prisma.simulationEvaluatorWorker.update({
-        where: { id: workerId },
-        data: { lastHeartbeatAt: now },
-      });
-    }
+  }
+
+  async recordDiagnostic(workerId: string, diagnostic: unknown) {
+    if (!diagnostic || typeof diagnostic !== 'object') return;
+    const input = diagnostic as Record<string, unknown>;
+    const integer = (value: unknown) =>
+      typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+        ? value
+        : 0;
+    const text = (value: unknown, max = 500) =>
+      typeof value === 'string' ? value.slice(0, max) : null;
+    const logs = Array.isArray(input.recentLogs)
+      ? input.recentLogs.slice(-50).flatMap((entry) => {
+          if (!entry || typeof entry !== 'object') return [];
+          const log = entry as Record<string, unknown>;
+          const at = text(log.at, 40);
+          const level = text(log.level, 20);
+          const message = text(log.message, 1_000);
+          return at && !Number.isNaN(new Date(at).getTime()) && level && message
+            ? [{ at, level, message }]
+            : [];
+        })
+      : [];
+    await this.prisma.simulationEvaluatorWorker.update({
+      where: { id: workerId },
+      data: {
+        lastDiagnostic: {
+          pid: integer(input.pid),
+          uptimeSeconds: integer(input.uptimeSeconds),
+          childCapacity: integer(input.childCapacity),
+          childCount: integer(input.childCount),
+          idleChildCount: integer(input.idleChildCount),
+          runningTaskCount: integer(input.runningTaskCount),
+          lastPollAt: text(input.lastPollAt, 40),
+          lastPollError: text(input.lastPollError, 1_000),
+          recentLogs: logs,
+        } as Prisma.InputJsonValue,
+        // The parent reports its actual pool size after every restart and
+        // resize. Scheduling must use this live value, not a stale result
+        // from an earlier SetWorkerCapacity task.
+        activeCapacity: Math.max(1, integer(input.childCount)),
+        lastDiagnosticAt: new Date(),
+      },
+    });
   }
 
   async reconcileOfflineWorkers() {
@@ -199,6 +256,46 @@ export class SimulationEvaluatorWorkerAuthService {
     if (deleted.count === 0) {
       throw new NotFoundException('Simulation evaluator worker was not found');
     }
+    return true;
+  }
+
+  async removeOfflineWorker(workerId: string) {
+    const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
+      where: { id: workerId },
+      select: { runtimeStatus: true },
+    });
+    if (!worker) {
+      throw new NotFoundException('Simulation evaluator worker was not found');
+    }
+    if (
+      worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Offline
+    ) {
+      throw new ConflictException('Only offline workers can be removed');
+    }
+
+    const activeTask = await this.prisma.simulationEvaluatorTask.findFirst({
+      where: {
+        workerId,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (activeTask) {
+      throw new ConflictException(
+        'An offline worker with an active task cannot be removed',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.simulationEvaluatorTask.deleteMany({
+        where: { OR: [{ workerId }, { targetWorkerId: workerId }] },
+      }),
+      this.prisma.simulationEvaluatorWorkerPlatformCache.deleteMany({
+        where: { workerId },
+      }),
+      this.prisma.simulationEvaluatorWorker.delete({ where: { id: workerId } }),
+    ]);
     return true;
   }
 }

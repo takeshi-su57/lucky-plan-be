@@ -7,8 +7,12 @@ export const SIMULATION_EVALUATOR = {
   parentSessionTimeoutMs: 30_000,
   workerHeartbeatTimeoutMs: 60_000,
   leaseDurationMs: 90_000,
-  prebuildChunkTargetBytes: 10 * 1024 * 1024,
-  prebuildChunkSourceRecordLimit: 8_000,
+  gatewayRequestTimeoutMs: 20_000,
+  prebuildChunkRequestTimeoutMs: 60_000,
+  // A fixed record count avoids repeatedly serializing and gzip-compressing a
+  // whole result set just to discover its byte size. The supplied GNS sample
+  // estimates this at roughly a 5 MiB gzip payload.
+  prebuildChunkSourceRecordLimit: 20_000,
   eventLogAddressBatchSize: 100,
   eventLogRecordBatchSize: 2_000,
   gateway: {

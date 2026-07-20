@@ -59,6 +59,12 @@ const DEFAULT_SIZE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
 const MAX_SIMULATIONS_PER_RESEARCH = 30;
+// Research deletion can cascade through plans, bots, and their cached event logs.
+// Prisma's 5-second default is too short for larger completed researches.
+const SIMULATION_DELETION_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 30_000,
+} as const;
 
 function countSimulationPlanWindows(
   startAt: Date,
@@ -954,7 +960,7 @@ export class SimulationsService {
       }
 
       await this.deleteSimulationRecordsInTransaction(tx, [id]);
-    });
+    }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
     return id;
   }
@@ -994,7 +1000,7 @@ export class SimulationsService {
       await tx.simulationResearch.delete({
         where: { id },
       });
-    });
+    }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
     return id;
   }

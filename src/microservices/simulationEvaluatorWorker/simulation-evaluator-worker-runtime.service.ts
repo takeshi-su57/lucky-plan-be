@@ -11,6 +11,7 @@ import { join } from 'path';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 import { SimulationEvaluatorWorkerClientService } from './simulation-evaluator-worker-client.service';
+import { WorkerDiagnosticSnapshot } from './simulation-evaluator-worker-client.service';
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
 
 type ClaimedTask = {
@@ -33,6 +34,7 @@ export class SimulationEvaluatorWorkerRuntimeService
   private stopping = false;
   private heartbeatInFlight = false;
   private capacity = 1;
+  private desiredChildCapacity = 1;
   private readonly sessionId = randomUUID();
   private readonly parentSessionPath = join(
     process.cwd(),
@@ -42,6 +44,13 @@ export class SimulationEvaluatorWorkerRuntimeService
   private readonly children = new Set<ChildProcess>();
   private readonly idleChildren = new Set<ChildProcess>();
   private readonly running = new Map<string, ChildProcess>();
+  private lastPollAt: Date | null = null;
+  private lastPollError: string | null = null;
+  private readonly recentLogs: {
+    at: string;
+    level: string;
+    message: string;
+  }[] = [];
 
   onApplicationBootstrap() {
     void this.writeParentSessionHeartbeat();
@@ -69,21 +78,27 @@ export class SimulationEvaluatorWorkerRuntimeService
             await this.delay(SIMULATION_EVALUATOR.enrollmentRetryDelayMs);
             continue;
           }
-          await this.ensureCapacity(this.capacity);
+          // Capacity is persisted by the gateway, while child processes are
+          // local to this parent process. Rehydrate the local pool after a
+          // service restart before accepting any evaluation work.
+          await this.ensureCapacity(enrollment.desiredCapacity);
         }
 
-        if (this.idleChildren.size === 0) {
-          await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
-          continue;
-        }
+        // Prebuild and capacity commands execute in the parent process. Do not
+        // stop polling merely because child evaluators exited: doing so leaves
+        // targeted prebuild commands Ready forever while the worker continues
+        // to heartbeat as Free.
         const { task } = await this.client.poll();
+        this.lastPollAt = new Date();
+        this.lastPollError = null;
         if (!task) {
           await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
           continue;
         }
         void this.processTask(task);
       } catch (error) {
-        console.error('[simulation-evaluator-worker]', error);
+        this.lastPollError = this.describeError(error);
+        this.log('error', `Poll/runtime error: ${this.lastPollError}`);
         await this.delay(SIMULATION_EVALUATOR.enrollmentRetryDelayMs);
       }
     }
@@ -127,19 +142,16 @@ export class SimulationEvaluatorWorkerRuntimeService
       await this.client.complete(task.id, task.leaseToken, result);
     } catch (error) {
       await this.client
-        .fail(
-          task.id,
-          task.leaseToken,
-          error instanceof Error ? error.message : String(error),
-        )
+        .fail(task.id, task.leaseToken, this.describeTaskError(task, error))
         .catch(() => undefined);
-      console.error('[simulation-evaluator-worker] task failed', error);
+      this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
       this.client.endTask(task.id);
     }
   }
 
   private async ensureCapacity(capacity: number) {
+    this.desiredChildCapacity = capacity;
     while (this.children.size < capacity) this.spawnChild();
     while (this.children.size > capacity && this.idleChildren.size > 0) {
       await this.stopChild(this.idleChildren.values().next().value!);
@@ -160,6 +172,12 @@ export class SimulationEvaluatorWorkerRuntimeService
       for (const [taskId, active] of this.running)
         if (active === child) this.running.delete(taskId);
       this.capacity = this.children.size;
+      // A child may exit after startup because of a transient dependency or
+      // platform error. Keep the advertised worker capacity recoverable
+      // instead of permanently reducing the pool to zero.
+      if (!this.stopping && this.children.size < this.desiredChildCapacity) {
+        this.spawnChild();
+      }
     });
   }
 
@@ -233,9 +251,9 @@ export class SimulationEvaluatorWorkerRuntimeService
     if (this.heartbeatInFlight || !this.approved) return;
     this.heartbeatInFlight = true;
     try {
-      await this.client.heartbeat();
+      await this.client.heartbeat(this.getDiagnosticSnapshot());
     } catch (error) {
-      console.error('[simulation-evaluator-worker] heartbeat failed', error);
+      this.log('error', `Heartbeat failed: ${this.describeError(error)}`);
     } finally {
       this.heartbeatInFlight = false;
     }
@@ -243,6 +261,42 @@ export class SimulationEvaluatorWorkerRuntimeService
 
   private delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private describeTaskError(task: ClaimedTask, error: unknown) {
+    const detail = this.describeError(error);
+    return `Task ${task.id} (${task.kind}) failed: ${detail}`;
+  }
+
+  private describeError(error: unknown) {
+    return (error instanceof Error ? error.message : String(error)).slice(
+      0,
+      1_000,
+    );
+  }
+
+  private log(level: string, message: string) {
+    this.recentLogs.push({ at: new Date().toISOString(), level, message });
+    if (this.recentLogs.length > 50)
+      this.recentLogs.splice(0, this.recentLogs.length - 50);
+    console[level === 'error' ? 'error' : 'log'](
+      '[simulation-evaluator-worker]',
+      message,
+    );
+  }
+
+  private getDiagnosticSnapshot(): WorkerDiagnosticSnapshot {
+    return {
+      pid: process.pid,
+      uptimeSeconds: Math.floor(process.uptime()),
+      childCapacity: this.desiredChildCapacity,
+      childCount: this.children.size,
+      idleChildCount: this.idleChildren.size,
+      runningTaskCount: this.running.size,
+      lastPollAt: this.lastPollAt?.toISOString() || null,
+      lastPollError: this.lastPollError,
+      recentLogs: this.recentLogs,
+    };
   }
 
   private async writeParentSessionHeartbeat() {
