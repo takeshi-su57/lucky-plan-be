@@ -24,6 +24,15 @@ type EvaluateMessage = {
   };
 };
 
+type EvaluationProgressMessage = {
+  type: 'progress';
+  taskId: string;
+  completedCandidates: number;
+  totalCandidates: number;
+  eventLogRecords: number;
+  progressMessage: string;
+};
+
 const cacheDir = join(process.cwd(), '.cache', 'simulation-evaluator-worker');
 const parentSessionPath = join(cacheDir, 'parent-session.json');
 let parentSessionId: string | undefined;
@@ -47,7 +56,13 @@ process.on(
       return;
     }
     try {
-      const result = await evaluate(message.input);
+      const result = await evaluate(message.input, (progress) =>
+        process.send?.({
+          type: 'progress',
+          taskId: message.taskId,
+          ...progress,
+        } satisfies EvaluationProgressMessage),
+      );
       process.send?.({ type: 'result', taskId: message.taskId, result });
     } catch (error) {
       process.send?.({
@@ -83,7 +98,10 @@ async function verifyParentSession() {
   }
 }
 
-async function evaluate(input: EvaluateMessage['input']) {
+async function evaluate(
+  input: EvaluateMessage['input'],
+  reportProgress: (progress: Omit<EvaluationProgressMessage, 'type' | 'taskId'>) => void,
+) {
   const rangeStartedAt = new Date(input.range.startedAt);
   const eventLogWindowStartedAt = new Date(input.eventLogWindowStartedAt);
   const eventLogWindowEndedAt = new Date(input.eventLogWindowEndedAt);
@@ -96,6 +114,16 @@ async function evaluate(input: EvaluateMessage['input']) {
     input.contracts.map((contract) => [contract.id, contract]),
   );
   const evaluations: CandidateEvaluation[] = [];
+  const totalCandidates = input.candidateLeaders.length;
+  let completedCandidates = 0;
+  let eventLogRecords = 0;
+
+  reportProgress({
+    completedCandidates,
+    totalCandidates,
+    eventLogRecords,
+    progressMessage: `Preparing cached history for ${totalCandidates} leaders`,
+  });
 
   for (const leaderAddress of input.candidateLeaders) {
     const records = await readCachedLogs(
@@ -104,42 +132,51 @@ async function evaluate(input: EvaluateMessage['input']) {
       eventLogWindowStartedAt,
       eventLogWindowEndedAt,
     );
+    eventLogRecords += records.length;
     const recentTradeCount = records.filter((record) => {
       const date = new Date(record.date);
       return date >= recentActivityCutoff && date < rangeStartedAt;
     }).length;
-    if (recentTradeCount < minimumTradeCount) continue;
-    const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
-      records.map((record) => ({ ...record, date: new Date(record.date) })),
-      contractById,
-    );
-    const positions = EventLogsService.buildPerpTradePositionsWithSummary(
-      input.simulation.platform,
-      histories,
-      {
-        collateralRanges: input.simulation.collateral,
-        sizeRanges: input.simulation.size,
-        leverageRanges: input.simulation.leverage,
-      },
-    ).positions;
-    const evaluation =
-      SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
-        leaderAddress,
-        SimulationLeaderEvaluatorService.getClosedPositionsBefore(
-          positions,
-          rangeStartedAt,
-        ),
-        input.simulation,
+    if (recentTradeCount >= minimumTradeCount) {
+      const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
+        records.map((record) => ({ ...record, date: new Date(record.date) })),
+        contractById,
       );
-    if (
-      !evaluation.rejectedReason &&
-      input.simulation.score.some(
-        (range) =>
-          evaluation.score >= range.min && evaluation.score <= range.max,
-      )
-    ) {
-      evaluations.push(evaluation);
+      const positions = EventLogsService.buildPerpTradePositionsWithSummary(
+        input.simulation.platform,
+        histories,
+        {
+          collateralRanges: input.simulation.collateral,
+          sizeRanges: input.simulation.size,
+          leverageRanges: input.simulation.leverage,
+        },
+      ).positions;
+      const evaluation =
+        SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
+          leaderAddress,
+          SimulationLeaderEvaluatorService.getClosedPositionsBefore(
+            positions,
+            rangeStartedAt,
+          ),
+          input.simulation,
+        );
+      if (
+        !evaluation.rejectedReason &&
+        input.simulation.score.some(
+          (range) =>
+            evaluation.score >= range.min && evaluation.score <= range.max,
+        )
+      ) {
+        evaluations.push(evaluation);
+      }
     }
+    completedCandidates += 1;
+    reportProgress({
+      completedCandidates,
+      totalCandidates,
+      eventLogRecords,
+      progressMessage: `Evaluated ${completedCandidates} of ${totalCandidates} leaders (${eventLogRecords.toLocaleString()} cached event logs read)`,
+    });
   }
   return { evaluatedCandidates: evaluations };
 }

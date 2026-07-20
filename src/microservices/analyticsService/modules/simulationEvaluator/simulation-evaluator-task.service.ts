@@ -75,6 +75,9 @@ export class SimulationEvaluatorTaskService
         this.runDispatcherMaintenance('reconciling stale idle workers', () =>
           this.reconcileStaleIdleWorkers(),
         );
+        this.runDispatcherMaintenance('reconciling expired task leases', () =>
+          this.reconcileExpiredClaims(),
+        );
         this.runDispatcherMaintenance('enqueueing queued tasks', () =>
           this.enqueueQueuedTasks(),
         );
@@ -103,21 +106,57 @@ export class SimulationEvaluatorTaskService
       }
     }
     const inputChecksum = this.checksum(input.input);
-    const task = await this.prisma.simulationEvaluatorTask.create({
-      data: {
+    const dedupeKey = this.taskDedupeKey(input, inputChecksum);
+    // A research retry must continue waiting for an in-flight evaluator task
+    // instead of dispatching a duplicate evaluation for the same range.
+    const existing = await this.prisma.simulationEvaluatorTask.findFirst({
+      where: {
         kind: input.kind,
         simulationId: input.simulationId,
         simulationPlanId: input.simulationPlanId,
-        platform: input.platform,
-        targetWorkerId: input.targetWorkerId,
-        requiredCacheStartAt: input.requiredCacheStartAt,
-        requiredCacheEndAt: input.requiredCacheEndAt,
         rangeStartedAt: input.rangeStartedAt,
         rangeEndedAt: input.rangeEndedAt,
-        input: input.input as Prisma.InputJsonValue,
         inputChecksum,
+        targetWorkerId: input.targetWorkerId,
+        status: {
+          in: [
+            SimulationEvaluatorTaskStatus.Queued,
+            SimulationEvaluatorTaskStatus.Ready,
+            SimulationEvaluatorTaskStatus.Claimed,
+            SimulationEvaluatorTaskStatus.Completed,
+          ],
+        },
       },
+      orderBy: { createdAt: 'desc' },
     });
+    if (existing) return existing;
+    let task;
+    try {
+      task = await this.prisma.simulationEvaluatorTask.create({
+        data: {
+          kind: input.kind,
+          simulationId: input.simulationId,
+          simulationPlanId: input.simulationPlanId,
+          platform: input.platform,
+          targetWorkerId: input.targetWorkerId,
+          requiredCacheStartAt: input.requiredCacheStartAt,
+          requiredCacheEndAt: input.requiredCacheEndAt,
+          rangeStartedAt: input.rangeStartedAt,
+          rangeEndedAt: input.rangeEndedAt,
+          input: input.input as Prisma.InputJsonValue,
+          inputChecksum,
+          dedupeKey,
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) throw error;
+      const concurrentTask =
+        await this.prisma.simulationEvaluatorTask.findUnique({
+          where: { dedupeKey },
+        });
+      if (!concurrentTask) throw error;
+      return concurrentTask;
+    }
 
     if (this.queue) await this.enqueueQueuedTasks();
 
@@ -198,36 +237,7 @@ export class SimulationEvaluatorTaskService
     workerId: string,
   ): Promise<ClaimedSimulationEvaluatorTask | null> {
     const now = new Date();
-    const expiredClaims = await this.prisma.simulationEvaluatorTask.findMany({
-      where: {
-        status: SimulationEvaluatorTaskStatus.Claimed,
-        leaseExpiresAt: { lt: now },
-        workerId: { not: null },
-      },
-      select: { workerId: true },
-    });
-    await this.prisma.simulationEvaluatorTask.updateMany({
-      where: {
-        status: SimulationEvaluatorTaskStatus.Claimed,
-        leaseExpiresAt: { lt: now },
-      },
-      data: {
-        status: SimulationEvaluatorTaskStatus.Ready,
-        workerId: null,
-        leaseToken: null,
-        leaseExpiresAt: null,
-        claimedAt: null,
-      },
-    });
-    await Promise.all(
-      [
-        ...new Set(
-          expiredClaims.map((claim) => claim.workerId).filter(Boolean),
-        ),
-      ].map((expiredWorkerId) =>
-        this.markExpiredWorkerOffline(expiredWorkerId!),
-      ),
-    );
+    await this.reconcileExpiredClaims(now);
 
     const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
       where: { id: workerId },
@@ -569,6 +579,7 @@ export class SimulationEvaluatorTaskService
         result: input.result as Prisma.InputJsonValue,
         resultChecksum: this.checksum(input.result),
         completedAt: new Date(),
+        progressPercent: 100,
       },
     });
     if (completed.count === 1) {
@@ -613,6 +624,7 @@ export class SimulationEvaluatorTaskService
       },
       data: {
         status: SimulationEvaluatorTaskStatus.Failed,
+        dedupeKey: null,
         lastError: error.slice(0, 2_000),
         completedAt: new Date(),
       },
@@ -719,8 +731,63 @@ export class SimulationEvaluatorTaskService
     throw new Error(`Simulation evaluator task ${taskId} timed out`);
   }
 
+  async reconcileExpiredClaims(now = new Date()) {
+    const expiredClaims = await this.prisma.simulationEvaluatorTask.findMany({
+      where: {
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { lt: now },
+        workerId: { not: null },
+      },
+      select: { workerId: true },
+    });
+    await this.prisma.simulationEvaluatorTask.updateMany({
+      where: {
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { lt: now },
+      },
+      data: {
+        status: SimulationEvaluatorTaskStatus.Ready,
+        workerId: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+        claimedAt: null,
+      },
+    });
+    await Promise.all(
+      [
+        ...new Set(
+          expiredClaims.map((claim) => claim.workerId).filter(Boolean),
+        ),
+      ].map((workerId) => this.markExpiredWorkerOffline(workerId!)),
+    );
+  }
+
   private checksum(value: Record<string, unknown>) {
     return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  }
+
+  private taskDedupeKey(
+    input: CreateSimulationEvaluatorTaskInput,
+    inputChecksum: string,
+  ) {
+    return this.checksum({
+      kind: input.kind,
+      simulationId: input.simulationId ?? null,
+      simulationPlanId: input.simulationPlanId ?? null,
+      targetWorkerId: input.targetWorkerId ?? null,
+      rangeStartedAt: input.rangeStartedAt.toISOString(),
+      rangeEndedAt: input.rangeEndedAt.toISOString(),
+      inputChecksum,
+    });
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   async reconcileStaleIdleWorkers() {

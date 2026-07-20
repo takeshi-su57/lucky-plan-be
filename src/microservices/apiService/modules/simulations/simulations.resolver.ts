@@ -53,6 +53,13 @@ export class SimulationsResolver {
   }
 
   @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  cloneSimulationResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.cloneSimulationResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
   @Roles(UserPermission.Trader)
   @UseGuards(GqlAuthGuard, RolesGuard)
   updateSimulationResearch(
@@ -80,6 +87,20 @@ export class SimulationsResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   playAutoResearch(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.playAutoResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  resumeResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.resumeResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  restartResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.restartResearch(id);
   }
 
   @Mutation(() => SimulationResearch)

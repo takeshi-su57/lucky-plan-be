@@ -8,6 +8,8 @@ import {
 import { Request, Response } from 'express';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 
+const SLOW_REQUEST_THRESHOLD_MS = 1_000;
+
 @Injectable()
 export class SimulationEvaluatorGatewayLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(
@@ -33,17 +35,29 @@ export class SimulationEvaluatorGatewayLoggingInterceptor implements NestInterce
       durationMs: Math.round(performance.now() - startedAt),
       responseBytes: Number(response.getHeader('content-length') || 0),
     });
+    const shouldLogSuccess = () => {
+      const requestDetails = details();
+      const isRoutineWorkerRequest =
+        requestDetails.path.endsWith('/poll') ||
+        requestDetails.path.endsWith('/heartbeat');
+
+      return (
+        !isRoutineWorkerRequest ||
+        requestDetails.durationMs >= SLOW_REQUEST_THRESHOLD_MS
+      );
+    };
 
     response.setHeader(
       'x-simulation-gateway-request-id',
       requestId || 'missing',
     );
     return next.handle().pipe(
-      tap(() =>
+      tap(() => {
+        if (!shouldLogSuccess()) return;
         this.logger.log(
           JSON.stringify({ event: 'worker_gateway_request', ...details() }),
-        ),
-      ),
+        );
+      }),
       catchError((error: unknown) => {
         const status =
           error &&

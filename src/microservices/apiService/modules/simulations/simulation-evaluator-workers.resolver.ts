@@ -372,6 +372,7 @@ export class SimulationEvaluatorWorkersResolver {
       },
       data: {
         status: SimulationEvaluatorTaskStatus.Cancelled,
+        dedupeKey: null,
         completedAt: new Date(),
         lastError: 'Cancelled by an administrator before worker assignment',
       },

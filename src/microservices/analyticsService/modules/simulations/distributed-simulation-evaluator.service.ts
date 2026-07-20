@@ -34,6 +34,20 @@ export class DistributedSimulationEvaluatorService {
     range: WindowRange,
     contractById: Map<number, ContractContext>,
   ): Promise<CandidateEvaluation[]> {
+    const evaluationSimulation = {
+      platform: simulation.platform,
+      direction: simulation.direction,
+      trade: simulation.trade,
+      r2: simulation.r2,
+      slope: simulation.slope,
+      standardCollateralUsd: simulation.standardCollateralUsd,
+      collateral: simulation.collateral,
+      size: simulation.size,
+      leverage: simulation.leverage,
+      score: simulation.score,
+      scoreFormular: simulation.scoreFormular,
+      sizingFormular: simulation.sizingFormular,
+    };
     const task = await this.tasks.createTask({
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
@@ -46,7 +60,7 @@ export class DistributedSimulationEvaluatorService {
       rangeEndedAt: range.endedAt,
       input: JSON.parse(
         JSON.stringify({
-          simulation,
+          simulation: evaluationSimulation,
           candidateLeaders,
           range: {
             startedAt: range.startedAt.toISOString(),

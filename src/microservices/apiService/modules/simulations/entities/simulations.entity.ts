@@ -505,6 +505,12 @@ export class SimulationResearch {
   lastError: string | null;
 
   @Field(() => Int)
+  retryAttempts: number;
+
+  @Field(() => Date, { nullable: true })
+  nextRetryAt: Date | null;
+
+  @Field(() => Int)
   totalSimulations: number;
 
   @Field(() => Int)

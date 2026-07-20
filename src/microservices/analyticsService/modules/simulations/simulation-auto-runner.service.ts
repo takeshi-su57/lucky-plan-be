@@ -171,6 +171,8 @@ export class SimulationAutoRunnerService {
       startedAt: record.startedAt ?? null,
       finishedAt: record.finishedAt ?? null,
       lastError: record.lastError ?? null,
+      retryAttempts: record.retryAttempts ?? 0,
+      nextRetryAt: record.nextRetryAt ?? null,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -286,24 +288,39 @@ export class SimulationAutoRunnerService {
       range,
     );
 
-    console.time(`findCandidateLeaders`);
-
-    const candidateLeaders =
-      await this.simulationLeaderEvaluatorService.findCandidateLeaders(
-        current,
-        range,
+    // These ranges can run concurrently, so fixed console.time labels race
+    // with one another and produce misleading timings. Keep the timing local
+    // to this invocation and include enough context to correlate it to a task.
+    const timingContext = `simulation=${current.id} range=${dayjs(
+      range.startedAt,
+    ).format('YYYY-MM-DD')}`;
+    const selectionStartedAt = performance.now();
+    let candidateLeaders: string[] = [];
+    try {
+      candidateLeaders =
+        await this.simulationLeaderEvaluatorService.findCandidateLeaders(
+          current,
+          range,
+        );
+    } finally {
+      console.log(
+        `[simulation:auto] leader selection ${timingContext} candidates=${candidateLeaders.length} elapsedMs=${(
+          performance.now() - selectionStartedAt
+        ).toFixed(1)}`,
       );
+    }
 
-    console.timeEnd(`findCandidateLeaders`);
-
-    console.time(`evaluateLeadersForRange`);
-
-    const evaluatedCandidates = await evaluateLeaders(
-      current,
-      candidateLeaders,
-    );
-
-    console.timeEnd(`evaluateLeadersForRange`);
+    const evaluationStartedAt = performance.now();
+    let evaluatedCandidates: CandidateEvaluation[] = [];
+    try {
+      evaluatedCandidates = await evaluateLeaders(current, candidateLeaders);
+    } finally {
+      console.log(
+        `[simulation:auto] leader evaluation ${timingContext} candidates=${candidateLeaders.length} accepted=${evaluatedCandidates.length} elapsedMs=${(
+          performance.now() - evaluationStartedAt
+        ).toFixed(1)}`,
+      );
+    }
 
     const selectedCandidates = evaluatedCandidates.sort(
       (a, b) => b.score - a.score,

@@ -111,7 +111,7 @@ export class SimulationEvaluatorWorkerRuntimeService
       let result: Record<string, unknown>;
       switch (task.kind) {
         case SimulationEvaluatorTaskKind.EvaluateLeaders:
-          result = await this.evaluateInChild(task.id, input);
+          result = await this.evaluateInChild(task.id, task.leaseToken, input);
           break;
         case SimulationEvaluatorTaskKind.PrebuildPlatformCache:
           // Prebuild remains parent-only because it owns SQLite checkpoints and writes cache files.
@@ -181,7 +181,11 @@ export class SimulationEvaluatorWorkerRuntimeService
     });
   }
 
-  private evaluateInChild(taskId: string, input: Record<string, unknown>) {
+  private evaluateInChild(
+    taskId: string,
+    leaseToken: string,
+    input: Record<string, unknown>,
+  ) {
     const child = this.idleChildren.values().next().value as
       | ChildProcess
       | undefined;
@@ -200,8 +204,33 @@ export class SimulationEvaluatorWorkerRuntimeService
         taskId?: string;
         result?: Record<string, unknown>;
         error?: string;
+        completedCandidates?: number;
+        totalCandidates?: number;
+        eventLogRecords?: number;
+        progressMessage?: string;
       }) => {
         if (message.taskId !== taskId) return;
+        if (message.type === 'progress') {
+          const completedCandidates = Math.max(
+            0,
+            message.completedCandidates || 0,
+          );
+          const totalCandidates = Math.max(0, message.totalCandidates || 0);
+          this.client.reportTaskProgress(taskId, leaseToken, {
+            progressPercent: totalCandidates
+              ? Math.min(100, (completedCandidates / totalCandidates) * 100)
+              : 100,
+            progressRecords: completedCandidates,
+            progressTotalRecords: totalCandidates,
+            // The child reads local cache files, not a byte stream. Keep this
+            // at zero instead of incorrectly presenting record count as bytes.
+            progressBytes: 0,
+            progressMessage:
+              message.progressMessage ||
+              `Evaluated ${completedCandidates} of ${totalCandidates} leaders`,
+          });
+          return;
+        }
         cleanup();
         if (message.type === 'result' && message.result)
           resolve(message.result);
@@ -211,7 +240,9 @@ export class SimulationEvaluatorWorkerRuntimeService
         cleanup();
         reject(new Error('Child evaluator exited during evaluation'));
       };
-      child.once('message', onMessage);
+      // Evaluation children emit progress before their terminal result, so the
+      // listener must remain attached until cleanup handles that result.
+      child.on('message', onMessage);
       child.once('exit', onExit);
       child.send({ type: 'evaluate', taskId, input });
     });
