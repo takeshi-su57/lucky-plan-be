@@ -222,7 +222,7 @@ Install each worker instance in its own directory. The instance value isolates i
 Then use the single platform commander to install it as a background service:
 
 - Windows: run `windows.cmd install`; approve UAC when prompted. For `dev`, it creates the `LuckyEvaluatorWorker-dev` Scheduled Task.
-- Linux: run `sudo ./linux.sh install`; for `dev`, it creates and starts `lucky-evaluator-worker-dev.service`.
+- Linux: run `sudo ./linux.sh install`; for `dev`, it creates and starts `lucky-evaluator-worker-dev.service`. If the extraction tool dropped the executable bits, restore them once with `chmod +x linux.sh scripts/linux-commander.sh`.
 
 Both commanders support `install`, `start`, `stop`, `status`, `uninstall`, `cache-export <snapshot.zip>`, and `cache-import <snapshot.zip>`.
 

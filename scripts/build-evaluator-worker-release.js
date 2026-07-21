@@ -1,4 +1,4 @@
-const { existsSync, mkdirSync, rmSync, writeFileSync } = require('fs');
+const { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } = require('fs');
 const { execFileSync } = require('child_process');
 const { join, resolve } = require('path');
 
@@ -64,6 +64,7 @@ writeFileSync(
   join(release, 'linux.sh'),
   '#!/usr/bin/env sh\nset -eu\nexec "$(dirname "$0")/scripts/linux-commander.sh" "$@"\n',
 );
+chmodSync(join(release, 'linux.sh'), 0o755);
 
 writeFileSync(
   join(scripts, 'windows-commander.ps1'),
@@ -257,6 +258,7 @@ EOF
 esac
 `,
 );
+chmodSync(join(scripts, 'linux-commander.sh'), 0o755);
 
 const envTemplate =
   'SIMULATION_EVALUATOR_WORKER_INSTANCE=\nSIMULATION_EVALUATOR_GATEWAY_URL=\nSIMULATION_EVALUATOR_WORKER_NAME=\n';
@@ -270,7 +272,7 @@ Requires Node.js 22 or newer. Configure \`.env\` before starting the worker.
 
 \`SIMULATION_EVALUATOR_WORKER_INSTANCE\` is required and creates an isolated service identity. For example, \`dev\` uses \`LuckyEvaluatorWorker-dev\` on Windows and \`lucky-evaluator-worker-dev.service\` on Linux. Install each instance in its own directory so its identity and cache remain isolated.
 
-Windows: run \`windows.cmd install\` as Administrator. Linux: run \`sudo ./linux.sh install\`.
+Windows: run \`windows.cmd install\` as Administrator. Linux: run \`sudo ./linux.sh install\`. If extracting a bundle with a tool that drops Unix file modes, run \`chmod +x linux.sh scripts/linux-commander.sh\` once first.
 
 Both entrypoints support \`install\`, \`start\`, \`stop\`, \`status\`, \`uninstall\`, \`cache-export <snapshot.zip>\`, and \`cache-import <snapshot.zip>\`.
 
