@@ -220,7 +220,6 @@ input CreateSimulationResearchInput {
   description: String!
   direction: BotMode!
   endAt: Date!
-  executionFlow: SimulationResearchExecutionFlow! = Centralized
   followerRiskCollateral: [FloatRangeGroupInput!]!
   followerRiskSize: [FloatRangeGroupInput!]!
   gapDays: Int! = 0
@@ -1059,7 +1058,6 @@ type SimulationResearch {
   description: String!
   direction: BotMode!
   endAt: Date!
-  executionFlow: SimulationResearchExecutionFlow!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
@@ -1113,7 +1111,6 @@ type SimulationResearchDetails {
   description: String!
   direction: BotMode!
   endAt: Date!
-  executionFlow: SimulationResearchExecutionFlow!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
@@ -1155,11 +1152,6 @@ type SimulationResearchDetails {
 type SimulationResearchEdge {
   cursor: Int!
   node: SimulationResearch!
-}
-
-enum SimulationResearchExecutionFlow {
-  Centralized
-  DynamicExperimental
 }
 
 type SimulationResearchPageInfo {

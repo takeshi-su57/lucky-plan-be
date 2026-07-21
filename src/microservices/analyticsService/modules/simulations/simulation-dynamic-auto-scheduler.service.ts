@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto';
 import {
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
-  SimulationResearchExecutionFlow,
   SimulationStatus,
 } from 'generated/prisma/enums';
 
@@ -78,7 +77,6 @@ export class SimulationDynamicAutoSchedulerService {
         research: {
           is: {
             automationEnabled: true,
-            executionFlow: SimulationResearchExecutionFlow.DynamicExperimental,
             status: {
               notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
             },

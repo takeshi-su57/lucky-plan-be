@@ -3,8 +3,6 @@ import dayjs from 'dayjs';
 
 import { Simulation } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 
-import { PrismaService } from 'src/global/prisma.service';
-import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import { PnlSnapshotFileCacheService } from 'src/microservices/apiService/modules/trade-histories/pnl-snapshot-file-cache.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { BotMode, Platform } from 'generated/prisma/enums';
@@ -25,7 +23,6 @@ import {
 } from './utils/simulation-automation.utils';
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { WindowRange } from './utils/simulation-range.utils';
-import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { getEventLogStableId } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 
 type ValueRange = {
@@ -94,45 +91,11 @@ type CopySimulationResult = {
   topTradeProfitUsd: number;
 };
 
-const CANDIDATE_BATCH_SIZE = 100;
-const BATCH_SIZE = 200;
-const CANDIDATE_RECENT_ACTIVITY_DAYS = 30;
-const LEADER_SCORING_WINDOW_DAYS = 180;
 const PLATFORM_MIN_FEE_USD = 0.5;
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>,
-) {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (true) {
-      const index = nextIndex;
-      nextIndex += 1;
-
-      if (index >= items.length) {
-        return;
-      }
-
-      results[index] = await fn(items[index], index);
-    }
-  }
-
-  const workerCount = Math.min(limit, items.length);
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
-
-  return results;
-}
 
 @Injectable()
 export class SimulationLeaderEvaluatorService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly eventLogsService: EventLogsService,
-    private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
     private readonly pnlSnapshotFileCacheService: PnlSnapshotFileCacheService,
   ) {}
 
@@ -155,157 +118,6 @@ export class SimulationLeaderEvaluatorService {
           left.address.localeCompare(right.address),
       )
       .map((record) => record.address);
-  }
-
-  async evaluateLeadersForRange(
-    simulation: Simulation,
-    leaderAddresses: string[],
-    range: WindowRange,
-    contractById: Map<number, ContractContext>,
-  ) {
-    const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const baseLabel = `[simulation:evaluator:${simulation.id}:${dateStr}] evaluateLeadersForRange`;
-    console.time(`${baseLabel} total leaders=${leaderAddresses.length}`);
-    const evaluations: CandidateEvaluation[] = [];
-
-    console.log(`${baseLabel} leaderAddresses ${leaderAddresses.length}`);
-
-    console.time(`${baseLabel} leaderLoop`);
-
-    let leaderLoadTime = 0;
-    let leaderEvaluateTime = 0;
-    let maxLoadTime = 0;
-    let maxEvaluateTime = 0;
-
-    const evaluationResults = await mapWithConcurrency(
-      leaderAddresses,
-      BATCH_SIZE,
-      async (leaderAddress) => {
-        const loadLeaderStartedAt = Date.now();
-
-        const positions = await this.loadLeaderPositionsByLeaderUntil(
-          leaderAddress,
-          simulation,
-          contractById,
-          range.startedAt,
-        );
-
-        const leaderEvaluateStartedAt = Date.now();
-
-        leaderLoadTime += leaderEvaluateStartedAt - loadLeaderStartedAt;
-        maxLoadTime = Math.max(
-          maxLoadTime,
-          leaderEvaluateStartedAt - loadLeaderStartedAt,
-        );
-
-        const closedPositions =
-          SimulationLeaderEvaluatorService.getClosedPositionsBefore(
-            positions,
-            range.startedAt,
-          );
-
-        const evaluation =
-          SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
-            leaderAddress,
-            closedPositions,
-            simulation,
-          );
-
-        const rejectedReason =
-          evaluation.rejectedReason ||
-          (!valueMatchesAnyRange(evaluation.score, simulation.score)
-            ? 'SCORE_OUT_OF_RANGE'
-            : null);
-
-        leaderEvaluateTime += Date.now() - leaderEvaluateStartedAt;
-        maxEvaluateTime = Math.max(
-          maxEvaluateTime,
-          Date.now() - leaderEvaluateStartedAt,
-        );
-
-        if (rejectedReason) {
-          return null;
-        }
-
-        return evaluation;
-      },
-    );
-
-    evaluations.push(
-      ...evaluationResults.filter(
-        (evaluation): evaluation is CandidateEvaluation => !!evaluation,
-      ),
-    );
-    console.timeEnd(`${baseLabel} leaderLoop`);
-    console.log(
-      `total leader loading=${leaderLoadTime}, max leader loading=${maxLoadTime}`,
-    );
-    console.log(
-      `total leader evaluating=${leaderEvaluateTime}, max leader evaluating=${maxEvaluateTime}`,
-    );
-
-    console.timeEnd(`${baseLabel} total leaders=${leaderAddresses.length}`);
-
-    return evaluations;
-  }
-
-  private async loadLeaderPositionsByLeaderUntil(
-    leaderAddress: string,
-    simulation: Simulation,
-    contractById: Map<number, ContractContext>,
-    before: Date,
-  ) {
-    const normalizedLeaderAddress = leaderAddress.toLowerCase();
-    const scoringStartedAt = dayjs(before)
-      .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
-      .toDate();
-
-    const cachedRecords =
-      await this.leaderEventLogCacheService.readLeaderEventLogs(
-        simulation.platform,
-        normalizedLeaderAddress,
-        scoringStartedAt,
-        before,
-      );
-    const recentActivityCutoff = dayjs(before)
-      .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
-      .toDate();
-    const recentTradeHistoryCount = cachedRecords.filter(
-      (record) =>
-        record.date.getTime() >= recentActivityCutoff.getTime() &&
-        record.date.getTime() < before.getTime(),
-    ).length;
-
-    if (recentTradeHistoryCount === 0) {
-      return [];
-    }
-
-    if (
-      recentTradeHistoryCount <
-      Math.min(...simulation.trade.map((range) => range.min))
-    ) {
-      return [];
-    }
-
-    const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
-      cachedRecords,
-      contractById,
-    );
-
-    const positionsWithSummary =
-      EventLogsService.buildPerpTradePositionsWithSummary(
-        simulation.platform,
-        histories,
-        {
-          collateralRanges: simulation.collateral,
-          sizeRanges: simulation.size,
-          leverageRanges: simulation.leverage,
-        },
-      );
-
-    const positions = positionsWithSummary.positions;
-
-    return positions;
   }
 
   static evaluateLeaderPositionsForSimulation(

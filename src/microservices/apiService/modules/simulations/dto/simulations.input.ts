@@ -2,11 +2,7 @@ import { InputType, Field, Int, Float } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsDate, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 
-import {
-  BotMode,
-  Platform,
-  SimulationResearchExecutionFlow,
-} from 'generated/prisma/enums';
+import { BotMode, Platform } from 'generated/prisma/enums';
 import {
   DEFAULT_SCORE_FORMULAR,
   DEFAULT_SIZING_FORMULAR,
@@ -105,11 +101,6 @@ export class CreateSimulationResearchInput {
 
   @Field(() => BotMode)
   direction: BotMode;
-
-  @Field(() => SimulationResearchExecutionFlow, {
-    defaultValue: SimulationResearchExecutionFlow.Centralized,
-  })
-  executionFlow?: SimulationResearchExecutionFlow;
 
   @ValidateNested({ each: true })
   @Type(() => IntRangeGroupInput)

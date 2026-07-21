@@ -77,12 +77,12 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
       input: { platform: 'GNS' },
     };
 
-    expect(await service.createTask({ ...input, targetWorkerId: 'worker-a' })).toBe(
-      workerATask,
-    );
-    expect(await service.createTask({ ...input, targetWorkerId: 'worker-b' })).toBe(
-      workerBTask,
-    );
+    expect(
+      await service.createTask({ ...input, targetWorkerId: 'worker-a' }),
+    ).toBe(workerATask);
+    expect(
+      await service.createTask({ ...input, targetWorkerId: 'worker-b' }),
+    ).toBe(workerBTask);
     expect(
       prisma.simulationEvaluatorTask.create as unknown as jest.Mock,
     ).toHaveBeenCalledWith(

@@ -90,14 +90,9 @@ The analytics worker is assembled in `src/microservices/analyticsService/analyti
 
 Its leaderboard module indexes finalized logs for live contracts, normalizes platform-specific trade events, calculates USD PnL per event, and stores those rows in `PerpTradingEventLog`. Its simulations module owns queued simulation automation and execution.
 
-### Simulation Research Flows
+### Simulation Research Execution
 
-Simulation research has an `executionFlow` field:
-
-- `Centralized`: the legacy/stable flow. The analytics worker evaluates eligible simulations sequentially through the in-process evaluator.
-- `DynamicExperimental`: the worker-driven flow. The analytics worker dispatches leader evaluation tasks to approved evaluator clients and batches simulation work by available client capacity. It does not fall back to the centralized evaluator.
-
-Both flows retain the same research, range, plan, and aggregate persistence contracts. Dynamic-flow timings are emitted with lightweight `console.time` labels around the research run, range context, worker-capacity lookup, ranges, and dispatch batches.
+Simulation research is evaluated by approved evaluator workers. The analytics worker dispatches leader-evaluation tasks and batches simulation work by available client capacity.
 
 ### Evaluator Worker Architecture
 

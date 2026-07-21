@@ -16,7 +16,6 @@ import {
 import { WindowRange } from './utils/simulation-range.utils';
 import {
   CandidateEvaluation,
-  ContractContext,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
@@ -162,7 +161,6 @@ export class SimulationAutoRunnerService {
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
       direction: record.direction,
-      executionFlow: record.executionFlow,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -291,96 +289,6 @@ export class SimulationAutoRunnerService {
     };
   }
 
-  async processSimulationRange(
-    simulationId: number,
-    range: WindowRange,
-    context: SimulationRangeProcessingContext,
-  ): Promise<Simulation | null> {
-    return this.processSimulationRangeWithLeaderEvaluation(
-      simulationId,
-      range,
-      context,
-      (simulation, candidateLeaders) =>
-        this.defaultLeaderEvaluation(
-          simulation,
-          candidateLeaders,
-          range,
-          context.contractById,
-        ),
-    );
-  }
-
-  async processSimulationRangeWithLeaderEvaluation(
-    simulationId: number,
-    range: WindowRange,
-    context: SimulationRangeProcessingContext,
-    evaluateLeaders: (
-      simulation: Simulation,
-      candidateLeaders: string[],
-    ) => Promise<CandidateEvaluation[]>,
-  ): Promise<Simulation | null> {
-    const currentRecord = await this.prisma.simulation.findUnique({
-      where: { id: simulationId },
-    });
-    const current = currentRecord ? this.mapSimulation(currentRecord) : null;
-
-    if (!current || current.status === SimulationStatus.Cancelled) {
-      return null;
-    }
-
-    const selectingSimulation = await this.prisma.simulation.update({
-      where: { id: simulationId },
-      data: {
-        progressPhase: 'leader-selection',
-        progressMessage: `Selecting leaders for ${dayjs(range.startedAt).format(
-          'YYYY-MM-DD',
-        )}`,
-      },
-    });
-    await this.emitSimulationUpdated(selectingSimulation);
-
-    // These ranges can run concurrently, so fixed console.time labels race
-    // with one another and produce misleading timings. Keep the timing local
-    // to this invocation and include enough context to correlate it to a task.
-    const timingContext = `simulation=${current.id} range=${dayjs(
-      range.startedAt,
-    ).format('YYYY-MM-DD')}`;
-    const selectionStartedAt = performance.now();
-    let candidateLeaders: string[] = [];
-    try {
-      candidateLeaders =
-        await this.simulationLeaderEvaluatorService.findCandidateLeaders(
-          current,
-          range,
-        );
-    } finally {
-      console.log(
-        `[simulation:auto] leader selection ${timingContext} candidates=${candidateLeaders.length} elapsedMs=${(
-          performance.now() - selectionStartedAt
-        ).toFixed(1)}`,
-      );
-    }
-
-    const evaluationStartedAt = performance.now();
-    let evaluatedCandidates: CandidateEvaluation[] = [];
-    try {
-      evaluatedCandidates = await evaluateLeaders(current, candidateLeaders);
-    } finally {
-      console.log(
-        `[simulation:auto] leader evaluation ${timingContext} candidates=${candidateLeaders.length} accepted=${evaluatedCandidates.length} elapsedMs=${(
-          performance.now() - evaluationStartedAt
-        ).toFixed(1)}`,
-      );
-    }
-
-    return this.finalizeSimulationRange(
-      simulationId,
-      range,
-      context,
-      evaluatedCandidates,
-    );
-  }
-
   async findCandidateLeadersForRange(simulationId: number, range: WindowRange) {
     const record = await this.prisma.simulation.findUnique({
       where: { id: simulationId },
@@ -467,41 +375,6 @@ export class SimulationAutoRunnerService {
       status: completed ? SimulationStatus.Completed : SimulationStatus.Running,
     });
     return this.mapSimulation(updated);
-  }
-
-  async defaultLeaderEvaluation(
-    simulation: Simulation,
-    candidateLeaders: string[],
-    range: WindowRange,
-    contractById: Map<number, ContractContext>,
-  ): Promise<CandidateEvaluation[]> {
-    return this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-      simulation,
-      candidateLeaders,
-      range,
-      contractById,
-    );
-  }
-
-  async aggregateSimulationThroughCursor(id: number, allRanges: WindowRange[]) {
-    const latestRecord = await this.prisma.simulation.findUnique({
-      where: { id },
-    });
-    const latest = latestRecord ? this.mapSimulation(latestRecord) : null;
-
-    if (!latest?.cursor) {
-      return;
-    }
-
-    await this.aggregateSimulation(id, {
-      status: SimulationAutoRunnerService.getTerminalStatusForHorizon({
-        cursor: latest.cursor,
-        endAt: latest.endAt,
-        completedPlans: latest.completedPlans,
-        totalSimulationPlans: allRanges.length,
-      }),
-      through: latest.cursor,
-    });
   }
 
   private async getSimulationPlanForUpdate(id: number) {
