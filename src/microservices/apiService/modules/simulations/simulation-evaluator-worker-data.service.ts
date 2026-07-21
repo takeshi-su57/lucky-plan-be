@@ -134,7 +134,12 @@ export class SimulationEvaluatorWorkerDataService {
     taskId: string;
     workerId: string;
     leaseToken: string;
-    cursor?: { contractId: number; block: number; logIndex: number };
+    cursor?: {
+      date: Date;
+      block: number;
+      logIndex: number;
+      contractId: number;
+    };
   }) {
     const task = await this.getAuthorizedTask(
       input.taskId,
@@ -176,21 +181,32 @@ export class SimulationEvaluatorWorkerDataService {
         ...(input.cursor
           ? {
               OR: [
-                { contractId: { gt: input.cursor.contractId } },
+                { date: { gt: input.cursor.date } },
                 {
-                  contractId: input.cursor.contractId,
+                  date: input.cursor.date,
                   block: { gt: input.cursor.block },
                 },
                 {
-                  contractId: input.cursor.contractId,
+                  date: input.cursor.date,
                   block: input.cursor.block,
                   logIndex: { gt: input.cursor.logIndex },
+                },
+                {
+                  date: input.cursor.date,
+                  block: input.cursor.block,
+                  logIndex: input.cursor.logIndex,
+                  contractId: { gt: input.cursor.contractId },
                 },
               ],
             }
           : {}),
       },
-      orderBy: [{ contractId: 'asc' }, { block: 'asc' }, { logIndex: 'asc' }],
+      orderBy: [
+        { date: 'asc' },
+        { block: 'asc' },
+        { logIndex: 'asc' },
+        { contractId: 'asc' },
+      ],
       take: SIMULATION_EVALUATOR.prebuildChunkSourceRecordLimit,
     });
 
@@ -201,9 +217,10 @@ export class SimulationEvaluatorWorkerDataService {
       totalRecords,
       nextCursor: last
         ? {
-            contractId: last.contractId,
+            date: last.date.toISOString(),
             block: last.block,
             logIndex: last.logIndex,
+            contractId: last.contractId,
           }
         : null,
       done:

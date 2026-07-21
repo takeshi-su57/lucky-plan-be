@@ -11,6 +11,7 @@ import { SimulationEvaluatorGatewayController } from './simulation-evaluator-gat
 import { SimulationEvaluatorWorkerDataService } from './simulation-evaluator-worker-data.service';
 import { SimulationEvaluatorWorkerAuthService } from './simulation-evaluator-worker-auth.service';
 import { SimulationEvaluatorWorkersResolver } from './simulation-evaluator-workers.resolver';
+import { SimulationEvaluatorGatewayLoggingInterceptor } from './simulation-evaluator-gateway-logging.interceptor';
 
 @Module({
   imports: [TradeHistoriesModule, SimulationEvaluatorModule],
@@ -22,6 +23,7 @@ import { SimulationEvaluatorWorkersResolver } from './simulation-evaluator-worke
     SimulationResearchReportService,
     SimulationEvaluatorWorkerDataService,
     SimulationEvaluatorWorkerAuthService,
+    SimulationEvaluatorGatewayLoggingInterceptor,
     SimulationEvaluatorWorkersResolver,
   ],
   exports: [SimulationsService],

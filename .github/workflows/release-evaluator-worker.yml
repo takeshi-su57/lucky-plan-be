@@ -1,0 +1,41 @@
+name: Release evaluator worker
+
+on:
+  push:
+    tags:
+      - 'worker-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build:cross
+
+      - name: Archive portable worker bundle
+        run: |
+          cd release
+          zip -r lucky-evaluator-worker-node22.zip evaluator-worker
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lucky-evaluator-worker-node22
+          path: release/lucky-evaluator-worker-node22.zip
+          retention-days: 14
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" release/lucky-evaluator-worker-node22.zip --generate-notes

@@ -19,7 +19,12 @@ import {
 } from './entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
-import { SimulationStatus } from 'generated/prisma/enums';
+import {
+  SimulationEvaluatorTaskStatus,
+  SimulationExecutionPlanStatus,
+  SimulationResearchExecutionFlow,
+  SimulationStatus,
+} from 'generated/prisma/enums';
 import { SimulationPlansService } from './simulation-plans.service';
 import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import {
@@ -50,6 +55,12 @@ const DEFAULT_SIZE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
 const MAX_SIMULATIONS_PER_RESEARCH = 30;
+// Research deletion can cascade through plans, bots, and their cached event logs.
+// Prisma's 5-second default is too short for larger completed researches.
+const SIMULATION_DELETION_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 30_000,
+} as const;
 
 function countSimulationPlanWindows(
   startAt: Date,
@@ -426,6 +437,8 @@ export class SimulationsService {
       days,
       gapDays,
       direction: record.direction,
+      executionFlow:
+        record.executionFlow ?? SimulationResearchExecutionFlow.Centralized,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -446,9 +459,31 @@ export class SimulationsService {
       progressPercent: record.progressPercent ?? 0,
       totalRanges,
       completedRanges: record.completedRanges ?? 0,
+      totalPlans:
+        record.totalPlans ??
+        simulations.reduce(
+          (
+            total: number,
+            simulation: { totalSimulationPlans?: number | null },
+          ) => total + (simulation.totalSimulationPlans ?? totalRanges),
+          0,
+        ),
+      completedPlans:
+        record.completedPlans ??
+        simulations.reduce(
+          (total: number, simulation: { completedPlans?: number | null }) =>
+            total + (simulation.completedPlans ?? 0),
+          0,
+        ),
+      outstandingPlans: record.outstandingPlans ?? 0,
+      queuedPlans: record.queuedPlans ?? 0,
+      runningPlans: record.runningPlans ?? 0,
+      finalizingPlans: record.finalizingPlans ?? 0,
       startedAt: record.startedAt ?? null,
       finishedAt: record.finishedAt ?? null,
       lastError: record.lastError ?? null,
+      retryAttempts: record.retryAttempts ?? 0,
+      nextRetryAt: record.nextRetryAt ?? null,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -583,6 +618,7 @@ export class SimulationsService {
           days,
           gapDays,
           direction: input.direction,
+          executionFlow: input.executionFlow,
           trade: this.serializeRangeGroups(trade),
           r2: this.serializeRangeGroups(r2),
           slope: this.serializeRangeGroups(slope),
@@ -598,6 +634,8 @@ export class SimulationsService {
           progressPercent: 0,
           totalRanges: totalSimulationPlans,
           completedRanges: 0,
+          totalPlans: totalSimulationPlans * combinations.length,
+          completedPlans: 0,
         },
       });
 
@@ -644,6 +682,42 @@ export class SimulationsService {
     });
 
     return this.mapSimulationResearch(research);
+  }
+
+  async cloneSimulationResearch(id: number): Promise<SimulationResearch> {
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+    });
+    if (!research) throw new Error('SimulationResearch not found');
+
+    // Route cloning through the normal creation path so the parameter grid,
+    // window counts, and initial state stay identical to a newly configured
+    // research. Runtime state, results, and automation leases are deliberately
+    // not copied, making this a clean comparison run.
+    return this.createSimulationResearch({
+      title: `${research.title} (clone)`,
+      description: research.description,
+      platform: research.platform,
+      startAt: research.startAt,
+      endAt: research.endAt,
+      days: research.days,
+      gapDays: research.gapDays,
+      direction: research.direction,
+      executionFlow: research.executionFlow,
+      trade: this.normalizeResearchGroups(research.trade),
+      r2: this.normalizeResearchGroups(research.r2),
+      slope: this.normalizeResearchGroups(research.slope),
+      collateral: this.normalizeResearchGroups(research.collateral),
+      size: this.normalizeResearchGroups(research.size),
+      leverage: this.normalizeResearchGroups(research.leverage),
+      score: this.normalizeResearchGroups(research.score),
+      scoreFormular:
+        (research.scoreFormular as SimulationScoreFormular | null) ??
+        DEFAULT_SCORE_FORMULAR,
+      sizingFormular:
+        (research.sizingFormular as SimulationSizingFormular | null) ??
+        DEFAULT_SIZING_FORMULAR,
+    });
   }
 
   async updateSimulation(input: UpdateSimulationInput): Promise<Simulation> {
@@ -917,7 +991,7 @@ export class SimulationsService {
       }
 
       await this.deleteSimulationRecordsInTransaction(tx, [id]);
-    });
+    }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
     return id;
   }
@@ -957,7 +1031,7 @@ export class SimulationsService {
       await tx.simulationResearch.delete({
         where: { id },
       });
-    });
+    }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
     return id;
   }
@@ -981,6 +1055,17 @@ export class SimulationsService {
   }
 
   async playAutoResearch(id: number): Promise<SimulationResearch> {
+    return this.queueResearch(id, false);
+  }
+
+  async resumeResearch(id: number): Promise<SimulationResearch> {
+    return this.queueResearch(id, true);
+  }
+
+  private async queueResearch(
+    id: number,
+    allowFailed: boolean,
+  ): Promise<SimulationResearch> {
     const research = await this.prisma.simulationResearch.findUnique({
       where: { id },
       include: {
@@ -1008,7 +1093,7 @@ export class SimulationsService {
       throw new Error('Cannot queue a cancelled research');
     }
 
-    if (research.status === SimulationStatus.Failed) {
+    if (research.status === SimulationStatus.Failed && !allowFailed) {
       throw new Error('Cannot queue a failed research');
     }
 
@@ -1020,7 +1105,12 @@ export class SimulationsService {
       where: { id },
       data: {
         status: SimulationStatus.Queued,
+        automationEnabled: true,
+        automationLeaseToken: null,
+        automationLeaseExpiresAt: null,
         lastError: null,
+        retryAttempts: 0,
+        nextRetryAt: null,
         progressPhase: 'queued',
         progressMessage: 'Research queued for analytics automation',
       },
@@ -1037,6 +1127,99 @@ export class SimulationsService {
     await this.emitSimulationResearchUpdated(id);
 
     return mapped;
+  }
+
+  async restartResearch(id: number): Promise<SimulationResearch> {
+    const restarted = await this.prisma.$transaction(async (tx) => {
+      const research = await tx.simulationResearch.findUnique({
+        where: { id },
+        include: { simulations: { select: { id: true, status: true } } },
+      });
+      if (!research) throw new Error('SimulationResearch not found');
+      if (research.status === SimulationStatus.Running) {
+        throw new Error('Cannot restart a running research');
+      }
+      if (research.status === SimulationStatus.Cancelled) {
+        throw new Error('Cannot restart a cancelled research');
+      }
+
+      await this.deleteSimulationRecordsInTransaction(
+        tx,
+        research.simulations.map((simulation) => simulation.id),
+      );
+
+      const combinations = buildSimulationParameterGrid({
+        direction: research.direction,
+        trade: this.normalizeResearchGroups(research.trade),
+        r2: this.normalizeResearchGroups(research.r2),
+        slope: this.normalizeResearchGroups(research.slope),
+        collateral: this.normalizeResearchGroups(research.collateral),
+        size: this.normalizeResearchGroups(research.size),
+        leverage: this.normalizeResearchGroups(research.leverage),
+        score: this.normalizeResearchGroups(research.score),
+      });
+      const totalSimulationPlans = countSimulationPlanWindows(
+        research.startAt,
+        research.endAt,
+        research.days,
+        research.gapDays,
+      );
+      await tx.simulation.createMany({
+        data: combinations.map((combination) => ({
+          title: research.title,
+          description: research.description,
+          platform: research.platform,
+          researchId: research.id,
+          direction: combination.direction,
+          startAt: research.startAt,
+          endAt: research.endAt,
+          days: research.days,
+          gapDays: research.gapDays,
+          status: SimulationStatus.Created,
+          progressPhase: 'created',
+          progressMessage: 'Simulation restarted',
+          progressPercent: 0,
+          totalSimulationPlans,
+          selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
+          trade: this.serializeRanges(combination.trade),
+          r2: this.serializeRanges(combination.r2),
+          slope: this.serializeRanges(combination.slope),
+          standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
+          collateral: this.serializeRanges(combination.collateral),
+          size: this.serializeRanges(combination.size),
+          leverage: this.serializeRanges(combination.leverage),
+          score: this.serializeRanges(combination.score),
+          scoreFormular: research.scoreFormular,
+          sizingFormular: research.sizingFormular,
+        })),
+      });
+      return tx.simulationResearch.update({
+        where: { id },
+        data: {
+          cursor: null,
+          status: SimulationStatus.Queued,
+          automationEnabled: true,
+          automationLeaseToken: null,
+          automationLeaseExpiresAt: null,
+          startedAt: null,
+          finishedAt: null,
+          lastError: null,
+          retryAttempts: 0,
+          nextRetryAt: null,
+          progressPhase: 'queued',
+          progressMessage: 'Research restarted and queued for automation',
+          progressPercent: 0,
+          totalRanges: totalSimulationPlans,
+          completedRanges: 0,
+          totalPlans: totalSimulationPlans * combinations.length,
+          completedPlans: 0,
+        },
+        include: { simulations: { select: { status: true } } },
+      });
+    }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
+
+    await this.emitSimulationResearchUpdated(id);
+    return this.mapSimulationResearch(restarted);
   }
 
   async pauseResearch(id: number): Promise<SimulationResearch> {
@@ -1075,6 +1258,9 @@ export class SimulationsService {
       where: { id },
       data: {
         status: SimulationStatus.Paused,
+        automationEnabled: false,
+        automationLeaseToken: null,
+        automationLeaseExpiresAt: null,
         progressPhase: 'paused',
         progressMessage: 'Research automation paused',
       },
@@ -1117,21 +1303,71 @@ export class SimulationsService {
       return this.mapSimulationResearch(research);
     }
 
-    const updated = await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        status: SimulationStatus.Cancelled,
-        progressPhase: 'cancelled',
-        progressMessage: 'Research cancellation requested',
-        finishedAt: new Date(),
-      },
-      include: {
-        simulations: {
-          select: {
-            status: true,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.simulationEvaluatorTask.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: {
+            in: [
+              SimulationEvaluatorTaskStatus.Queued,
+              SimulationEvaluatorTaskStatus.Ready,
+            ],
           },
         },
-      },
+        data: {
+          status: SimulationEvaluatorTaskStatus.Cancelled,
+          dedupeKey: null,
+          completedAt: new Date(),
+          lastError: 'Cancelled with simulation research',
+        },
+      });
+      await tx.simulationExecutionPlan.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: {
+            in: [
+              SimulationExecutionPlanStatus.Pending,
+              SimulationExecutionPlanStatus.Dispatched,
+              SimulationExecutionPlanStatus.Finalizing,
+              SimulationExecutionPlanStatus.Failed,
+            ],
+          },
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Cancelled,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          lastError: 'Cancelled with simulation research',
+        },
+      });
+      await tx.simulation.updateMany({
+        where: {
+          researchId: id,
+          status: {
+            notIn: [SimulationStatus.Completed, SimulationStatus.Cancelled],
+          },
+        },
+        data: {
+          status: SimulationStatus.Cancelled,
+          progressPhase: 'cancelled',
+          progressMessage: 'Cancelled with simulation research',
+        },
+      });
+      return tx.simulationResearch.update({
+        where: { id },
+        data: {
+          status: SimulationStatus.Cancelled,
+          automationEnabled: false,
+          progressPhase: 'cancelled',
+          progressMessage: 'Research cancelled',
+          outstandingPlans: 0,
+          queuedPlans: 0,
+          runningPlans: 0,
+          finalizingPlans: 0,
+          finishedAt: new Date(),
+        },
+        include: { simulations: { select: { status: true } } },
+      });
     });
 
     const mapped = this.mapSimulationResearch(updated);

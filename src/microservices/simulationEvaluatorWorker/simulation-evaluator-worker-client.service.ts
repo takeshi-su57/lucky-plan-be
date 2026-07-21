@@ -42,6 +42,18 @@ type TaskHeartbeatEvent = {
 
 type WorkerHeartbeatEvent = TaskProgressEvent | TaskHeartbeatEvent;
 
+export type WorkerDiagnosticSnapshot = {
+  pid: number;
+  uptimeSeconds: number;
+  childCapacity: number;
+  childCount: number;
+  idleChildCount: number;
+  runningTaskCount: number;
+  lastPollAt: string | null;
+  lastPollError: string | null;
+  recentLogs: { at: string; level: string; message: string }[];
+};
+
 @Injectable()
 export class SimulationEvaluatorWorkerClientService {
   constructor(private readonly cache: SimulationEvaluatorWorkerCacheService) {}
@@ -49,7 +61,7 @@ export class SimulationEvaluatorWorkerClientService {
     string,
     WorkerHeartbeatEvent
   >();
-  private activeTask?: { taskId: string; leaseToken: string };
+  private readonly activeTasks = new Map<string, string>();
 
   async joinHeartbeat() {
     const identity = this.cache.getWorkerIdentity();
@@ -65,20 +77,20 @@ export class SimulationEvaluatorWorkerClientService {
         }),
       },
     );
-    return (await response.json()) as { authorizationStatus: string };
+    return (await response.json()) as {
+      authorizationStatus: string;
+      desiredCapacity: number;
+    };
   }
 
-  async heartbeat() {
+  async heartbeat(diagnostic?: WorkerDiagnosticSnapshot) {
     const events = [
-      ...(this.activeTask
-        ? [
-            {
-              id: randomUUID(),
-              type: 'task-heartbeat' as const,
-              ...this.activeTask,
-            },
-          ]
-        : []),
+      ...[...this.activeTasks.entries()].map(([taskId, leaseToken]) => ({
+        id: randomUUID(),
+        type: 'task-heartbeat' as const,
+        taskId,
+        leaseToken,
+      })),
       ...this.pendingHeartbeatEvents.values(),
     ];
     const queuedEvents = new Map(
@@ -91,7 +103,7 @@ export class SimulationEvaluatorWorkerClientService {
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ events }),
+        body: JSON.stringify({ events, diagnostic }),
       },
     );
     const result = (await response.json()) as { acceptedEventIds: string[] };
@@ -128,11 +140,11 @@ export class SimulationEvaluatorWorkerClientService {
   }
 
   beginTask(taskId: string, leaseToken: string) {
-    this.activeTask = { taskId, leaseToken };
+    this.activeTasks.set(taskId, leaseToken);
   }
 
   endTask(taskId: string) {
-    if (this.activeTask?.taskId === taskId) this.activeTask = undefined;
+    this.activeTasks.delete(taskId);
     for (const [id, event] of this.pendingHeartbeatEvents) {
       if (event.taskId === taskId) this.pendingHeartbeatEvents.delete(id);
     }
@@ -163,7 +175,12 @@ export class SimulationEvaluatorWorkerClientService {
   async getPrebuildChunk(
     taskId: string,
     leaseToken: string,
-    cursor?: { contractId: number; block: number; logIndex: number } | null,
+    cursor?: {
+      date: string;
+      block: number;
+      logIndex: number;
+      contractId: number;
+    } | null,
   ) {
     const response = await this.request(
       `${SIMULATION_EVALUATOR.gateway.task(taskId)}/prebuild-chunk`,
@@ -175,14 +192,16 @@ export class SimulationEvaluatorWorkerClientService {
             : {}),
         },
       },
+      SIMULATION_EVALUATOR.prebuildChunkRequestTimeoutMs,
     );
     const compressed = Buffer.from(await response.arrayBuffer());
     const chunk = JSON.parse(gunzipSync(compressed).toString('utf8')) as {
       eventLogs: WorkerCachedEventLog[];
       nextCursor: {
-        contractId: number;
+        date: string;
         block: number;
         logIndex: number;
+        contractId: number;
       } | null;
       done: boolean;
       totalRecords?: number;
@@ -253,7 +272,11 @@ export class SimulationEvaluatorWorkerClientService {
     });
   }
 
-  private async request(path: string, init: RequestInit = {}) {
+  private async request(
+    path: string,
+    init: RequestInit = {},
+    timeoutMs: number = SIMULATION_EVALUATOR.gatewayRequestTimeoutMs,
+  ) {
     const baseUrl = process.env.SIMULATION_EVALUATOR_GATEWAY_URL;
 
     if (!baseUrl) {
@@ -262,6 +285,8 @@ export class SimulationEvaluatorWorkerClientService {
 
     const identity = this.cache.getWorkerIdentity();
     const timestamp = Date.now().toString();
+    const requestId = randomUUID();
+    const startedAt = performance.now();
     const method = (init.method || 'GET').toUpperCase();
     const message = `${identity.workerId}\n${timestamp}\n${method}\n${path}`;
 
@@ -274,16 +299,26 @@ export class SimulationEvaluatorWorkerClientService {
     // A hung TCP request used to keep heartbeatInFlight true indefinitely.
     // Keep the timeout comfortably below the task lease so a later interval
     // can renew a long-running prebuild lease.
-    const response = await fetch(new URL(path, baseUrl), {
-      ...init,
-      signal: init.signal ?? AbortSignal.timeout(20_000),
-      headers: {
-        'x-simulation-worker-id': identity.workerId,
-        'x-simulation-worker-timestamp': timestamp,
-        'x-simulation-worker-signature': signature,
-        ...init.headers,
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(new URL(path, baseUrl), {
+        ...init,
+        signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+        headers: {
+          'x-simulation-worker-id': identity.workerId,
+          'x-simulation-worker-timestamp': timestamp,
+          'x-simulation-worker-signature': signature,
+          'x-simulation-gateway-request-id': requestId,
+          ...init.headers,
+        },
+      });
+    } catch (error) {
+      const detail = this.describeTransportError(error, timeoutMs, startedAt);
+      throw new Error(
+        `Worker gateway request failed: ${method} ${path} (${detail}; requestId=${requestId})`,
+        { cause: error },
+      );
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -292,6 +327,43 @@ export class SimulationEvaluatorWorkerClientService {
     }
 
     return response;
+  }
+
+  private describeTransportError(
+    error: unknown,
+    timeoutMs: number,
+    startedAt: number,
+  ) {
+    const elapsedMs = Math.round(performance.now() - startedAt);
+    const source =
+      error && typeof error === 'object' && 'cause' in error
+        ? error.cause
+        : undefined;
+    const code =
+      source && typeof source === 'object' && 'code' in source
+        ? String(source.code)
+        : undefined;
+    const name = error instanceof Error ? error.name : 'UnknownError';
+    const message = error instanceof Error ? error.message : String(error);
+    const classification =
+      name === 'TimeoutError' || name === 'AbortError'
+        ? 'timeout'
+        : code === 'ECONNREFUSED'
+          ? 'connection-refused'
+          : code === 'ECONNRESET'
+            ? 'connection-reset'
+            : code === 'ENOTFOUND'
+              ? 'dns-not-found'
+              : code === 'UND_ERR_CONNECT_TIMEOUT'
+                ? 'connect-timeout'
+                : 'network-fetch-failure';
+    return [
+      `classification=${classification}`,
+      `elapsedMs=${elapsedMs}`,
+      `timeoutMs=${timeoutMs}`,
+      `error=${name}: ${message}`,
+      ...(code ? [`code=${code}`] : []),
+    ].join(', ');
   }
 
   private async unsignedRequest(path: string, init: RequestInit) {
@@ -303,7 +375,9 @@ export class SimulationEvaluatorWorkerClientService {
 
     const response = await fetch(new URL(path, baseUrl), {
       ...init,
-      signal: init.signal ?? AbortSignal.timeout(20_000),
+      signal:
+        init.signal ??
+        AbortSignal.timeout(SIMULATION_EVALUATOR.gatewayRequestTimeoutMs),
     });
 
     if (!response.ok) {

@@ -17,7 +17,6 @@ import {
 } from './utils/simulation-range.utils';
 import { SimulationLeaderEventLogCacheService } from './simulation-leader-event-log-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulation-evaluator-task.service';
 
 const LEADER_SCORING_WINDOW_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,11 +31,13 @@ export class SimulationResearchAutoRunnerService {
     @Optional()
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient?: ClientProxy,
-    @Optional()
-    private readonly evaluatorTasks?: SimulationEvaluatorTaskService,
   ) {}
 
-  async playAutomaticResearch(id: number, now = new Date()): Promise<void> {
+  async playAutomaticResearch(
+    id: number,
+    now = new Date(),
+    leaseToken?: string,
+  ): Promise<void> {
     const baseLabel = `[simulation:research-auto:${id}]`;
     const totalLabel = `${baseLabel} playAutomaticResearch total`;
     console.time(totalLabel);
@@ -71,7 +72,12 @@ export class SimulationResearchAutoRunnerService {
       );
 
       if (readyRanges.length === 0) {
-        await this.pauseOrCompleteResearch(id, research.cursor, allRanges);
+        await this.pauseOrCompleteResearch(
+          id,
+          research.cursor,
+          allRanges,
+          leaseToken,
+        );
         return;
       }
 
@@ -85,15 +91,19 @@ export class SimulationResearchAutoRunnerService {
         research.endAt,
         {
           onProgress: async (progress) => {
-            await this.updateAndEmitResearch(id, {
-              progressPhase: 'prebuilding-event-log-cache',
-              progressMessage: `Prebuilding event-log cache ${progress.completedAddresses} / ${progress.totalAddresses} leaders`,
-              progressPercent: this.getPrebuildProgressPercent(
-                progress.completedAddressBatches,
-                progress.totalAddressBatches,
-              ),
-              totalRanges: allRanges.length,
-            });
+            await this.updateAndEmitResearch(
+              id,
+              {
+                progressPhase: 'prebuilding-event-log-cache',
+                progressMessage: `Prebuilding event-log cache ${progress.completedAddresses} / ${progress.totalAddresses} leaders`,
+                progressPercent: this.getPrebuildProgressPercent(
+                  progress.completedAddressBatches,
+                  progress.totalAddressBatches,
+                ),
+                totalRanges: allRanges.length,
+              },
+              leaseToken,
+            );
           },
         },
       );
@@ -135,48 +145,26 @@ export class SimulationResearchAutoRunnerService {
             return;
           }
 
-          await this.updateResearchProgress(id, range, allRanges);
-
-          const workerConcurrency = this.evaluatorTasks
-            ? await this.evaluatorTasks.countReadyWorkers(
-                currentResearch.platform,
-                new Date(
-                  range.startedAt.getTime() -
-                    LEADER_SCORING_WINDOW_DAYS * DAY_MS,
-                ),
-                range.startedAt,
-              )
-            : 1;
-          const simulationConcurrency = Math.max(1, workerConcurrency);
+          await this.updateResearchProgress(id, range, allRanges, leaseToken);
 
           const simulationsLabel = `${rangeLabel} process simulations`;
           console.time(simulationsLabel);
           const eligibleSimulations = currentResearch.simulations.filter(
             (simulation) => isAutomationStatusEligible(simulation.status),
           );
-          for (
-            let offset = 0;
-            offset < eligibleSimulations.length;
-            offset += simulationConcurrency
-          ) {
-            await Promise.all(
-              eligibleSimulations
-                .slice(offset, offset + simulationConcurrency)
-                .map(async (simulation) => {
-                  const processed =
-                    await this.simulationAutoRunnerService.processSimulationRange(
-                      simulation.id,
-                      range,
-                      context,
-                    );
-                  if (processed) {
-                    await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
-                      processed.id,
-                      allRanges,
-                    );
-                  }
-                }),
-            );
+          for (const simulation of eligibleSimulations) {
+            const processed =
+              await this.simulationAutoRunnerService.processSimulationRange(
+                simulation.id,
+                range,
+                context,
+              );
+            if (processed) {
+              await this.simulationAutoRunnerService.aggregateSimulationThroughCursor(
+                processed.id,
+                allRanges,
+              );
+            }
           }
           console.timeEnd(simulationsLabel);
 
@@ -187,27 +175,31 @@ export class SimulationResearchAutoRunnerService {
             range.endedAt,
           );
 
-          await this.updateAndEmitResearch(id, {
-            cursor: range.endedAt,
-            completedRanges,
-            totalRanges: allRanges.length,
-            progressPhase: 'range-completed',
-            progressMessage: `Completed range ${completedRanges} / ${allRanges.length}`,
-            progressPercent: this.getResearchProgressPercent(
+          await this.updateAndEmitResearch(
+            id,
+            {
+              cursor: range.endedAt,
               completedRanges,
-              allRanges.length,
-            ),
-          });
+              totalRanges: allRanges.length,
+              progressPhase: 'range-completed',
+              progressMessage: `Completed range ${completedRanges} / ${allRanges.length}`,
+              progressPercent: this.getResearchProgressPercent(
+                completedRanges,
+                allRanges.length,
+              ),
+            },
+            leaseToken,
+          );
         } finally {
           console.timeEnd(`${rangeLabel} total`);
         }
       }
 
-      await this.finalizeResearch(id, latestRange, allRanges);
+      await this.finalizeResearch(id, latestRange, allRanges, leaseToken);
 
       return;
     } catch (error) {
-      await this.failResearch(id, error);
+      await this.failResearch(id, error, leaseToken);
       return;
     } finally {
       console.timeEnd(totalLabel);
@@ -218,6 +210,7 @@ export class SimulationResearchAutoRunnerService {
     id: number,
     cursor: Date | null,
     allRanges: WindowRange[],
+    leaseToken?: string,
   ) {
     const completedRanges = cursor
       ? this.countCompletedRanges(allRanges, cursor)
@@ -228,54 +221,66 @@ export class SimulationResearchAutoRunnerService {
         allRanges.at(-1) !== undefined &&
         cursor.getTime() >= allRanges.at(-1)!.endedAt.getTime());
 
-    await this.updateAndEmitResearch(id, {
-      status: completed ? SimulationStatus.Completed : SimulationStatus.Paused,
-      progressPhase: completed ? 'completed' : 'paused',
-      progressMessage: completed
-        ? 'Research automation completed'
-        : 'Paused until more historical data is available',
-      progressPercent: this.getProgressPercent(
-        completedRanges,
-        allRanges.length,
-      ),
-      totalRanges: allRanges.length,
-      ...(completed
-        ? {
-            completedRanges,
-            finishedAt: new Date(),
-          }
-        : {}),
-    });
+    await this.updateAndEmitResearch(
+      id,
+      {
+        status: completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Paused,
+        progressPhase: completed ? 'completed' : 'paused',
+        progressMessage: completed
+          ? 'Research automation completed'
+          : 'Paused until more historical data is available',
+        progressPercent: this.getProgressPercent(
+          completedRanges,
+          allRanges.length,
+        ),
+        totalRanges: allRanges.length,
+        ...(completed
+          ? {
+              completedRanges,
+              finishedAt: new Date(),
+            }
+          : {}),
+      },
+      leaseToken,
+    );
   }
 
   private async updateResearchProgress(
     id: number,
     range: WindowRange,
     allRanges: WindowRange[],
+    leaseToken?: string,
   ) {
     const completedRanges = this.countCompletedRanges(
       allRanges,
       range.startedAt,
     );
 
-    await this.updateAndEmitResearch(id, {
-      totalRanges: allRanges.length,
-      completedRanges,
-      progressPhase: 'range-processing',
-      progressMessage: `Processing range ${completedRanges + 1} / ${
-        allRanges.length
-      }`,
-      progressPercent: this.getResearchProgressPercent(
+    await this.updateAndEmitResearch(
+      id,
+      {
+        totalRanges: allRanges.length,
         completedRanges,
-        allRanges.length,
-      ),
-    });
+        progressPhase: 'range-processing',
+        progressMessage: `Processing range ${completedRanges + 1} / ${
+          allRanges.length
+        }`,
+        progressPercent: this.getResearchProgressPercent(
+          completedRanges,
+          allRanges.length,
+        ),
+      },
+      leaseToken,
+    );
   }
 
   private async finalizeResearch(
     id: number,
     latestRange: WindowRange | null,
     allRanges: WindowRange[],
+    leaseToken?: string,
   ) {
     const completedRanges = latestRange
       ? this.countCompletedRanges(allRanges, latestRange.endedAt)
@@ -285,30 +290,40 @@ export class SimulationResearchAutoRunnerService {
       allRanges.at(-1) !== undefined &&
       latestRange.endedAt.getTime() >= allRanges.at(-1)!.endedAt.getTime();
 
-    await this.updateAndEmitResearch(id, {
-      status: completed ? SimulationStatus.Completed : SimulationStatus.Paused,
-      cursor: latestRange?.endedAt ?? undefined,
-      completedRanges,
-      totalRanges: allRanges.length,
-      progressPhase: completed ? 'completed' : 'paused',
-      progressMessage: completed
-        ? 'Research automation completed'
-        : 'Paused until more historical data is available',
-      progressPercent: completed
-        ? 100
-        : this.getResearchProgressPercent(completedRanges, allRanges.length),
-      ...(completed ? { finishedAt: new Date() } : {}),
-    });
+    await this.updateAndEmitResearch(
+      id,
+      {
+        status: completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Paused,
+        cursor: latestRange?.endedAt ?? undefined,
+        completedRanges,
+        totalRanges: allRanges.length,
+        progressPhase: completed ? 'completed' : 'paused',
+        progressMessage: completed
+          ? 'Research automation completed'
+          : 'Paused until more historical data is available',
+        progressPercent: completed
+          ? 100
+          : this.getResearchProgressPercent(completedRanges, allRanges.length),
+        ...(completed ? { finishedAt: new Date() } : {}),
+      },
+      leaseToken,
+    );
   }
 
-  private async failResearch(id: number, error: unknown) {
-    await this.updateAndEmitResearch(id, {
-      status: SimulationStatus.Failed,
-      progressPhase: 'failed',
-      progressMessage: 'Research automation failed',
-      lastError: getReadableError(error),
-      finishedAt: new Date(),
-    });
+  private async failResearch(id: number, error: unknown, leaseToken?: string) {
+    await this.updateAndEmitResearch(
+      id,
+      {
+        status: SimulationStatus.Failed,
+        progressPhase: 'failed',
+        progressMessage: 'Research automation failed',
+        lastError: getReadableError(error),
+        finishedAt: new Date(),
+      },
+      leaseToken,
+    );
   }
 
   private countCompletedRanges(ranges: WindowRange[], cursor: Date) {
@@ -349,10 +364,18 @@ export class SimulationResearchAutoRunnerService {
   private async updateAndEmitResearch(
     id: number,
     data: Record<string, unknown>,
+    leaseToken?: string,
   ) {
-    const research = await this.prisma.simulationResearch.update({
-      where: { id },
+    const updated = await this.prisma.simulationResearch.updateMany({
+      where: {
+        id,
+        ...(leaseToken ? { automationLeaseToken: leaseToken } : {}),
+      },
       data: data as any,
+    });
+    if (!updated.count) return null;
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
       include: {
         simulations: {
           select: {
@@ -361,6 +384,7 @@ export class SimulationResearchAutoRunnerService {
         },
       },
     });
+    if (!research) return null;
 
     await this.emitSimulationResearchUpdated(research);
 

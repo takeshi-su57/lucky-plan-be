@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import dayjs from 'dayjs';
 
@@ -15,9 +15,9 @@ import {
 import { WindowRange } from './utils/simulation-range.utils';
 import {
   CandidateEvaluation,
+  ContractContext,
   SimulationLeaderEvaluatorService,
 } from './simulation-leader-evaluator.service';
-import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import {
@@ -65,8 +65,6 @@ export class SimulationAutoRunnerService {
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
-    @Optional()
-    private readonly distributedSimulationEvaluatorService?: DistributedSimulationEvaluatorService,
   ) {}
 
   private normalizeResearchGroups(value: unknown) {
@@ -141,6 +139,7 @@ export class SimulationAutoRunnerService {
       days: record.days ?? 1,
       gapDays: record.gapDays ?? 0,
       direction: record.direction,
+      executionFlow: record.executionFlow,
       trade: this.normalizeResearchGroups(record.trade),
       r2: this.normalizeResearchGroups(record.r2),
       slope: this.normalizeResearchGroups(record.slope),
@@ -169,9 +168,31 @@ export class SimulationAutoRunnerService {
           0,
         ),
       completedRanges: record.completedRanges ?? 0,
+      totalPlans:
+        record.totalPlans ??
+        simulations.reduce(
+          (
+            total: number,
+            simulation: { totalSimulationPlans?: number | null },
+          ) => total + (simulation.totalSimulationPlans ?? 0),
+          0,
+        ),
+      completedPlans:
+        record.completedPlans ??
+        simulations.reduce(
+          (total: number, simulation: { completedPlans?: number | null }) =>
+            total + (simulation.completedPlans ?? 0),
+          0,
+        ),
+      outstandingPlans: record.outstandingPlans ?? 0,
+      queuedPlans: record.queuedPlans ?? 0,
+      runningPlans: record.runningPlans ?? 0,
+      finalizingPlans: record.finalizingPlans ?? 0,
       startedAt: record.startedAt ?? null,
       finishedAt: record.finishedAt ?? null,
       lastError: record.lastError ?? null,
+      retryAttempts: record.retryAttempts ?? 0,
+      nextRetryAt: record.nextRetryAt ?? null,
       totalSimulations,
       completedSimulations,
       createdAt: record.createdAt,
@@ -239,6 +260,29 @@ export class SimulationAutoRunnerService {
     range: WindowRange,
     context: SimulationRangeProcessingContext,
   ): Promise<Simulation | null> {
+    return this.processSimulationRangeWithLeaderEvaluation(
+      simulationId,
+      range,
+      context,
+      (simulation, candidateLeaders) =>
+        this.defaultLeaderEvaluation(
+          simulation,
+          candidateLeaders,
+          range,
+          context.contractById,
+        ),
+    );
+  }
+
+  async processSimulationRangeWithLeaderEvaluation(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluateLeaders: (
+      simulation: Simulation,
+      candidateLeaders: string[],
+    ) => Promise<CandidateEvaluation[]>,
+  ): Promise<Simulation | null> {
     const currentRecord = await this.prisma.simulation.findUnique({
       where: { id: simulationId },
     });
@@ -259,80 +303,148 @@ export class SimulationAutoRunnerService {
     });
     await this.emitSimulationUpdated(selectingSimulation);
 
-    const simulationPlan = await this.createSimulationPlanForRange(
-      current,
+    // These ranges can run concurrently, so fixed console.time labels race
+    // with one another and produce misleading timings. Keep the timing local
+    // to this invocation and include enough context to correlate it to a task.
+    const timingContext = `simulation=${current.id} range=${dayjs(
+      range.startedAt,
+    ).format('YYYY-MM-DD')}`;
+    const selectionStartedAt = performance.now();
+    let candidateLeaders: string[] = [];
+    try {
+      candidateLeaders =
+        await this.simulationLeaderEvaluatorService.findCandidateLeaders(
+          current,
+          range,
+        );
+    } finally {
+      console.log(
+        `[simulation:auto] leader selection ${timingContext} candidates=${candidateLeaders.length} elapsedMs=${(
+          performance.now() - selectionStartedAt
+        ).toFixed(1)}`,
+      );
+    }
+
+    const evaluationStartedAt = performance.now();
+    let evaluatedCandidates: CandidateEvaluation[] = [];
+    try {
+      evaluatedCandidates = await evaluateLeaders(current, candidateLeaders);
+    } finally {
+      console.log(
+        `[simulation:auto] leader evaluation ${timingContext} candidates=${candidateLeaders.length} accepted=${evaluatedCandidates.length} elapsedMs=${(
+          performance.now() - evaluationStartedAt
+        ).toFixed(1)}`,
+      );
+    }
+
+    return this.finalizeSimulationRange(
+      simulationId,
       range,
+      context,
+      evaluatedCandidates,
     );
+  }
 
-    console.time(`findCandidateLeaders`);
-
+  async findCandidateLeadersForRange(simulationId: number, range: WindowRange) {
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return null;
+    }
     const candidateLeaders =
       await this.simulationLeaderEvaluatorService.findCandidateLeaders(
-        current,
+        simulation,
         range,
       );
+    return { simulation, candidateLeaders };
+  }
 
-    console.timeEnd(`findCandidateLeaders`);
-
-    console.time(`evaluateLeadersForRange`);
-
-    const canUseDistributedEvaluator =
-      this.distributedSimulationEvaluatorService &&
-      (await this.distributedSimulationEvaluatorService.canEvaluateLeadersForRange(
-        current,
-        range,
-      ));
-
-    const evaluatedCandidates = canUseDistributedEvaluator
-      ? await this.distributedSimulationEvaluatorService!.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        )
-      : await this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
-          current,
-          candidateLeaders,
-          range,
-          context.contractById,
-        );
-
-    console.timeEnd(`evaluateLeadersForRange`);
-
-    const selectedCandidates = evaluatedCandidates.sort(
-      (a, b) => b.score - a.score,
+  async finalizeSimulationRange(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluatedCandidates: CandidateEvaluation[],
+  ): Promise<Simulation | null> {
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return null;
+    }
+    const simulationPlan = await this.createSimulationPlanForRange(
+      simulation,
+      range,
     );
-
     await this.createSimulationBotsForSelections(
       simulationPlan.id,
       range.startedAt,
       range.endedAt,
-      current,
-      selectedCandidates,
+      simulation,
+      [...evaluatedCandidates].sort((a, b) => b.score - a.score),
       context.platformContracts,
     );
 
-    const completedPlans = context.allRanges.filter(
-      (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
-    ).length;
-
-    const completedPlanWindowSimulation = await this.prisma.simulation.update({
+    const plans = await this.prisma.simulationPlan.findMany({
+      where: { simulationId },
+      select: { startAt: true, endAt: true },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+    const completedRangeKeys = new Set(
+      plans.map(
+        (plan) => `${plan.startAt.toISOString()}:${plan.endAt.toISOString()}`,
+      ),
+    );
+    let cursor: Date | null = null;
+    for (const item of context.allRanges) {
+      if (
+        !completedRangeKeys.has(
+          `${item.startedAt.toISOString()}:${item.endedAt.toISOString()}`,
+        )
+      )
+        break;
+      cursor = item.endedAt;
+    }
+    const completedPlans = plans.length;
+    const completed = completedPlans >= context.allRanges.length;
+    const updated = await this.prisma.simulation.update({
       where: { id: simulationId },
       data: {
-        cursor: range.endedAt,
+        cursor,
         completedPlans,
-        progressPhase: 'plan-window-completed',
-        progressMessage: `Completed ${dayjs(range.startedAt).format(
-          'YYYY-MM-DD',
-        )}`,
-        progressPercent:
-          context.allRanges.length > 0
-            ? (completedPlans / context.allRanges.length) * 100
-            : 100,
+        status: completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Running,
+        progressPhase: completed ? 'completed' : 'plan-window-completed',
+        progressMessage: completed
+          ? 'Simulation result completed'
+          : `Completed ${completedPlans} / ${context.allRanges.length} plan windows`,
+        progressPercent: context.allRanges.length
+          ? (completedPlans / context.allRanges.length) * 100
+          : 100,
       },
     });
-    await this.emitSimulationUpdated(completedPlanWindowSimulation);
-    return this.mapSimulation(completedPlanWindowSimulation);
+    await this.emitSimulationUpdated(updated);
+    await this.aggregateSimulation(simulationId, {
+      status: completed ? SimulationStatus.Completed : SimulationStatus.Running,
+    });
+    return this.mapSimulation(updated);
+  }
+
+  async defaultLeaderEvaluation(
+    simulation: Simulation,
+    candidateLeaders: string[],
+    range: WindowRange,
+    contractById: Map<number, ContractContext>,
+  ): Promise<CandidateEvaluation[]> {
+    return this.simulationLeaderEvaluatorService.evaluateLeadersForRange(
+      simulation,
+      candidateLeaders,
+      range,
+      contractById,
+    );
   }
 
   async aggregateSimulationThroughCursor(id: number, allRanges: WindowRange[]) {
@@ -561,15 +673,22 @@ export class SimulationAutoRunnerService {
       (item) => item > 0,
     ).length;
     const isCompleted = options.status === SimulationStatus.Completed;
+    const isRunning = options.status === SimulationStatus.Running;
 
     const updatedSimulation = await this.prisma.simulation.update({
       where: { id },
       data: {
         status: options.status,
-        progressPhase: isCompleted ? 'completed' : 'paused',
+        progressPhase: isCompleted
+          ? 'completed'
+          : isRunning
+            ? 'plan-window-completed'
+            : 'paused',
         progressMessage: isCompleted
           ? 'Simulation result completed'
-          : 'Paused until more historical data is available',
+          : isRunning
+            ? `${plans.length} simulation plans completed`
+            : 'Paused until more historical data is available',
         ...(isCompleted ? { progressPercent: 100 } : {}),
         completedPlans: plans.length,
         totalLeaderPnl,

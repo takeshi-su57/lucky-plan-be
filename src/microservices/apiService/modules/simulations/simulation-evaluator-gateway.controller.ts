@@ -5,9 +5,11 @@ import {
   Controller,
   Get,
   Headers,
+  Logger,
   Param,
   Post,
   Res,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { gzipSync } from 'zlib';
@@ -16,6 +18,7 @@ import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules
 import { SimulationEvaluatorTaskService } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-task.service';
 import { SimulationEvaluatorWorkerDataService } from './simulation-evaluator-worker-data.service';
 import { SimulationEvaluatorWorkerAuthService } from './simulation-evaluator-worker-auth.service';
+import { SimulationEvaluatorGatewayLoggingInterceptor } from './simulation-evaluator-gateway-logging.interceptor';
 
 type LeaseRequest = {
   leaseToken?: string;
@@ -55,10 +58,16 @@ type WorkerHeartbeatEvent = {
 };
 type WorkerHeartbeatRequest = EnrollmentRequest & {
   events?: WorkerHeartbeatEvent[];
+  diagnostic?: unknown;
 };
 
 @Controller(SIMULATION_EVALUATOR.gateway.basePath)
+@UseInterceptors(SimulationEvaluatorGatewayLoggingInterceptor)
 export class SimulationEvaluatorGatewayController {
+  private readonly logger = new Logger(
+    SimulationEvaluatorGatewayController.name,
+  );
+
   constructor(
     private readonly tasks: SimulationEvaluatorTaskService,
     private readonly workerData: SimulationEvaluatorWorkerDataService,
@@ -86,13 +95,7 @@ export class SimulationEvaluatorGatewayController {
       ) {
         throw new BadRequestException('workerId and publicKey are required');
       }
-      return {
-        authorizationStatus: await this.auth.enroll(
-          body.workerId,
-          body.publicKey,
-          body.displayName,
-        ),
-      };
+      return this.auth.enroll(body.workerId, body.publicKey, body.displayName);
     }
 
     const workerId = await this.authorize(
@@ -101,6 +104,7 @@ export class SimulationEvaluatorGatewayController {
       '/internal/simulation-evaluator/heartbeat',
     );
     await this.auth.recordPresence(workerId);
+    await this.auth.recordDiagnostic(workerId, body.diagnostic);
     const events = body.events || [];
     if (!Array.isArray(events) || events.length > 100) {
       throw new BadRequestException('events must contain at most 100 items');
@@ -240,6 +244,7 @@ export class SimulationEvaluatorGatewayController {
     @Headers() headers: Record<string, string | string[] | undefined>,
     @Res() response: Response,
   ) {
+    const startedAt = performance.now();
     const workerId = await this.authorize(
       headers,
       'GET',
@@ -251,21 +256,28 @@ export class SimulationEvaluatorGatewayController {
     }
 
     let cursor:
-      | { contractId: number; block: number; logIndex: number }
+      | { date: Date; block: number; logIndex: number; contractId: number }
       | undefined;
 
     if (cursorText) {
       try {
         const parsed = JSON.parse(cursorText);
         if (
-          ![parsed.contractId, parsed.block, parsed.logIndex].every(
+          typeof parsed.date !== 'string' ||
+          Number.isNaN(new Date(parsed.date).getTime()) ||
+          ![parsed.block, parsed.logIndex, parsed.contractId].every(
             Number.isSafeInteger,
           )
         ) {
           throw new Error();
         }
 
-        cursor = parsed;
+        cursor = {
+          date: new Date(parsed.date),
+          block: parsed.block,
+          logIndex: parsed.logIndex,
+          contractId: parsed.contractId,
+        };
       } catch {
         throw new BadRequestException('Invalid prebuild cursor');
       }
@@ -278,49 +290,41 @@ export class SimulationEvaluatorGatewayController {
       cursor,
     });
 
-    const targetBytes = SIMULATION_EVALUATOR.prebuildChunkTargetBytes;
-    let low = 1;
-    let high = chunk.eventLogs.length;
-    let selected = chunk.eventLogs;
-
-    while (low <= high) {
-      const middle = Math.floor((low + high) / 2);
-      const candidate = chunk.eventLogs.slice(0, middle);
-      const candidatePayload = gzipSync(
-        JSON.stringify({
-          ...chunk,
-          eventLogs: candidate,
-          nextCursor: candidate.at(-1)
-            ? {
-                contractId: candidate.at(-1)!.contractId,
-                block: candidate.at(-1)!.block,
-                logIndex: candidate.at(-1)!.logIndex,
-              }
-            : null,
-          done: chunk.done && middle === chunk.eventLogs.length,
-        }),
-        { level: 6 },
-      );
-      if (candidatePayload.length <= targetBytes) {
-        selected = candidate;
-        low = middle + 1;
-      } else high = middle - 1;
-    }
-    const last = selected.at(-1);
-    const payload = gzipSync(
+    const last = chunk.eventLogs.at(-1);
+    const serialized = JSON.stringify({
+      ...chunk,
+      nextCursor: last
+        ? {
+            contractId: last.contractId,
+            date: last.date.toISOString(),
+            block: last.block,
+            logIndex: last.logIndex,
+          }
+        : null,
+      done: chunk.done,
+    });
+    const beforeGzip = performance.now();
+    const payload = gzipSync(serialized, { level: 6 });
+    this.logger.log(
       JSON.stringify({
-        ...chunk,
-        eventLogs: selected,
-        nextCursor: last
+        event: 'prebuild_chunk_created',
+        requestId: headers['x-simulation-gateway-request-id'] || null,
+        workerId,
+        taskId,
+        cursor: cursor
           ? {
-              contractId: last.contractId,
-              block: last.block,
-              logIndex: last.logIndex,
+              date: cursor.date.toISOString(),
+              block: cursor.block,
+              logIndex: cursor.logIndex,
+              contractId: cursor.contractId,
             }
           : null,
-        done: chunk.done && selected.length === chunk.eventLogs.length,
+        sourceRecords: chunk.eventLogs.length,
+        serializedBytes: Buffer.byteLength(serialized),
+        compressedBytes: payload.length,
+        sourceAndAuthorizationMs: Math.round(beforeGzip - startedAt),
+        gzipMs: Math.round(performance.now() - beforeGzip),
       }),
-      { level: 6 },
     );
     response
       .status(200)

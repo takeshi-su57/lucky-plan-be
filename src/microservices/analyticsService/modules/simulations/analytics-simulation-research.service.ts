@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { SimulationStatus } from 'generated/prisma/enums';
+import { randomUUID } from 'crypto';
+import {
+  SimulationResearchExecutionFlow,
+  SimulationStatus,
+} from 'generated/prisma/enums';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
@@ -9,6 +13,8 @@ const AUTOMATIC_RESEARCH_STATUSES = [
   SimulationStatus.Paused,
   SimulationStatus.Queued,
 ];
+const AUTOMATION_LEASE_DURATION_MS = 2 * 60_000;
+const AUTOMATION_LEASE_RENEWAL_MS = 30_000;
 
 @Injectable()
 export class AnalyticsSimulationResearchService {
@@ -24,16 +30,26 @@ export class AnalyticsSimulationResearchService {
       return null;
     }
 
-    const runningResearch = await this.prisma.simulationResearch.findFirst({
-      where: { status: SimulationStatus.Running },
-    });
-
-    if (runningResearch) {
-      return await this.runResearch(runningResearch.id);
-    }
-
     const research = await this.prisma.simulationResearch.findFirst({
-      where: { status: { in: AUTOMATIC_RESEARCH_STATUSES } },
+      where: {
+        automationEnabled: true,
+        executionFlow: {
+          not: SimulationResearchExecutionFlow.DynamicExperimental,
+        },
+        OR: [
+          {
+            status: SimulationStatus.Running,
+            OR: [
+              { automationLeaseExpiresAt: null },
+              { automationLeaseExpiresAt: { lte: now } },
+            ],
+          },
+          {
+            status: { in: AUTOMATIC_RESEARCH_STATUSES },
+            OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
+          },
+        ],
+      },
       orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
@@ -41,15 +57,41 @@ export class AnalyticsSimulationResearchService {
       return null;
     }
 
+    const leaseToken = randomUUID();
+    const leaseExpiresAt = new Date(
+      now.getTime() + AUTOMATION_LEASE_DURATION_MS,
+    );
+    const isRunning = research.status === SimulationStatus.Running;
     const claim = await this.prisma.simulationResearch.updateMany({
-      where: { id: research.id, status: { in: AUTOMATIC_RESEARCH_STATUSES } },
+      where: isRunning
+        ? {
+            id: research.id,
+            status: SimulationStatus.Running,
+            automationEnabled: true,
+            OR: [
+              { automationLeaseExpiresAt: null },
+              { automationLeaseExpiresAt: { lte: now } },
+            ],
+          }
+        : {
+            id: research.id,
+            status: { in: AUTOMATIC_RESEARCH_STATUSES },
+            automationEnabled: true,
+          },
       data: {
-        status: SimulationStatus.Running,
-        startedAt: now,
-        finishedAt: null,
-        lastError: null,
-        progressPhase: 'running',
-        progressMessage: 'Research automation started',
+        ...(isRunning
+          ? {}
+          : {
+              status: SimulationStatus.Running,
+              startedAt: now,
+              finishedAt: null,
+              lastError: null,
+              nextRetryAt: null,
+              progressPhase: 'running',
+              progressMessage: 'Research automation started',
+            }),
+        automationLeaseToken: leaseToken,
+        automationLeaseExpiresAt: leaseExpiresAt,
       },
     });
 
@@ -57,22 +99,51 @@ export class AnalyticsSimulationResearchService {
       return null;
     }
 
-    return await this.runResearch(research.id);
+    return await this.runResearch(research.id, leaseToken);
   }
 
-  private async runResearch(id: number) {
+  private async runResearch(id: number, leaseToken: string) {
     if (this.activeResearchId !== null) {
       return null;
     }
 
     this.activeResearchId = id;
+    const leaseTimer = setInterval(() => {
+      void this.renewLease(id, leaseToken);
+    }, AUTOMATION_LEASE_RENEWAL_MS);
 
     try {
       return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
         id,
+        undefined,
+        leaseToken,
       );
     } finally {
+      clearInterval(leaseTimer);
+      await this.prisma.simulationResearch.updateMany({
+        where: { id, automationLeaseToken: leaseToken },
+        data: {
+          automationLeaseToken: null,
+          automationLeaseExpiresAt: null,
+        },
+      });
       this.activeResearchId = null;
     }
+  }
+
+  private async renewLease(id: number, leaseToken: string) {
+    await this.prisma.simulationResearch.updateMany({
+      where: {
+        id,
+        status: SimulationStatus.Running,
+        automationEnabled: true,
+        automationLeaseToken: leaseToken,
+      },
+      data: {
+        automationLeaseExpiresAt: new Date(
+          Date.now() + AUTOMATION_LEASE_DURATION_MS,
+        ),
+      },
+    });
   }
 }

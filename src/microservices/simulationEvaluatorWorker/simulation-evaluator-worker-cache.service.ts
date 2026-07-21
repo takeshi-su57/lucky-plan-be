@@ -32,6 +32,21 @@ export type SimulationEvaluatorWorkerIdentity = {
   privateKey: string;
 };
 
+export type PrebuildTaskCursor = {
+  date: string;
+  block: number;
+  logIndex: number;
+  contractId: number;
+};
+
+export type PrebuildTaskCheckpoint = {
+  cursor: PrebuildTaskCursor | null;
+  done: boolean;
+  recordsProcessed: number;
+  bytesDownloaded: number;
+  totalRecords: number;
+};
+
 @Injectable()
 export class SimulationEvaluatorWorkerCacheService
   implements OnModuleInit, OnModuleDestroy
@@ -66,6 +81,21 @@ export class SimulationEvaluatorWorkerCacheService
         ended_at TEXT NOT NULL,
         PRIMARY KEY (platform, address, started_at, ended_at)
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS prebuild_task_checkpoint (
+        task_id TEXT PRIMARY KEY,
+        platform TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT NOT NULL,
+        cursor_date TEXT,
+        cursor_contract_id INTEGER,
+        cursor_block INTEGER,
+        cursor_log_index INTEGER,
+        done INTEGER NOT NULL DEFAULT 0,
+        records_processed INTEGER NOT NULL DEFAULT 0,
+        bytes_downloaded INTEGER NOT NULL DEFAULT 0,
+        total_records INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      ) STRICT;
     `);
     const columns = this.database
       .prepare('PRAGMA table_info(worker_identity)')
@@ -73,6 +103,14 @@ export class SimulationEvaluatorWorkerCacheService
     if (!columns.some((column) => column.name === 'display_name')) {
       this.database.exec(
         'ALTER TABLE worker_identity ADD COLUMN display_name TEXT',
+      );
+    }
+    const checkpointColumns = this.database
+      .prepare('PRAGMA table_info(prebuild_task_checkpoint)')
+      .all() as { name: string }[];
+    if (!checkpointColumns.some((column) => column.name === 'cursor_date')) {
+      this.database.exec(
+        'ALTER TABLE prebuild_task_checkpoint ADD COLUMN cursor_date TEXT',
       );
     }
     this.identity =
@@ -313,6 +351,110 @@ export class SimulationEvaluatorWorkerCacheService
         await fs.rename(temporary, path);
       }),
     );
+  }
+
+  getPrebuildTaskCheckpoint(
+    taskId: string,
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+  ): PrebuildTaskCheckpoint | null {
+    const row = this.getDatabase()
+      .prepare(
+        `SELECT cursor_date, cursor_contract_id, cursor_block, cursor_log_index, done,
+                records_processed, bytes_downloaded, total_records
+         FROM prebuild_task_checkpoint
+         WHERE task_id = ? AND platform = ? AND started_at = ? AND ended_at = ?`,
+      )
+      .get(taskId, platform, startedAt.toISOString(), endedAt.toISOString()) as
+      | {
+          cursor_date: string | null;
+          cursor_contract_id: number | null;
+          cursor_block: number | null;
+          cursor_log_index: number | null;
+          done: number;
+          records_processed: number;
+          bytes_downloaded: number;
+          total_records: number;
+        }
+      | undefined;
+    if (!row) return null;
+
+    const hasCursor = [
+      row.cursor_date,
+      row.cursor_contract_id,
+      row.cursor_block,
+      row.cursor_log_index,
+    ].every((value) =>
+      typeof value === 'string'
+        ? !Number.isNaN(new Date(value).getTime())
+        : Number.isSafeInteger(value),
+    );
+    return {
+      cursor: hasCursor
+        ? {
+            date: row.cursor_date!,
+            block: row.cursor_block!,
+            logIndex: row.cursor_log_index!,
+            contractId: row.cursor_contract_id!,
+          }
+        : null,
+      done: row.done === 1,
+      recordsProcessed: row.records_processed,
+      bytesDownloaded: row.bytes_downloaded,
+      totalRecords: row.total_records,
+    };
+  }
+
+  savePrebuildTaskCheckpoint(
+    taskId: string,
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+    checkpoint: PrebuildTaskCheckpoint,
+  ) {
+    this.getDatabase()
+      .prepare(
+        `INSERT INTO prebuild_task_checkpoint (
+           task_id, platform, started_at, ended_at,
+           cursor_date, cursor_contract_id, cursor_block, cursor_log_index, done,
+           records_processed, bytes_downloaded, total_records, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(task_id) DO UPDATE SET
+           platform = excluded.platform,
+           started_at = excluded.started_at,
+           ended_at = excluded.ended_at,
+           cursor_date = excluded.cursor_date,
+           cursor_contract_id = excluded.cursor_contract_id,
+           cursor_block = excluded.cursor_block,
+           cursor_log_index = excluded.cursor_log_index,
+           done = excluded.done,
+           records_processed = excluded.records_processed,
+           bytes_downloaded = excluded.bytes_downloaded,
+           total_records = excluded.total_records,
+           updated_at = excluded.updated_at`,
+      )
+      .run(
+        taskId,
+        platform,
+        startedAt.toISOString(),
+        endedAt.toISOString(),
+        checkpoint.cursor?.date ?? null,
+        checkpoint.cursor?.contractId ?? null,
+        checkpoint.cursor?.block ?? null,
+        checkpoint.cursor?.logIndex ?? null,
+        checkpoint.done ? 1 : 0,
+        checkpoint.recordsProcessed,
+        checkpoint.bytesDownloaded,
+        checkpoint.totalRecords,
+        new Date().toISOString(),
+      );
+  }
+
+  clearPrebuildTaskCheckpoint(taskId: string) {
+    this.getDatabase()
+      .prepare('DELETE FROM prebuild_task_checkpoint WHERE task_id = ?')
+      .run(taskId);
   }
 
   hasPlatformCoverage(platform: Platform, startedAt: Date, endedAt: Date) {

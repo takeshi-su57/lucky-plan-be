@@ -12,6 +12,7 @@ import {
   SimulationEvaluatorTaskStatus,
   SimulationEvaluatorTaskKind,
   SimulationEvaluatorWorkerAuthorizationStatus,
+  SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerPlatformCacheStatus,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
@@ -74,6 +75,9 @@ export class SimulationEvaluatorTaskService
         this.runDispatcherMaintenance('reconciling stale idle workers', () =>
           this.reconcileStaleIdleWorkers(),
         );
+        this.runDispatcherMaintenance('reconciling expired task leases', () =>
+          this.reconcileExpiredClaims(),
+        );
         this.runDispatcherMaintenance('enqueueing queued tasks', () =>
           this.enqueueQueuedTasks(),
         );
@@ -102,21 +106,57 @@ export class SimulationEvaluatorTaskService
       }
     }
     const inputChecksum = this.checksum(input.input);
-    const task = await this.prisma.simulationEvaluatorTask.create({
-      data: {
+    const dedupeKey = this.taskDedupeKey(input, inputChecksum);
+    // A research retry must continue waiting for an in-flight evaluator task
+    // instead of dispatching a duplicate evaluation for the same range.
+    const existing = await this.prisma.simulationEvaluatorTask.findFirst({
+      where: {
         kind: input.kind,
         simulationId: input.simulationId,
         simulationPlanId: input.simulationPlanId,
-        platform: input.platform,
-        targetWorkerId: input.targetWorkerId,
-        requiredCacheStartAt: input.requiredCacheStartAt,
-        requiredCacheEndAt: input.requiredCacheEndAt,
         rangeStartedAt: input.rangeStartedAt,
         rangeEndedAt: input.rangeEndedAt,
-        input: input.input as Prisma.InputJsonValue,
         inputChecksum,
+        targetWorkerId: input.targetWorkerId,
+        status: {
+          in: [
+            SimulationEvaluatorTaskStatus.Queued,
+            SimulationEvaluatorTaskStatus.Ready,
+            SimulationEvaluatorTaskStatus.Claimed,
+            SimulationEvaluatorTaskStatus.Completed,
+          ],
+        },
       },
+      orderBy: { createdAt: 'desc' },
     });
+    if (existing) return existing;
+    let task;
+    try {
+      task = await this.prisma.simulationEvaluatorTask.create({
+        data: {
+          kind: input.kind,
+          simulationId: input.simulationId,
+          simulationPlanId: input.simulationPlanId,
+          platform: input.platform,
+          targetWorkerId: input.targetWorkerId,
+          requiredCacheStartAt: input.requiredCacheStartAt,
+          requiredCacheEndAt: input.requiredCacheEndAt,
+          rangeStartedAt: input.rangeStartedAt,
+          rangeEndedAt: input.rangeEndedAt,
+          input: input.input as Prisma.InputJsonValue,
+          inputChecksum,
+          dedupeKey,
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) throw error;
+      const concurrentTask =
+        await this.prisma.simulationEvaluatorTask.findUnique({
+          where: { dedupeKey },
+        });
+      if (!concurrentTask) throw error;
+      return concurrentTask;
+    }
 
     if (this.queue) await this.enqueueQueuedTasks();
 
@@ -127,13 +167,20 @@ export class SimulationEvaluatorTaskService
     platform: import('generated/prisma/enums').Platform,
     requiredCacheStartAt: Date,
     requiredCacheEndAt: Date,
+    includeClaimedCapacity = false,
   ) {
     const heartbeatCutoff = this.getWorkerHeartbeatCutoff();
     const workers = await this.prisma.simulationEvaluatorWorker.findMany({
       where: {
         authorizationStatus:
           SimulationEvaluatorWorkerAuthorizationStatus.Approved,
-        runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+        desiredState: SimulationEvaluatorWorkerDesiredState.Running,
+        runtimeStatus: {
+          in: [
+            SimulationEvaluatorWorkerRuntimeStatus.Free,
+            SimulationEvaluatorWorkerRuntimeStatus.Busy,
+          ],
+        },
         lastHeartbeatAt: { gte: heartbeatCutoff },
         platformCaches: {
           some: {
@@ -153,7 +200,7 @@ export class SimulationEvaluatorTaskService
         },
       },
     });
-    return workers.filter((worker) =>
+    const eligibleWorkers = workers.filter((worker) =>
       coversRange(
         worker.platformCaches.map((cache) => ({
           coveredStartAt: cache.coveredStartAt!,
@@ -162,43 +209,36 @@ export class SimulationEvaluatorTaskService
         requiredCacheStartAt,
         requiredCacheEndAt,
       ),
-    ).length;
+    );
+    const activeCounts = await this.prisma.simulationEvaluatorTask.groupBy({
+      by: ['workerId'],
+      where: {
+        workerId: { in: eligibleWorkers.map((worker) => worker.id) },
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+      },
+      _count: { _all: true },
+    });
+    const activeByWorkerId = new Map(
+      activeCounts.map((item) => [item.workerId, item._count._all]),
+    );
+    return eligibleWorkers.reduce(
+      (available, worker) =>
+        available +
+        Math.max(
+          0,
+          this.getSchedulingCapacity(worker) -
+            (includeClaimedCapacity ? 0 : activeByWorkerId.get(worker.id) || 0),
+        ),
+      0,
+    );
   }
 
   async claimNextTask(
     workerId: string,
   ): Promise<ClaimedSimulationEvaluatorTask | null> {
     const now = new Date();
-    const expiredClaims = await this.prisma.simulationEvaluatorTask.findMany({
-      where: {
-        status: SimulationEvaluatorTaskStatus.Claimed,
-        leaseExpiresAt: { lt: now },
-        workerId: { not: null },
-      },
-      select: { workerId: true },
-    });
-    await this.prisma.simulationEvaluatorTask.updateMany({
-      where: {
-        status: SimulationEvaluatorTaskStatus.Claimed,
-        leaseExpiresAt: { lt: now },
-      },
-      data: {
-        status: SimulationEvaluatorTaskStatus.Ready,
-        workerId: null,
-        leaseToken: null,
-        leaseExpiresAt: null,
-        claimedAt: null,
-      },
-    });
-    await Promise.all(
-      [
-        ...new Set(
-          expiredClaims.map((claim) => claim.workerId).filter(Boolean),
-        ),
-      ].map((expiredWorkerId) =>
-        this.markExpiredWorkerOffline(expiredWorkerId!),
-      ),
-    );
+    await this.reconcileExpiredClaims(now);
 
     const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
       where: { id: workerId },
@@ -208,7 +248,14 @@ export class SimulationEvaluatorTaskService
       !worker ||
       worker.authorizationStatus !==
         SimulationEvaluatorWorkerAuthorizationStatus.Approved ||
-      worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Free
+      (worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Free &&
+        worker.runtimeStatus !== SimulationEvaluatorWorkerRuntimeStatus.Busy &&
+        // A worker process can restart after the task lease has ended, leaving
+        // a stale Prebuilding status. The active-task check below prevents a
+        // second exclusive task while allowing an idle worker to self-heal.
+        worker.runtimeStatus !==
+          SimulationEvaluatorWorkerRuntimeStatus.Prebuilding) ||
+      worker.desiredState !== SimulationEvaluatorWorkerDesiredState.Running
     )
       return null;
     if (!this.isWorkerHeartbeatFresh(worker.lastHeartbeatAt, now)) {
@@ -225,6 +272,21 @@ export class SimulationEvaluatorTaskService
     const cachedPlatforms = [
       ...new Set(readyCaches.map((cache) => cache.platform)),
     ];
+    const activeTasks = await this.prisma.simulationEvaluatorTask.findMany({
+      where: {
+        workerId,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { gt: now },
+      },
+      select: { kind: true },
+    });
+    const activeEvaluationCount = activeTasks.filter(
+      (task) => task.kind === SimulationEvaluatorTaskKind.EvaluateLeaders,
+    ).length;
+    const hasExclusiveTask = activeTasks.some(
+      (task) => task.kind !== SimulationEvaluatorTaskKind.EvaluateLeaders,
+    );
+    if (hasExclusiveTask) return null;
 
     const readyTasks = await this.prisma.simulationEvaluatorTask.findMany({
       where: {
@@ -232,6 +294,10 @@ export class SimulationEvaluatorTaskService
         OR: [
           {
             kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
+            targetWorkerId: workerId,
+          },
+          {
+            kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
             targetWorkerId: workerId,
           },
           ...(cachedPlatforms.length
@@ -249,9 +315,19 @@ export class SimulationEvaluatorTaskService
       take: 50,
     });
     const readyTask = readyTasks.find((task) => {
-      if (task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache) {
+      if (
+        task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache ||
+        task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity
+      ) {
+        if (activeEvaluationCount > 0) return false;
         return task.targetWorkerId === workerId;
       }
+      // A capacity update is an exclusive task, so it cannot run until active
+      // evaluations drain. Respect a lower desired capacity before the worker
+      // has applied the command; otherwise every freed slot is immediately
+      // refilled and scale-down can never complete under continuous load.
+      if (activeEvaluationCount >= this.getSchedulingCapacity(worker))
+        return false;
       if (
         !task.platform ||
         !task.requiredCacheStartAt ||
@@ -291,7 +367,13 @@ export class SimulationEvaluatorTaskService
           id: workerId,
           authorizationStatus:
             SimulationEvaluatorWorkerAuthorizationStatus.Approved,
-          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Free,
+          runtimeStatus: {
+            in: [
+              SimulationEvaluatorWorkerRuntimeStatus.Free,
+              SimulationEvaluatorWorkerRuntimeStatus.Busy,
+              SimulationEvaluatorWorkerRuntimeStatus.Prebuilding,
+            ],
+          },
         },
         data: { runtimeStatus, lastHeartbeatAt: now, lastTaskAt: now },
       });
@@ -325,7 +407,12 @@ export class SimulationEvaluatorTaskService
           where: {
             workerId,
             platform: readyTask.platform,
-            status: SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+            status: {
+              in: [
+                SimulationEvaluatorWorkerPlatformCacheStatus.Queued,
+                SimulationEvaluatorWorkerPlatformCacheStatus.Building,
+              ],
+            },
             buildingStartAt: readyTask.requiredCacheStartAt,
             buildingEndAt: readyTask.requiredCacheEndAt,
           },
@@ -434,6 +521,13 @@ export class SimulationEvaluatorTaskService
     });
   }
 
+  private getSchedulingCapacity(worker: {
+    activeCapacity: number;
+    desiredCapacity: number;
+  }) {
+    return Math.min(worker.activeCapacity, worker.desiredCapacity);
+  }
+
   async complete(input: CompleteSimulationEvaluatorTaskInput) {
     const task = await this.getClaimedTask(
       input.taskId,
@@ -458,6 +552,21 @@ export class SimulationEvaluatorTaskService
         prebuildResult.error,
       );
     }
+    const capacityResult =
+      task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity
+        ? Number(input.result.activeCapacity)
+        : null;
+    if (
+      capacityResult !== null &&
+      (!Number.isSafeInteger(capacityResult) || capacityResult < 1)
+    ) {
+      return this.fail(
+        input.taskId,
+        input.workerId,
+        input.leaseToken,
+        'invalid capacity result',
+      );
+    }
     const completed = await this.prisma.simulationEvaluatorTask.updateMany({
       where: {
         id: input.taskId,
@@ -471,9 +580,16 @@ export class SimulationEvaluatorTaskService
         result: input.result as Prisma.InputJsonValue,
         resultChecksum: this.checksum(input.result),
         completedAt: new Date(),
+        progressPercent: 100,
       },
     });
     if (completed.count === 1) {
+      if (task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity) {
+        await this.prisma.simulationEvaluatorWorker.updateMany({
+          where: { id: input.workerId },
+          data: { activeCapacity: capacityResult! },
+        });
+      }
       if (task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache) {
         const coverage = prebuildResult as {
           coveredStartAt: Date;
@@ -486,10 +602,7 @@ export class SimulationEvaluatorTaskService
           coverage.coveredEndAt,
         );
       }
-      await this.recordWorkerHeartbeat(
-        input.workerId,
-        SimulationEvaluatorWorkerRuntimeStatus.Free,
-      );
+      await this.refreshWorkerRuntimeStatus(input.workerId);
       return true;
     }
     return false;
@@ -512,6 +625,7 @@ export class SimulationEvaluatorTaskService
       },
       data: {
         status: SimulationEvaluatorTaskStatus.Failed,
+        dedupeKey: null,
         lastError: error.slice(0, 2_000),
         completedAt: new Date(),
       },
@@ -535,10 +649,7 @@ export class SimulationEvaluatorTaskService
         },
       });
     }
-    await this.recordWorkerHeartbeat(
-      workerId,
-      SimulationEvaluatorWorkerRuntimeStatus.Free,
-    );
+    await this.refreshWorkerRuntimeStatus(workerId);
     return true;
   }
 
@@ -621,8 +732,63 @@ export class SimulationEvaluatorTaskService
     throw new Error(`Simulation evaluator task ${taskId} timed out`);
   }
 
+  async reconcileExpiredClaims(now = new Date()) {
+    const expiredClaims = await this.prisma.simulationEvaluatorTask.findMany({
+      where: {
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { lt: now },
+        workerId: { not: null },
+      },
+      select: { workerId: true },
+    });
+    await this.prisma.simulationEvaluatorTask.updateMany({
+      where: {
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        leaseExpiresAt: { lt: now },
+      },
+      data: {
+        status: SimulationEvaluatorTaskStatus.Ready,
+        workerId: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+        claimedAt: null,
+      },
+    });
+    await Promise.all(
+      [
+        ...new Set(
+          expiredClaims.map((claim) => claim.workerId).filter(Boolean),
+        ),
+      ].map((workerId) => this.markExpiredWorkerOffline(workerId!)),
+    );
+  }
+
   private checksum(value: Record<string, unknown>) {
     return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  }
+
+  private taskDedupeKey(
+    input: CreateSimulationEvaluatorTaskInput,
+    inputChecksum: string,
+  ) {
+    return this.checksum({
+      kind: input.kind,
+      simulationId: input.simulationId ?? null,
+      simulationPlanId: input.simulationPlanId ?? null,
+      targetWorkerId: input.targetWorkerId ?? null,
+      rangeStartedAt: input.rangeStartedAt.toISOString(),
+      rangeEndedAt: input.rangeEndedAt.toISOString(),
+      inputChecksum,
+    });
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   async reconcileStaleIdleWorkers() {
@@ -716,6 +882,27 @@ export class SimulationEvaluatorTaskService
         ...(options.lastTaskAt ? { lastTaskAt: options.lastTaskAt } : {}),
       },
     });
+  }
+
+  private async refreshWorkerRuntimeStatus(workerId: string) {
+    const [worker, activeTaskCount] = await Promise.all([
+      this.prisma.simulationEvaluatorWorker.findUnique({
+        where: { id: workerId },
+      }),
+      this.prisma.simulationEvaluatorTask.count({
+        where: { workerId, status: SimulationEvaluatorTaskStatus.Claimed },
+      }),
+    ]);
+    if (!worker) return;
+    await this.recordWorkerHeartbeat(
+      workerId,
+      worker.desiredState === SimulationEvaluatorWorkerDesiredState.Draining &&
+        activeTaskCount === 0
+        ? SimulationEvaluatorWorkerRuntimeStatus.Paused
+        : activeTaskCount > 0
+          ? SimulationEvaluatorWorkerRuntimeStatus.Busy
+          : SimulationEvaluatorWorkerRuntimeStatus.Free,
+    );
   }
 
   private async markExpiredWorkerOffline(workerId: string) {
