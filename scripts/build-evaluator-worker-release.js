@@ -1,4 +1,10 @@
-const { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } = require('fs');
+const {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} = require('fs');
 const { execFileSync } = require('child_process');
 const { join, resolve } = require('path');
 

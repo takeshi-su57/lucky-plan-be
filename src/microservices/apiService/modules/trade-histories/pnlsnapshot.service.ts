@@ -20,6 +20,7 @@ import {
   getEventLogOrderBy,
   getEventLogStableId,
 } from './event-log-identity.utils';
+import { PnlSnapshotFileCacheService } from './pnl-snapshot-file-cache.service';
 
 function parseKey(key: string) {
   return JSON.parse(key) as {
@@ -46,6 +47,7 @@ export class PnlSnapshotsService {
     private readonly prismaService: PrismaService,
     private readonly eventLogService: EventLogsService,
     private readonly logger: LogsService,
+    private readonly pnlSnapshotFileCacheService: PnlSnapshotFileCacheService,
   ) {
     this.status = ServiceStatus.READY;
   }
@@ -75,27 +77,26 @@ export class PnlSnapshotsService {
     );
     const endDate = new Date(dateStr);
 
-    const total = await this.prismaService.pnlSnapshotV2.count({
-      where: { dateStr, platform },
-    });
-
-    const pnlRecords: PnlSnapshotV2[] =
-      await this.prismaService.pnlSnapshotV2.findMany({
-        take: safePageSize,
-        skip: safePage * safePageSize,
-        where: {
-          dateStr,
-          platform,
-        },
-        orderBy: [
-          {
-            accUSDPnl: isDesc ? 'desc' : 'asc',
-          },
-          {
-            address: 'asc',
-          },
-        ],
-      });
+    if (!isDesc)
+      throw new Error(
+        'Pnl snapshot cache supports descending PnL ranking only',
+      );
+    const cachedPage = await this.pnlSnapshotFileCacheService.getPage(
+      platform,
+      dateStr,
+      safePage,
+      safePageSize,
+    );
+    if (!cachedPage)
+      throw new Error(
+        `Pnl snapshot cache is unavailable: ${platform} ${dateStr}`,
+      );
+    const total = cachedPage.total;
+    const pnlRecords: PnlSnapshotV2[] = cachedPage.records.map((record) => ({
+      ...record,
+      platform,
+      dateStr,
+    }));
 
     const pnlRecordAddresses = pnlRecords.map((record) =>
       record.address.toLowerCase(),
@@ -204,7 +205,8 @@ export class PnlSnapshotsService {
     };
   }
 
-  async removePnlSnapshot(platform: Platform, dateStr: string) {
+  private async removePnlSnapshot(platform: Platform, dateStr: string) {
+    await this.pnlSnapshotFileCacheService.invalidate(platform, dateStr);
     await this.prismaService.pnlSnapshotV2.deleteMany({
       where: {
         platform,
@@ -458,6 +460,12 @@ export class PnlSnapshotsService {
           },
         });
 
+      await this.pnlSnapshotFileCacheService.publish(platform, dateStr);
+
+      if (dateStr >= dayjs().subtract(1, 'day').format('YYYY-MM-DD')) {
+        await this.pruneWorkingSnapshots(platform, dateStr);
+      }
+
       this.status = ServiceStatus.READY;
 
       return pnlSnapshotInitializedFlag;
@@ -706,6 +714,8 @@ export class PnlSnapshotsService {
           },
         });
 
+      await this.pnlSnapshotFileCacheService.publish(platform, dateStr);
+
       this.status = ServiceStatus.READY;
 
       return pnlSnapshotInitializedFlag;
@@ -735,6 +745,9 @@ export class PnlSnapshotsService {
     }
 
     let startDate = dayjs(beginingDate).add(1, 'day').toDate();
+    let lastCompletedDateStr: string | null = isForceBuild
+      ? dayjs(beginingDate).format('YYYY-MM-DD')
+      : null;
 
     while (startDate.getTime() < dayjs().endOf('day').toDate().getTime()) {
       this.logger.nativeLog({
@@ -752,6 +765,13 @@ export class PnlSnapshotsService {
       if (!result) {
         break;
       }
+      lastCompletedDateStr = dayjs(startDate)
+        .subtract(1, 'day')
+        .format('YYYY-MM-DD');
+    }
+
+    if (lastCompletedDateStr) {
+      await this.pruneWorkingSnapshots(platform, lastCompletedDateStr);
     }
 
     return true;
@@ -784,11 +804,32 @@ export class PnlSnapshotsService {
     dateStr: string,
     address: string,
   ): Promise<PnlSnapshotV2[]> {
-    return await this.prismaService.pnlSnapshotV2.findMany({
+    const cached = await this.pnlSnapshotFileCacheService.findByAddress(
+      platform,
+      dateStr,
+      address,
+    );
+    if (cached === undefined)
+      throw new Error(
+        `Pnl snapshot cache is unavailable: ${platform} ${dateStr}`,
+      );
+    return cached ? [{ ...cached, platform, dateStr }] : [];
+  }
+
+  private async pruneWorkingSnapshots(
+    platform: Platform,
+    endingDateStr: string,
+  ) {
+    const keepFromDateStr = dayjs(endingDateStr)
+      .subtract(4, 'day')
+      .format('YYYY-MM-DD');
+    await this.prismaService.pnlSnapshotV2.deleteMany({
       where: {
-        dateStr,
-        address,
         platform,
+        OR: [
+          { dateStr: { lt: keepFromDateStr } },
+          { dateStr: { gt: endingDateStr } },
+        ],
       },
     });
   }
