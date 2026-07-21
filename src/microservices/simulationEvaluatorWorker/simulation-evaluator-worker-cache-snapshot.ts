@@ -24,16 +24,27 @@ const cacheDir = join(
 const sessionPath = join(cacheDir, 'parent-session.json');
 
 export async function exportCacheSnapshot(output: string) {
+  const startedAt = Date.now();
+  console.log('[cache-export] Checking evaluator state...');
   await assertNoActiveParentSession();
   await fs.mkdir(cacheDir, { recursive: true });
+  console.log('[cache-export] Discovering cached event-log files...');
   const files = await listCacheFiles(cacheDir);
+  console.log(
+    `[cache-export] Found ${files.length.toLocaleString()} files. Calculating checksums...`,
+  );
   const snapshotFiles: SnapshotManifest['files'] = [];
-  for (const path of files) {
+  for (const [index, path] of files.entries()) {
     snapshotFiles.push({
       path: relative(cacheDir, path).replaceAll('\\', '/'),
       sha256: await checksum(path),
       bytes: (await fs.stat(path)).size,
     });
+    if ((index + 1) % 100 === 0 || index + 1 === files.length) {
+      console.log(
+        `[cache-export] Checksummed ${(index + 1).toLocaleString()}/${files.length.toLocaleString()} files.`,
+      );
+    }
   }
   const manifest: SnapshotManifest = {
     version: 1,
@@ -42,12 +53,26 @@ export async function exportCacheSnapshot(output: string) {
     ...readCoverage(),
   };
   await fs.mkdir(dirname(output), { recursive: true });
+  console.log(`[cache-export] Compressing cache into ${output}...`);
   await new Promise<void>((resolve, reject) => {
     const archive = new ZipArchive({ zlib: { level: 9 } });
     const destination = createWriteStream(output);
     archive.on('error', reject);
     destination.on('error', reject);
-    destination.on('close', resolve);
+    destination.on('close', () => {
+      console.log(
+        `[cache-export] Complete in ${Math.floor((Date.now() - startedAt) / 1000)}s; ${archive.pointer().toLocaleString()} bytes written.`,
+      );
+      resolve();
+    });
+    let lastProgressAt = 0;
+    archive.on('progress', (progress) => {
+      if (Date.now() - lastProgressAt < 1_000) return;
+      lastProgressAt = Date.now();
+      console.log(
+        `[cache-export] Archived ${progress.entries.processed.toLocaleString()}/${progress.entries.total.toLocaleString()} files.`,
+      );
+    });
     archive.pipe(destination);
     archive.append(JSON.stringify(manifest, null, 2), {
       name: 'manifest.json',
@@ -62,6 +87,8 @@ export async function exportCacheSnapshot(output: string) {
 }
 
 export async function importCacheSnapshot(input: string) {
+  const startedAt = Date.now();
+  console.log('[cache-import] Checking evaluator state and opening archive...');
   await assertNoActiveParentSession();
   await fs.mkdir(cacheDir, { recursive: true });
   const zip = await unzipper.Open.file(input);
@@ -75,7 +102,10 @@ export async function importCacheSnapshot(input: string) {
   if (manifest.version !== 1 || !Array.isArray(manifest.files)) {
     throw new Error('Unsupported cache snapshot format');
   }
-  for (const file of manifest.files) {
+  console.log(
+    `[cache-import] Restoring ${manifest.files.length.toLocaleString()} files...`,
+  );
+  for (const [index, file] of manifest.files.entries()) {
     if (!isSafeCachePath(file.path))
       throw new Error(`Invalid cache path: ${file.path}`);
     const entry = zip.files.find(
@@ -92,10 +122,18 @@ export async function importCacheSnapshot(input: string) {
       throw new Error(`Checksum mismatch for ${file.path}`);
     }
     await fs.rename(temporary, target);
+    if ((index + 1) % 100 === 0 || index + 1 === manifest.files.length) {
+      console.log(
+        `[cache-import] Restored ${(index + 1).toLocaleString()}/${manifest.files.length.toLocaleString()} files.`,
+      );
+    }
   }
   writeCoverage(
     manifest.platformCoverage || [],
     manifest.addressCoverage || [],
+  );
+  console.log(
+    `[cache-import] Complete in ${Math.floor((Date.now() - startedAt) / 1000)}s.`,
   );
 }
 
