@@ -8,7 +8,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { IsWalletAddress } from 'src/utils/validation-classes/IsWalletAddress';
 import {
   BotMode,
   Platform,
@@ -77,87 +76,6 @@ export class FloatRangeGroupInput {
   @Type(() => FloatMinMaxInput)
   @Field(() => [FloatMinMaxInput])
   ranges: FloatMinMaxInput[];
-}
-
-@InputType()
-export class CreateSimulationPlanInput {
-  @IsNotEmpty()
-  @IsString()
-  @Field()
-  title: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @Field()
-  description: string;
-
-  @IsNotEmpty()
-  @IsDate()
-  @Field(() => Date)
-  startAt: Date;
-
-  @IsNotEmpty()
-  @IsDate()
-  @Field(() => Date)
-  endAt: Date;
-}
-
-@InputType()
-export class CreateSimulationBotInput {
-  @Field(() => Int)
-  simulationPlanId: number;
-
-  @IsNotEmpty()
-  @IsWalletAddress()
-  @Field()
-  leaderAddress: string;
-
-  @IsNotEmpty()
-  @Field(() => Platform)
-  leaderPlatform: Platform;
-
-  @IsNotEmpty()
-  @Field(() => BotMode)
-  mode: BotMode;
-
-  @Field(() => Float)
-  ratio: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  minCollateral: number;
-
-  @Field(() => Float, { defaultValue: 1000000000 })
-  maxCollateral: number;
-
-  @Field(() => Float, { defaultValue: 0 })
-  minLeverage: number;
-
-  @Field(() => Float)
-  maxLeverage: number;
-}
-
-@InputType()
-export class UpdateSimulationBotInput {
-  @Field(() => Int)
-  id: number;
-
-  @Field(() => BotMode, { nullable: true })
-  mode?: BotMode | null;
-
-  @Field(() => Float, { nullable: true })
-  ratio?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  minCollateral?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxCollateral?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  minLeverage?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  maxLeverage?: number | null;
 }
 
 @InputType()

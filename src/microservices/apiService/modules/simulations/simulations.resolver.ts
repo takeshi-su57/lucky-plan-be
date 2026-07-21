@@ -12,20 +12,14 @@ import { PubSub } from 'graphql-subscriptions';
 
 import { SimulationsService } from './simulations.service';
 import {
-  SimulationBot,
   SimulationPlan,
   SimulationPlanDetails,
-  SimulationPlanConnection,
   Simulation,
-  SimulationConnection,
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
 } from './entities/simulations.entity';
 import {
-  CreateSimulationPlanInput,
-  CreateSimulationBotInput,
-  UpdateSimulationBotInput,
   CreateSimulationResearchInput,
   UpdateSimulationResearchInput,
   UpdateSimulationInput,
@@ -131,58 +125,6 @@ export class SimulationsResolver {
     return this.simulationsService.deleteSimulationResearch(id);
   }
 
-  @Mutation(() => Int)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  deleteSimulationPlan(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.deleteSimulationPlan(id);
-  }
-
-  @Mutation(() => Int)
-  @Roles(UserPermission.Admin)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  deleteSimulationBot(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.deleteSimulationBot(id);
-  }
-
-  @Mutation(() => SimulationPlan)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  createSimulationPlan(@Args('input') input: CreateSimulationPlanInput) {
-    return this.simulationsService.createSimulationPlan(input);
-  }
-
-  @Mutation(() => SimulationBot)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  updateSimulationBot(@Args('input') input: UpdateSimulationBotInput) {
-    return this.simulationsService.updateSimulationBot(input);
-  }
-
-  @Mutation(() => [SimulationBot])
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  batchCreateSimulationBots(
-    @Args('inputs', { type: () => [CreateSimulationBotInput] })
-    inputs: CreateSimulationBotInput[],
-  ) {
-    return this.simulationsService.batchCreateSimulationBots(inputs);
-  }
-
-  @Mutation(() => SimulationPlan)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  playSimulationPlan(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.playSimulationPlan(id);
-  }
-
-  @Mutation(() => SimulationBot)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  stopSimulationBot(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.stopSimulationBot(id);
-  }
-
   @Subscription(() => SimulationResearch, {
     name: SUBSCRIPTION_TOKEN.simulationResearchUpdated,
   })
@@ -210,25 +152,9 @@ export class SimulationsResolver {
     );
   }
 
-  @Query(() => SimulationPlanConnection)
-  getSimulationPlans(
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
-  ) {
-    return this.simulationsService.getSimulationPlans(first, after);
-  }
-
   @Query(() => SimulationPlanDetails)
   getSimulationPlanById(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.getSimulationPlanById(id);
-  }
-
-  @Query(() => SimulationConnection)
-  simulations(
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
-  ) {
-    return this.simulationsService.getSimulations(first, after);
   }
 
   @Query(() => Simulation, { nullable: true })
