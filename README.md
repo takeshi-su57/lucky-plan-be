@@ -212,16 +212,21 @@ The output is `release/evaluator-worker`. Its root stays intentionally small: `p
 Configure `.env` in the extracted release:
 
 ```env
+SIMULATION_EVALUATOR_WORKER_INSTANCE=dev
 SIMULATION_EVALUATOR_GATEWAY_URL=https://api.example.com
-SIMULATION_EVALUATOR_WORKER_NAME=worker-01
+SIMULATION_EVALUATOR_WORKER_NAME=dev-worker-01
 ```
+
+Install each worker instance in its own directory. The instance value isolates its service name, local identity, and cache; use a distinct value such as `dev` or `prod` for every worker environment on the same host.
 
 Then use the single platform commander to install it as a background service:
 
-- Windows: run `windows.cmd install`; approve UAC when prompted. It creates the `LuckyEvaluatorWorker` Scheduled Task.
-- Linux: run `sudo ./linux.sh install`; it creates and starts `lucky-evaluator-worker.service`.
+- Windows: run `windows.cmd install`; approve UAC when prompted. For `dev`, it creates the `LuckyEvaluatorWorker-dev` Scheduled Task.
+- Linux: run `sudo ./linux.sh install`; for `dev`, it creates and starts `lucky-evaluator-worker-dev.service`.
 
 Both commanders support `install`, `start`, `stop`, `status`, `uninstall`, `cache-export <snapshot.zip>`, and `cache-import <snapshot.zip>`.
+
+When upgrading a legacy release that used the fixed `LuckyEvaluatorWorker` task or `lucky-evaluator-worker.service`, uninstall that legacy service first, then install the instance-based release in a separate directory.
 
 The release workflow in `.github/workflows/release-evaluator-worker.yml` builds and publishes `lucky-evaluator-worker-node22.zip` when a `worker-v*` tag is pushed. It also uploads the ZIP as a short-lived Actions artifact.
 
@@ -284,6 +289,7 @@ The sample file lists the expected variables:
 - `ALCHEMY_PAID_TOENS`: currently misspelled in code and sample; keep that spelling unless the code is fixed at the same time.
 - `TRADING_RECHECK_BLOCKS`: optional copy-trading scanner replay window.
 - `SIMULATION_EVALUATOR_GATEWAY_URL`: HTTPS URL of the API evaluator gateway used by external evaluator parents.
+- `SIMULATION_EVALUATOR_WORKER_INSTANCE`: required lowercase host-local instance identifier; it isolates the worker service/task, identity, and cache from other worker environments on the same machine.
 - `SIMULATION_EVALUATOR_WORKER_NAME`: required on a first non-interactive evaluator start; becomes part of the persisted worker identity.
 
 ## Implementation Rules Of Thumb

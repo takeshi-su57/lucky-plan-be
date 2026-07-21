@@ -69,8 +69,7 @@ writeFileSync(
   join(scripts, 'windows-commander.ps1'),
   `param(
   [Parameter(Position = 0)][string]$Command = 'status',
-  [Parameter(Position = 1)][string]$File,
-  [string]$TaskName = 'LuckyEvaluatorWorker'
+  [Parameter(Position = 1)][string]$File
 )
 $ErrorActionPreference = 'Stop'
 
@@ -81,6 +80,26 @@ if ($Command -notin $validCommands) {
 
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+$root = Split-Path -Parent $PSScriptRoot
+$node = (Get-Command node.exe -ErrorAction Stop).Source
+$envFile = Join-Path $root '.env'
+
+function Get-WorkerInstance {
+  if (-not (Test-Path $envFile)) {
+    Copy-Item (Join-Path $root '.env.example') $envFile
+    throw 'Created .env. Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.'
+  }
+  $content = Get-Content $envFile -Raw
+  $match = [regex]::Match($content, '(?m)^SIMULATION_EVALUATOR_WORKER_INSTANCE=([a-z0-9](?:[a-z0-9-]{0,62})?)\\s*$')
+  if (-not $match.Success) {
+    throw 'Set SIMULATION_EVALUATOR_WORKER_INSTANCE to a lowercase letter/number/hyphen identifier in .env first.'
+  }
+  return $match.Groups[1].Value
+}
+
+$instance = Get-WorkerInstance
+$TaskName = "LuckyEvaluatorWorker-$instance"
+
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'), $Command)
   if ($File) { $arguments += ('"' + $File + '"') }
@@ -88,18 +107,14 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
   exit
 }
 
-$root = Split-Path -Parent $PSScriptRoot
-$node = (Get-Command node.exe -ErrorAction Stop).Source
-$envFile = Join-Path $root '.env'
-
 function Assert-Configuration {
   if (-not (Test-Path $envFile)) {
     Copy-Item (Join-Path $root '.env.example') $envFile
-    throw 'Created .env. Set SIMULATION_EVALUATOR_GATEWAY_URL and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.'
+    throw 'Created .env. Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.'
   }
   $content = Get-Content $envFile -Raw
-  if ($content -notmatch '(?m)^SIMULATION_EVALUATOR_GATEWAY_URL=https?://.+' -or $content -notmatch '(?m)^SIMULATION_EVALUATOR_WORKER_NAME=.+' ) {
-    throw 'Set SIMULATION_EVALUATOR_GATEWAY_URL and SIMULATION_EVALUATOR_WORKER_NAME in .env first.'
+  if ($content -notmatch '(?m)^SIMULATION_EVALUATOR_GATEWAY_URL=https?://.+' -or $content -notmatch '(?m)^SIMULATION_EVALUATOR_WORKER_NAME=.+' -or $content -notmatch '(?m)^SIMULATION_EVALUATOR_WORKER_INSTANCE=[a-z0-9](?:[a-z0-9-]{0,62})?\\s*$') {
+    throw 'Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME in .env first.'
   }
 }
 
@@ -164,9 +179,24 @@ set -eu
 
 COMMAND=\${1:-status}
 FILE=\${2:-}
-SERVICE=lucky-evaluator-worker
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 NODE=$(command -v node || true)
+
+get_instance() {
+  if [ ! -f "$ROOT/.env" ]; then
+    cp "$ROOT/.env.example" "$ROOT/.env"
+    echo 'Created .env. Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.' >&2
+    exit 1
+  fi
+  INSTANCE=$(grep -E '^SIMULATION_EVALUATOR_WORKER_INSTANCE=[a-z0-9]([a-z0-9-]{0,62})?$' "$ROOT/.env" | head -n 1 | cut -d= -f2- || true)
+  if [ -z "$INSTANCE" ]; then
+    echo 'Set SIMULATION_EVALUATOR_WORKER_INSTANCE to a lowercase letter/number/hyphen identifier in .env first.' >&2
+    exit 1
+  fi
+}
+
+get_instance
+SERVICE="lucky-evaluator-worker-$INSTANCE"
 
 usage() {
   echo 'Usage: ./linux.sh {install|start|stop|status|uninstall|cache-export|cache-import} [snapshot.zip]' >&2
@@ -179,11 +209,11 @@ if [ "$COMMAND" != status ] && [ "$(id -u)" -ne 0 ]; then echo "Run with sudo: s
 assert_configuration() {
   if [ ! -f "$ROOT/.env" ]; then
     cp "$ROOT/.env.example" "$ROOT/.env"
-    echo 'Created .env. Set SIMULATION_EVALUATOR_GATEWAY_URL and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.' >&2
+    echo 'Created .env. Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME, then run the command again.' >&2
     exit 1
   fi
-  if ! grep -Eq '^SIMULATION_EVALUATOR_GATEWAY_URL=https?://.+' "$ROOT/.env" || ! grep -Eq '^SIMULATION_EVALUATOR_WORKER_NAME=.+' "$ROOT/.env"; then
-    echo 'Set SIMULATION_EVALUATOR_GATEWAY_URL and SIMULATION_EVALUATOR_WORKER_NAME in .env first.' >&2
+  if ! grep -Eq '^SIMULATION_EVALUATOR_GATEWAY_URL=https?://.+' "$ROOT/.env" || ! grep -Eq '^SIMULATION_EVALUATOR_WORKER_NAME=.+' "$ROOT/.env" || ! grep -Eq '^SIMULATION_EVALUATOR_WORKER_INSTANCE=[a-z0-9]([a-z0-9-]{0,62})?$' "$ROOT/.env"; then
+    echo 'Set SIMULATION_EVALUATOR_WORKER_INSTANCE, SIMULATION_EVALUATOR_GATEWAY_URL, and SIMULATION_EVALUATOR_WORKER_NAME in .env first.' >&2
     exit 1
   fi
 }
@@ -193,7 +223,7 @@ case "$COMMAND" in
     assert_configuration
     cat > /etc/systemd/system/$SERVICE.service <<EOF
 [Unit]
-Description=Lucky evaluator worker
+Description=Lucky evaluator worker ($INSTANCE)
 After=network-online.target
 Wants=network-online.target
 
@@ -229,7 +259,7 @@ esac
 );
 
 const envTemplate =
-  'SIMULATION_EVALUATOR_GATEWAY_URL=\nSIMULATION_EVALUATOR_WORKER_NAME=\n';
+  'SIMULATION_EVALUATOR_WORKER_INSTANCE=\nSIMULATION_EVALUATOR_GATEWAY_URL=\nSIMULATION_EVALUATOR_WORKER_NAME=\n';
 writeFileSync(join(release, '.env.example'), envTemplate);
 writeFileSync(join(release, '.env'), envTemplate);
 writeFileSync(
@@ -237,6 +267,8 @@ writeFileSync(
   `# Lucky evaluator worker
 
 Requires Node.js 22 or newer. Configure \`.env\` before starting the worker.
+
+\`SIMULATION_EVALUATOR_WORKER_INSTANCE\` is required and creates an isolated service identity. For example, \`dev\` uses \`LuckyEvaluatorWorker-dev\` on Windows and \`lucky-evaluator-worker-dev.service\` on Linux. Install each instance in its own directory so its identity and cache remain isolated.
 
 Windows: run \`windows.cmd install\` as Administrator. Linux: run \`sudo ./linux.sh install\`.
 
