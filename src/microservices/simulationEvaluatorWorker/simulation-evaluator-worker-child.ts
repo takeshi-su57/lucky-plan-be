@@ -100,8 +100,20 @@ async function verifyParentSession() {
 
 async function evaluate(
   input: EvaluateMessage['input'],
-  reportProgress: (progress: Omit<EvaluationProgressMessage, 'type' | 'taskId'>) => void,
+  reportProgress: (
+    progress: Omit<EvaluationProgressMessage, 'type' | 'taskId'>,
+  ) => void,
 ) {
+  const totalStartedAt = performance.now();
+  const timings = {
+    setupMs: 0,
+    cacheReadMs: 0,
+    recentFilterMs: 0,
+    historyConversionMs: 0,
+    positionBuildMs: 0,
+    scoringMs: 0,
+  };
+  const setupStartedAt = performance.now();
   const rangeStartedAt = new Date(input.range.startedAt);
   const eventLogWindowStartedAt = new Date(input.eventLogWindowStartedAt);
   const eventLogWindowEndedAt = new Date(input.eventLogWindowEndedAt);
@@ -117,6 +129,7 @@ async function evaluate(
   const totalCandidates = input.candidateLeaders.length;
   let completedCandidates = 0;
   let eventLogRecords = 0;
+  timings.setupMs = performance.now() - setupStartedAt;
 
   reportProgress({
     completedCandidates,
@@ -126,22 +139,30 @@ async function evaluate(
   });
 
   for (const leaderAddress of input.candidateLeaders) {
+    const cacheReadStartedAt = performance.now();
     const records = await readCachedLogs(
       input.simulation.platform,
       leaderAddress,
       eventLogWindowStartedAt,
       eventLogWindowEndedAt,
     );
+    timings.cacheReadMs += performance.now() - cacheReadStartedAt;
     eventLogRecords += records.length;
+    const recentFilterStartedAt = performance.now();
     const recentTradeCount = records.filter((record) => {
       const date = new Date(record.date);
       return date >= recentActivityCutoff && date < rangeStartedAt;
     }).length;
+    timings.recentFilterMs += performance.now() - recentFilterStartedAt;
     if (recentTradeCount >= minimumTradeCount) {
+      const historyConversionStartedAt = performance.now();
       const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
         records.map((record) => ({ ...record, date: new Date(record.date) })),
         contractById,
       );
+      timings.historyConversionMs +=
+        performance.now() - historyConversionStartedAt;
+      const positionBuildStartedAt = performance.now();
       const positions = EventLogsService.buildPerpTradePositionsWithSummary(
         input.simulation.platform,
         histories,
@@ -151,6 +172,8 @@ async function evaluate(
           leverageRanges: input.simulation.leverage,
         },
       ).positions;
+      timings.positionBuildMs += performance.now() - positionBuildStartedAt;
+      const scoringStartedAt = performance.now();
       const evaluation =
         SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
           leaderAddress,
@@ -160,6 +183,7 @@ async function evaluate(
           ),
           input.simulation,
         );
+      timings.scoringMs += performance.now() - scoringStartedAt;
       if (
         !evaluation.rejectedReason &&
         input.simulation.score.some(
@@ -178,7 +202,22 @@ async function evaluate(
       progressMessage: `Evaluated ${completedCandidates} of ${totalCandidates} leaders (${eventLogRecords.toLocaleString()} cached event logs read)`,
     });
   }
-  return { evaluatedCandidates: evaluations };
+  const round = (value: number) => Math.round(value);
+  return {
+    evaluatedCandidates: evaluations,
+    timing: {
+      totalMs: round(performance.now() - totalStartedAt),
+      setupMs: round(timings.setupMs),
+      cacheReadMs: round(timings.cacheReadMs),
+      recentFilterMs: round(timings.recentFilterMs),
+      historyConversionMs: round(timings.historyConversionMs),
+      positionBuildMs: round(timings.positionBuildMs),
+      scoringMs: round(timings.scoringMs),
+      candidates: totalCandidates,
+      acceptedCandidates: evaluations.length,
+      eventLogRecords,
+    },
+  };
 }
 
 async function readCachedLogs(

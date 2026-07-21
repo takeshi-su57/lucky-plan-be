@@ -105,9 +105,13 @@ export class SimulationEvaluatorWorkerRuntimeService
   }
 
   private async processTask(task: ClaimedTask) {
+    const taskStartedAt = performance.now();
     this.client.beginTask(task.id, task.leaseToken);
     try {
+      const inputStartedAt = performance.now();
       const { input } = await this.client.getInput(task.id, task.leaseToken);
+      const inputMs = Math.round(performance.now() - inputStartedAt);
+      const executionStartedAt = performance.now();
       let result: Record<string, unknown>;
       switch (task.kind) {
         case SimulationEvaluatorTaskKind.EvaluateLeaders:
@@ -139,7 +143,15 @@ export class SimulationEvaluatorWorkerRuntimeService
             `Unsupported simulation evaluator task kind: ${task.kind}`,
           );
       }
+      const executionMs = Math.round(performance.now() - executionStartedAt);
+      const completionStartedAt = performance.now();
       await this.client.complete(task.id, task.leaseToken, result);
+      const completionMs = Math.round(performance.now() - completionStartedAt);
+      const timing = result.timing as Record<string, unknown> | undefined;
+      this.log(
+        'info',
+        `Task ${task.id} completed totalMs=${Math.round(performance.now() - taskStartedAt)} inputMs=${inputMs} executionMs=${executionMs} completeMs=${completionMs}${timing ? ` evaluationTiming=${JSON.stringify(timing)}` : ''}`,
+      );
     } catch (error) {
       await this.client
         .fail(task.id, task.leaseToken, this.describeTaskError(task, error))

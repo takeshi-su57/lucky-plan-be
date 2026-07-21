@@ -168,6 +168,26 @@ export class SimulationAutoRunnerService {
           0,
         ),
       completedRanges: record.completedRanges ?? 0,
+      totalPlans:
+        record.totalPlans ??
+        simulations.reduce(
+          (
+            total: number,
+            simulation: { totalSimulationPlans?: number | null },
+          ) => total + (simulation.totalSimulationPlans ?? 0),
+          0,
+        ),
+      completedPlans:
+        record.completedPlans ??
+        simulations.reduce(
+          (total: number, simulation: { completedPlans?: number | null }) =>
+            total + (simulation.completedPlans ?? 0),
+          0,
+        ),
+      outstandingPlans: record.outstandingPlans ?? 0,
+      queuedPlans: record.queuedPlans ?? 0,
+      runningPlans: record.runningPlans ?? 0,
+      finalizingPlans: record.finalizingPlans ?? 0,
       startedAt: record.startedAt ?? null,
       finishedAt: record.finishedAt ?? null,
       lastError: record.lastError ?? null,
@@ -283,11 +303,6 @@ export class SimulationAutoRunnerService {
     });
     await this.emitSimulationUpdated(selectingSimulation);
 
-    const simulationPlan = await this.createSimulationPlanForRange(
-      current,
-      range,
-    );
-
     // These ranges can run concurrently, so fixed console.time labels race
     // with one another and produce misleading timings. Keep the timing local
     // to this invocation and include enough context to correlate it to a task.
@@ -322,40 +337,100 @@ export class SimulationAutoRunnerService {
       );
     }
 
-    const selectedCandidates = evaluatedCandidates.sort(
-      (a, b) => b.score - a.score,
+    return this.finalizeSimulationRange(
+      simulationId,
+      range,
+      context,
+      evaluatedCandidates,
     );
+  }
 
+  async findCandidateLeadersForRange(simulationId: number, range: WindowRange) {
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return null;
+    }
+    const candidateLeaders =
+      await this.simulationLeaderEvaluatorService.findCandidateLeaders(
+        simulation,
+        range,
+      );
+    return { simulation, candidateLeaders };
+  }
+
+  async finalizeSimulationRange(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluatedCandidates: CandidateEvaluation[],
+  ): Promise<Simulation | null> {
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return null;
+    }
+    const simulationPlan = await this.createSimulationPlanForRange(
+      simulation,
+      range,
+    );
     await this.createSimulationBotsForSelections(
       simulationPlan.id,
       range.startedAt,
       range.endedAt,
-      current,
-      selectedCandidates,
+      simulation,
+      [...evaluatedCandidates].sort((a, b) => b.score - a.score),
       context.platformContracts,
     );
 
-    const completedPlans = context.allRanges.filter(
-      (item) => item.endedAt.getTime() <= range.endedAt.getTime(),
-    ).length;
-
-    const completedPlanWindowSimulation = await this.prisma.simulation.update({
+    const plans = await this.prisma.simulationPlan.findMany({
+      where: { simulationId },
+      select: { startAt: true, endAt: true },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+    const completedRangeKeys = new Set(
+      plans.map(
+        (plan) => `${plan.startAt.toISOString()}:${plan.endAt.toISOString()}`,
+      ),
+    );
+    let cursor: Date | null = null;
+    for (const item of context.allRanges) {
+      if (
+        !completedRangeKeys.has(
+          `${item.startedAt.toISOString()}:${item.endedAt.toISOString()}`,
+        )
+      )
+        break;
+      cursor = item.endedAt;
+    }
+    const completedPlans = plans.length;
+    const completed = completedPlans >= context.allRanges.length;
+    const updated = await this.prisma.simulation.update({
       where: { id: simulationId },
       data: {
-        cursor: range.endedAt,
+        cursor,
         completedPlans,
-        progressPhase: 'plan-window-completed',
-        progressMessage: `Completed ${dayjs(range.startedAt).format(
-          'YYYY-MM-DD',
-        )}`,
-        progressPercent:
-          context.allRanges.length > 0
-            ? (completedPlans / context.allRanges.length) * 100
-            : 100,
+        status: completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Running,
+        progressPhase: completed ? 'completed' : 'plan-window-completed',
+        progressMessage: completed
+          ? 'Simulation result completed'
+          : `Completed ${completedPlans} / ${context.allRanges.length} plan windows`,
+        progressPercent: context.allRanges.length
+          ? (completedPlans / context.allRanges.length) * 100
+          : 100,
       },
     });
-    await this.emitSimulationUpdated(completedPlanWindowSimulation);
-    return this.mapSimulation(completedPlanWindowSimulation);
+    await this.emitSimulationUpdated(updated);
+    await this.aggregateSimulation(simulationId, {
+      status: completed ? SimulationStatus.Completed : SimulationStatus.Running,
+    });
+    return this.mapSimulation(updated);
   }
 
   async defaultLeaderEvaluation(
@@ -598,15 +673,22 @@ export class SimulationAutoRunnerService {
       (item) => item > 0,
     ).length;
     const isCompleted = options.status === SimulationStatus.Completed;
+    const isRunning = options.status === SimulationStatus.Running;
 
     const updatedSimulation = await this.prisma.simulation.update({
       where: { id },
       data: {
         status: options.status,
-        progressPhase: isCompleted ? 'completed' : 'paused',
+        progressPhase: isCompleted
+          ? 'completed'
+          : isRunning
+            ? 'plan-window-completed'
+            : 'paused',
         progressMessage: isCompleted
           ? 'Simulation result completed'
-          : 'Paused until more historical data is available',
+          : isRunning
+            ? `${plans.length} simulation plans completed`
+            : 'Paused until more historical data is available',
         ...(isCompleted ? { progressPercent: 100 } : {}),
         completedPlans: plans.length,
         totalLeaderPnl,

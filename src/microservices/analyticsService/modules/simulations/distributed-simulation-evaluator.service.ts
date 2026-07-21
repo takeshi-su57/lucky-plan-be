@@ -34,6 +34,26 @@ export class DistributedSimulationEvaluatorService {
     range: WindowRange,
     contractById: Map<number, ContractContext>,
   ): Promise<CandidateEvaluation[]> {
+    const task = await this.enqueueLeadersForRange(
+      simulation,
+      candidateLeaders,
+      range,
+      contractById,
+    );
+    const completed = await this.tasks.waitForCompletedTask(task.id);
+    return this.readCompletedEvaluation(
+      completed.result,
+      task.id,
+      candidateLeaders,
+    );
+  }
+
+  async enqueueLeadersForRange(
+    simulation: Simulation,
+    candidateLeaders: string[],
+    range: WindowRange,
+    contractById: Map<number, ContractContext>,
+  ) {
     const evaluationSimulation = {
       platform: simulation.platform,
       direction: simulation.direction,
@@ -48,7 +68,7 @@ export class DistributedSimulationEvaluatorService {
       scoreFormular: simulation.scoreFormular,
       sizingFormular: simulation.sizingFormular,
     };
-    const task = await this.tasks.createTask({
+    return this.tasks.createTask({
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
       platform: simulation.platform,
@@ -75,12 +95,18 @@ export class DistributedSimulationEvaluatorService {
         }),
       ),
     });
-    const completed = await this.tasks.waitForCompletedTask(task.id);
-    const result = completed.result as {
+  }
+
+  readCompletedEvaluation(
+    rawResult: unknown,
+    taskId: string,
+    candidateLeaders: string[],
+  ): CandidateEvaluation[] {
+    const result = rawResult as {
       evaluatedCandidates?: CandidateEvaluation[];
     } | null;
     if (!Array.isArray(result?.evaluatedCandidates)) {
-      throw new Error(`Evaluator task ${task.id} returned an invalid result`);
+      throw new Error(`Evaluator task ${taskId} returned an invalid result`);
     }
     const candidateAddresses = new Set(
       candidateLeaders.map((address) => address.toLowerCase()),
@@ -95,7 +121,7 @@ export class DistributedSimulationEvaluatorService {
       )
     ) {
       throw new Error(
-        `Evaluator task ${task.id} returned unauthorized or invalid candidates`,
+        `Evaluator task ${taskId} returned unauthorized or invalid candidates`,
       );
     }
     return result.evaluatedCandidates;

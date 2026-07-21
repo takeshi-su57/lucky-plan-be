@@ -7,7 +7,6 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationResearchAutoRunnerService } from './simulation-research-auto-runner.service';
-import { SimulationResearchDynamicAutoRunnerService } from './simulation-research-dynamic-auto-runner.service';
 
 const AUTOMATIC_RESEARCH_STATUSES = [
   SimulationStatus.Created,
@@ -24,7 +23,6 @@ export class AnalyticsSimulationResearchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationResearchAutoRunnerService: SimulationResearchAutoRunnerService,
-    private readonly simulationResearchDynamicAutoRunnerService: SimulationResearchDynamicAutoRunnerService,
   ) {}
 
   async processNextAutomaticResearch(now = new Date()) {
@@ -35,6 +33,9 @@ export class AnalyticsSimulationResearchService {
     const research = await this.prisma.simulationResearch.findFirst({
       where: {
         automationEnabled: true,
+        executionFlow: {
+          not: SimulationResearchExecutionFlow.DynamicExperimental,
+        },
         OR: [
           {
             status: SimulationStatus.Running,
@@ -112,20 +113,6 @@ export class AnalyticsSimulationResearchService {
     }, AUTOMATION_LEASE_RENEWAL_MS);
 
     try {
-      const research = await this.prisma.simulationResearch.findFirst({
-        where: { id, automationLeaseToken: leaseToken },
-        select: { executionFlow: true },
-      });
-      if (
-        research?.executionFlow ===
-        SimulationResearchExecutionFlow.DynamicExperimental
-      ) {
-        return await this.simulationResearchDynamicAutoRunnerService.playAutomaticResearch(
-          id,
-          undefined,
-          leaseToken,
-        );
-      }
       return await this.simulationResearchAutoRunnerService.playAutomaticResearch(
         id,
         undefined,

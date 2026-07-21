@@ -167,6 +167,7 @@ export class SimulationEvaluatorTaskService
     platform: import('generated/prisma/enums').Platform,
     requiredCacheStartAt: Date,
     requiredCacheEndAt: Date,
+    includeClaimedCapacity = false,
   ) {
     const heartbeatCutoff = this.getWorkerHeartbeatCutoff();
     const workers = await this.prisma.simulationEvaluatorWorker.findMany({
@@ -227,7 +228,7 @@ export class SimulationEvaluatorTaskService
         Math.max(
           0,
           this.getSchedulingCapacity(worker) -
-            (activeByWorkerId.get(worker.id) || 0),
+            (includeClaimedCapacity ? 0 : activeByWorkerId.get(worker.id) || 0),
         ),
       0,
     );

@@ -26,6 +26,8 @@ import {
 
 import { PrismaService } from 'src/global/prisma.service';
 import {
+  SimulationEvaluatorTaskStatus,
+  SimulationExecutionPlanStatus,
   SimulationResearchExecutionFlow,
   SimulationStatus,
 } from 'generated/prisma/enums';
@@ -463,6 +465,26 @@ export class SimulationsService {
       progressPercent: record.progressPercent ?? 0,
       totalRanges,
       completedRanges: record.completedRanges ?? 0,
+      totalPlans:
+        record.totalPlans ??
+        simulations.reduce(
+          (
+            total: number,
+            simulation: { totalSimulationPlans?: number | null },
+          ) => total + (simulation.totalSimulationPlans ?? totalRanges),
+          0,
+        ),
+      completedPlans:
+        record.completedPlans ??
+        simulations.reduce(
+          (total: number, simulation: { completedPlans?: number | null }) =>
+            total + (simulation.completedPlans ?? 0),
+          0,
+        ),
+      outstandingPlans: record.outstandingPlans ?? 0,
+      queuedPlans: record.queuedPlans ?? 0,
+      runningPlans: record.runningPlans ?? 0,
+      finalizingPlans: record.finalizingPlans ?? 0,
       startedAt: record.startedAt ?? null,
       finishedAt: record.finishedAt ?? null,
       lastError: record.lastError ?? null,
@@ -618,6 +640,8 @@ export class SimulationsService {
           progressPercent: 0,
           totalRanges: totalSimulationPlans,
           completedRanges: 0,
+          totalPlans: totalSimulationPlans * combinations.length,
+          completedPlans: 0,
         },
       });
 
@@ -1218,6 +1242,8 @@ export class SimulationsService {
           progressPercent: 0,
           totalRanges: totalSimulationPlans,
           completedRanges: 0,
+          totalPlans: totalSimulationPlans * combinations.length,
+          completedPlans: 0,
         },
         include: { simulations: { select: { status: true } } },
       });
@@ -1308,21 +1334,71 @@ export class SimulationsService {
       return this.mapSimulationResearch(research);
     }
 
-    const updated = await this.prisma.simulationResearch.update({
-      where: { id },
-      data: {
-        status: SimulationStatus.Cancelled,
-        progressPhase: 'cancelled',
-        progressMessage: 'Research cancellation requested',
-        finishedAt: new Date(),
-      },
-      include: {
-        simulations: {
-          select: {
-            status: true,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.simulationEvaluatorTask.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: {
+            in: [
+              SimulationEvaluatorTaskStatus.Queued,
+              SimulationEvaluatorTaskStatus.Ready,
+            ],
           },
         },
-      },
+        data: {
+          status: SimulationEvaluatorTaskStatus.Cancelled,
+          dedupeKey: null,
+          completedAt: new Date(),
+          lastError: 'Cancelled with simulation research',
+        },
+      });
+      await tx.simulationExecutionPlan.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: {
+            in: [
+              SimulationExecutionPlanStatus.Pending,
+              SimulationExecutionPlanStatus.Dispatched,
+              SimulationExecutionPlanStatus.Finalizing,
+              SimulationExecutionPlanStatus.Failed,
+            ],
+          },
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Cancelled,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          lastError: 'Cancelled with simulation research',
+        },
+      });
+      await tx.simulation.updateMany({
+        where: {
+          researchId: id,
+          status: {
+            notIn: [SimulationStatus.Completed, SimulationStatus.Cancelled],
+          },
+        },
+        data: {
+          status: SimulationStatus.Cancelled,
+          progressPhase: 'cancelled',
+          progressMessage: 'Cancelled with simulation research',
+        },
+      });
+      return tx.simulationResearch.update({
+        where: { id },
+        data: {
+          status: SimulationStatus.Cancelled,
+          automationEnabled: false,
+          progressPhase: 'cancelled',
+          progressMessage: 'Research cancelled',
+          outstandingPlans: 0,
+          queuedPlans: 0,
+          runningPlans: 0,
+          finalizingPlans: 0,
+          finishedAt: new Date(),
+        },
+        include: { simulations: { select: { status: true } } },
+      });
     });
 
     const mapped = this.mapSimulationResearch(updated);

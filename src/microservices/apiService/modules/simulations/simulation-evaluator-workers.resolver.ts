@@ -283,6 +283,7 @@ export class SimulationEvaluatorWorkersResolver {
       progressRecords: task.progressRecords.toString(),
       progressTotalRecords: task.progressTotalRecords.toString(),
       progressBytes: task.progressBytes.toString(),
+      timingJson: this.toTimingJson(task.result),
       canCancel:
         task.workerId === null &&
         (task.status === SimulationEvaluatorTaskStatus.Queued ||
@@ -344,6 +345,7 @@ export class SimulationEvaluatorWorkersResolver {
       progressRecords: task.progressRecords.toString(),
       progressTotalRecords: task.progressTotalRecords.toString(),
       progressBytes: task.progressBytes.toString(),
+      timingJson: this.toTimingJson(task.result),
       canCancel:
         task.workerId === null &&
         [
@@ -351,6 +353,12 @@ export class SimulationEvaluatorWorkersResolver {
           SimulationEvaluatorTaskStatus.Ready,
         ].includes(task.status),
     };
+  }
+
+  private toTimingJson(result: unknown) {
+    if (!result || typeof result !== 'object') return null;
+    const timing = (result as Record<string, unknown>).timing;
+    return timing && typeof timing === 'object' ? JSON.stringify(timing) : null;
   }
 
   @Mutation(() => Boolean)

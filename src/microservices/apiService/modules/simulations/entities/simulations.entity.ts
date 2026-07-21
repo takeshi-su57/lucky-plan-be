@@ -495,6 +495,24 @@ export class SimulationResearch {
   @Field(() => Int)
   completedRanges: number;
 
+  @Field(() => Int)
+  totalPlans: number;
+
+  @Field(() => Int)
+  completedPlans: number;
+
+  @Field(() => Int)
+  outstandingPlans: number;
+
+  @Field(() => Int)
+  queuedPlans: number;
+
+  @Field(() => Int)
+  runningPlans: number;
+
+  @Field(() => Int)
+  finalizingPlans: number;
+
   @Field(() => Date, { nullable: true })
   startedAt: Date | null;
 
@@ -635,6 +653,7 @@ export class SimulationEvaluatorWorkerTaskView {
   @Field(() => String) progressTotalRecords: string;
   @Field(() => String) progressBytes: string;
   @Field(() => String, { nullable: true }) lastError: string | null;
+  @Field(() => String, { nullable: true }) timingJson: string | null;
   @Field(() => Boolean) canCancel: boolean;
   @Field(() => Date) createdAt: Date;
 }
