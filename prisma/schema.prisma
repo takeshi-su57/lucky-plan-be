@@ -183,20 +183,26 @@ model SimulationResearch {
   scoreFormular  String @default("RiskAdjustedCopyScore")
   sizingFormular String @default("ScoreScaledCollateralSizing")
 
-  cursor          DateTime?
-  status          SimulationStatus @default(Created)
-  progressPhase   String?
-  progressMessage String?
-  progressPercent Float            @default(0)
-  totalRanges     Int              @default(0)
-  completedRanges Int              @default(0)
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  lastError       String?
-  retryAttempts   Int      @default(0)
-  nextRetryAt     DateTime?
-  automationEnabled Boolean @default(true)
-  automationLeaseToken String? @db.VarChar(64)
+  cursor                   DateTime?
+  status                   SimulationStatus @default(Created)
+  progressPhase            String?
+  progressMessage          String?
+  progressPercent          Float            @default(0)
+  totalRanges              Int              @default(0)
+  completedRanges          Int              @default(0)
+  totalPlans               Int              @default(0)
+  completedPlans           Int              @default(0)
+  outstandingPlans         Int              @default(0)
+  queuedPlans              Int              @default(0)
+  runningPlans             Int              @default(0)
+  finalizingPlans          Int              @default(0)
+  startedAt                DateTime?
+  finishedAt               DateTime?
+  lastError                String?
+  retryAttempts            Int              @default(0)
+  nextRetryAt              DateTime?
+  automationEnabled        Boolean          @default(true)
+  automationLeaseToken     String?          @db.VarChar(64)
   automationLeaseExpiresAt DateTime?
 
   simulations Simulation[]
@@ -243,6 +249,15 @@ enum SimulationEvaluatorTaskStatus {
   Queued
   Ready
   Claimed
+  Completed
+  Failed
+  Cancelled
+}
+
+enum SimulationExecutionPlanStatus {
+  Pending
+  Dispatched
+  Finalizing
   Completed
   Failed
   Cancelled
@@ -339,15 +354,17 @@ model Simulation {
   researchId Int?
   direction  BotMode @default(Reversed)
 
-  startAt         DateTime
-  endAt           DateTime
-  days            Int              @default(1)
-  gapDays         Int              @default(0)
-  cursor          DateTime?
-  status          SimulationStatus @default(Created)
-  progressPhase   String?
-  progressMessage String?
-  progressPercent Float            @default(0)
+  startAt                  DateTime
+  endAt                    DateTime
+  days                     Int              @default(1)
+  gapDays                  Int              @default(0)
+  cursor                   DateTime?
+  status                   SimulationStatus @default(Created)
+  progressPhase            String?
+  progressMessage          String?
+  progressPercent          Float            @default(0)
+  automationLeaseToken     String?          @db.VarChar(64)
+  automationLeaseExpiresAt DateTime?
 
   selectedLeaderCount Int  @default(10)
   trade               Json @default("{\"min\":3,\"max\":1000000}")
@@ -380,10 +397,37 @@ model Simulation {
   research        SimulationResearch?       @relation(fields: [researchId], references: [id], onDelete: SetNull)
   simulationPlans SimulationPlan[]
   evaluatorTasks  SimulationEvaluatorTask[]
+  executionPlans  SimulationExecutionPlan[]
 
   @@index([status, createdAt])
   @@index([platform, startAt, endAt])
   @@index([researchId, createdAt])
+  @@index([status, automationLeaseExpiresAt])
+}
+
+model SimulationExecutionPlan {
+  id              String                        @id @default(cuid())
+  simulationId    Int
+  evaluatorTaskId String?                       @unique
+  rangeStartedAt  DateTime
+  rangeEndedAt    DateTime
+  status          SimulationExecutionPlanStatus @default(Pending)
+  leaseToken      String?                       @db.VarChar(64)
+  leaseExpiresAt  DateTime?
+  attempts        Int                           @default(0)
+  lastError       String?
+  dispatchedAt    DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+
+  simulation    Simulation               @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  evaluatorTask SimulationEvaluatorTask? @relation(fields: [evaluatorTaskId], references: [id], onDelete: SetNull)
+
+  @@unique([simulationId, rangeStartedAt, rangeEndedAt])
+  @@index([status, createdAt])
+  @@index([simulationId, status])
+  @@index([status, leaseExpiresAt])
 }
 
 model Bot {
@@ -478,8 +522,9 @@ model SimulationEvaluatorTask {
   progressRecords      BigInt    @default(0)
   progressTotalRecords BigInt    @default(0)
 
-  simulation     Simulation?     @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  simulationPlan SimulationPlan? @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
+  simulation     Simulation?              @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  simulationPlan SimulationPlan?          @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
+  executionPlan  SimulationExecutionPlan?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
