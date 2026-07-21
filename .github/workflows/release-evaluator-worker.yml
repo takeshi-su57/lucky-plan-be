@@ -12,6 +12,10 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Prisma validates this value while generating the client, but the release
+    # bundle never opens a database connection during CI.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/luckyplans?schema=public
     steps:
       - uses: actions/checkout@v6
 
