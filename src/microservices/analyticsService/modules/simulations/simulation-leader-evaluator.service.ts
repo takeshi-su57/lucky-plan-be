@@ -5,6 +5,7 @@ import { Simulation } from 'src/microservices/apiService/modules/simulations/ent
 
 import { PrismaService } from 'src/global/prisma.service';
 import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
+import { PnlSnapshotFileCacheService } from 'src/microservices/apiService/modules/trade-histories/pnl-snapshot-file-cache.service';
 import { getWeb3Info } from 'src/web3/utils';
 import { BotMode, Platform } from 'generated/prisma/enums';
 import {
@@ -132,46 +133,28 @@ export class SimulationLeaderEvaluatorService {
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
     private readonly leaderEventLogCacheService: SimulationLeaderEventLogCacheService,
+    private readonly pnlSnapshotFileCacheService: PnlSnapshotFileCacheService,
   ) {}
 
   async findCandidateLeaders(simulation: Simulation, range: WindowRange) {
     const dateStr = dayjs(range.startedAt).format('YYYY-MM-DD');
-    const candidateAddresses: string[] = [];
-
-    for (let skip = 0; ; skip += CANDIDATE_BATCH_SIZE) {
-      const records = await this.prisma.pnlSnapshotV2.findMany({
-        where: {
-          platform: simulation.platform,
-          dateStr,
-          accUSDPnl:
-            simulation.direction === BotMode.Default
-              ? {
-                  gte: 50,
-                }
-              : {
-                  lte: -50,
-                },
-        },
-        select: {
-          address: true,
-        },
-        orderBy: [{ accUSDPnl: 'asc' }, { address: 'asc' }],
-        skip,
-        take: CANDIDATE_BATCH_SIZE,
-      });
-
-      const batchAddresses = records.map((record) =>
-        record.address.toLowerCase(),
-      );
-
-      candidateAddresses.push(...batchAddresses);
-
-      if (records.length < CANDIDATE_BATCH_SIZE) {
-        break;
-      }
-    }
-
-    return candidateAddresses;
+    const records = await this.pnlSnapshotFileCacheService.readAllByAddress(
+      simulation.platform,
+      dateStr,
+    );
+    if (!records) return [];
+    return records
+      .filter((record) =>
+        simulation.direction === BotMode.Default
+          ? record.accUSDPnl >= 50
+          : record.accUSDPnl <= -50,
+      )
+      .sort(
+        (left, right) =>
+          left.accUSDPnl - right.accUSDPnl ||
+          left.address.localeCompare(right.address),
+      )
+      .map((record) => record.address);
   }
 
   async evaluateLeadersForRange(
