@@ -1,12 +1,9 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 
 import {
   SimulationBotDetails,
-  SimulationPlan,
   SimulationPlanDetails,
-  SimulationTradeHistory,
 } from './entities/simulations.entity';
 import {
   mapSimulationBotDetailsWithCache,
@@ -20,12 +17,9 @@ import {
   getEventLogOrderBy,
   getEventLogStableId,
 } from '../trade-histories/event-log-identity.utils';
-import { BotMode } from 'generated/prisma/enums';
-import {
-  PerpTradeHistory,
-  PerpTradeHistoryOperation,
-} from '../trade-histories/entities/event-logs.entity';
-import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { PerpTradeHistory } from '../trade-histories/entities/event-logs.entity';
+import { simulateFollowerPositions } from './simulation-position-execution';
+import { mapSimulationBotConfiguration } from './simulation-bot-config.mapper';
 
 export type SimulationPlanDetailsOptions = {
   persistSummary?: boolean;
@@ -36,37 +30,7 @@ export class SimulationPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogsService: EventLogsService,
-    @Optional()
-    @Inject(SERVICE_NAMES.REDIS_SERVICE)
-    private readonly redisClient?: ClientProxy,
   ) {}
-
-  private async emitSimulationPlanUpdated(simulationPlan: SimulationPlan) {
-    if (!this.redisClient) {
-      return;
-    }
-
-    await this.redisClient.emit(
-      PATTERNS.Simulations.SimulationPlanUpdated,
-      simulationPlan,
-    );
-  }
-
-  private async ensureSimulationPlanCache(simulationPlanId: number) {
-    return this.prisma.simulationPlanCache.upsert({
-      where: { simulationPlanId },
-      update: {},
-      create: { simulationPlanId },
-    });
-  }
-
-  private async ensureSimulationBotCache(simulationBotId: number) {
-    return this.prisma.simulationBotCache.upsert({
-      where: { simulationBotId },
-      update: {},
-      create: { simulationBotId },
-    });
-  }
 
   async calculateSimulationPlanDetails(
     id: number,
@@ -122,7 +86,7 @@ export class SimulationPlansService {
         orderBy: getEventLogOrderBy(),
       });
 
-      const positionsWithSummary =
+      const leaderPositions =
         this.eventLogsService.convertToPerpTradePositionsWithSummary(
           bot.leaderPlatform,
           records
@@ -153,70 +117,23 @@ export class SimulationPlansService {
                 : null;
             })
             .filter((item): item is PerpTradeHistory => !!item),
-          {
-            stoppedAt: stoppedAt || undefined,
-            minCollateral: bot.minCollateral,
-            maxCollateral: bot.maxCollateral,
-            minLeverage: bot.minLeverage,
-            maxLeverage: bot.maxLeverage,
-          },
+          { stoppedAt: stoppedAt || undefined },
         );
-
-      const signer = bot.mode === BotMode.Reversed ? -1 : 1;
-
-      const simulationPositions = positionsWithSummary.positions.map(
-        ({ histories }) => {
-          let leaderPnl = 0;
-          let followerPnl = 0;
-
-          const simulationHistories: SimulationTradeHistory[] = [];
-
-          for (const history of histories) {
-            if (history.operation === PerpTradeHistoryOperation.PNL_WITHDRAW) {
-              continue;
-            }
-
-            const followerUsdFee =
-              history.usdFee !== 0
-                ? Math.min(-0.5, history.usdFee * bot.ratio)
-                : 0;
-            const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
-            const followerUsdPnl = Math.max(
-              -history.collateralDeltaUsd * bot.ratio,
-              followerUsdBasePnl + followerUsdFee,
-            );
-
-            const follower = {
-              ...history,
-              id: -history.id,
-              usdPnl: followerUsdPnl,
-              usdBasePnl: followerUsdBasePnl,
-              usdFee: followerUsdFee,
-              sizeInUsd: history.sizeInUsd * bot.ratio,
-              collateralInUsd: history.collateralInUsd * bot.ratio,
-              collateralDeltaUsd: history.collateralDeltaUsd * bot.ratio,
-              sizeDeltaUsd: history.sizeDeltaUsd * bot.ratio,
-              isLong:
-                bot.mode === BotMode.Reversed
-                  ? !history.isLong
-                  : history.isLong,
-            };
-
-            leaderPnl += history.usdPnl;
-            followerPnl += follower.usdPnl;
-
-            simulationHistories.push({
-              leader: history,
-              follower,
-            });
-          }
-
-          return {
-            histories: simulationHistories,
-            leaderPnl,
-            followerPnl,
-          };
-        },
+      const simulatedFollowerPositions = simulateFollowerPositions(
+        leaderPositions.positions,
+        bot,
+      );
+      const executableHistories = simulatedFollowerPositions.flatMap(
+        (position) => position.histories.map(({ leader }) => leader),
+      );
+      const positionsWithSummary =
+        this.eventLogsService.convertToPerpTradePositionsWithSummary(
+          bot.leaderPlatform,
+          executableHistories,
+          { stoppedAt: stoppedAt || undefined },
+        );
+      const simulationPositions = simulatedFollowerPositions.map(
+        ({ sizing: _sizing, ...position }) => position,
       );
 
       totalPositions += positionsWithSummary.totalPositions;
@@ -269,7 +186,7 @@ export class SimulationPlansService {
         : calculatedBot;
 
       simulationBotDetails.push({
-        ...simulationBot,
+        ...mapSimulationBotConfiguration(simulationBot),
         positions: simulationPositions,
       });
     }
@@ -330,7 +247,7 @@ export class SimulationPlansService {
     return {
       ...mapSimulationPlanWithCache(simulationPlan),
       simulationBots: simulationPlan.simulationBots.map((bot) => ({
-        ...mapSimulationBotDetailsWithCache(bot),
+        ...mapSimulationBotConfiguration(mapSimulationBotDetailsWithCache(bot)),
         cacheState: bot.cache
           ? {
               completed: bot.cache.completed,
@@ -373,7 +290,9 @@ export class SimulationPlansService {
         return {
           ...mapSimulationPlanWithCache(plan),
           simulationBots: plan.simulationBots.map((bot) => ({
-            ...mapSimulationBotDetailsWithCache(bot),
+            ...mapSimulationBotConfiguration(
+              mapSimulationBotDetailsWithCache(bot),
+            ),
             cacheState: bot.cache
               ? {
                   completed: bot.cache.completed,

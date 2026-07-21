@@ -70,6 +70,7 @@ export type CandidateEvaluation = {
   rawTradeCount: number;
   copiedNetPnlUsd: number;
   copiedDrawdownUsd: number;
+  copiedProfitFactor: number;
   rejectedReason?: string;
 };
 
@@ -352,6 +353,7 @@ export class SimulationLeaderEvaluatorService {
       rawTradeCount,
       copiedNetPnlUsd: 0,
       copiedDrawdownUsd: 0,
+      copiedProfitFactor: 0,
     };
     const effectiveSlopeRanges = simulation.slope.map((range) =>
       getDirectionalSlopeRange(simulation.direction, range),
@@ -422,6 +424,7 @@ export class SimulationLeaderEvaluatorService {
       suggestedCollateralUsd: sizing.suggestedCollateralUsd,
       copiedNetPnlUsd: copied.netPnlUsd,
       copiedDrawdownUsd: copied.maxDrawdownUsd,
+      copiedProfitFactor: copied.profitFactor,
     };
   }
 

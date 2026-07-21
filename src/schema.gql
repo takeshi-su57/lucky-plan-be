@@ -221,7 +221,12 @@ input CreateSimulationResearchInput {
   direction: BotMode!
   endAt: Date!
   executionFlow: SimulationResearchExecutionFlow! = Centralized
+  followerRiskCollateral: [FloatRangeGroupInput!]!
+  followerRiskSize: [FloatRangeGroupInput!]!
   gapDays: Int! = 0
+  leaderExecutionCollateral: [FloatRangeGroupInput!]!
+  leaderExecutionLeverage: [FloatRangeGroupInput!]!
+  leaderExecutionSize: [FloatRangeGroupInput!]!
   leverage: [FloatRangeGroupInput!]!
   platform: Platform!
   r2: [FloatRangeGroupInput!]!
@@ -352,6 +357,15 @@ input IntRangeGroupInput {
 
 """JSON custom scalar type"""
 scalar JSON
+
+type LeaderEvaluationMetrics {
+  copiedMaxDrawdownUsd: Float!
+  copiedPnlUsd: Float!
+  copiedProfitFactor: Float!
+  r2: Float!
+  slope: Float!
+  tradeCount: Int!
+}
 
 type Log {
   checked: Boolean!
@@ -543,7 +557,6 @@ type Mutation {
   updateLeverage(input: UpdateLeverageInput!): ContractExecutionResult!
   updateMaxOpenMissions(maxCount: Int!): Boolean!
   updatePlan(updatePlanInput: UpdatePlanInput!): Plan!
-  updateSimulation(input: UpdateSimulationInput!): Simulation!
   updateSimulationResearch(input: UpdateSimulationResearchInput!): SimulationResearch!
   updateSl(input: UpdateSlInput!): ContractExecutionResult!
   updateStrategy(id: Int!, input: UpdateStrategyInput!): Strategy!
@@ -806,8 +819,13 @@ type Simulation {
   direction: BotMode!
   endAt: Date!
   error: String
+  followerRiskCollateral: [SimulationValueRange!]!
+  followerRiskSize: [SimulationValueRange!]!
   gapDays: Int!
   id: Int!
+  leaderExecutionCollateral: [SimulationValueRange!]!
+  leaderExecutionLeverage: [SimulationValueRange!]!
+  leaderExecutionSize: [SimulationValueRange!]!
   leverage: [SimulationValueRange!]!
   maxDrawdownUsd: Float!
   platform: Platform!
@@ -848,14 +866,20 @@ type SimulationBot {
   avgPnlPercentageBySize: Float!
   avgPositivePnl: Float!
   avgSize: Float!
+  baseRatio: Float!
+  evaluationMetrics: LeaderEvaluationMetrics!
+  followerRiskCollateral: [SimulationValueRange!]!
+  followerRiskSize: [SimulationValueRange!]!
   id: Int!
   leaderAddress: String!
   leaderPlatform: Platform!
   maxCollateral: Float!
   maxDuration: Float!
   maxLeverage: Float!
+  maxSize: Float!
   minCollateral: Float!
   minLeverage: Float!
+  minSize: Float!
   mode: BotMode!
   openedPositions: Int!
   ratio: Float!
@@ -885,15 +909,21 @@ type SimulationBotDetails {
   avgPnlPercentageBySize: Float!
   avgPositivePnl: Float!
   avgSize: Float!
+  baseRatio: Float!
   cacheState: SimulationBotCacheState
+  evaluationMetrics: LeaderEvaluationMetrics!
+  followerRiskCollateral: [SimulationValueRange!]!
+  followerRiskSize: [SimulationValueRange!]!
   id: Int!
   leaderAddress: String!
   leaderPlatform: Platform!
   maxCollateral: Float!
   maxDuration: Float!
   maxLeverage: Float!
+  maxSize: Float!
   minCollateral: Float!
   minLeverage: Float!
+  minSize: Float!
   mode: BotMode!
   openedPositions: Int!
   positions: [SimulationTradePosition!]!
@@ -1032,9 +1062,14 @@ type SimulationResearch {
   executionFlow: SimulationResearchExecutionFlow!
   finalizingPlans: Int!
   finishedAt: Date
+  followerRiskCollateral: [SimulationValueRangeGroup!]!
+  followerRiskSize: [SimulationValueRangeGroup!]!
   gapDays: Int!
   id: Int!
   lastError: String
+  leaderExecutionCollateral: [SimulationValueRangeGroup!]!
+  leaderExecutionLeverage: [SimulationValueRangeGroup!]!
+  leaderExecutionSize: [SimulationValueRangeGroup!]!
   leverage: [SimulationValueRangeGroup!]!
   nextRetryAt: Date
   outstandingPlans: Int!
@@ -1081,9 +1116,14 @@ type SimulationResearchDetails {
   executionFlow: SimulationResearchExecutionFlow!
   finalizingPlans: Int!
   finishedAt: Date
+  followerRiskCollateral: [SimulationValueRangeGroup!]!
+  followerRiskSize: [SimulationValueRangeGroup!]!
   gapDays: Int!
   id: Int!
   lastError: String
+  leaderExecutionCollateral: [SimulationValueRangeGroup!]!
+  leaderExecutionLeverage: [SimulationValueRangeGroup!]!
+  leaderExecutionSize: [SimulationValueRangeGroup!]!
   leverage: [SimulationValueRangeGroup!]!
   nextRetryAt: Date
   outstandingPlans: Int!
@@ -1257,24 +1297,6 @@ input UpdatePlanInput {
   startedAt: Date
   status: PlanStatus!
   title: String
-}
-
-input UpdateSimulationInput {
-  collateral: FloatMinMaxInput
-  description: String
-  direction: BotMode
-  id: Int!
-  leverage: FloatMinMaxInput
-  r2: FloatMinMaxInput
-  score: FloatMinMaxInput
-  scoreFormular: SimulationScoreFormular
-  selectedLeaderCount: Int
-  size: FloatMinMaxInput
-  sizingFormular: SimulationSizingFormular
-  slope: FloatMinMaxInput
-  standardCollateralUsd: Float
-  title: String
-  trade: IntMinMaxInput
 }
 
 input UpdateSimulationResearchInput {

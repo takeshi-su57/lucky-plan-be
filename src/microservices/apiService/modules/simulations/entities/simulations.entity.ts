@@ -82,6 +82,27 @@ export class SimulationValueRangeGroup {
 }
 
 @ObjectType()
+export class LeaderEvaluationMetrics {
+  @Field(() => Int)
+  tradeCount: number;
+
+  @Field(() => Float)
+  slope: number;
+
+  @Field(() => Float)
+  r2: number;
+
+  @Field(() => Float)
+  copiedPnlUsd: number;
+
+  @Field(() => Float)
+  copiedProfitFactor: number;
+
+  @Field(() => Float)
+  copiedMaxDrawdownUsd: number;
+}
+
+@ObjectType()
 export class SimulationBot {
   @Field(() => Int)
   id: number;
@@ -93,6 +114,9 @@ export class SimulationBot {
   ratio: number;
 
   @Field(() => Float)
+  baseRatio: number;
+
+  @Field(() => Float)
   score: number;
 
   @Field(() => Float)
@@ -102,10 +126,25 @@ export class SimulationBot {
   maxCollateral: number;
 
   @Field(() => Float)
+  minSize: number;
+
+  @Field(() => Float)
+  maxSize: number;
+
+  @Field(() => Float)
   minLeverage: number;
 
   @Field(() => Float)
   maxLeverage: number;
+
+  @Field(() => [SimulationValueRange])
+  followerRiskSize: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  followerRiskCollateral: SimulationValueRange[];
+
+  @Field(() => LeaderEvaluationMetrics)
+  evaluationMetrics: LeaderEvaluationMetrics;
 
   @Field(() => Int)
   simulationPlanId: number;
@@ -329,6 +368,21 @@ export class Simulation {
   leverage: SimulationValueRange[];
 
   @Field(() => [SimulationValueRange])
+  leaderExecutionCollateral: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  leaderExecutionSize: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  leaderExecutionLeverage: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  followerRiskSize: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  followerRiskCollateral: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
   score: SimulationValueRange[];
 
   @Field(() => SimulationScoreFormular)
@@ -426,6 +480,21 @@ export class SimulationResearch {
 
   @Field(() => [SimulationValueRangeGroup])
   leverage: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  leaderExecutionCollateral: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  leaderExecutionSize: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  leaderExecutionLeverage: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  followerRiskSize: SimulationValueRangeGroup[];
+
+  @Field(() => [SimulationValueRangeGroup])
+  followerRiskCollateral: SimulationValueRangeGroup[];
 
   @Field(() => [SimulationValueRangeGroup])
   score: SimulationValueRangeGroup[];

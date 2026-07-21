@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-  BotMode,
   Contract,
   PerpTradingEventLog,
   SimulationBot,
@@ -20,6 +19,10 @@ import {
   getEventLogSourceKey,
   getEventLogStableId,
 } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
+import {
+  isLeaderPositionEligible,
+  simulateFollowerPositions,
+} from 'src/microservices/apiService/modules/simulations/simulation-position-execution';
 
 type SimulationBotWithContract = SimulationBot & {
   leaderContracts: Pick<Contract, 'id' | 'platform' | 'version' | 'chainId'>[];
@@ -66,14 +69,7 @@ export class SimulationCacheService {
 
   async appendNewEventLogsForBot(
     cacheId: number,
-    bot: Pick<
-      SimulationBotWithContract,
-      | 'leaderAddress'
-      | 'leaderPlatform'
-      | 'startedAt'
-      | 'stoppedAt'
-      | 'leaderContracts'
-    >,
+    bot: SimulationBotWithContract,
   ) {
     const cachedLogs = await this.prisma.simulationBotCachedEventLog.findMany({
       where: { simulationBotCacheId: cacheId },
@@ -105,14 +101,7 @@ export class SimulationCacheService {
 
   async appendProvidedEventLogsForBot(
     cacheId: number,
-    bot: Pick<
-      SimulationBotWithContract,
-      | 'leaderAddress'
-      | 'leaderPlatform'
-      | 'startedAt'
-      | 'stoppedAt'
-      | 'leaderContracts'
-    >,
+    bot: SimulationBotWithContract,
     newLogs: PerpTradingEventLog[],
   ) {
     if (newLogs.length === 0) return { count: 0 };
@@ -222,7 +211,7 @@ export class SimulationCacheService {
   }
 
   private getCacheableSourceEventLogIds(
-    bot: Pick<SimulationBot, 'startedAt' | 'stoppedAt'>,
+    bot: SimulationBot,
     histories: PerpTradeHistory[],
   ) {
     const sourceEventLogIds = new Set<number>();
@@ -233,7 +222,10 @@ export class SimulationCacheService {
       for (let i = 0; i < positionHistories.length; i++) {
         const history = positionHistories[i];
 
-        if (!this.isOpenedDuringBotLifetime(bot, history)) {
+        if (
+          !this.isOpenedDuringBotLifetime(bot, history) ||
+          !isLeaderPositionEligible(history, bot)
+        ) {
           continue;
         }
 
@@ -340,72 +332,37 @@ export class SimulationCacheService {
     cachedLogs: CachedEventLogRecord[],
   ) {
     const histories = this.buildHistoriesFromCachedLogs(bot, cachedLogs);
-    const positionsWithSummary =
+    const leaderPositions =
       this.eventLogsService.convertToPerpTradePositionsWithSummary(
         bot.leaderPlatform,
         histories,
-        {
-          stoppedAt: bot.stoppedAt || undefined,
-          minCollateral: bot.minCollateral,
-          maxCollateral: bot.maxCollateral,
-          minLeverage: bot.minLeverage,
-          maxLeverage: bot.maxLeverage,
-        },
+        { stoppedAt: bot.stoppedAt || undefined },
       );
 
-    const signer = bot.mode === BotMode.Reversed ? -1 : 1;
+    const simulatedPositions = simulateFollowerPositions(
+      leaderPositions.positions,
+      bot,
+    );
+    const executableHistories = simulatedPositions.flatMap((position) =>
+      position.histories.map(({ leader }) => leader),
+    );
+    const positionsWithSummary =
+      this.eventLogsService.convertToPerpTradePositionsWithSummary(
+        bot.leaderPlatform,
+        executableHistories,
+        { stoppedAt: bot.stoppedAt || undefined },
+      );
+
     let totalFollowerPnl = 0;
-    const simulationPositions = positionsWithSummary.positions.map(
-      ({ histories }) => {
-        let leaderPnl = 0;
-        let followerPnl = 0;
-
-        const simulationHistories = histories.map((history) => {
-          const followerUsdFee =
-            history.usdFee !== 0
-              ? Math.min(-0.5, history.usdFee * bot.ratio)
-              : 0;
-          const followerUsdBasePnl = history.usdBasePnl * signer * bot.ratio;
-          const followerUsdPnl = Math.max(
-            -history.collateralDeltaUsd * bot.ratio,
-            followerUsdBasePnl + followerUsdFee,
-          );
-
-          const follower = {
-            ...history,
-            id: -history.id,
-            usdPnl: followerUsdPnl,
-            usdBasePnl: followerUsdBasePnl,
-            usdFee: followerUsdFee,
-            sizeInUsd: history.sizeInUsd * bot.ratio,
-            collateralInUsd: history.collateralInUsd * bot.ratio,
-            collateralDeltaUsd: history.collateralDeltaUsd * bot.ratio,
-            sizeDeltaUsd: history.sizeDeltaUsd * bot.ratio,
-            isLong:
-              bot.mode === BotMode.Reversed ? !history.isLong : history.isLong,
-          };
-
-          leaderPnl += history.usdPnl;
-          followerPnl += follower.usdPnl;
-
-          return {
-            leader: history,
-            follower,
-          };
-        });
-
-        totalFollowerPnl += followerPnl;
-
-        return {
-          histories: simulationHistories,
-          leaderPnl,
-          followerPnl,
-        };
+    const simulationPositions = simulatedPositions.map(
+      ({ sizing: _sizing, ...position }) => {
+        totalFollowerPnl += position.followerPnl;
+        return position;
       },
     );
 
     const summary = {
-      completed: this.isBotCacheComplete(bot, histories),
+      completed: this.isBotCacheComplete(bot, executableHistories),
       openedPositions: positionsWithSummary.openedPositions,
       totalPositions: positionsWithSummary.totalPositions,
       totalLeaderPnl: positionsWithSummary.totalPnl,

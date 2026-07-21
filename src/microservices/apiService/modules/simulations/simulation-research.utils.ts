@@ -24,6 +24,11 @@ export type SimulationParameterGridInput = {
   collateral: RangeGroup[];
   size?: RangeGroup[];
   leverage: RangeGroup[];
+  leaderExecutionCollateral: RangeGroup[];
+  leaderExecutionSize: RangeGroup[];
+  leaderExecutionLeverage: RangeGroup[];
+  followerRiskSize: RangeGroup[];
+  followerRiskCollateral: RangeGroup[];
   score: RangeGroup[];
 };
 
@@ -35,6 +40,11 @@ export type SimulationParameterCombination = {
   collateral: ValueRange[];
   size: ValueRange[];
   leverage: ValueRange[];
+  leaderExecutionCollateral: ValueRange[];
+  leaderExecutionSize: ValueRange[];
+  leaderExecutionLeverage: ValueRange[];
+  followerRiskSize: ValueRange[];
+  followerRiskCollateral: ValueRange[];
   score: ValueRange[];
 };
 
@@ -165,20 +175,52 @@ export function buildSimulationParameterGrid(
             { ranges: [{ min: 0, max: 1000000000 }] },
           ]) {
             for (const leverage of input.leverage) {
-              for (const score of input.score) {
-                combinations.push({
-                  direction: input.direction,
-                  trade: trade.ranges.map((range) => ({ ...range })),
-                  r2: r2.ranges.map((range) => ({ ...range })),
-                  slope: normalizedSlope.map((range) => ({
-                    min: range.minSlope,
-                    max: range.maxSlope,
-                  })),
-                  collateral: collateral.ranges.map((range) => ({ ...range })),
-                  size: size.ranges.map((range) => ({ ...range })),
-                  leverage: leverage.ranges.map((range) => ({ ...range })),
-                  score: score.ranges.map((range) => ({ ...range })),
-                });
+              for (const leaderExecutionCollateral of input.leaderExecutionCollateral) {
+                for (const leaderExecutionSize of input.leaderExecutionSize) {
+                  for (const leaderExecutionLeverage of input.leaderExecutionLeverage) {
+                    for (const followerRiskSize of input.followerRiskSize) {
+                      for (const followerRiskCollateral of input.followerRiskCollateral) {
+                        for (const score of input.score) {
+                          combinations.push({
+                            direction: input.direction,
+                            trade: trade.ranges.map((range) => ({ ...range })),
+                            r2: r2.ranges.map((range) => ({ ...range })),
+                            slope: normalizedSlope.map((range) => ({
+                              min: range.minSlope,
+                              max: range.maxSlope,
+                            })),
+                            collateral: collateral.ranges.map((range) => ({
+                              ...range,
+                            })),
+                            size: size.ranges.map((range) => ({ ...range })),
+                            leverage: leverage.ranges.map((range) => ({
+                              ...range,
+                            })),
+                            leaderExecutionCollateral:
+                              leaderExecutionCollateral.ranges.map((range) => ({
+                                ...range,
+                              })),
+                            leaderExecutionSize: leaderExecutionSize.ranges.map(
+                              (range) => ({ ...range }),
+                            ),
+                            leaderExecutionLeverage:
+                              leaderExecutionLeverage.ranges.map((range) => ({
+                                ...range,
+                              })),
+                            followerRiskSize: followerRiskSize.ranges.map(
+                              (range) => ({ ...range }),
+                            ),
+                            followerRiskCollateral:
+                              followerRiskCollateral.ranges.map((range) => ({
+                                ...range,
+                              })),
+                            score: score.ranges.map((range) => ({ ...range })),
+                          });
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }

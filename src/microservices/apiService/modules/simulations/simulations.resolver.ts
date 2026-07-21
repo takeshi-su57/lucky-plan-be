@@ -22,7 +22,6 @@ import {
 import {
   CreateSimulationResearchInput,
   UpdateSimulationResearchInput,
-  UpdateSimulationInput,
 } from './dto/simulations.input';
 import { Roles } from '../auth/roles.decorator';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
@@ -60,13 +59,6 @@ export class SimulationsResolver {
     @Args('input') input: UpdateSimulationResearchInput,
   ) {
     return this.simulationsService.updateSimulationResearch(input);
-  }
-
-  @Mutation(() => Simulation)
-  @Roles(UserPermission.Trader)
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  updateSimulation(@Args('input') input: UpdateSimulationInput) {
-    return this.simulationsService.updateSimulation(input);
   }
 
   @Mutation(() => Simulation)

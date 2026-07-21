@@ -7,7 +7,7 @@ import {
   UpdateSimulationResearchInput,
   FloatMinMaxInput,
   IntMinMaxInput,
-  UpdateSimulationInput,
+  FloatRangeGroupInput,
 } from './dto/simulations.input';
 import {
   SimulationPlanDetails,
@@ -27,6 +27,7 @@ import {
 } from 'generated/prisma/enums';
 import { SimulationPlansService } from './simulation-plans.service';
 import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
+import { mapSimulationBotConfiguration } from './simulation-bot-config.mapper';
 import {
   buildSimulationParameterGrid,
   RangeGroup,
@@ -40,11 +41,6 @@ import {
   SimulationSizingFormular,
 } from './simulation-formulars';
 
-const API_SIMULATION_SYSTEM_CONFIG = {
-  minCollateralUsd: 10,
-  maxCollateralUsd: 500,
-  minRatio: 0,
-} as const;
 const DEFAULT_SELECTED_LEADER_COUNT = 10;
 const DEFAULT_STANDARD_COLLATERAL_USD = 100;
 const DEFAULT_TRADE_RANGE = { min: 3, max: 1000000 };
@@ -102,61 +98,6 @@ export class SimulationsService {
     this.logger.warn(
       metadata ? `${message} ${JSON.stringify(metadata)}` : message,
     );
-  }
-
-  private validateSimulationUpdate(input: UpdateSimulationInput) {
-    if (
-      input.standardCollateralUsd !== undefined &&
-      input.standardCollateralUsd !== null &&
-      (input.standardCollateralUsd <
-        API_SIMULATION_SYSTEM_CONFIG.minCollateralUsd ||
-        input.standardCollateralUsd >
-          API_SIMULATION_SYSTEM_CONFIG.maxCollateralUsd)
-    ) {
-      throw new Error(
-        'standardCollateralUsd must be between system minCollateralUsd and maxCollateralUsd',
-      );
-    }
-
-    if (input.trade !== undefined && input.trade !== null) {
-      this.validateIntMinMaxPair('trade', input.trade);
-    }
-
-    if (input.r2 !== undefined && input.r2 !== null) {
-      this.validateFloatMinMaxPair('r2', input.r2, {
-        minAllowed: 0,
-        maxAllowed: 1,
-      });
-    }
-
-    if (input.slope !== undefined && input.slope !== null) {
-      this.validateFloatMinMaxPair('slope', input.slope, {
-        minAllowed: 0,
-      });
-    }
-
-    if (input.leverage !== undefined && input.leverage !== null) {
-      this.validateFloatMinMaxPair('leverage', input.leverage, {
-        minAllowed: 0,
-      });
-    }
-
-    if (input.collateral !== undefined && input.collateral !== null) {
-      this.validateFloatMinMaxPair('collateral', input.collateral, {
-        minAllowed: 0,
-      });
-    }
-
-    if (input.size !== undefined && input.size !== null) {
-      this.validateFloatMinMaxPair('size', input.size, { minAllowed: 0 });
-    }
-
-    if (input.score !== undefined && input.score !== null) {
-      this.validateFloatMinMaxPair('score', input.score, {
-        minAllowed: 0,
-        maxAllowed: 1,
-      });
-    }
   }
 
   private validateIntMinMaxPair(name: string, range: IntMinMaxInput) {
@@ -314,6 +255,16 @@ export class SimulationsService {
       throw new Error('score must contain at least one range');
     }
 
+    if (
+      input.leaderExecutionCollateral.length === 0 ||
+      input.leaderExecutionSize.length === 0 ||
+      input.leaderExecutionLeverage.length === 0
+    ) {
+      throw new Error(
+        'leader execution collateral, size, and leverage must each contain at least one range',
+      );
+    }
+
     const validateGroups = (
       name: string,
       groups: Array<{ ranges: ValueRange[] }>,
@@ -358,8 +309,37 @@ export class SimulationsService {
       minAllowed: 0,
       maxAllowed: 1,
     });
+    validateGroups(
+      'leaderExecutionCollateral',
+      input.leaderExecutionCollateral,
+      { minAllowed: 0 },
+    );
+    validateGroups('leaderExecutionSize', input.leaderExecutionSize, {
+      minAllowed: 0,
+    });
+    validateGroups('leaderExecutionLeverage', input.leaderExecutionLeverage, {
+      minAllowed: 0,
+    });
+    this.validateFollowerRisk(
+      input.followerRiskSize,
+      input.followerRiskCollateral,
+    );
 
     this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
+  }
+
+  private validateFollowerRisk(
+    followerRiskSize: FloatRangeGroupInput[],
+    followerRiskCollateral: FloatRangeGroupInput[],
+  ) {
+    const validate = (name: string, groups: FloatRangeGroupInput[]) =>
+      this.validateFloatMinMaxPairs(
+        `followerRisk.${name}`,
+        groups.flatMap((group) => group.ranges),
+        { minAllowed: 0 },
+      );
+    validate('size', followerRiskSize);
+    validate('collateral', followerRiskCollateral);
   }
 
   private validatePlanWindow(days: number, gapDays: number) {
@@ -445,6 +425,19 @@ export class SimulationsService {
       collateral: this.normalizeResearchGroups(record.collateral),
       size: this.normalizeResearchGroups(record.size),
       leverage: this.normalizeResearchGroups(record.leverage),
+      leaderExecutionCollateral: this.normalizeResearchGroups(
+        record.leaderExecutionCollateral,
+      ),
+      leaderExecutionSize: this.normalizeResearchGroups(
+        record.leaderExecutionSize,
+      ),
+      leaderExecutionLeverage: this.normalizeResearchGroups(
+        record.leaderExecutionLeverage,
+      ),
+      followerRiskSize: this.normalizeResearchGroups(record.followerRiskSize),
+      followerRiskCollateral: this.normalizeResearchGroups(
+        record.followerRiskCollateral,
+      ),
       score: this.normalizeResearchGroups(record.score),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
@@ -573,6 +566,9 @@ export class SimulationsService {
     const collateral = input.collateral;
     const size = input.size;
     const leverage = input.leverage;
+    const leaderExecutionCollateral = input.leaderExecutionCollateral;
+    const leaderExecutionSize = input.leaderExecutionSize;
+    const leaderExecutionLeverage = input.leaderExecutionLeverage;
     const score = input.score;
 
     const combinations = buildSimulationParameterGrid({
@@ -583,6 +579,11 @@ export class SimulationsService {
       collateral,
       size,
       leverage,
+      leaderExecutionCollateral,
+      leaderExecutionSize,
+      leaderExecutionLeverage,
+      followerRiskSize: input.followerRiskSize,
+      followerRiskCollateral: input.followerRiskCollateral,
       score,
     });
 
@@ -625,6 +626,17 @@ export class SimulationsService {
           collateral: this.serializeRangeGroups(collateral),
           size: this.serializeRangeGroups(size),
           leverage: this.serializeRangeGroups(leverage),
+          leaderExecutionCollateral: this.serializeRangeGroups(
+            leaderExecutionCollateral,
+          ),
+          leaderExecutionSize: this.serializeRangeGroups(leaderExecutionSize),
+          leaderExecutionLeverage: this.serializeRangeGroups(
+            leaderExecutionLeverage,
+          ),
+          followerRiskSize: this.serializeRangeGroups(input.followerRiskSize),
+          followerRiskCollateral: this.serializeRangeGroups(
+            input.followerRiskCollateral,
+          ),
           score: this.serializeRangeGroups(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
@@ -663,6 +675,19 @@ export class SimulationsService {
           collateral: this.serializeRanges(combination.collateral),
           size: this.serializeRanges(combination.size),
           leverage: this.serializeRanges(combination.leverage),
+          leaderExecutionCollateral: this.serializeRanges(
+            combination.leaderExecutionCollateral,
+          ),
+          leaderExecutionSize: this.serializeRanges(
+            combination.leaderExecutionSize,
+          ),
+          leaderExecutionLeverage: this.serializeRanges(
+            combination.leaderExecutionLeverage,
+          ),
+          followerRiskSize: this.serializeRanges(combination.followerRiskSize),
+          followerRiskCollateral: this.serializeRanges(
+            combination.followerRiskCollateral,
+          ),
           score: this.serializeRanges(combination.score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
@@ -710,6 +735,19 @@ export class SimulationsService {
       collateral: this.normalizeResearchGroups(research.collateral),
       size: this.normalizeResearchGroups(research.size),
       leverage: this.normalizeResearchGroups(research.leverage),
+      leaderExecutionCollateral: this.normalizeResearchGroups(
+        research.leaderExecutionCollateral,
+      ),
+      leaderExecutionSize: this.normalizeResearchGroups(
+        research.leaderExecutionSize,
+      ),
+      leaderExecutionLeverage: this.normalizeResearchGroups(
+        research.leaderExecutionLeverage,
+      ),
+      followerRiskSize: this.normalizeResearchGroups(research.followerRiskSize),
+      followerRiskCollateral: this.normalizeResearchGroups(
+        research.followerRiskCollateral,
+      ),
       score: this.normalizeResearchGroups(research.score),
       scoreFormular:
         (research.scoreFormular as SimulationScoreFormular | null) ??
@@ -718,68 +756,6 @@ export class SimulationsService {
         (research.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
     });
-  }
-
-  async updateSimulation(input: UpdateSimulationInput): Promise<Simulation> {
-    this.validateSimulationUpdate(input);
-
-    const simulation = await this.prisma.simulation.findUnique({
-      where: { id: input.id },
-    });
-
-    if (!simulation) {
-      throw new Error('Simulation not found');
-    }
-
-    if (simulation.status === SimulationStatus.Running) {
-      throw new Error('Cannot update a running simulation');
-    }
-
-    const updated = await this.prisma.simulation.update({
-      where: { id: input.id },
-      data: {
-        title: input.title ?? undefined,
-        description: input.description ?? undefined,
-        selectedLeaderCount: input.selectedLeaderCount ?? undefined,
-        direction: input.direction ?? undefined,
-        trade:
-          input.trade !== undefined && input.trade !== null
-            ? this.serializeRange(input.trade)
-            : undefined,
-        r2:
-          input.r2 !== undefined && input.r2 !== null
-            ? this.serializeRange(input.r2)
-            : undefined,
-        slope:
-          input.slope !== undefined && input.slope !== null
-            ? this.serializeRange(input.slope)
-            : undefined,
-        collateral:
-          input.collateral !== undefined && input.collateral !== null
-            ? this.serializeRange(input.collateral)
-            : undefined,
-        size:
-          input.size !== undefined && input.size !== null
-            ? this.serializeRange(input.size)
-            : undefined,
-        leverage:
-          input.leverage !== undefined && input.leverage !== null
-            ? this.serializeRange(input.leverage)
-            : undefined,
-        standardCollateralUsd: input.standardCollateralUsd ?? undefined,
-        score:
-          input.score !== undefined && input.score !== null
-            ? this.serializeRange(input.score)
-            : undefined,
-        scoreFormular: input.scoreFormular ?? undefined,
-        sizingFormular: input.sizingFormular ?? undefined,
-      },
-    });
-
-    const mapped = this.mapSimulation(updated);
-    await this.emitSimulationUpdated(mapped);
-
-    return mapped;
   }
 
   async updateSimulationResearch(
@@ -865,6 +841,32 @@ export class SimulationsService {
       leverage: this.normalizeSimulationRanges(
         record.leverage,
         DEFAULT_LEVERAGE_RANGE,
+      ),
+      leaderExecutionCollateral: this.normalizeSimulationRanges(
+        record.leaderExecutionCollateral,
+        DEFAULT_COLLATERAL_RANGE,
+      ),
+      leaderExecutionSize: this.normalizeSimulationRanges(
+        record.leaderExecutionSize,
+        DEFAULT_SIZE_RANGE,
+      ),
+      leaderExecutionLeverage: this.normalizeSimulationRanges(
+        record.leaderExecutionLeverage,
+        DEFAULT_LEVERAGE_RANGE,
+      ),
+      followerRiskSize: this.normalizeSimulationRanges(
+        record.followerRiskSize,
+        {
+          min: 50,
+          max: 500,
+        },
+      ),
+      followerRiskCollateral: this.normalizeSimulationRanges(
+        record.followerRiskCollateral,
+        {
+          min: 10,
+          max: 100,
+        },
       ),
       score: this.normalizeSimulationRanges(record.score, DEFAULT_SCORE_RANGE),
       scoreFormular:
@@ -965,7 +967,12 @@ export class SimulationsService {
       },
     });
 
-    return plans.map((plan) => mapSimulationPlanWithCache(plan));
+    return plans.map((plan) => ({
+      ...mapSimulationPlanWithCache(plan),
+      simulationBots: plan.simulationBots.map((bot) =>
+        mapSimulationBotConfiguration(bot),
+      ),
+    }));
   }
 
   async getSimulationPlanDetailsBySimulation(
@@ -1156,6 +1163,21 @@ export class SimulationsService {
         collateral: this.normalizeResearchGroups(research.collateral),
         size: this.normalizeResearchGroups(research.size),
         leverage: this.normalizeResearchGroups(research.leverage),
+        leaderExecutionCollateral: this.normalizeResearchGroups(
+          research.leaderExecutionCollateral,
+        ),
+        leaderExecutionSize: this.normalizeResearchGroups(
+          research.leaderExecutionSize,
+        ),
+        leaderExecutionLeverage: this.normalizeResearchGroups(
+          research.leaderExecutionLeverage,
+        ),
+        followerRiskSize: this.normalizeResearchGroups(
+          research.followerRiskSize,
+        ),
+        followerRiskCollateral: this.normalizeResearchGroups(
+          research.followerRiskCollateral,
+        ),
         score: this.normalizeResearchGroups(research.score),
       });
       const totalSimulationPlans = countSimulationPlanWindows(
@@ -1188,6 +1210,19 @@ export class SimulationsService {
           collateral: this.serializeRanges(combination.collateral),
           size: this.serializeRanges(combination.size),
           leverage: this.serializeRanges(combination.leverage),
+          leaderExecutionCollateral: this.serializeRanges(
+            combination.leaderExecutionCollateral,
+          ),
+          leaderExecutionSize: this.serializeRanges(
+            combination.leaderExecutionSize,
+          ),
+          leaderExecutionLeverage: this.serializeRanges(
+            combination.leaderExecutionLeverage,
+          ),
+          followerRiskSize: this.serializeRanges(combination.followerRiskSize),
+          followerRiskCollateral: this.serializeRanges(
+            combination.followerRiskCollateral,
+          ),
           score: this.serializeRanges(combination.score),
           scoreFormular: research.scoreFormular,
           sizingFormular: research.sizingFormular,

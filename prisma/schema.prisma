@@ -176,12 +176,17 @@ model SimulationResearch {
   r2    Json @default("[]")
   slope Json @default("[]")
 
-  collateral     Json   @default("[]")
-  size           Json   @default("[]")
-  leverage       Json   @default("[]")
-  score          Json   @default("[]")
-  scoreFormular  String @default("RiskAdjustedCopyScore")
-  sizingFormular String @default("ScoreScaledCollateralSizing")
+  collateral                Json   @default("[]")
+  size                      Json   @default("[]")
+  leverage                  Json   @default("[]")
+  leaderExecutionCollateral Json   @default("[]")
+  leaderExecutionSize       Json   @default("[]")
+  leaderExecutionLeverage   Json   @default("[]")
+  followerRiskSize          Json   @default("[]")
+  followerRiskCollateral    Json   @default("[]")
+  score                     Json   @default("[]")
+  scoreFormular             String @default("RiskAdjustedCopyScore")
+  sizingFormular            String @default("ScoreScaledCollateralSizing")
 
   cursor                   DateTime?
   status                   SimulationStatus @default(Created)
@@ -371,13 +376,18 @@ model Simulation {
   r2                  Json @default("{\"min\":0.5,\"max\":1}")
   slope               Json @default("{\"min\":0,\"max\":1000000000}")
 
-  standardCollateralUsd Float  @default(100)
-  collateral            Json   @default("{\"min\":0,\"max\":1000000000}")
-  size                  Json   @default("{\"min\":0,\"max\":1000000000}")
-  leverage              Json   @default("{\"min\":0,\"max\":50}")
-  score                 Json   @default("{\"min\":0,\"max\":1}")
-  scoreFormular         String @default("RiskAdjustedCopyScore")
-  sizingFormular        String @default("ScoreScaledCollateralSizing")
+  standardCollateralUsd     Float  @default(100)
+  collateral                Json   @default("{\"min\":0,\"max\":1000000000}")
+  size                      Json   @default("{\"min\":0,\"max\":1000000000}")
+  leverage                  Json   @default("{\"min\":0,\"max\":50}")
+  leaderExecutionCollateral Json   @default("{\"min\":0,\"max\":1000000000}")
+  leaderExecutionSize       Json   @default("{\"min\":0,\"max\":1000000000}")
+  leaderExecutionLeverage   Json   @default("{\"min\":0,\"max\":50}")
+  followerRiskSize          Json   @default("{\"min\":50,\"max\":500}")
+  followerRiskCollateral    Json   @default("{\"min\":10,\"max\":100}")
+  score                     Json   @default("{\"min\":0,\"max\":1}")
+  scoreFormular             String @default("RiskAdjustedCopyScore")
+  sizingFormular            String @default("ScoreScaledCollateralSizing")
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)
@@ -467,8 +477,20 @@ model SimulationBot {
   score            Float     @default(0)
   minCollateral    Float     @default(0)
   maxCollateral    Float     @default(1000000000)
+  minSize          Float     @default(0)
+  maxSize          Float     @default(1000000000)
   minLeverage      Float     @default(0)
   maxLeverage      Float     @default(50)
+
+  followerRiskSize       Json @default("[]")
+  followerRiskCollateral Json @default("[]")
+
+  evaluationTradeCount     Int   @default(0)
+  evaluationSlope          Float @default(0)
+  evaluationR2             Float @default(0)
+  evaluationCopiedPnlUsd   Float @default(0)
+  evaluationProfitFactor   Float @default(0)
+  evaluationMaxDrawdownUsd Float @default(0)
 
   openedPositions              Int   @default(0)
   totalPositions               Int   @default(0)
@@ -487,7 +509,7 @@ model SimulationBot {
   simulationPlan SimulationPlan      @relation(fields: [simulationPlanId], references: [id])
   cache          SimulationBotCache?
 
-  @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, minCollateral, maxCollateral, minLeverage, maxLeverage])
+  @@unique([simulationPlanId, leaderAddress, leaderPlatform, mode, ratio, minCollateral, maxCollateral, minSize, maxSize, minLeverage, maxLeverage], map: "SimulationBot_three_layer_execution_key")
   @@index([leaderPlatform, leaderAddress])
 }
 

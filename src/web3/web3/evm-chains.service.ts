@@ -241,7 +241,7 @@ export class EvmChainsService {
         batch: {
           multicall: true,
         },
-      }) as unknown as PublicClient;
+      });
 
       const drpcProvider = privateRPCProviders.drpc;
 
@@ -262,7 +262,7 @@ export class EvmChainsService {
         batch: {
           multicall: true,
         },
-      }) as unknown as PublicClient;
+      });
 
       this.paidPublicClients[chain.id] = createPublicClient({
         chain: chain,
@@ -281,7 +281,7 @@ export class EvmChainsService {
         batch: {
           multicall: true,
         },
-      }) as unknown as PublicClient;
+      });
 
       this.paidPublicWSClients[chain.id] = createPublicClient({
         chain: chain,
@@ -299,7 +299,7 @@ export class EvmChainsService {
             },
           },
         ),
-      }) as unknown as PublicClient;
+      });
 
       this.aggressivePublicClients[chain.id] =
         this.createAggressivePublicClients(chain);

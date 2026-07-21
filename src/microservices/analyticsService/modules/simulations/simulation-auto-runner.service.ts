@@ -6,6 +6,7 @@ import { Simulation } from 'src/microservices/apiService/modules/simulations/ent
 
 import { PrismaService } from 'src/global/prisma.service';
 import { Platform, SimulationStatus } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/client';
 import {
   calculateMaxDrawdown,
   calculateProfitFactor,
@@ -20,21 +21,26 @@ import {
 } from './simulation-leader-evaluator.service';
 import { SimulationCacheService } from './simulation-cache.service';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
-import {
-  SimulationPlan,
-  SimulationResearch,
-} from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
+import { SimulationResearch } from 'src/microservices/apiService/modules/simulations/entities/simulations.entity';
 import {
   DEFAULT_SCORE_FORMULAR,
   DEFAULT_SIZING_FORMULAR,
   SimulationScoreFormular,
   SimulationSizingFormular,
 } from 'src/microservices/apiService/modules/simulations/simulation-formulars';
+import { mapSimulationBotConfiguration } from 'src/microservices/apiService/modules/simulations/simulation-bot-config.mapper';
 
 type ValueRange = {
   min: number;
   max: number;
 };
+
+function serializeValueRanges(ranges: ValueRange[]): Prisma.InputJsonArray {
+  return ranges.map(({ min, max }) => {
+    const range: Prisma.InputJsonObject = { min, max };
+    return range;
+  });
+}
 
 const DEFAULT_TRADE_RANGE: ValueRange = { min: 3, max: 1000000 };
 const DEFAULT_R2_RANGE: ValueRange = { min: 0.5, max: 1 };
@@ -111,6 +117,23 @@ export class SimulationAutoRunnerService {
       collateral: ranges(record.collateral, DEFAULT_COLLATERAL_RANGE),
       size: ranges(record.size, DEFAULT_SIZE_RANGE),
       leverage: ranges(record.leverage, DEFAULT_LEVERAGE_RANGE),
+      leaderExecutionCollateral: ranges(
+        record.leaderExecutionCollateral,
+        DEFAULT_COLLATERAL_RANGE,
+      ),
+      leaderExecutionSize: ranges(
+        record.leaderExecutionSize,
+        DEFAULT_SIZE_RANGE,
+      ),
+      leaderExecutionLeverage: ranges(
+        record.leaderExecutionLeverage,
+        DEFAULT_LEVERAGE_RANGE,
+      ),
+      followerRiskSize: ranges(record.followerRiskSize, { min: 50, max: 500 }),
+      followerRiskCollateral: ranges(record.followerRiskCollateral, {
+        min: 10,
+        max: 100,
+      }),
       score: ranges(record.score, DEFAULT_SCORE_RANGE),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
@@ -146,6 +169,19 @@ export class SimulationAutoRunnerService {
       collateral: this.normalizeResearchGroups(record.collateral),
       size: this.normalizeResearchGroups(record.size),
       leverage: this.normalizeResearchGroups(record.leverage),
+      leaderExecutionCollateral: this.normalizeResearchGroups(
+        record.leaderExecutionCollateral,
+      ),
+      leaderExecutionSize: this.normalizeResearchGroups(
+        record.leaderExecutionSize,
+      ),
+      leaderExecutionLeverage: this.normalizeResearchGroups(
+        record.leaderExecutionLeverage,
+      ),
+      followerRiskSize: this.normalizeResearchGroups(record.followerRiskSize),
+      followerRiskCollateral: this.normalizeResearchGroups(
+        record.followerRiskCollateral,
+      ),
       score: this.normalizeResearchGroups(record.score),
       scoreFormular:
         (record.scoreFormular as SimulationScoreFormular | null) ??
@@ -468,9 +504,7 @@ export class SimulationAutoRunnerService {
     });
   }
 
-  private async getSimulationPlanForUpdate(
-    id: number,
-  ): Promise<SimulationPlan | null> {
+  private async getSimulationPlanForUpdate(id: number) {
     return await this.prisma.simulationPlan.findUnique({
       where: { id },
       include: {
@@ -486,10 +520,12 @@ export class SimulationAutoRunnerService {
       return;
     }
 
-    await this.redisClient.emit(
-      PATTERNS.Simulations.SimulationPlanUpdated,
-      simulationPlan,
-    );
+    await this.redisClient.emit(PATTERNS.Simulations.SimulationPlanUpdated, {
+      ...simulationPlan,
+      simulationBots: simulationPlan.simulationBots.map((bot) =>
+        mapSimulationBotConfiguration(bot),
+      ),
+    });
   }
 
   private async createSimulationPlanForRange(
@@ -574,17 +610,43 @@ export class SimulationAutoRunnerService {
       ratio: candidate.suggestedRatio,
       score: candidate.score,
       minCollateral: Math.min(
-        ...normalizedSimulation.collateral.map((range) => range.min),
+        ...normalizedSimulation.leaderExecutionCollateral.map(
+          (range) => range.min,
+        ),
       ),
       maxCollateral: Math.max(
-        ...normalizedSimulation.collateral.map((range) => range.max),
+        ...normalizedSimulation.leaderExecutionCollateral.map(
+          (range) => range.max,
+        ),
+      ),
+      minSize: Math.min(
+        ...normalizedSimulation.leaderExecutionSize.map((range) => range.min),
+      ),
+      maxSize: Math.max(
+        ...normalizedSimulation.leaderExecutionSize.map((range) => range.max),
       ),
       minLeverage: Math.min(
-        ...normalizedSimulation.leverage.map((range) => range.min),
+        ...normalizedSimulation.leaderExecutionLeverage.map(
+          (range) => range.min,
+        ),
       ),
       maxLeverage: Math.max(
-        ...normalizedSimulation.leverage.map((range) => range.max),
+        ...normalizedSimulation.leaderExecutionLeverage.map(
+          (range) => range.max,
+        ),
       ),
+      followerRiskSize: serializeValueRanges(
+        normalizedSimulation.followerRiskSize,
+      ),
+      followerRiskCollateral: serializeValueRanges(
+        normalizedSimulation.followerRiskCollateral,
+      ),
+      evaluationTradeCount: candidate.rawTradeCount,
+      evaluationSlope: candidate.rawSlope,
+      evaluationR2: candidate.rawR2,
+      evaluationCopiedPnlUsd: candidate.copiedNetPnlUsd,
+      evaluationProfitFactor: candidate.copiedProfitFactor,
+      evaluationMaxDrawdownUsd: candidate.copiedDrawdownUsd,
     }));
 
     if (botInputs.length === 0) {
