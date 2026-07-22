@@ -162,6 +162,7 @@ switch ($Command) {
   'cache-export' {
     Assert-Configuration
     if (-not $File) { throw 'Provide a snapshot file, e.g. windows.cmd cache-export evaluator-cache.zip' }
+    Write-Host 'Stopping evaluator; cache export begins after the safety wait...' -ForegroundColor Yellow
     Stop-Worker $true
     Start-Sleep -Seconds 16
     Push-Location $root
@@ -170,6 +171,7 @@ switch ($Command) {
   'cache-import' {
     Assert-Configuration
     if (-not $File) { throw 'Provide a snapshot file, e.g. windows.cmd cache-import evaluator-cache.zip' }
+    Write-Host 'Stopping evaluator; cache import begins after the safety wait...' -ForegroundColor Yellow
     Stop-Worker $true
     Start-Sleep -Seconds 16
     Push-Location $root
