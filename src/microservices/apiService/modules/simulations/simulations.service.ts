@@ -1064,6 +1064,61 @@ export class SimulationsService {
     return this.queueResearch(id, true);
   }
 
+  /** Admin escape hatch for failed plans left behind by an interrupted run. */
+  async recoverResearch(id: number): Promise<SimulationResearch> {
+    const recovered = await this.prisma.$transaction(async (tx) => {
+      const research = await tx.simulationResearch.findUnique({
+        where: { id },
+        include: { simulations: { select: { status: true } } },
+      });
+      if (!research) throw new Error('SimulationResearch not found');
+      if (research.status === SimulationStatus.Cancelled) {
+        throw new Error('Cannot recover cancelled research');
+      }
+
+      await tx.simulationExecutionPlan.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: SimulationExecutionPlanStatus.Failed,
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Pending,
+          evaluatorTaskId: null,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          attempts: 0,
+          lastError: 'Reset by an administrator for recovery',
+        },
+      });
+      await tx.simulation.updateMany({
+        where: { researchId: id, status: SimulationStatus.Failed },
+        data: {
+          status: SimulationStatus.Running,
+          progressPhase: 'dynamic-plan-scheduling',
+          progressMessage: 'Recovered by an administrator; awaiting scheduler',
+        },
+      });
+      return tx.simulationResearch.update({
+        where: { id },
+        data: {
+          status: SimulationStatus.Running,
+          automationEnabled: true,
+          automationLeaseToken: null,
+          automationLeaseExpiresAt: null,
+          lastError: null,
+          retryAttempts: 0,
+          nextRetryAt: null,
+          progressPhase: 'dynamic-plan-scheduling',
+          progressMessage: 'Recovery requested; reconciling simulation plans',
+        },
+        include: { simulations: { select: { status: true } } },
+      });
+    });
+
+    await this.emitSimulationResearchUpdated(id);
+    return this.mapSimulationResearch(recovered);
+  }
+
   private async queueResearch(
     id: number,
     allowFailed: boolean,

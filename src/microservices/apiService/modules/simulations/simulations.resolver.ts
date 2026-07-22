@@ -85,6 +85,13 @@ export class SimulationsResolver {
   @Mutation(() => SimulationResearch)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
+  recoverResearch(@Args('id', { type: () => Int }) id: number) {
+    return this.simulationsService.recoverResearch(id);
+  }
+
+  @Mutation(() => SimulationResearch)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
   restartResearch(@Args('id', { type: () => Int }) id: number) {
     return this.simulationsService.restartResearch(id);
   }

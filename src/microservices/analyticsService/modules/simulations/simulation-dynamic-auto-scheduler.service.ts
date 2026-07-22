@@ -69,6 +69,26 @@ export class SimulationDynamicAutoSchedulerService {
     await this.reconcileInterruptedPlans(now);
     await this.finalizeCompletedPlans(now);
     await this.fillEvaluatorQueue(now);
+    // A shutdown can happen after finalizeSimulationRange has persisted the
+    // simulation result but before this service has marked the execution plan
+    // complete and refreshed the research counters.  Do not make convergence
+    // depend on there being another range to dispatch: a fully dispatched
+    // research has no candidates, which used to leave that stale state forever.
+    await this.reconcileResearchProgress();
+  }
+
+  private async reconcileResearchProgress() {
+    const researchIds = await this.prisma.simulationResearch.findMany({
+      where: {
+        automationEnabled: true,
+        status: {
+          notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+        },
+      },
+      select: { id: true },
+    });
+
+    await Promise.all(researchIds.map(({ id }) => this.syncResearch(id)));
   }
 
   private async fillEvaluatorQueue(now: Date) {
@@ -430,6 +450,45 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async syncResearch(researchId: number) {
+    // Simulation status is derived from the completed plan count.  Restore it
+    // before aggregating the parent so an interrupted finalization cannot keep
+    // either record in Running after all plan windows were written.
+    const simulationsToComplete = await this.prisma.simulation.findMany({
+      where: {
+        researchId,
+        status: {
+          notIn: [
+            SimulationStatus.Cancelled,
+            SimulationStatus.Completed,
+            SimulationStatus.Failed,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        completedPlans: true,
+        totalSimulationPlans: true,
+      },
+    });
+    const recoveredSimulations = await Promise.all(
+      simulationsToComplete
+        .filter(
+          (simulation) =>
+            simulation.totalSimulationPlans > 0 &&
+            simulation.completedPlans >= simulation.totalSimulationPlans,
+        )
+        .map((simulation) =>
+          this.prisma.simulation.update({
+            where: { id: simulation.id },
+            data: {
+              status: SimulationStatus.Completed,
+              progressPhase: 'completed',
+              progressMessage: 'Simulation result completed',
+              progressPercent: 100,
+            },
+          }),
+        ),
+    );
     const research = await this.prisma.simulationResearch.findUnique({
       where: { id: researchId },
       include: {
@@ -508,6 +567,11 @@ export class SimulationDynamicAutoSchedulerService {
         ...(completed ? { finishedAt: new Date() } : {}),
       },
     });
+    await Promise.all(
+      recoveredSimulations.map((simulation) =>
+        this.runner.emitSimulationUpdated(simulation),
+      ),
+    );
     const simulation = await this.prisma.simulation.findFirst({
       where: { researchId },
     });
