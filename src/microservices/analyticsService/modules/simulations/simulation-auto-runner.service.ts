@@ -153,6 +153,7 @@ export class SimulationAutoRunnerService {
 
     return {
       id: record.id,
+      sourceSimulationId: record.sourceSimulationId ?? null,
       title: record.title,
       description: record.description,
       platform: record.platform,
@@ -507,6 +508,15 @@ export class SimulationAutoRunnerService {
         ...normalizedSimulation.leaderExecutionLeverage.map(
           (range) => range.max,
         ),
+      ),
+      leaderExecutionCollateral: serializeValueRanges(
+        normalizedSimulation.leaderExecutionCollateral,
+      ),
+      leaderExecutionSize: serializeValueRanges(
+        normalizedSimulation.leaderExecutionSize,
+      ),
+      leaderExecutionLeverage: serializeValueRanges(
+        normalizedSimulation.leaderExecutionLeverage,
       ),
       followerRiskSize: serializeValueRanges(
         normalizedSimulation.followerRiskSize,

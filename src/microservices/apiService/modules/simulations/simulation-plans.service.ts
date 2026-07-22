@@ -23,6 +23,7 @@ import { mapSimulationBotConfiguration } from './simulation-bot-config.mapper';
 
 export type SimulationPlanDetailsOptions = {
   persistSummary?: boolean;
+  eventSource?: 'live' | 'sourceSnapshot';
 };
 
 @Injectable()
@@ -36,11 +37,21 @@ export class SimulationPlansService {
     id: number,
     options: SimulationPlanDetailsOptions = {},
   ): Promise<SimulationPlanDetails> {
-    const { persistSummary = true } = options;
+    const { persistSummary = true, eventSource = 'live' } = options;
     const simulationPlan = await this.prisma.simulationPlan.findUnique({
       where: { id },
       include: {
-        simulationBots: true,
+        simulationBots: {
+          include: {
+            sourceSimulationBot: {
+              include: {
+                cache: {
+                  include: { eventLogs: { orderBy: getEventLogOrderBy() } },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -72,19 +83,31 @@ export class SimulationPlansService {
 
     for (const bot of simulationPlan.simulationBots) {
       const stoppedAt = bot.stoppedAt;
-      const records = await this.prisma.perpTradingEventLog.findMany({
-        where: {
-          address: bot.leaderAddress.toLowerCase(),
-          platform: bot.leaderPlatform,
-          date: {
-            gte: bot.startedAt,
-            ...(stoppedAt
-              ? { lt: dayjs(stoppedAt).add(60, 'day').toDate() }
-              : {}),
-          },
-        },
-        orderBy: getEventLogOrderBy(),
-      });
+      const sourceCache = bot.sourceSimulationBot?.cache;
+      if (
+        eventSource === 'sourceSnapshot' &&
+        (!sourceCache?.completed || sourceCache.eventSnapshotVersion < 2)
+      ) {
+        throw new Error(
+          `Source snapshot is unavailable for simulation bot ${bot.id}`,
+        );
+      }
+      const records =
+        eventSource === 'sourceSnapshot'
+          ? sourceCache!.eventLogs
+          : await this.prisma.perpTradingEventLog.findMany({
+              where: {
+                address: bot.leaderAddress.toLowerCase(),
+                platform: bot.leaderPlatform,
+                date: {
+                  gte: bot.startedAt,
+                  ...(stoppedAt
+                    ? { lt: dayjs(stoppedAt).add(60, 'day').toDate() }
+                    : {}),
+                },
+              },
+              orderBy: getEventLogOrderBy(),
+            });
 
       const leaderPositions =
         this.eventLogsService.convertToPerpTradePositionsWithSummary(

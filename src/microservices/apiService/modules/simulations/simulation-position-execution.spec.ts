@@ -37,6 +37,23 @@ describe('calculateFollowerPositionSizing', () => {
     ).toBeNull();
   });
 
+  it('preserves disjoint Layer 2 execution ranges', () => {
+    expect(
+      calculateFollowerPositionSizing(
+        { sizeInUsd: 2000, collateralInUsd: 35, leverage: 20 },
+        {
+          ...bot,
+          minCollateral: 10,
+          maxCollateral: 60,
+          leaderExecutionCollateral: [
+            { min: 10, max: 20 },
+            { min: 50, max: 60 },
+          ],
+        },
+      ),
+    ).toBeNull();
+  });
+
   it('ignores a position outside the follower opening limits', () => {
     expect(
       calculateFollowerPositionSizing(

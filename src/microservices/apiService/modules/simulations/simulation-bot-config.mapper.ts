@@ -1,5 +1,8 @@
 export type PersistedSimulationBotConfiguration = {
   ratio: number;
+  leaderExecutionCollateral: unknown;
+  leaderExecutionSize: unknown;
+  leaderExecutionLeverage: unknown;
   followerRiskSize: unknown;
   followerRiskCollateral: unknown;
   evaluationTradeCount: number;
@@ -27,6 +30,9 @@ export function mapSimulationBotConfiguration<
 >(bot: T) {
   return {
     ...bot,
+    leaderExecutionCollateral: normalizeRanges(bot.leaderExecutionCollateral),
+    leaderExecutionSize: normalizeRanges(bot.leaderExecutionSize),
+    leaderExecutionLeverage: normalizeRanges(bot.leaderExecutionLeverage),
     followerRiskSize: normalizeRanges(bot.followerRiskSize),
     followerRiskCollateral: normalizeRanges(bot.followerRiskCollateral),
     baseRatio: bot.ratio,

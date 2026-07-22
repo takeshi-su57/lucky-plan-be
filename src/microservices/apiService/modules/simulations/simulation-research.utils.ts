@@ -48,6 +48,43 @@ export type SimulationParameterCombination = {
   score: ValueRange[];
 };
 
+export type LayerVariantGridInput = Pick<
+  SimulationParameterGridInput,
+  | 'leaderExecutionCollateral'
+  | 'leaderExecutionSize'
+  | 'leaderExecutionLeverage'
+  | 'followerRiskSize'
+  | 'followerRiskCollateral'
+>;
+
+export function buildLayerVariantParameterGrid(input: LayerVariantGridInput) {
+  return input.leaderExecutionCollateral.flatMap((leaderExecutionCollateral) =>
+    input.leaderExecutionSize.flatMap((leaderExecutionSize) =>
+      input.leaderExecutionLeverage.flatMap((leaderExecutionLeverage) =>
+        input.followerRiskSize.flatMap((followerRiskSize) =>
+          input.followerRiskCollateral.map((followerRiskCollateral) => ({
+            leaderExecutionCollateral: leaderExecutionCollateral.ranges.map(
+              (range) => ({ ...range }),
+            ),
+            leaderExecutionSize: leaderExecutionSize.ranges.map((range) => ({
+              ...range,
+            })),
+            leaderExecutionLeverage: leaderExecutionLeverage.ranges.map(
+              (range) => ({ ...range }),
+            ),
+            followerRiskSize: followerRiskSize.ranges.map((range) => ({
+              ...range,
+            })),
+            followerRiskCollateral: followerRiskCollateral.ranges.map(
+              (range) => ({ ...range }),
+            ),
+          })),
+        ),
+      ),
+    ),
+  );
+}
+
 function roundRangeValue(value: number) {
   return Number(value.toFixed(10));
 }

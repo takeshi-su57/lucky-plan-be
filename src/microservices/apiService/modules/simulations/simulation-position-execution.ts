@@ -14,6 +14,9 @@ export type SimulationExecutionBot = {
   maxSize: number;
   minLeverage: number;
   maxLeverage: number;
+  leaderExecutionCollateral?: unknown;
+  leaderExecutionSize?: unknown;
+  leaderExecutionLeverage?: unknown;
   followerRiskSize: unknown;
   followerRiskCollateral: unknown;
 };
@@ -59,10 +62,24 @@ export function isLeaderPositionEligible(
   opening: Pick<PerpTradeHistory, 'sizeInUsd' | 'collateralInUsd' | 'leverage'>,
   bot: SimulationExecutionBot,
 ) {
+  const sizeRanges = normalizeRanges(bot.leaderExecutionSize);
+  const collateralRanges = normalizeRanges(bot.leaderExecutionCollateral);
+  const leverageRanges = normalizeRanges(bot.leaderExecutionLeverage);
+
   return (
-    inRange(opening.sizeInUsd, bot.minSize, bot.maxSize) &&
-    inRange(opening.collateralInUsd, bot.minCollateral, bot.maxCollateral) &&
-    inRange(opening.leverage, bot.minLeverage, bot.maxLeverage)
+    (sizeRanges.length > 0
+      ? inAnyRange(opening.sizeInUsd, sizeRanges)
+      : inRange(opening.sizeInUsd, bot.minSize, bot.maxSize)) &&
+    (collateralRanges.length > 0
+      ? inAnyRange(opening.collateralInUsd, collateralRanges)
+      : inRange(
+          opening.collateralInUsd,
+          bot.minCollateral,
+          bot.maxCollateral,
+        )) &&
+    (leverageRanges.length > 0
+      ? inAnyRange(opening.leverage, leverageRanges)
+      : inRange(opening.leverage, bot.minLeverage, bot.maxLeverage))
   );
 }
 

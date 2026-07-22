@@ -19,10 +19,12 @@ import {
   getEventLogSourceKey,
   getEventLogStableId,
 } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
+import { simulateFollowerPositions } from 'src/microservices/apiService/modules/simulations/simulation-position-execution';
 import {
-  isLeaderPositionEligible,
-  simulateFollowerPositions,
-} from 'src/microservices/apiService/modules/simulations/simulation-position-execution';
+  buildRealizedEquityCurve,
+  mergeRealizedEquityCurves,
+  RealizedEquityPoint,
+} from './simulation-equity-curve';
 
 type SimulationBotWithContract = SimulationBot & {
   leaderContracts: Pick<Contract, 'id' | 'platform' | 'version' | 'chainId'>[];
@@ -222,10 +224,7 @@ export class SimulationCacheService {
       for (let i = 0; i < positionHistories.length; i++) {
         const history = positionHistories[i];
 
-        if (
-          !this.isOpenedDuringBotLifetime(bot, history) ||
-          !isLeaderPositionEligible(history, bot)
-        ) {
+        if (!this.isOpenedDuringBotLifetime(bot, history)) {
           continue;
         }
 
@@ -382,6 +381,7 @@ export class SimulationCacheService {
       followerPositionPnls: simulationPositions.map(
         (position) => position.followerPnl,
       ),
+      realizedEquityCurve: buildRealizedEquityCurve(simulationPositions),
     };
 
     return summary;
@@ -406,6 +406,12 @@ export class SimulationCacheService {
     };
 
     const cache = await this.ensureSimulationBotCache(bot.id);
+    const existingEventLogCount =
+      await this.prisma.simulationBotCachedEventLog.count({
+        where: { simulationBotCacheId: cache.id },
+      });
+    const canCertifyFullLayer1Snapshot =
+      cache.eventSnapshotVersion >= 2 || existingEventLogCount === 0;
 
     await this.prisma.simulationBotCache.update({
       where: { id: cache.id },
@@ -437,6 +443,9 @@ export class SimulationCacheService {
         where: { id: cache.id },
         data: {
           completed: summary.completed,
+          eventSnapshotVersion: canCertifyFullLayer1Snapshot
+            ? 2
+            : cache.eventSnapshotVersion,
           openedPositions: summary.openedPositions,
           totalPositions: summary.totalPositions,
           totalLeaderPnl: summary.totalLeaderPnl,
@@ -457,6 +466,7 @@ export class SimulationCacheService {
           followerPositionPnlsJson: JSON.stringify(
             summary.followerPositionPnls,
           ),
+          realizedEquityCurveJson: JSON.stringify(summary.realizedEquityCurve),
         },
       });
     } catch (error) {
@@ -501,6 +511,16 @@ export class SimulationCacheService {
       (sum, cache) => sum + cache.totalFollowerPnl,
       0,
     );
+    const realizedEquityCurve = mergeRealizedEquityCurves(
+      botCaches.map((cache) => {
+        try {
+          const parsed = JSON.parse(cache.realizedEquityCurveJson);
+          return Array.isArray(parsed) ? (parsed as RealizedEquityPoint[]) : [];
+        } catch {
+          return [];
+        }
+      }),
+    );
 
     return this.prisma.simulationPlanCache.upsert({
       where: { simulationPlanId },
@@ -513,6 +533,7 @@ export class SimulationCacheService {
         totalPositions,
         totalLeaderPnl,
         totalFollowerPnl,
+        realizedEquityCurveJson: JSON.stringify(realizedEquityCurve),
         lastBuiltAt: new Date(),
         lastError: null,
       },
@@ -525,6 +546,7 @@ export class SimulationCacheService {
         totalPositions,
         totalLeaderPnl,
         totalFollowerPnl,
+        realizedEquityCurveJson: JSON.stringify(realizedEquityCurve),
         lastBuiltAt: new Date(),
       },
     });

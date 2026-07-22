@@ -3,6 +3,11 @@ import { SimulationStatus } from 'generated/prisma/enums';
 import { deflateRawSync } from 'zlib';
 
 import { PrismaService } from 'src/global/prisma.service';
+import {
+  buildRealizedEquityCurve,
+  mergeRealizedEquityCurves,
+  RealizedEquityPoint,
+} from 'src/microservices/analyticsService/modules/simulations/simulation-equity-curve';
 
 type ZipEntry = { name: string; content: string };
 
@@ -91,6 +96,15 @@ function parsePositions(value: string, warnings: string[], botId: number) {
   }
 }
 
+function parseEquityCurve(value: string | undefined) {
+  try {
+    const parsed = JSON.parse(value ?? '[]');
+    return Array.isArray(parsed) ? (parsed as RealizedEquityPoint[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 @Injectable()
 export class SimulationResearchReportService {
   constructor(private readonly prisma: PrismaService) {}
@@ -126,6 +140,7 @@ export class SimulationResearchReportService {
     ];
     const positions: Record<string, unknown>[] = [];
     const windowRows: Record<string, unknown>[] = [];
+    const equityCurves: Record<string, unknown>[] = [];
 
     const simulations = research.simulations.map(
       (simulation, simulationIndex) => {
@@ -133,7 +148,37 @@ export class SimulationResearchReportService {
         let completedBotCaches = 0;
         let failedBotCaches = 0;
         let rebuildingBotCaches = 0;
+        const simulationEquityCurves: RealizedEquityPoint[][] = [];
         const plans = simulation.simulationPlans.map((plan, planIndex) => {
+          let realizedEquityCurve = parseEquityCurve(
+            plan.cache?.realizedEquityCurveJson,
+          );
+          // Reports created before v3.14 have no persisted ledger. Recover it
+          // from the already-persisted dated follower events for this export;
+          // subsequent cache rebuilds persist the same result on the plan.
+          if (realizedEquityCurve.length === 0) {
+            const cachedPositions = plan.simulationBots.flatMap((bot) =>
+              bot.cache?.positionsJson
+                ? parsePositions(bot.cache.positionsJson, warnings, bot.id)
+                : [],
+            );
+            realizedEquityCurve = buildRealizedEquityCurve(cachedPositions);
+            if (cachedPositions.length > 0) {
+              const warning =
+                'Some realized-equity curves were reconstructed from dated cached follower events because they predate persisted equity ledgers; rebuild the simulation cache to persist them.';
+              if (!warnings.includes(warning)) warnings.push(warning);
+            }
+          }
+          simulationEquityCurves.push(realizedEquityCurve);
+          equityCurves.push(
+            ...realizedEquityCurve.map((point) => ({
+              simulationId: simulation.id,
+              simulationIndex: simulationIndex + 1,
+              planId: plan.id,
+              planIndex: planIndex + 1,
+              ...point,
+            })),
+          );
           const bots = plan.simulationBots.map((bot) => {
             expectedBotCaches += 1;
             if (bot.cache?.completed) completedBotCaches += 1;
@@ -239,6 +284,7 @@ export class SimulationResearchReportService {
               positionCount: plan.cache?.totalPositions ?? plan.totalPositions,
               openedPositionCount:
                 plan.cache?.openedPositions ?? plan.openedPositions,
+              chronologicalRealizedEquity: realizedEquityCurve,
             },
             completeness: {
               complete: plan.cache?.completed ?? false,
@@ -249,6 +295,9 @@ export class SimulationResearchReportService {
             bots,
           };
         });
+        const chronologicalRealizedEquity = mergeRealizedEquityCurves(
+          simulationEquityCurves,
+        );
         return {
           overview: {
             id: simulation.id,
@@ -290,6 +339,7 @@ export class SimulationResearchReportService {
             tradeCount: simulation.tradeCount,
             winRate: simulation.winRate,
             profitFactor: simulation.profitFactor,
+            chronologicalRealizedEquity,
           },
           completeness: {
             complete: completedBotCaches === expectedBotCaches,
@@ -327,7 +377,8 @@ export class SimulationResearchReportService {
         timelineSemantics: {
           planMetrics: 'attributed-to-originating-plan',
           positions: 'attributed-to-originating-plan',
-          chronologicalEquity: 'not available in v1',
+          chronologicalEquity:
+            'persisted realized-PnL ledger, ordered by follower event timestamp; excludes unrealized mark-to-market equity and capital/exposure constraints',
         },
       },
       research: {
@@ -396,7 +447,7 @@ export class SimulationResearchReportService {
         warnings,
       },
     };
-    const readme = `# Lucky Plans AI Standard Research Report\n\nThis ZIP contains one completed walk-forward simulation research.\n\n- report.json: canonical hierarchical research report.\n- positions.jsonl: one normalized position summary per line.\n- simulation-summary.csv: one row per alternative simulation.\n- shared-window-comparison.csv: matched plan-window results.\n\nImportant: sibling simulations are alternatives, not one combined portfolio. Read report.json.aggregate.warnings before analysis.\n`;
+    const readme = `# Lucky Plans AI Standard Research Report\n\nThis ZIP contains one completed walk-forward simulation research.\n\n- report.json: canonical hierarchical research report.\n- positions.jsonl: one normalized position summary per line.\n- simulation-summary.csv: one row per alternative simulation.\n- shared-window-comparison.csv: matched plan-window results.\n- realized-equity-curves.jsonl: persisted realized-PnL equity events by plan.\n\nImportant: sibling simulations are alternatives, not one combined portfolio. Read report.json.aggregate.warnings before analysis.\n`;
     return zip([
       { name: 'report.json', content: JSON.stringify(report, null, 2) },
       {
@@ -407,6 +458,10 @@ export class SimulationResearchReportService {
       },
       { name: 'simulation-summary.csv', content: csv(simulationSummary) },
       { name: 'shared-window-comparison.csv', content: csv(windowRows) },
+      {
+        name: 'realized-equity-curves.jsonl',
+        content: equityCurves.map((point) => JSON.stringify(point)).join('\n'),
+      },
       { name: 'README.md', content: readme },
     ]);
   }

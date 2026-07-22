@@ -146,6 +146,15 @@ export class SimulationBot {
   maxLeverage: number;
 
   @Field(() => [SimulationValueRange])
+  leaderExecutionCollateral: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  leaderExecutionSize: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
+  leaderExecutionLeverage: SimulationValueRange[];
+
+  @Field(() => [SimulationValueRange])
   followerRiskSize: SimulationValueRange[];
 
   @Field(() => [SimulationValueRange])
@@ -444,6 +453,9 @@ export class SimulationResearch {
   @Field(() => Int)
   id: number;
 
+  @Field(() => Int, { nullable: true })
+  sourceSimulationId: number | null;
+
   @Field(() => String)
   title: string;
 
@@ -584,22 +596,18 @@ export class SimulationResearchDetails extends SimulationResearch {
 }
 
 @ObjectType()
-export class SimulationResearchEdge {
-  @Field(() => Int) cursor: number;
-  @Field(() => SimulationResearch) node: SimulationResearch;
-}
+export class SimulationResearchPage {
+  @Field(() => [SimulationResearch])
+  items: SimulationResearch[];
 
-@ObjectType()
-export class SimulationResearchPageInfo {
-  @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
-}
+  @Field(() => Int)
+  total: number;
 
-@ObjectType()
-export class SimulationResearchConnection {
-  @Field(() => [SimulationResearchEdge])
-  edges: SimulationResearchEdge[];
-  @Field(() => SimulationResearchPageInfo) pageInfo: SimulationResearchPageInfo;
+  @Field(() => Int)
+  offset: number;
+
+  @Field(() => Int)
+  limit: number;
 }
 
 @ObjectType()

@@ -14,7 +14,7 @@ import {
   Simulation,
   SimulationPlan,
   SimulationResearch,
-  SimulationResearchConnection,
+  SimulationResearchPage,
   SimulationResearchDetails,
 } from './entities/simulations.entity';
 
@@ -30,6 +30,7 @@ import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import { mapSimulationBotConfiguration } from './simulation-bot-config.mapper';
 import {
   buildSimulationParameterGrid,
+  buildLayerVariantParameterGrid,
   RangeGroup,
   ValueRange,
 } from './simulation-research.utils';
@@ -40,6 +41,11 @@ import {
   SimulationScoreFormular,
   SimulationSizingFormular,
 } from './simulation-formulars';
+import {
+  calculateMaxDrawdown,
+  calculateProfitFactor,
+  cumulative,
+} from 'src/microservices/analyticsService/modules/simulations/utils/simulation-automation.utils';
 
 const DEFAULT_SELECTED_LEADER_COUNT = 10;
 const DEFAULT_STANDARD_COLLATERAL_USD = 100;
@@ -409,6 +415,7 @@ export class SimulationsService {
 
     return {
       id: record.id,
+      sourceSimulationId: record.sourceSimulationId ?? null,
       title: record.title,
       description: record.description,
       platform: record.platform,
@@ -606,15 +613,16 @@ export class SimulationsService {
       days,
       gapDays,
     );
-
+    const normalizedStartAt = dayjs(input.startAt).startOf('day').toDate();
+    const normalizedEndAt = dayjs(input.endAt).startOf('day').toDate();
     const research = await this.prisma.$transaction(async (tx) => {
       const createdResearch = await tx.simulationResearch.create({
         data: {
           title: input.title,
           description: input.description,
           platform: input.platform,
-          startAt: dayjs(input.startAt).startOf('day').toDate(),
-          endAt: dayjs(input.endAt).startOf('day').toDate(),
+          startAt: normalizedStartAt,
+          endAt: normalizedEndAt,
           days,
           gapDays,
           direction: input.direction,
@@ -656,8 +664,8 @@ export class SimulationsService {
           platform: input.platform,
           researchId: createdResearch.id,
           direction: combination.direction,
-          startAt: dayjs(input.startAt).startOf('day').toDate(),
-          endAt: dayjs(input.endAt).startOf('day').toDate(),
+          startAt: normalizedStartAt,
+          endAt: normalizedEndAt,
           days,
           gapDays,
           status: SimulationStatus.Created,
@@ -707,52 +715,422 @@ export class SimulationsService {
     return this.mapSimulationResearch(research);
   }
 
-  async cloneSimulationResearch(id: number): Promise<SimulationResearch> {
-    const research = await this.prisma.simulationResearch.findUnique({
-      where: { id },
-    });
-    if (!research) throw new Error('SimulationResearch not found');
+  async createSimulationResearchFromSimulation(
+    sourceSimulationId: number,
+    input: CreateSimulationResearchInput,
+  ): Promise<SimulationResearch> {
+    const title = input.title.trim();
+    const description = input.description.trim();
+    if (!title || !description) {
+      throw new Error('Simulation research title and description are required');
+    }
 
-    // Route cloning through the normal creation path so the parameter grid,
-    // window counts, and initial state stay identical to a newly configured
-    // research. Runtime state, results, and automation leases are deliberately
-    // not copied, making this a clean comparison run.
-    return this.createSimulationResearch({
-      title: `${research.title} (clone)`,
-      description: research.description,
-      platform: research.platform,
-      startAt: research.startAt,
-      endAt: research.endAt,
-      days: research.days,
-      gapDays: research.gapDays,
-      direction: research.direction,
-      trade: this.normalizeResearchGroups(research.trade),
-      r2: this.normalizeResearchGroups(research.r2),
-      slope: this.normalizeResearchGroups(research.slope),
-      collateral: this.normalizeResearchGroups(research.collateral),
-      size: this.normalizeResearchGroups(research.size),
-      leverage: this.normalizeResearchGroups(research.leverage),
-      leaderExecutionCollateral: this.normalizeResearchGroups(
-        research.leaderExecutionCollateral,
-      ),
-      leaderExecutionSize: this.normalizeResearchGroups(
-        research.leaderExecutionSize,
-      ),
-      leaderExecutionLeverage: this.normalizeResearchGroups(
-        research.leaderExecutionLeverage,
-      ),
-      followerRiskSize: this.normalizeResearchGroups(research.followerRiskSize),
-      followerRiskCollateral: this.normalizeResearchGroups(
-        research.followerRiskCollateral,
-      ),
-      score: this.normalizeResearchGroups(research.score),
-      scoreFormular:
-        (research.scoreFormular as SimulationScoreFormular | null) ??
-        DEFAULT_SCORE_FORMULAR,
-      sizingFormular:
-        (research.sizingFormular as SimulationSizingFormular | null) ??
-        DEFAULT_SIZING_FORMULAR,
+    const validateGroups = (name: string, groups: FloatRangeGroupInput[]) => {
+      if (
+        groups.length === 0 ||
+        groups.some((group) => group.ranges.length === 0)
+      ) {
+        throw new Error(`${name} must contain at least one range group`);
+      }
+      this.validateFloatMinMaxPairs(
+        name,
+        groups.flatMap((group) => group.ranges),
+        { minAllowed: 0 },
+      );
+    };
+
+    validateGroups(
+      'leaderExecutionCollateral',
+      input.leaderExecutionCollateral,
+    );
+    validateGroups('leaderExecutionSize', input.leaderExecutionSize);
+    validateGroups('leaderExecutionLeverage', input.leaderExecutionLeverage);
+    validateGroups('followerRiskSize', input.followerRiskSize);
+    validateGroups('followerRiskCollateral', input.followerRiskCollateral);
+
+    const sourceSimulation = await this.prisma.simulation.findUnique({
+      where: { id: sourceSimulationId },
+      include: {
+        simulationPlans: {
+          orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+          include: {
+            simulationBots: {
+              orderBy: { id: 'asc' },
+              include: {
+                cache: {
+                  select: {
+                    completed: true,
+                    eventSnapshotVersion: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
+
+    if (!sourceSimulation) {
+      throw new Error('Source simulation not found');
+    }
+    if (sourceSimulation.status !== SimulationStatus.Completed) {
+      throw new Error('Layer 1 can only be reused from a completed simulation');
+    }
+    if (sourceSimulation.simulationPlans.length === 0) {
+      throw new Error('Source simulation has no plans to reuse');
+    }
+    const sourceBots = sourceSimulation.simulationPlans.flatMap(
+      (plan) => plan.simulationBots,
+    );
+    const missingSnapshot = sourceBots.find(
+      (bot) => !bot.cache?.completed || bot.cache.eventSnapshotVersion < 2,
+    );
+    if (missingSnapshot) {
+      throw new Error(
+        `Source simulation bot ${missingSnapshot.id} has no complete Layer 1 event snapshot`,
+      );
+    }
+
+    const variants = buildLayerVariantParameterGrid(input);
+    const workflow = await this.workflowConfig.get();
+    if (variants.length > workflow.maxSimulationsPerResearch) {
+      throw new Error(
+        `Layer variant can generate at most ${workflow.maxSimulationsPerResearch} simulations`,
+      );
+    }
+
+    const totalPlans =
+      sourceSimulation.simulationPlans.length * variants.length;
+    const startedAt = new Date();
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const research = await tx.simulationResearch.create({
+        data: {
+          title,
+          description,
+          platform: sourceSimulation.platform,
+          startAt: sourceSimulation.startAt,
+          endAt: sourceSimulation.endAt,
+          days: sourceSimulation.days,
+          gapDays: sourceSimulation.gapDays,
+          direction: sourceSimulation.direction,
+          trade: this.normalizeResearchGroups(sourceSimulation.trade) as any,
+          r2: this.normalizeResearchGroups(sourceSimulation.r2) as any,
+          slope: this.normalizeResearchGroups(sourceSimulation.slope) as any,
+          collateral: this.normalizeResearchGroups(
+            sourceSimulation.collateral,
+          ) as any,
+          size: this.normalizeResearchGroups(sourceSimulation.size) as any,
+          leverage: this.normalizeResearchGroups(
+            sourceSimulation.leverage,
+          ) as any,
+          score: this.normalizeResearchGroups(sourceSimulation.score) as any,
+          scoreFormular: sourceSimulation.scoreFormular,
+          sizingFormular: sourceSimulation.sizingFormular,
+          leaderExecutionCollateral: this.serializeRangeGroups(
+            input.leaderExecutionCollateral,
+          ),
+          leaderExecutionSize: this.serializeRangeGroups(
+            input.leaderExecutionSize,
+          ),
+          leaderExecutionLeverage: this.serializeRangeGroups(
+            input.leaderExecutionLeverage,
+          ),
+          followerRiskSize: this.serializeRangeGroups(input.followerRiskSize),
+          followerRiskCollateral: this.serializeRangeGroups(
+            input.followerRiskCollateral,
+          ),
+          sourceSimulationId: sourceSimulation.id,
+          automationEnabled: false,
+          status: SimulationStatus.Running,
+          progressPhase: 'recalculating-layer-2-3',
+          progressMessage: 'Reusing Layer 1 leader evaluations',
+          progressPercent: 0,
+          totalRanges: sourceSimulation.simulationPlans.length,
+          totalPlans,
+          startedAt,
+        },
+      });
+
+      const simulations: Array<{ id: number; planIds: number[] }> = [];
+      for (const variant of variants) {
+        const simulation = await tx.simulation.create({
+          data: {
+            title,
+            description,
+            platform: sourceSimulation.platform,
+            researchId: research.id,
+            sourceSimulationId: sourceSimulation.id,
+            direction: sourceSimulation.direction,
+            startAt: sourceSimulation.startAt,
+            endAt: sourceSimulation.endAt,
+            days: sourceSimulation.days,
+            gapDays: sourceSimulation.gapDays,
+            cursor: sourceSimulation.cursor,
+            status: SimulationStatus.Running,
+            progressPhase: 'recalculating-layer-2-3',
+            progressMessage: 'Recalculating follower positions',
+            totalSimulationPlans: sourceSimulation.simulationPlans.length,
+            selectedLeaderCount: sourceSimulation.selectedLeaderCount,
+            trade: sourceSimulation.trade as any,
+            r2: sourceSimulation.r2 as any,
+            slope: sourceSimulation.slope as any,
+            standardCollateralUsd: sourceSimulation.standardCollateralUsd,
+            collateral: sourceSimulation.collateral as any,
+            size: sourceSimulation.size as any,
+            leverage: sourceSimulation.leverage as any,
+            score: sourceSimulation.score as any,
+            scoreFormular: sourceSimulation.scoreFormular,
+            sizingFormular: sourceSimulation.sizingFormular,
+            leaderExecutionCollateral: this.serializeRanges(
+              variant.leaderExecutionCollateral,
+            ),
+            leaderExecutionSize: this.serializeRanges(
+              variant.leaderExecutionSize,
+            ),
+            leaderExecutionLeverage: this.serializeRanges(
+              variant.leaderExecutionLeverage,
+            ),
+            followerRiskSize: this.serializeRanges(variant.followerRiskSize),
+            followerRiskCollateral: this.serializeRanges(
+              variant.followerRiskCollateral,
+            ),
+          },
+        });
+        const planIds: number[] = [];
+
+        for (const sourcePlan of sourceSimulation.simulationPlans) {
+          const plan = await tx.simulationPlan.create({
+            data: {
+              title: `${title} ${dayjs(sourcePlan.startAt).format('YYYY-MM-DD')}`,
+              description,
+              startAt: sourcePlan.startAt,
+              endAt: sourcePlan.endAt,
+              cursor: sourcePlan.cursor,
+              simulationId: simulation.id,
+              sourceSimulationPlanId: sourcePlan.id,
+            },
+          });
+          planIds.push(plan.id);
+
+          if (sourcePlan.simulationBots.length > 0) {
+            await tx.simulationBot.createMany({
+              data: sourcePlan.simulationBots.map((sourceBot) => ({
+                sourceSimulationBotId: sourceBot.id,
+                leaderAddress: sourceBot.leaderAddress,
+                leaderPlatform: sourceBot.leaderPlatform,
+                simulationPlanId: plan.id,
+                startedAt: sourceBot.startedAt,
+                stoppedAt: sourceBot.stoppedAt,
+                mode: sourceBot.mode,
+                ratio: sourceBot.ratio,
+                score: sourceBot.score,
+                minCollateral: Math.min(
+                  ...variant.leaderExecutionCollateral.map(
+                    (range) => range.min,
+                  ),
+                ),
+                maxCollateral: Math.max(
+                  ...variant.leaderExecutionCollateral.map(
+                    (range) => range.max,
+                  ),
+                ),
+                minSize: Math.min(
+                  ...variant.leaderExecutionSize.map((range) => range.min),
+                ),
+                maxSize: Math.max(
+                  ...variant.leaderExecutionSize.map((range) => range.max),
+                ),
+                minLeverage: Math.min(
+                  ...variant.leaderExecutionLeverage.map((range) => range.min),
+                ),
+                maxLeverage: Math.max(
+                  ...variant.leaderExecutionLeverage.map((range) => range.max),
+                ),
+                leaderExecutionCollateral: this.serializeRanges(
+                  variant.leaderExecutionCollateral,
+                ),
+                leaderExecutionSize: this.serializeRanges(
+                  variant.leaderExecutionSize,
+                ),
+                leaderExecutionLeverage: this.serializeRanges(
+                  variant.leaderExecutionLeverage,
+                ),
+                followerRiskSize: this.serializeRanges(
+                  variant.followerRiskSize,
+                ),
+                followerRiskCollateral: this.serializeRanges(
+                  variant.followerRiskCollateral,
+                ),
+                evaluationTradeCount: sourceBot.evaluationTradeCount,
+                evaluationSlope: sourceBot.evaluationSlope,
+                evaluationR2: sourceBot.evaluationR2,
+                evaluationCopiedPnlUsd: sourceBot.evaluationCopiedPnlUsd,
+                evaluationProfitFactor: sourceBot.evaluationProfitFactor,
+                evaluationMaxDrawdownUsd: sourceBot.evaluationMaxDrawdownUsd,
+              })),
+            });
+          }
+        }
+
+        simulations.push({ id: simulation.id, planIds });
+      }
+
+      return { research, simulations };
+    });
+
+    try {
+      for (let index = 0; index < created.simulations.length; index++) {
+        const simulation = created.simulations[index];
+        const followerPositionPnls: number[] = [];
+        let totalLeaderPnl = 0;
+        let totalFollowerPnl = 0;
+
+        for (const planId of simulation.planIds) {
+          const details =
+            await this.simulationPlansService.calculateSimulationPlanDetails(
+              planId,
+              { eventSource: 'sourceSnapshot' },
+            );
+          totalLeaderPnl += details.totalLeaderPnl;
+          totalFollowerPnl += details.totalFollowerPnl;
+
+          for (const bot of details.simulationBots) {
+            const botPnls = bot.positions.map(
+              (position) => position.followerPnl,
+            );
+            followerPositionPnls.push(...botPnls);
+            await this.prisma.simulationBotCache.upsert({
+              where: { simulationBotId: bot.id },
+              create: {
+                simulationBotId: bot.id,
+                completed: true,
+                lastFetchedAt: new Date(),
+                openedPositions: bot.openedPositions,
+                totalPositions: bot.totalPositions,
+                totalLeaderPnl: bot.totalPnl,
+                totalFollowerPnl: botPnls.reduce((sum, pnl) => sum + pnl, 0),
+                maxDuration: bot.maxDuration,
+                avgDuration: bot.avgDuration,
+                avgPnl: bot.avgPnl,
+                avgPositivePnl: bot.avgPositivePnl,
+                avgNegativePnl: bot.avgNegativePnl,
+                avgSize: bot.avgSize,
+                avgCollateral: bot.avgCollateral,
+                avgPnlPercentageBySize: bot.avgPnlPercentageBySize,
+                avgPnlPercentageByCollateral: bot.avgPnlPercentageByCollateral,
+                avgLeverage: bot.avgLeverage,
+                positionsJson: JSON.stringify(bot.positions),
+                followerPositionPnlsJson: JSON.stringify(botPnls),
+              },
+              update: {},
+            });
+          }
+
+          await this.prisma.simulationPlanCache.upsert({
+            where: { simulationPlanId: planId },
+            create: {
+              simulationPlanId: planId,
+              completed: true,
+              completedBots: details.simulationBots.length,
+              incompleteBots: 0,
+              openedPositions: details.openedPositions,
+              totalPositions: details.totalPositions,
+              totalLeaderPnl: details.totalLeaderPnl,
+              totalFollowerPnl: details.totalFollowerPnl,
+              lastBuiltAt: new Date(),
+            },
+            update: {},
+          });
+        }
+
+        const tradeCount = followerPositionPnls.length;
+        const positiveTrades = followerPositionPnls.filter(
+          (pnl) => pnl > 0,
+        ).length;
+        await this.prisma.simulation.update({
+          where: { id: simulation.id },
+          data: {
+            status: SimulationStatus.Completed,
+            progressPhase: 'completed',
+            progressMessage: 'Layer 2/3 variant recalculation completed',
+            progressPercent: 100,
+            completedPlans: simulation.planIds.length,
+            totalLeaderPnl,
+            totalFollowerPnl,
+            totalNetPnlUsd: totalFollowerPnl,
+            totalCostUsd: 0,
+            tradeCount,
+            winRate: tradeCount > 0 ? positiveTrades / tradeCount : 0,
+            profitFactor: calculateProfitFactor(followerPositionPnls),
+            maxDrawdownUsd: calculateMaxDrawdown(
+              cumulative(followerPositionPnls),
+            ),
+          },
+        });
+
+        await this.prisma.simulationResearch.update({
+          where: { id: created.research.id },
+          data: {
+            completedPlans: { increment: simulation.planIds.length },
+            progressPercent: ((index + 1) / created.simulations.length) * 100,
+            progressMessage: `Recalculated ${index + 1} / ${created.simulations.length} simulations`,
+          },
+        });
+      }
+
+      const completed = await this.prisma.simulationResearch.update({
+        where: { id: created.research.id },
+        data: {
+          status: SimulationStatus.Completed,
+          progressPhase: 'completed',
+          progressMessage: 'Layer 2/3 variant completed from shared Layer 1',
+          progressPercent: 100,
+          completedRanges: sourceSimulation.simulationPlans.length,
+          finishedAt: new Date(),
+        },
+        include: { simulations: { select: { status: true } } },
+      });
+      return this.mapSimulationResearch(completed);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await this.prisma.simulation.updateMany({
+        where: {
+          researchId: created.research.id,
+          status: { not: SimulationStatus.Completed },
+        },
+        data: {
+          status: SimulationStatus.Failed,
+          progressPhase: 'layer-2-3-recalculation-failed',
+          progressMessage: 'Layer 2/3 recalculation failed',
+          error: errorMessage,
+        },
+      });
+      const completedSimulations = await this.prisma.simulation.count({
+        where: {
+          researchId: created.research.id,
+          status: SimulationStatus.Completed,
+        },
+      });
+      const failed = await this.prisma.simulationResearch.update({
+        where: { id: created.research.id },
+        data: {
+          status: SimulationStatus.Failed,
+          progressPhase: 'layer-2-3-recalculation-failed',
+          progressMessage:
+            completedSimulations > 0
+              ? `${completedSimulations} variant(s) completed before recalculation failed; remaining variants were marked failed`
+              : 'Layer 2/3 variant recalculation failed; all variants were marked failed',
+          progressPercent:
+            (completedSimulations / created.simulations.length) * 100,
+          lastError: errorMessage,
+          finishedAt: new Date(),
+        },
+        include: { simulations: { select: { status: true } } },
+      });
+      return this.mapSimulationResearch(failed);
+    }
   }
 
   async updateSimulationResearch(
@@ -884,34 +1262,38 @@ export class SimulationsService {
   }
 
   async getSimulationResearches(
-    first: number,
-    after: number | null,
-  ): Promise<SimulationResearchConnection> {
-    const records = await this.prisma.simulationResearch.findMany({
-      skip: after ? 1 : undefined,
-      take: first,
-      cursor: after ? { id: after } : undefined,
-      orderBy: [{ id: 'desc' }],
-      include: {
-        simulations: {
-          select: {
-            status: true,
+    offset: number,
+    limit: number,
+  ): Promise<SimulationResearchPage> {
+    if (!Number.isInteger(offset) || offset < 0) {
+      throw new Error('offset must be a non-negative integer');
+    }
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new Error('limit must be an integer between 1 and 100');
+    }
+
+    const [records, total] = await Promise.all([
+      this.prisma.simulationResearch.findMany({
+        skip: offset,
+        take: limit,
+        orderBy: [{ id: 'desc' }],
+        include: {
+          simulations: {
+            select: {
+              status: true,
+            },
           },
         },
-      },
-    });
-
-    const edges = records.map((record) => ({
-      cursor: record.id,
-      node: this.mapSimulationResearch(record),
-    }));
+      }),
+      this.prisma.simulationResearch.count(),
+    ]);
 
     return {
-      edges,
-      pageInfo: {
-        hasNextPage: edges.length === first,
-        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      },
+      items: records.map((record) => this.mapSimulationResearch(record)),
+      total,
+      offset,
+      limit,
     };
   }
 

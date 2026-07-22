@@ -16,7 +16,7 @@ import {
   SimulationPlanDetails,
   Simulation,
   SimulationResearch,
-  SimulationResearchConnection,
+  SimulationResearchPage,
   SimulationResearchDetails,
   SimulationWorkflowConfigView,
 } from './entities/simulations.entity';
@@ -88,8 +88,14 @@ export class SimulationsResolver {
   @Mutation(() => SimulationResearch)
   @Roles(UserPermission.Admin)
   @UseGuards(GqlAuthGuard, RolesGuard)
-  cloneSimulationResearch(@Args('id', { type: () => Int }) id: number) {
-    return this.simulationsService.cloneSimulationResearch(id);
+  createSimulationResearchFromSimulation(
+    @Args('sourceSimulationId', { type: () => Int }) sourceSimulationId: number,
+    @Args('input') input: CreateSimulationResearchInput,
+  ) {
+    return this.simulationsService.createSimulationResearchFromSimulation(
+      sourceSimulationId,
+      input,
+    );
   }
 
   @Mutation(() => SimulationResearch)
@@ -201,12 +207,12 @@ export class SimulationsResolver {
     return this.simulationsService.getSimulation(id);
   }
 
-  @Query(() => SimulationResearchConnection)
+  @Query(() => SimulationResearchPage)
   simulationResearches(
-    @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('offset', { type: () => Int, defaultValue: 0 }) offset: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
   ) {
-    return this.simulationsService.getSimulationResearches(first, after);
+    return this.simulationsService.getSimulationResearches(offset, limit);
   }
 
   @Query(() => SimulationResearchDetails, { nullable: true })
