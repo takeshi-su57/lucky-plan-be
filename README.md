@@ -202,7 +202,7 @@ The worker can be shipped without cloning the repository or installing npm depen
 npm run build:cross
 ```
 
-The output is `release/evaluator-worker`. Its root stays intentionally small: `parent`, `child`, `cache-snapshot`, `scripts`, `.env`, `.env.example`, `windows.cmd`, `linux.sh`, and `README.md`. The build uses `ncc` through `npx`; that tooling is needed only by the build environment, never by the worker host.
+The output is `release/evaluator-worker`. Its root stays intentionally small: `parent`, `child`, `adopt`, `scripts`, `.env`, `.env.example`, `windows.cmd`, `linux.sh`, and `README.md`. The build uses `ncc` through `npx`; that tooling is needed only by the build environment, never by the worker host.
 
 Configure `.env` in the extracted release:
 
@@ -219,35 +219,31 @@ Then use the single platform commander to install it as a background service:
 - Windows: run `windows.cmd install`; approve UAC when prompted. For `dev`, it creates the `LuckyEvaluatorWorker-dev` Scheduled Task.
 - Linux: run `sudo ./linux.sh install`; for `dev`, it creates and starts `lucky-evaluator-worker-dev.service`. If the extraction tool dropped the executable bits, restore them once with `chmod +x linux.sh scripts/linux-commander.sh`.
 
-Both commanders support `install`, `start`, `stop`, `status`, `uninstall`, `cache-export <snapshot.zip>`, and `cache-import <snapshot.zip>`.
+Both commanders support `install`, `adopt`, `start`, `stop`, `status`, and `uninstall`.
 
 When upgrading a legacy release that used the fixed `LuckyEvaluatorWorker` task or `lucky-evaluator-worker.service`, uninstall that legacy service first, then install the instance-based release in a separate directory.
 
 The release workflow in `.github/workflows/release-evaluator-worker.yml` builds and publishes `lucky-evaluator-worker-node22.zip` when a `worker-v*` tag is pushed. It also uploads the ZIP as a short-lived Actions artifact.
 
-### Cache Snapshots
+### Adopt a Prebuilt Cache
 
-To seed a new worker without repeating a long event-log prebuild, export its portable cache snapshot:
+For a large cache, stop the source worker and archive its `.cache` directory using a system-level archiver. Transfer the archive and extract it manually into the new release directory, preserving this path:
+
+```text
+.cache/simulation-evaluator-worker/cache.sqlite
+```
+
+Configure `.env` with the new worker's name, instance, and gateway URL, then adopt the extracted cache:
 
 ```bash
 # Windows
-windows.cmd cache-export evaluator-cache.zip
+windows.cmd adopt
 
 # Linux
-sudo ./linux.sh cache-export evaluator-cache.zip
+sudo ./linux.sh adopt
 ```
 
-The command stops the worker, waits for the parent and its children to exit, and leaves it stopped. Copy the ZIP to the new worker and import it before starting the worker:
-
-```bash
-# Windows
-windows.cmd cache-import evaluator-cache.zip
-
-# Linux
-sudo ./linux.sh cache-import evaluator-cache.zip
-```
-
-Snapshots include event-log files, cache coverage ranges, and SHA-256 checksums. They deliberately exclude the worker identity/private key, parent session heartbeat, and prebuild checkpoints. A new machine therefore enrolls as a new worker while immediately reusing the imported cache. After approval, request prebuild for the snapshot ranges once so the server records that worker's cache coverage.
+`adopt` does not read or extract archives. It retains event-log files and cache coverage, removes the source worker identity, parent runtime state, and stale prebuild task checkpoints, then installs and starts a newly enrolled worker. After approval, request a prebuild/resync in the admin panel; the transferred local cache lets it complete quickly.
 
 On non-PowerShell shells, use the equivalent inline environment syntax for your shell.
 

@@ -21,16 +21,16 @@ const childEntry = join(
   'simulationEvaluatorWorker',
   'simulation-evaluator-worker-child.js',
 );
-const cacheSnapshotEntry = join(
+const cacheAdoptEntry = join(
   dist,
   'src',
-  'simulation-evaluator-worker-cache.main.js',
+  'simulation-evaluator-worker-adopt.main.js',
 );
 
 if (
   !existsSync(parentEntry) ||
   !existsSync(childEntry) ||
-  !existsSync(cacheSnapshotEntry)
+  !existsSync(cacheAdoptEntry)
 ) {
   throw new Error('Worker build output is missing. Run npm run build first.');
 }
@@ -48,7 +48,7 @@ function bundle(entry, output) {
 
 bundle(parentEntry, join(release, 'parent'));
 bundle(childEntry, join(release, 'child'));
-bundle(cacheSnapshotEntry, join(release, 'cache-snapshot'));
+bundle(cacheAdoptEntry, join(release, 'adopt'));
 
 writeFileSync(
   join(scripts, 'worker-launcher.js'),
@@ -75,12 +75,11 @@ chmodSync(join(release, 'linux.sh'), 0o755);
 writeFileSync(
   join(scripts, 'windows-commander.ps1'),
   `param(
-  [Parameter(Position = 0)][string]$Command = 'status',
-  [Parameter(Position = 1)][string]$File
+  [Parameter(Position = 0)][string]$Command = 'status'
 )
 $ErrorActionPreference = 'Stop'
 
-$validCommands = @('install', 'start', 'stop', 'status', 'uninstall', 'cache-export', 'cache-import')
+$validCommands = @('install', 'adopt', 'start', 'stop', 'status', 'uninstall')
 if ($Command -notin $validCommands) {
   throw "Unknown command '$Command'. Use: $($validCommands -join ', ')"
 }
@@ -109,7 +108,6 @@ $TaskName = "LuckyEvaluatorWorker-$instance"
 
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'), $Command)
-  if ($File) { $arguments += ('"' + $File + '"') }
   Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
   exit
 }
@@ -134,16 +132,29 @@ function Stop-Worker([bool]$IgnoreMissing = $false) {
   if ($task.State -ne 'Ready') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
 }
 
+function Install-Worker {
+  $action = New-ScheduledTaskAction -Execute $node -Argument ('"' + (Join-Path $root 'scripts\\worker-launcher.js') + '"') -WorkingDirectory $root
+  $trigger = New-ScheduledTaskTrigger -AtStartup
+  $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+  $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $settings -Force | Out-Null
+  Start-ScheduledTask -TaskName $TaskName
+  Write-Host "Installed and started $TaskName." -ForegroundColor Green
+}
+
 switch ($Command) {
   'install' {
     Assert-Configuration
-    $action = New-ScheduledTaskAction -Execute $node -Argument ('"' + (Join-Path $root 'scripts\\worker-launcher.js') + '"') -WorkingDirectory $root
-    $trigger = New-ScheduledTaskTrigger -AtStartup
-    $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable
-    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $settings -Force | Out-Null
-    Start-ScheduledTask -TaskName $TaskName
-    Write-Host "Installed and started $TaskName." -ForegroundColor Green
+    Install-Worker
+  }
+  'adopt' {
+    Assert-Configuration
+    Write-Host 'Adopting the manually extracted .cache directory...' -ForegroundColor Yellow
+    Stop-Worker $true
+    Start-Sleep -Seconds 16
+    Push-Location $root
+    try { & $node (Join-Path $root 'adopt\\index.js') } finally { Pop-Location }
+    Install-Worker
   }
   'start' { Assert-Configuration; Start-ScheduledTask -TaskName $TaskName; Write-Host "Started $TaskName." -ForegroundColor Green }
   'stop' { Stop-Worker; Write-Host "Stopped $TaskName." -ForegroundColor Yellow }
@@ -159,24 +170,6 @@ switch ($Command) {
     } | Format-List
   }
   'uninstall' { Stop-Worker $true; Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue; Write-Host "Uninstalled $TaskName." -ForegroundColor Yellow }
-  'cache-export' {
-    Assert-Configuration
-    if (-not $File) { throw 'Provide a snapshot file, e.g. windows.cmd cache-export evaluator-cache.zip' }
-    Write-Host 'Stopping evaluator; cache export begins after the safety wait...' -ForegroundColor Yellow
-    Stop-Worker $true
-    Start-Sleep -Seconds 16
-    Push-Location $root
-    try { & $node (Join-Path $root 'cache-snapshot\\index.js') export --file $File } finally { Pop-Location }
-  }
-  'cache-import' {
-    Assert-Configuration
-    if (-not $File) { throw 'Provide a snapshot file, e.g. windows.cmd cache-import evaluator-cache.zip' }
-    Write-Host 'Stopping evaluator; cache import begins after the safety wait...' -ForegroundColor Yellow
-    Stop-Worker $true
-    Start-Sleep -Seconds 16
-    Push-Location $root
-    try { & $node (Join-Path $root 'cache-snapshot\\index.js') import --file $File } finally { Pop-Location }
-  }
 }
 `,
 );
@@ -187,7 +180,6 @@ writeFileSync(
 set -eu
 
 COMMAND=\${1:-status}
-FILE=\${2:-}
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 NODE=$(command -v node || true)
 
@@ -208,12 +200,12 @@ get_instance
 SERVICE="lucky-evaluator-worker-$INSTANCE"
 
 usage() {
-  echo 'Usage: ./linux.sh {install|start|stop|status|uninstall|cache-export|cache-import} [snapshot.zip]' >&2
+  echo 'Usage: ./linux.sh {install|adopt|start|stop|status|uninstall}' >&2
 }
 
-case "$COMMAND" in install|start|stop|status|uninstall|cache-export|cache-import) ;; *) usage; exit 1 ;; esac
+case "$COMMAND" in install|adopt|start|stop|status|uninstall) ;; *) usage; exit 1 ;; esac
 if [ -z "$NODE" ]; then echo 'Node.js 22 or newer is required.' >&2; exit 1; fi
-if [ "$COMMAND" != status ] && [ "$(id -u)" -ne 0 ]; then echo "Run with sudo: sudo ./linux.sh $COMMAND\${FILE:+ $FILE}" >&2; exit 1; fi
+if [ "$COMMAND" != status ] && [ "$(id -u)" -ne 0 ]; then echo "Run with sudo: sudo ./linux.sh $COMMAND" >&2; exit 1; fi
 
 assert_configuration() {
   if [ ! -f "$ROOT/.env" ]; then
@@ -227,10 +219,8 @@ assert_configuration() {
   fi
 }
 
-case "$COMMAND" in
-  install)
-    assert_configuration
-    cat > /etc/systemd/system/$SERVICE.service <<EOF
+install_worker() {
+  cat > /etc/systemd/system/$SERVICE.service <<EOF
 [Unit]
 Description=Lucky evaluator worker ($INSTANCE)
 After=network-online.target
@@ -247,22 +237,28 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload
-    systemctl enable --now "$SERVICE"
-    systemctl --no-pager status "$SERVICE"
+  systemctl daemon-reload
+  systemctl enable --now "$SERVICE"
+  systemctl --no-pager status "$SERVICE"
+}
+
+case "$COMMAND" in
+  install)
+    assert_configuration
+    install_worker
+    ;;
+  adopt)
+    assert_configuration
+    systemctl stop "$SERVICE" 2>/dev/null || true
+    sleep 16
+    cd "$ROOT"
+    "$NODE" adopt/index.js
+    install_worker
     ;;
   start) assert_configuration; systemctl start "$SERVICE" ;;
   stop) systemctl stop "$SERVICE" ;;
   status) systemctl --no-pager status "$SERVICE" ;;
   uninstall) systemctl disable --now "$SERVICE" 2>/dev/null || true; rm -f "/etc/systemd/system/$SERVICE.service"; systemctl daemon-reload ;;
-  cache-export|cache-import)
-    assert_configuration
-    [ -n "$FILE" ] || { usage; exit 1; }
-    systemctl stop "$SERVICE" 2>/dev/null || true
-    sleep 16
-    cd "$ROOT"
-    if [ "$COMMAND" = cache-export ]; then "$NODE" cache-snapshot/index.js export --file "$FILE"; else "$NODE" cache-snapshot/index.js import --file "$FILE"; fi
-    ;;
 esac
 `,
 );
@@ -282,9 +278,9 @@ Requires Node.js 22 or newer. Configure \`.env\` before starting the worker.
 
 Windows: run \`windows.cmd install\` as Administrator. Linux: run \`sudo ./linux.sh install\`. If extracting a bundle with a tool that drops Unix file modes, run \`chmod +x linux.sh scripts/linux-commander.sh\` once first.
 
-Both entrypoints support \`install\`, \`start\`, \`stop\`, \`status\`, \`uninstall\`, \`cache-export <snapshot.zip>\`, and \`cache-import <snapshot.zip>\`.
+Both entrypoints support \`install\`, \`adopt\`, \`start\`, \`stop\`, \`status\`, and \`uninstall\`.
 
-For example: \`windows.cmd cache-export evaluator-cache.zip\` or \`sudo ./linux.sh cache-import evaluator-cache.zip\`. Cache operations stop the service and leave it stopped when complete.
+To reuse a prebuilt cache, extract the transferred archive manually so the release root contains \`.cache/simulation-evaluator-worker/cache.sqlite\`, configure \`.env\` for this worker, then run \`windows.cmd adopt\` or \`sudo ./linux.sh adopt\`. Adopt removes the source worker identity, parent runtime state, and stale task checkpoints while retaining event-log files and cache coverage. It then installs and starts this worker.
 `,
 );
 
