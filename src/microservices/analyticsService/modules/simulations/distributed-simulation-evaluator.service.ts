@@ -16,14 +16,14 @@ const LEADER_SCORING_WINDOW_DAYS = 180;
 export class DistributedSimulationEvaluatorService {
   constructor(private readonly tasks: SimulationEvaluatorTaskService) {}
 
-  async canEvaluateLeadersForRange(simulation: Simulation, range: WindowRange) {
-    const requiredCacheStartAt = dayjs(range.startedAt)
-      .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
-      .toDate();
+  async canEvaluateLeadersForRange(
+    simulation: Simulation,
+    _range: WindowRange,
+  ) {
     const readyWorkers = await this.tasks.countReadyWorkers(
       simulation.platform,
-      requiredCacheStartAt,
-      range.startedAt,
+      simulation.startAt,
+      simulation.endAt,
     );
     return readyWorkers > 0;
   }
@@ -72,10 +72,11 @@ export class DistributedSimulationEvaluatorService {
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
       platform: simulation.platform,
-      requiredCacheStartAt: dayjs(range.startedAt)
-        .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
-        .toDate(),
-      requiredCacheEndAt: range.startedAt,
+      // Cache readiness is defined by the research execution window. The
+      // scoring lookback below remains evaluation input, but must not block
+      // dispatch when historical prebuild coverage predates this research.
+      requiredCacheStartAt: simulation.startAt,
+      requiredCacheEndAt: simulation.endAt,
       rangeStartedAt: range.startedAt,
       rangeEndedAt: range.endedAt,
       input: JSON.parse(

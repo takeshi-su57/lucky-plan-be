@@ -148,10 +148,8 @@ export class SimulationDynamicAutoSchedulerService {
     const first = candidates[0];
     const workerCapacity = await this.evaluatorTasks.countReadyWorkers(
       first.simulation.platform,
-      new Date(
-        first.undispatchedRanges[0].startedAt.getTime() - 180 * 86_400_000,
-      ),
-      first.undispatchedRanges[0].startedAt,
+      first.simulation.startAt,
+      first.simulation.endAt,
       true,
     );
     const target = Math.min(MAX_OUTSTANDING_DYNAMIC_PLANS, workerCapacity);

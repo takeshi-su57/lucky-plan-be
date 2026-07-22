@@ -15,6 +15,8 @@ describe('DistributedSimulationEvaluatorService', () => {
     const baseSimulation = {
       id: 7,
       platform: 'GNS',
+      startAt: new Date('2026-01-01T00:00:00.000Z'),
+      endAt: new Date('2026-12-31T00:00:00.000Z'),
       direction: 'Default',
       trade: [{ min: 1, max: 10 }],
       r2: [{ min: 0, max: 1 }],
@@ -82,5 +84,66 @@ describe('DistributedSimulationEvaluatorService', () => {
       scoreFormular: 'Default',
       sizingFormular: 'Default',
     });
+  });
+});
+
+const simulation = {
+  id: 596,
+  platform: 'GNS',
+  startAt: new Date('2025-01-06T00:00:00.000Z'),
+  endAt: new Date('2025-12-31T00:00:00.000Z'),
+  direction: 'Reversed',
+  trade: {},
+  r2: {},
+  slope: {},
+  standardCollateralUsd: 100,
+  collateral: {},
+  size: {},
+  leverage: {},
+  score: {},
+  scoreFormular: 'RiskAdjustedCopyScore',
+  sizingFormular: 'ScoreScaledCollateralSizing',
+} as any;
+
+describe('DistributedSimulationEvaluatorService cache eligibility', () => {
+  it('uses the complete simulation window rather than the scoring lookback', async () => {
+    const countReadyWorkers = jest.fn(async (..._args: unknown[]) => 18);
+    const tasks = {
+      countReadyWorkers,
+    };
+    const service = new DistributedSimulationEvaluatorService(tasks as never);
+
+    await expect(
+      service.canEvaluateLeadersForRange(simulation, {
+        startedAt: new Date('2025-01-06T00:00:00.000Z'),
+        endedAt: new Date('2025-01-11T00:00:00.000Z'),
+      }),
+    ).resolves.toBe(true);
+
+    expect(countReadyWorkers).toHaveBeenCalledWith(
+      'GNS',
+      simulation.startAt,
+      simulation.endAt,
+    );
+  });
+
+  it('puts the complete simulation window on dispatched evaluation tasks', async () => {
+    const tasks = {
+      createTask: jest.fn(async (input: unknown) => input),
+    };
+    const service = new DistributedSimulationEvaluatorService(tasks as never);
+    const range = {
+      startedAt: new Date('2025-01-06T00:00:00.000Z'),
+      endedAt: new Date('2025-01-11T00:00:00.000Z'),
+    };
+
+    await service.enqueueLeadersForRange(simulation, [], range, new Map());
+
+    expect(tasks.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requiredCacheStartAt: simulation.startAt,
+        requiredCacheEndAt: simulation.endAt,
+      }),
+    );
   });
 });
