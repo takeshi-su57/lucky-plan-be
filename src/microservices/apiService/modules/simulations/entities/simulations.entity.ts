@@ -31,6 +31,23 @@ registerEnumType(SimulationSizingFormular, {
 });
 
 @ObjectType()
+export class SimulationWorkflowConfigView {
+  @Field(() => Int) maxSimulationsPerResearch: number;
+  @Field(() => Int) maxOutstandingDynamicPlans: number;
+  @Field(() => Int) finalizerBatchSize: number;
+  @Field(() => Int) finalizerLeaseMs: number;
+  @Field(() => Int) evaluatorTaskLeaseMs: number;
+  @Field(() => Int) queuedTaskBatchSize: number;
+  @Field(() => Int) readyTaskScanLimit: number;
+  @Field(() => Int) eventLogAddressBatchSize: number;
+  @Field(() => Int) eventLogRecordBatchSize: number;
+  @Field(() => Int) prebuildChunkSourceRecordLimit: number;
+  @Field(() => Int) leaderScoringWindowDays: number;
+  @Field(() => Int) candidateRecentActivityDays: number;
+  @Field(() => Int) botTraderMinAvgDurationMs: number;
+}
+
+@ObjectType()
 export class SimulationIntRange {
   @Field(() => Int)
   min: number;

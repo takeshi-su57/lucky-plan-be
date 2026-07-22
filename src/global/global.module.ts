@@ -10,6 +10,7 @@ import { SERVICE_NAMES } from 'src/utils/constants';
 import { PrismaService } from './prisma.service';
 import { SecurityService } from './security.service';
 import { LogsService } from './logs.service';
+import { SimulationWorkflowConfigService } from './simulation-workflow-config.service';
 
 export const PUB_SUB = Symbol('PUB_SUB');
 
@@ -148,6 +149,7 @@ export class JSONScalar implements CustomScalar<
     Logger,
     SecurityService,
     LogsService,
+    SimulationWorkflowConfigService,
     {
       provide: PUB_SUB,
       useValue: new PubSub(),
@@ -161,6 +163,7 @@ export class JSONScalar implements CustomScalar<
     SecurityService,
     PUB_SUB,
     LogsService,
+    SimulationWorkflowConfigService,
     DateScalar,
     JSONScalar,
   ],

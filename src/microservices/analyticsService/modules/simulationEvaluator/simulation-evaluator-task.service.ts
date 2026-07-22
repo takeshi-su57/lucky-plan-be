@@ -18,6 +18,7 @@ import {
 } from 'generated/prisma/enums';
 import { Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/global/prisma.service';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
 import { SERVICE_NAMES } from 'src/utils/constants';
 import {
   ClaimedSimulationEvaluatorTask,
@@ -36,7 +37,10 @@ export class SimulationEvaluatorTaskService
   private dispatchTimer?: NodeJS.Timeout;
   private readonly logger = new Logger(SimulationEvaluatorTaskService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
+  ) {}
 
   async onModuleInit() {
     const isAnalytics = process.env.SERVICE === SERVICE_NAMES.ANALYTICS_SERVICE;
@@ -238,6 +242,7 @@ export class SimulationEvaluatorTaskService
     workerId: string,
   ): Promise<ClaimedSimulationEvaluatorTask | null> {
     const now = new Date();
+    const workflow = await this.workflowConfig.get();
     await this.reconcileExpiredClaims(now);
 
     const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
@@ -312,7 +317,7 @@ export class SimulationEvaluatorTaskService
         ],
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      take: 50,
+      take: workflow.readyTaskScanLimit,
     });
     const readyTask = readyTasks.find((task) => {
       if (
@@ -355,7 +360,7 @@ export class SimulationEvaluatorTaskService
 
     const leaseToken = randomUUID();
     const leaseExpiresAt = new Date(
-      now.getTime() + SIMULATION_EVALUATOR.leaseDurationMs,
+      now.getTime() + workflow.evaluatorTaskLeaseMs,
     );
     const runtimeStatus =
       readyTask.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache
@@ -463,9 +468,8 @@ export class SimulationEvaluatorTaskService
   ) {
     const task = await this.getClaimedTask(taskId, workerId, leaseToken);
     if (!task) return null;
-    const leaseExpiresAt = new Date(
-      Date.now() + SIMULATION_EVALUATOR.leaseDurationMs,
-    );
+    const workflow = await this.workflowConfig.get();
+    const leaseExpiresAt = new Date(Date.now() + workflow.evaluatorTaskLeaseMs);
     const heartbeat = await this.prisma.simulationEvaluatorTask.updateMany({
       where: {
         id: taskId,
@@ -945,10 +949,11 @@ export class SimulationEvaluatorTaskService
 
   private async enqueueQueuedTasks() {
     if (!this.queue) return;
+    const workflow = await this.workflowConfig.get();
     const tasks = await this.prisma.simulationEvaluatorTask.findMany({
       where: { status: SimulationEvaluatorTaskStatus.Queued },
       select: { id: true },
-      take: 100,
+      take: workflow.queuedTaskBatchSize,
     });
     await Promise.all(
       tasks.map((task) =>

@@ -11,6 +11,23 @@ import {
 } from '../simulation-formulars';
 
 @InputType()
+export class UpdateSimulationWorkflowConfigInput {
+  @Field(() => Int, { nullable: true }) maxSimulationsPerResearch?: number;
+  @Field(() => Int, { nullable: true }) maxOutstandingDynamicPlans?: number;
+  @Field(() => Int, { nullable: true }) finalizerBatchSize?: number;
+  @Field(() => Int, { nullable: true }) finalizerLeaseMs?: number;
+  @Field(() => Int, { nullable: true }) evaluatorTaskLeaseMs?: number;
+  @Field(() => Int, { nullable: true }) queuedTaskBatchSize?: number;
+  @Field(() => Int, { nullable: true }) readyTaskScanLimit?: number;
+  @Field(() => Int, { nullable: true }) eventLogAddressBatchSize?: number;
+  @Field(() => Int, { nullable: true }) eventLogRecordBatchSize?: number;
+  @Field(() => Int, { nullable: true }) prebuildChunkSourceRecordLimit?: number;
+  @Field(() => Int, { nullable: true }) leaderScoringWindowDays?: number;
+  @Field(() => Int, { nullable: true }) candidateRecentActivityDays?: number;
+  @Field(() => Int, { nullable: true }) botTraderMinAvgDurationMs?: number;
+}
+
+@InputType()
 export class IntRangeInput {
   @Field(() => Int)
   min: number;

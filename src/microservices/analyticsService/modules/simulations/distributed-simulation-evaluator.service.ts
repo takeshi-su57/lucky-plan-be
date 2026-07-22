@@ -9,12 +9,19 @@ import {
   ContractContext,
 } from './simulation-leader-evaluator.service';
 import { WindowRange } from './utils/simulation-range.utils';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
 
-const LEADER_SCORING_WINDOW_DAYS = 180;
+export type SimulationEvaluationDispatchTiming = {
+  findCandidateMs: number;
+  loadRangeContextMs: number;
+};
 
 @Injectable()
 export class DistributedSimulationEvaluatorService {
-  constructor(private readonly tasks: SimulationEvaluatorTaskService) {}
+  constructor(
+    private readonly tasks: SimulationEvaluatorTaskService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
+  ) {}
 
   async canEvaluateLeadersForRange(
     simulation: Simulation,
@@ -53,6 +60,7 @@ export class DistributedSimulationEvaluatorService {
     candidateLeaders: string[],
     range: WindowRange,
     contractById: Map<number, ContractContext>,
+    dispatchTiming?: SimulationEvaluationDispatchTiming,
   ) {
     const evaluationSimulation = {
       platform: simulation.platform,
@@ -68,6 +76,7 @@ export class DistributedSimulationEvaluatorService {
       scoreFormular: simulation.scoreFormular,
       sizingFormular: simulation.sizingFormular,
     };
+    const workflow = await this.workflowConfig.get();
     return this.tasks.createTask({
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
@@ -89,8 +98,9 @@ export class DistributedSimulationEvaluatorService {
           },
           contracts: [...contractById.values()],
           platform: simulation.platform,
+          dispatchTiming,
           eventLogWindowStartedAt: dayjs(range.startedAt)
-            .subtract(LEADER_SCORING_WINDOW_DAYS, 'day')
+            .subtract(workflow.leaderScoringWindowDays, 'day')
             .toISOString(),
           eventLogWindowEndedAt: range.startedAt.toISOString(),
         }),

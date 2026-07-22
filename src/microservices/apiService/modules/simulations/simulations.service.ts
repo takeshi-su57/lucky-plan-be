@@ -19,6 +19,7 @@ import {
 } from './entities/simulations.entity';
 
 import { PrismaService } from 'src/global/prisma.service';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
 import {
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
@@ -49,7 +50,6 @@ const DEFAULT_COLLATERAL_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_SIZE_RANGE = { min: 0, max: 1000000000 };
 const DEFAULT_LEVERAGE_RANGE = { min: 0, max: 50 };
 const DEFAULT_SCORE_RANGE = { min: 0, max: 1 };
-const MAX_SIMULATIONS_PER_RESEARCH = 30;
 // Research deletion can cascade through plans, bots, and their cached event logs.
 // Prisma's 5-second default is too short for larger completed researches.
 const SIMULATION_DELETION_TRANSACTION_OPTIONS = {
@@ -88,6 +88,7 @@ export class SimulationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationPlansService: SimulationPlansService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
     @Optional()
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient?: ClientProxy,
@@ -590,9 +591,10 @@ export class SimulationsService {
       );
     }
 
-    if (combinations.length > MAX_SIMULATIONS_PER_RESEARCH) {
+    const workflow = await this.workflowConfig.get();
+    if (combinations.length > workflow.maxSimulationsPerResearch) {
       throw new Error(
-        `Simulation research can generate at most ${MAX_SIMULATIONS_PER_RESEARCH} simulations`,
+        `Simulation research can generate at most ${workflow.maxSimulationsPerResearch} simulations`,
       );
     }
 

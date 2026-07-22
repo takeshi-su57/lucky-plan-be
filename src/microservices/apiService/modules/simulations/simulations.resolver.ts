@@ -18,23 +18,63 @@ import {
   SimulationResearch,
   SimulationResearchConnection,
   SimulationResearchDetails,
+  SimulationWorkflowConfigView,
 } from './entities/simulations.entity';
 import {
   CreateSimulationResearchInput,
   UpdateSimulationResearchInput,
+  UpdateSimulationWorkflowConfigInput,
 } from './dto/simulations.input';
 import { Roles } from '../auth/roles.decorator';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
+import { LogsService } from 'src/global/logs.service';
 
 @Resolver()
 export class SimulationsResolver {
   constructor(
     private readonly simulationsService: SimulationsService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
+    private readonly logger: LogsService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
+
+  @Query(() => SimulationWorkflowConfigView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  simulationWorkflowConfig() {
+    return this.workflowConfig.get();
+  }
+
+  @Mutation(() => SimulationWorkflowConfigView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async updateSimulationWorkflowConfig(
+    @Args('input') input: UpdateSimulationWorkflowConfigInput,
+  ) {
+    const config = await this.workflowConfig.update(input);
+    await this.logger.log({
+      severity: 'Notice',
+      summary: 'simulation.workflow.config.updated',
+      details: JSON.stringify(input),
+    });
+    return config;
+  }
+
+  @Mutation(() => SimulationWorkflowConfigView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async restoreSimulationWorkflowDefaults() {
+    const config = await this.workflowConfig.restoreDefaults();
+    await this.logger.log({
+      severity: 'Notice',
+      summary: 'simulation.workflow.config.restoredDefaults',
+    });
+    return config;
+  }
 
   @Mutation(() => SimulationResearch)
   @Roles(UserPermission.Trader)

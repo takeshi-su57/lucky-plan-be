@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import {
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
@@ -7,6 +7,8 @@ import {
 } from 'generated/prisma/enums';
 
 import { PrismaService } from 'src/global/prisma.service';
+import { LogsService } from 'src/global/logs.service';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
 import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulation-evaluator-task.service';
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
@@ -15,10 +17,6 @@ import {
   buildSimulationRanges,
   WindowRange,
 } from './utils/simulation-range.utils';
-
-export const MAX_OUTSTANDING_DYNAMIC_PLANS = 20;
-const FINALIZER_BATCH_SIZE = 20;
-const FINALIZER_LEASE_MS = 30 * 60_000;
 
 type DispatchCandidate = {
   simulation: any;
@@ -63,6 +61,8 @@ export class SimulationDynamicAutoSchedulerService {
     private readonly runner: SimulationAutoRunnerService,
     private readonly distributedEvaluator: DistributedSimulationEvaluatorService,
     private readonly evaluatorTasks: SimulationEvaluatorTaskService,
+    private readonly logger: LogsService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
   ) {}
 
   async processAvailableSimulations(now = new Date()) {
@@ -172,7 +172,11 @@ export class SimulationDynamicAutoSchedulerService {
       first.simulation.endAt,
       true,
     );
-    const target = Math.min(MAX_OUTSTANDING_DYNAMIC_PLANS, workerCapacity);
+    const workflow = await this.workflowConfig.get();
+    const target = Math.min(
+      workflow.maxOutstandingDynamicPlans,
+      workerCapacity,
+    );
     const outstanding = await this.prisma.simulationExecutionPlan.count({
       where: {
         status: {
@@ -258,20 +262,29 @@ export class SimulationDynamicAutoSchedulerService {
       return false;
 
     try {
+      const findCandidateStartedAt = performance.now();
       const prepared = await this.runner.findCandidateLeadersForRange(
         simulationRecord.id,
         range,
       );
+      const findCandidateMs = Math.round(
+        performance.now() - findCandidateStartedAt,
+      );
       if (!prepared) return false;
+      const contextStartedAt = performance.now();
       const context = await this.runner.loadSimulationRangeProcessingContext(
         prepared.simulation.platform,
         ranges,
+      );
+      const loadRangeContextMs = Math.round(
+        performance.now() - contextStartedAt,
       );
       const task = await this.distributedEvaluator.enqueueLeadersForRange(
         prepared.simulation,
         prepared.candidateLeaders,
         range,
         context.contractById,
+        { findCandidateMs, loadRangeContextMs },
       );
       await this.prisma.$transaction([
         this.prisma.simulationExecutionPlan.update({
@@ -316,6 +329,7 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async finalizeCompletedPlans(now: Date) {
+    const workflow = await this.workflowConfig.get();
     const plans = await this.prisma.simulationExecutionPlan.findMany({
       where: {
         status: SimulationExecutionPlanStatus.Dispatched,
@@ -334,19 +348,23 @@ export class SimulationDynamicAutoSchedulerService {
         simulation: { include: { research: true } },
       },
       orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take: FINALIZER_BATCH_SIZE,
+      take: workflow.finalizerBatchSize,
     });
-    await Promise.all(plans.map((plan) => this.finalizePlan(plan, now)));
+    await Promise.all(
+      plans.map((plan) =>
+        this.finalizePlan(plan, now, workflow.finalizerLeaseMs),
+      ),
+    );
   }
 
-  private async finalizePlan(plan: any, now: Date) {
+  private async finalizePlan(plan: any, now: Date, finalizerLeaseMs: number) {
     const leaseToken = randomUUID();
     const claim = await this.prisma.simulationExecutionPlan.updateMany({
       where: { id: plan.id, status: SimulationExecutionPlanStatus.Dispatched },
       data: {
         status: SimulationExecutionPlanStatus.Finalizing,
         leaseToken,
-        leaseExpiresAt: new Date(now.getTime() + FINALIZER_LEASE_MS),
+        leaseExpiresAt: new Date(now.getTime() + finalizerLeaseMs),
       },
     });
     if (!claim.count) return;
@@ -375,12 +393,27 @@ export class SimulationDynamicAutoSchedulerService {
         plan.evaluatorTask.id,
         taskInput.candidateLeaders ?? [],
       );
-      await this.runner.finalizeSimulationRange(
+      const aggregationStartedAt = performance.now();
+      const finalizedSimulation = await this.runner.finalizeSimulationRange(
         plan.simulationId,
         range,
         context,
         evaluated,
       );
+      const aggregationMs = Math.round(
+        performance.now() - aggregationStartedAt,
+      );
+      const result = this.withFinalizationTiming(
+        plan.evaluatorTask.result,
+        aggregationMs,
+      );
+      await this.prisma.simulationEvaluatorTask.update({
+        where: { id: plan.evaluatorTask.id },
+        data: {
+          result,
+          resultChecksum: this.checksum(result),
+        },
+      });
       await this.prisma.simulationExecutionPlan.updateMany({
         where: { id: plan.id, leaseToken },
         data: {
@@ -391,6 +424,9 @@ export class SimulationDynamicAutoSchedulerService {
           lastError: null,
         },
       });
+      if (finalizedSimulation?.status === SimulationStatus.Completed) {
+        await this.logSimulationTiming(plan.simulationId);
+      }
       await this.syncResearch(plan.simulation.researchId);
     } catch (error) {
       await this.prisma.simulationExecutionPlan.updateMany({
@@ -499,7 +535,12 @@ export class SimulationDynamicAutoSchedulerService {
             executionPlans: {
               select: {
                 status: true,
-                evaluatorTask: { select: { status: true } },
+                createdAt: true,
+                dispatchedAt: true,
+                completedAt: true,
+                evaluatorTask: {
+                  select: { status: true, input: true, result: true },
+                },
               },
             },
           },
@@ -580,5 +621,92 @@ export class SimulationDynamicAutoSchedulerService {
 
   private rangeKey(startedAt: Date, endedAt: Date) {
     return `${startedAt.toISOString()}:${endedAt.toISOString()}`;
+  }
+
+  private withFinalizationTiming(result: unknown, aggregationMs: number) {
+    const value = this.asRecord(result);
+    return {
+      ...value,
+      finalizationTiming: { aggregationMs },
+    };
+  }
+
+  private async logSimulationTiming(simulationId: number) {
+    const simulation = await this.prisma.simulation.findUniqueOrThrow({
+      where: { id: simulationId },
+      include: {
+        executionPlans: {
+          where: { status: SimulationExecutionPlanStatus.Completed },
+          include: {
+            evaluatorTask: { select: { input: true, result: true } },
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
+      },
+    });
+    const plans = simulation.executionPlans;
+    const sums = {
+      findCandidate: 0,
+      loadRangeContext: 0,
+      leaderEvaluation: 0,
+      botCacheAndAggregation: 0,
+      cacheRead: 0,
+      recentFilter: 0,
+      historyConversion: 0,
+      positionBuild: 0,
+      scoring: 0,
+    };
+    for (const plan of plans) {
+      const input = this.asRecord(plan.evaluatorTask?.input);
+      const result = this.asRecord(plan.evaluatorTask?.result);
+      const dispatchTiming = this.asRecord(input.dispatchTiming);
+      const workerTiming = this.asRecord(result.timing);
+      const finalizationTiming = this.asRecord(result.finalizationTiming);
+      sums.findCandidate += this.numberValue(dispatchTiming.findCandidateMs);
+      sums.loadRangeContext += this.numberValue(
+        dispatchTiming.loadRangeContextMs,
+      );
+      sums.leaderEvaluation += this.numberValue(workerTiming.totalMs);
+      sums.botCacheAndAggregation += this.numberValue(
+        finalizationTiming.aggregationMs,
+      );
+      sums.cacheRead += this.numberValue(workerTiming.cacheReadMs);
+      sums.recentFilter += this.numberValue(workerTiming.recentFilterMs);
+      sums.historyConversion += this.numberValue(
+        workerTiming.historyConversionMs,
+      );
+      sums.positionBuild += this.numberValue(workerTiming.positionBuildMs);
+      sums.scoring += this.numberValue(workerTiming.scoringMs);
+    }
+    const startedAt = plans[0]?.createdAt;
+    const finishedAt = plans.at(-1)?.completedAt ?? new Date();
+    await this.logger.log({
+      severity: 'Debug',
+      summary: 'analytics.simulation.performance.completed',
+      details: JSON.stringify({
+        researchId: simulation.researchId,
+        simulationId: simulation.id,
+        title: simulation.title,
+        completedPlanCount: plans.length,
+        totalExecutionMs: startedAt
+          ? Math.max(0, finishedAt.getTime() - startedAt.getTime())
+          : null,
+        summedPlanTimingsMs: sums,
+      }),
+    });
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private numberValue(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  private checksum(value: Record<string, unknown>) {
+    return createHash('sha256').update(JSON.stringify(value)).digest('hex');
   }
 }
