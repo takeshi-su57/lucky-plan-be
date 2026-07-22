@@ -253,12 +253,10 @@ export class SimulationEvaluatorWorkersResolver {
     const tasks = await this.prisma.simulationEvaluatorTask.findMany({
       where: workerId
         ? { OR: [{ targetWorkerId: workerId }, { workerId }] }
-        : {
-            OR: [
-              { targetWorkerId: { not: null } },
-              { workerId: { not: null } },
-            ],
-          },
+        : // The admin fleet view is also the queue monitor.  Do not hide work
+          // that has not been assigned yet: it is the most important state when
+          // diagnosing why an evaluator fleet is not making progress.
+          {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 200,
     });
