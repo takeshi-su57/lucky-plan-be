@@ -7,9 +7,14 @@ import { SimulationEvaluatorTaskService } from 'src/microservices/analyticsServi
 import {
   SimulationEvaluatorTaskKind,
   SimulationEvaluatorTaskStatus,
+  SimulationEvaluatorWorkerAuthorizationStatus,
   SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerPlatformCacheStatus,
+  SimulationEvaluatorWorkerRuntimeStatus,
+  SimulationExecutionPlanStatus,
 } from 'generated/prisma/enums';
+import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
+import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
 import { missingRanges } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-coverage';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import { RolesGuard } from '../auth/gql-role.guard';
@@ -19,6 +24,7 @@ import {
   SimulationEvaluatorWorkerTaskView,
   SimulationEvaluatorWorkerTaskConnection,
   SimulationEvaluatorWorkerView,
+  SimulationEvaluatorPipelineView,
 } from './entities/simulations.entity';
 
 @Resolver()
@@ -27,6 +33,7 @@ export class SimulationEvaluatorWorkersResolver {
     private readonly prisma: PrismaService,
     private readonly auth: SimulationEvaluatorWorkerAuthService,
     private readonly tasks: SimulationEvaluatorTaskService,
+    private readonly workflowConfig: SimulationWorkflowConfigService,
   ) {}
 
   @Query(() => [SimulationEvaluatorWorkerView])
@@ -54,6 +61,19 @@ export class SimulationEvaluatorWorkersResolver {
         progressBytes: true,
       },
     });
+    const claimedEvaluationCounts =
+      await this.prisma.simulationEvaluatorTask.groupBy({
+        by: ['workerId'],
+        where: {
+          workerId: { in: workers.map((worker) => worker.id) },
+          kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+          status: SimulationEvaluatorTaskStatus.Claimed,
+        },
+        _count: { _all: true },
+      });
+    const claimedByWorkerId = new Map(
+      claimedEvaluationCounts.map((item) => [item.workerId, item._count._all]),
+    );
     const taskByWorkerId = new Map(tasks.map((task) => [task.workerId, task]));
     return workers.map((worker) => {
       const task = taskByWorkerId.get(worker.id);
@@ -69,6 +89,10 @@ export class SimulationEvaluatorWorkersResolver {
         })),
         lastDiagnostic: this.toDiagnosticView(worker.lastDiagnostic),
         displayName: worker.displayName || `worker-${worker.id.slice(0, 8)}`,
+        claimedEvaluationTasks: claimedByWorkerId.get(worker.id) ?? 0,
+        evaluationClaimLimit:
+          Math.min(worker.activeCapacity, worker.desiredCapacity) *
+          SIMULATION_EVALUATOR.workerClaimCapacityMultiplier,
         prebuildProgress: task
           ? {
               taskId: task.id,
@@ -80,6 +104,108 @@ export class SimulationEvaluatorWorkersResolver {
             }
           : undefined,
       };
+    });
+  }
+
+  @Query(() => SimulationEvaluatorPipelineView)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async simulationEvaluatorPipeline() {
+    const workflow = await this.workflowConfig.get();
+    const [
+      workers,
+      queued,
+      ready,
+      claimed,
+      awaitingFinalization,
+      finalizing,
+      awaitingEventLogs,
+      failed,
+      outstanding,
+    ] = await Promise.all([
+      this.prisma.simulationEvaluatorWorker.findMany({
+        where: {
+          authorizationStatus:
+            SimulationEvaluatorWorkerAuthorizationStatus.Approved,
+          desiredState: SimulationEvaluatorWorkerDesiredState.Running,
+          runtimeStatus: {
+            in: [
+              SimulationEvaluatorWorkerRuntimeStatus.Free,
+              SimulationEvaluatorWorkerRuntimeStatus.Busy,
+            ],
+          },
+        },
+        select: { activeCapacity: true, desiredCapacity: true },
+      }),
+      this.countEvaluationTasks(SimulationEvaluatorTaskStatus.Queued),
+      this.countEvaluationTasks(SimulationEvaluatorTaskStatus.Ready),
+      this.countEvaluationTasks(SimulationEvaluatorTaskStatus.Claimed),
+      this.prisma.simulationExecutionPlan.count({
+        where: {
+          status: SimulationExecutionPlanStatus.Dispatched,
+          evaluatorTask: {
+            is: { status: SimulationEvaluatorTaskStatus.Completed },
+          },
+        },
+      }),
+      this.prisma.simulationExecutionPlan.count({
+        where: { status: SimulationExecutionPlanStatus.Finalizing },
+      }),
+      this.prisma.simulationExecutionPlan.count({
+        where: { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+      }),
+      this.prisma.simulationExecutionPlan.count({
+        where: { status: SimulationExecutionPlanStatus.Failed },
+      }),
+      this.prisma.simulationExecutionPlan.count({
+        where: {
+          status: {
+            in: [
+              SimulationExecutionPlanStatus.Pending,
+              SimulationExecutionPlanStatus.Dispatched,
+              SimulationExecutionPlanStatus.AwaitingEventLogs,
+              SimulationExecutionPlanStatus.Finalizing,
+            ],
+          },
+        },
+      }),
+    ]);
+    const fleetCapacity = workers.reduce(
+      (total, worker) =>
+        total + Math.min(worker.activeCapacity, worker.desiredCapacity),
+      0,
+    );
+    const finalizerBacklog =
+      awaitingFinalization + finalizing + awaitingEventLogs;
+    return {
+      fleetCapacity,
+      queueLowWatermark:
+        fleetCapacity *
+        SIMULATION_EVALUATOR.queueLowWatermarkCapacityMultiplier,
+      queueHighWatermark:
+        fleetCapacity *
+        SIMULATION_EVALUATOR.queueHighWatermarkCapacityMultiplier,
+      workerClaimLimit:
+        fleetCapacity * SIMULATION_EVALUATOR.workerClaimCapacityMultiplier,
+      queuedEvaluationTasks: queued,
+      readyEvaluationTasks: ready,
+      claimedEvaluationTasks: claimed,
+      awaitingFinalizationPlans: awaitingFinalization,
+      finalizingPlans: finalizing,
+      awaitingEventLogPlans: awaitingEventLogs,
+      failedExecutionPlans: failed,
+      outstandingExecutionPlans: outstanding,
+      finalizerConcurrency: workflow.finalizerConcurrency,
+      maxAwaitingFinalizationPlans: workflow.maxAwaitingFinalizationPlans,
+      maxOutstandingDynamicPlans: workflow.maxOutstandingDynamicPlans,
+      backpressureActive:
+        finalizerBacklog >= workflow.maxAwaitingFinalizationPlans,
+    };
+  }
+
+  private countEvaluationTasks(status: SimulationEvaluatorTaskStatus) {
+    return this.prisma.simulationEvaluatorTask.count({
+      where: { kind: SimulationEvaluatorTaskKind.EvaluateLeaders, status },
     });
   }
 

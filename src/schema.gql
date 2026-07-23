@@ -777,6 +777,7 @@ type Query {
   simulationEvaluatorWorkerTaskConnection(archive: Boolean! = false, cursor: String, limit: Int! = 30, workerId: String!): SimulationEvaluatorWorkerTaskConnection!
   simulationEvaluatorWorkerTasks(workerId: String): [SimulationEvaluatorWorkerTaskView!]!
   simulationEvaluatorWorkers: [SimulationEvaluatorWorkerView!]!
+  simulationEvaluatorPipeline: SimulationEvaluatorPipelineView!
   simulationPlanDetailsBySimulation(simulationId: Int!): [SimulationPlanDetails!]!
   simulationPlansBySimulation(simulationId: Int!): [SimulationPlan!]!
   simulationResearch(id: Int!): SimulationResearchDetails
@@ -981,6 +982,25 @@ type SimulationEvaluatorWorkerPrebuildProgressView {
   totalRecords: String!
 }
 
+type SimulationEvaluatorPipelineView {
+  awaitingEventLogPlans: Int!
+  awaitingFinalizationPlans: Int!
+  backpressureActive: Boolean!
+  claimedEvaluationTasks: Int!
+  failedExecutionPlans: Int!
+  finalizerConcurrency: Int!
+  finalizingPlans: Int!
+  fleetCapacity: Int!
+  maxAwaitingFinalizationPlans: Int!
+  maxOutstandingDynamicPlans: Int!
+  outstandingExecutionPlans: Int!
+  queuedEvaluationTasks: Int!
+  queueHighWatermark: Int!
+  queueLowWatermark: Int!
+  readyEvaluationTasks: Int!
+  workerClaimLimit: Int!
+}
+
 type SimulationEvaluatorWorkerTaskConnection {
   items: [SimulationEvaluatorWorkerTaskView!]!
   nextCursor: String
@@ -1013,9 +1033,11 @@ type SimulationEvaluatorWorkerTaskView {
 type SimulationEvaluatorWorkerView {
   activeCapacity: Int!
   authorizationStatus: String!
+  claimedEvaluationTasks: Int!
   desiredCapacity: Int!
   desiredState: String!
   displayName: String!
+  evaluationClaimLimit: Int!
   id: String!
   lastDiagnostic: SimulationEvaluatorWorkerDiagnosticView
   lastDiagnosticAt: Date

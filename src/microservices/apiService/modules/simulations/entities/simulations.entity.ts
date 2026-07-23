@@ -644,6 +644,8 @@ export class SimulationEvaluatorWorkerView {
   @Field(() => String) desiredState: string;
   @Field(() => Int) desiredCapacity: number;
   @Field(() => Int) activeCapacity: number;
+  @Field(() => Int) claimedEvaluationTasks: number;
+  @Field(() => Int) evaluationClaimLimit: number;
   @Field(() => Date, { nullable: true })
   lastHeartbeatAt: Date | null;
   @Field(() => Date, { nullable: true }) lastTaskAt: Date | null;
@@ -657,6 +659,26 @@ export class SimulationEvaluatorWorkerView {
     nullable: true,
   })
   prebuildProgress?: SimulationEvaluatorWorkerPrebuildProgressView;
+}
+
+@ObjectType()
+export class SimulationEvaluatorPipelineView {
+  @Field(() => Int) fleetCapacity: number;
+  @Field(() => Int) queueLowWatermark: number;
+  @Field(() => Int) queueHighWatermark: number;
+  @Field(() => Int) workerClaimLimit: number;
+  @Field(() => Int) queuedEvaluationTasks: number;
+  @Field(() => Int) readyEvaluationTasks: number;
+  @Field(() => Int) claimedEvaluationTasks: number;
+  @Field(() => Int) awaitingFinalizationPlans: number;
+  @Field(() => Int) finalizingPlans: number;
+  @Field(() => Int) awaitingEventLogPlans: number;
+  @Field(() => Int) failedExecutionPlans: number;
+  @Field(() => Int) outstandingExecutionPlans: number;
+  @Field(() => Int) finalizerConcurrency: number;
+  @Field(() => Int) maxAwaitingFinalizationPlans: number;
+  @Field(() => Int) maxOutstandingDynamicPlans: number;
+  @Field(() => Boolean) backpressureActive: boolean;
 }
 
 @ObjectType()
