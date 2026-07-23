@@ -9,6 +9,7 @@ export type SimulationWorkflowConfig = {
   maxOutstandingDynamicPlans: number;
   finalizerBatchSize: number;
   finalizerConcurrency: number;
+  finalizerBotCacheConcurrency: number;
   finalizerRetryDelayMs: number;
   maxAwaitingFinalizationPlans: number;
   finalizerLeaseMs: number;
@@ -30,6 +31,7 @@ export const SIMULATION_WORKFLOW_DEFAULTS: SimulationWorkflowConfig = {
   maxOutstandingDynamicPlans: 500,
   finalizerBatchSize: 20,
   finalizerConcurrency: 8,
+  finalizerBotCacheConcurrency: 4,
   finalizerRetryDelayMs: 60_000,
   maxAwaitingFinalizationPlans: 200,
   finalizerLeaseMs: 30 * 60_000,
@@ -50,6 +52,7 @@ const bounds: Record<keyof SimulationWorkflowConfig, [number, number]> = {
   maxOutstandingDynamicPlans: [1, 500],
   finalizerBatchSize: [1, 500],
   finalizerConcurrency: [1, 100],
+  finalizerBotCacheConcurrency: [1, 32],
   finalizerRetryDelayMs: [10_000, 24 * 60 * 60_000],
   maxAwaitingFinalizationPlans: [1, 500],
   finalizerLeaseMs: [60_000, 24 * 60 * 60_000],

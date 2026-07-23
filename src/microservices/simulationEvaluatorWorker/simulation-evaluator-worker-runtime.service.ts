@@ -49,6 +49,8 @@ export class SimulationEvaluatorWorkerRuntimeService
   private readonly idleChildren = new Set<ChildProcess>();
   private readonly running = new Map<string, ChildProcess>();
   private readonly pendingEvaluations: ClaimedTask[] = [];
+  private pendingExclusiveTask: ClaimedTask | null = null;
+  private activeExclusiveTaskId: string | null = null;
   private readonly startingEvaluations = new Map<string, ChildProcess>();
   private readonly idleChildWaiters: Array<{
     resolve: (child: ChildProcess) => void;
@@ -124,13 +126,35 @@ export class SimulationEvaluatorWorkerRuntimeService
     this.client.beginTask(task.id, task.leaseToken);
     if (task.kind === SimulationEvaluatorTaskKind.EvaluateLeaders) {
       this.pendingEvaluations.push(task);
-      this.drainPendingEvaluations();
+      this.drainWork();
       return;
     }
-    void this.processTask(task);
+    // The gateway claims control work immediately.  Keep prefetched
+    // evaluations buffered, let current children finish, then run this task.
+    if (this.pendingExclusiveTask || this.activeExclusiveTaskId) {
+      void this.client.fail(
+        task.id,
+        task.leaseToken,
+        'Another exclusive evaluator command is already pending',
+      );
+      this.client.endTask(task.id);
+      return;
+    }
+    this.pendingExclusiveTask = task;
+    this.drainWork();
   }
 
-  private drainPendingEvaluations() {
+  private drainWork() {
+    if (this.pendingExclusiveTask) {
+      if (this.startingEvaluations.size > 0 || this.activeExclusiveTaskId)
+        return;
+      const task = this.pendingExclusiveTask;
+      this.pendingExclusiveTask = null;
+      this.activeExclusiveTaskId = task.id;
+      void this.processTask(task);
+      return;
+    }
+    if (this.activeExclusiveTaskId) return;
     while (this.pendingEvaluations.length > 0 && this.idleChildren.size > 0) {
       const task = this.pendingEvaluations.shift()!;
       const child = this.takeIdleChild()!;
@@ -235,13 +259,15 @@ export class SimulationEvaluatorWorkerRuntimeService
       this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
       this.releaseStartingChild(task.id);
+      if (this.activeExclusiveTaskId === task.id)
+        this.activeExclusiveTaskId = null;
       if (
         task.kind !== SimulationEvaluatorTaskKind.UpgradeWorker ||
         !this.upgradeScheduled
       ) {
         this.client.endTask(task.id);
       }
-      this.drainPendingEvaluations();
+      this.drainWork();
     }
   }
 
@@ -514,7 +540,7 @@ export class SimulationEvaluatorWorkerRuntimeService
       if (!this.stopping && this.children.size < this.desiredChildCapacity) {
         this.spawnChild();
       }
-      this.drainPendingEvaluations();
+      this.drainWork();
     });
   }
 

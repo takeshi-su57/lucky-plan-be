@@ -92,6 +92,48 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
   });
 
+  it('runs a received capacity command before prefetched evaluations', () => {
+    const client = {
+      beginTask: jest.fn(),
+      fail: jest.fn(),
+      endTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    const runningChild = {};
+    const prefetched = {
+      id: 'evaluation-prefetched',
+      kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+      leaseToken: 'evaluation-lease',
+    };
+    const capacity = {
+      id: 'capacity-1',
+      kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
+      leaseToken: 'capacity-lease',
+    };
+    (runtime as any).startingEvaluations.set(
+      'evaluation-running',
+      runningChild,
+    );
+    (runtime as any).pendingEvaluations.push(prefetched);
+    const processTask = jest
+      .spyOn(runtime as any, 'processTask')
+      .mockImplementation(() => new Promise(() => undefined));
+
+    (runtime as any).acceptTask(capacity);
+
+    expect(processTask).not.toHaveBeenCalled();
+    expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
+
+    (runtime as any).startingEvaluations.delete('evaluation-running');
+    (runtime as any).drainWork();
+
+    expect(processTask).toHaveBeenCalledWith(capacity);
+    expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
+  });
+
   it('waits for a replacement when a reserved child exits during input loading', async () => {
     const runtime = new SimulationEvaluatorWorkerRuntimeService(
       {} as never,

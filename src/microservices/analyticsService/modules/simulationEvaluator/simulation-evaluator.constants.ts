@@ -13,9 +13,9 @@ export const SIMULATION_EVALUATOR = {
   // whole result set just to discover its byte size. The supplied GNS sample
   // estimates this at roughly a 5 MiB gzip payload.
   prebuildChunkSourceRecordLimit: 20_000,
-  // Keep enough server-side work ready to absorb scheduler and network jitter.
   // Workers lease one additional capacity window locally so a completed child
   // can start its next evaluation without waiting for another poll round-trip.
+  // A received targeted admin command pauses this buffer in the worker itself.
   queueLowWatermarkCapacityMultiplier: 2,
   queueHighWatermarkCapacityMultiplier: 3,
   workerClaimCapacityMultiplier: 2,

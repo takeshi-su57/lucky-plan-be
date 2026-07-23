@@ -200,6 +200,64 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     ).toBe(20);
   });
 
+  it('claims a targeted capacity command ahead of evaluations already prefetched', async () => {
+    const prisma = {
+      simulationEvaluatorTask: {
+        findMany: jest.fn(async () => [
+          { kind: 'EvaluateLeaders' },
+          { kind: 'EvaluateLeaders' },
+          { kind: 'EvaluateLeaders' },
+        ]),
+        findFirst: jest.fn(async () => ({
+          id: 'capacity-1',
+          kind: 'SetWorkerCapacity',
+          targetWorkerId: 'worker-1',
+          simulationId: null,
+          simulationPlanId: null,
+          rangeStartedAt: null,
+          rangeEndedAt: null,
+          input: { capacity: 5 },
+          inputChecksum: 'checksum',
+        })),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn(async () => ({
+          id: 'worker-1',
+          authorizationStatus:
+            SimulationEvaluatorWorkerAuthorizationStatus.Approved,
+          desiredState: SimulationEvaluatorWorkerDesiredState.Running,
+          runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Busy,
+          lastHeartbeatAt: new Date(),
+          activeCapacity: 3,
+          desiredCapacity: 3,
+          platformCaches: [],
+        })),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
+    jest
+      .spyOn(service as any, 'reconcileExpiredClaims')
+      .mockResolvedValue(undefined);
+
+    await expect(service.claimNextTask('worker-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'capacity-1' }),
+    );
+
+    const exclusiveQuery = (
+      prisma.simulationEvaluatorTask.findFirst as unknown as jest.Mock
+    ).mock.calls[0]![0] as any;
+    expect(exclusiveQuery.where.targetWorkerId).toBe('worker-1');
+    expect(exclusiveQuery.where.kind.in).toContain('SetWorkerCapacity');
+    // The only task scan is for already claimed work; ready evaluations are
+    // not considered while the worker receives the exclusive command.
+    expect(prisma.simulationEvaluatorTask.findMany).toHaveBeenCalledTimes(1);
+  });
+
   it('counts eligible workers with a recent heartbeat as ready', async () => {
     const prisma = {
       simulationEvaluatorWorker: {

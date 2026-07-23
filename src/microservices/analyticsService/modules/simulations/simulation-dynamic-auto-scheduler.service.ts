@@ -423,9 +423,18 @@ export class SimulationDynamicAutoSchedulerService {
           },
         },
       };
+      // We allow only one plan from a simulation at a time to preserve its
+      // ordered aggregation.  A small, fixed scan can therefore leave slots
+      // idle when its oldest rows belong to the same simulation.  Scan the
+      // enough of the bounded finalizer backlog so another simulation can use
+      // the spare slot.  Keep finalizerBatchSize meaningful as the minimum
+      // scan requested by an operator.
       const scanLimit = Math.min(
         500,
-        workflow.finalizerBatchSize * availableSlots,
+        Math.max(
+          workflow.finalizerBatchSize * availableSlots,
+          workflow.finalizerConcurrency * 100,
+        ),
       );
       const queryOptions = {
         include: {
@@ -484,10 +493,13 @@ export class SimulationDynamicAutoSchedulerService {
     workflow: {
       finalizerLeaseMs: number;
       finalizerRetryDelayMs: number;
+      finalizerBotCacheConcurrency: number;
     },
   ) {
+    const totalStartedAt = performance.now();
     const leaseToken = randomUUID();
     const leaseExpiresAt = new Date(now.getTime() + workflow.finalizerLeaseMs);
+    const claimStartedAt = performance.now();
     const simulationClaim = await this.prisma.simulation.updateMany({
       where: {
         id: plan.simulationId,
@@ -523,6 +535,7 @@ export class SimulationDynamicAutoSchedulerService {
       await this.releaseSimulationFinalizerLease(plan.simulationId, leaseToken);
       return;
     }
+    const claimMs = Math.round(performance.now() - claimStartedAt);
     const renewal = setInterval(
       () =>
         void this.renewFinalizerLease(
@@ -546,25 +559,35 @@ export class SimulationDynamicAutoSchedulerService {
           gapDays: plan.simulation.gapDays,
         },
       );
+      const contextStartedAt = performance.now();
       const context = await this.runner.loadSimulationRangeProcessingContext(
         plan.simulation.platform,
         ranges,
       );
+      const loadRangeContextMs = Math.round(
+        performance.now() - contextStartedAt,
+      );
       const taskInput = plan.evaluatorTask.input as {
         candidateLeaders?: string[];
       };
+      const readEvaluationStartedAt = performance.now();
       const evaluated = this.distributedEvaluator.readCompletedEvaluation(
         plan.evaluatorTask.result,
         plan.evaluatorTask.id,
         taskInput.candidateLeaders ?? [],
       );
-      const aggregationStartedAt = performance.now();
+      const readEvaluationMs = Math.round(
+        performance.now() - readEvaluationStartedAt,
+      );
+      const runnerStartedAt = performance.now();
       const finalization = await this.runner.finalizeSimulationRange(
         plan.simulationId,
         range,
         context,
         evaluated,
+        workflow.finalizerBotCacheConcurrency,
       );
+      const runnerMs = Math.round(performance.now() - runnerStartedAt);
       if (finalization.awaitingEventLogs) {
         await this.prisma.simulationExecutionPlan.updateMany({
           where: { id: plan.id, leaseToken },
@@ -580,13 +603,18 @@ export class SimulationDynamicAutoSchedulerService {
         });
         return;
       }
-      const aggregationMs = Math.round(
-        performance.now() - aggregationStartedAt,
-      );
-      const result = this.withFinalizationTiming(
-        plan.evaluatorTask.result,
-        aggregationMs,
-      );
+      const result = this.withFinalizationTiming(plan.evaluatorTask.result, {
+        queueWaitMs: Math.max(
+          0,
+          now.getTime() - plan.evaluatorTask.updatedAt.getTime(),
+        ),
+        claimMs,
+        loadRangeContextMs,
+        readEvaluationMs,
+        runnerMs,
+        ...(finalization.timing ?? {}),
+      });
+      const persistenceStartedAt = performance.now();
       await this.prisma.simulationEvaluatorTask.update({
         where: { id: plan.evaluatorTask.id },
         data: {
@@ -605,10 +633,32 @@ export class SimulationDynamicAutoSchedulerService {
           lastError: null,
         },
       });
-      if (finalization.simulation?.status === SimulationStatus.Completed) {
+      await this.syncResearch(plan.simulation.researchId);
+      const finalizedSimulation = await this.prisma.simulation.findUnique({
+        where: { id: plan.simulationId },
+        select: { status: true },
+      });
+      if (finalizedSimulation?.status === SimulationStatus.Completed) {
         await this.logSimulationTiming(plan.simulationId);
       }
-      await this.syncResearch(plan.simulation.researchId);
+      await this.logger.log({
+        severity: 'Debug',
+        summary: 'analytics.simulation.performance.finalizer',
+        details: JSON.stringify({
+          researchId: plan.simulation.researchId,
+          simulationId: plan.simulationId,
+          planId: plan.id,
+          finalizationTiming: {
+            claimMs,
+            loadRangeContextMs,
+            readEvaluationMs,
+            runnerMs,
+            persistenceMs: Math.round(performance.now() - persistenceStartedAt),
+            totalMs: Math.round(performance.now() - totalStartedAt),
+            ...(finalization.timing ?? {}),
+          },
+        }),
+      });
     } catch (error) {
       await this.prisma.simulationExecutionPlan.updateMany({
         where: { id: plan.id, leaseToken },
@@ -703,44 +753,58 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async syncResearch(researchId: number) {
-    // Simulation status is derived from the completed plan count.  Restore it
-    // before aggregating the parent so an interrupted finalization cannot keep
-    // either record in Running after all plan windows were written.
+    // Execution plans, not created SimulationPlan records, are the source of
+    // truth.  A plan cache can exist while it still awaits event data.
     const simulationsToComplete = await this.prisma.simulation.findMany({
       where: {
         researchId,
         status: {
-          notIn: [
-            SimulationStatus.Cancelled,
-            SimulationStatus.Completed,
-            SimulationStatus.Failed,
-          ],
+          notIn: [SimulationStatus.Cancelled, SimulationStatus.Failed],
         },
       },
       select: {
         id: true,
+        status: true,
         completedPlans: true,
         totalSimulationPlans: true,
+        executionPlans: { select: { status: true } },
       },
     });
     const recoveredSimulations = await Promise.all(
-      simulationsToComplete
-        .filter(
-          (simulation) =>
-            simulation.totalSimulationPlans > 0 &&
-            simulation.completedPlans >= simulation.totalSimulationPlans,
+      simulationsToComplete.flatMap((simulation) => {
+        const completedPlans = simulation.executionPlans.filter(
+          (plan) => plan.status === SimulationExecutionPlanStatus.Completed,
+        ).length;
+        const completed =
+          simulation.totalSimulationPlans > 0 &&
+          completedPlans >= simulation.totalSimulationPlans;
+        const status = completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Running;
+        if (
+          simulation.status === status &&
+          simulation.completedPlans === completedPlans
         )
-        .map((simulation) =>
+          return [];
+        return [
           this.prisma.simulation.update({
             where: { id: simulation.id },
             data: {
-              status: SimulationStatus.Completed,
-              progressPhase: 'completed',
-              progressMessage: 'Simulation result completed',
-              progressPercent: 100,
+              completedPlans,
+              status,
+              progressPhase: completed
+                ? 'completed'
+                : 'dynamic-plan-scheduling',
+              progressMessage: completed
+                ? 'Simulation result completed'
+                : `Finalizing ${completedPlans} / ${simulation.totalSimulationPlans} plan windows`,
+              progressPercent: simulation.totalSimulationPlans
+                ? (completedPlans / simulation.totalSimulationPlans) * 100
+                : 0,
             },
           }),
-        ),
+        ];
+      }),
     );
     const research = await this.prisma.simulationResearch.findUnique({
       where: { id: researchId },
@@ -842,11 +906,14 @@ export class SimulationDynamicAutoSchedulerService {
     return `${startedAt.toISOString()}:${endedAt.toISOString()}`;
   }
 
-  private withFinalizationTiming(result: unknown, aggregationMs: number) {
+  private withFinalizationTiming(
+    result: unknown,
+    finalizationTiming: Record<string, number>,
+  ) {
     const value = this.asRecord(result);
     return {
       ...value,
-      finalizationTiming: { aggregationMs },
+      finalizationTiming,
     };
   }
 
@@ -869,6 +936,17 @@ export class SimulationDynamicAutoSchedulerService {
       loadRangeContext: 0,
       leaderEvaluation: 0,
       botCacheAndAggregation: 0,
+      createPlan: 0,
+      botCache: 0,
+      createBots: 0,
+      ensureBotCaches: 0,
+      planCache: 0,
+      aggregation: 0,
+      finalizerQueueWait: 0,
+      finalizerClaim: 0,
+      finalizerLoadRangeContext: 0,
+      finalizerReadEvaluation: 0,
+      finalizerPersistence: 0,
       cacheRead: 0,
       recentFilter: 0,
       historyConversion: 0,
@@ -886,8 +964,31 @@ export class SimulationDynamicAutoSchedulerService {
         dispatchTiming.loadRangeContextMs,
       );
       sums.leaderEvaluation += this.numberValue(workerTiming.totalMs);
+      // Retain the old field for dashboards while exposing each finalizer
+      // phase separately.  Older task results only contain aggregationMs.
       sums.botCacheAndAggregation += this.numberValue(
-        finalizationTiming.aggregationMs,
+        finalizationTiming.totalMs ?? finalizationTiming.aggregationMs,
+      );
+      sums.createPlan += this.numberValue(finalizationTiming.createPlanMs);
+      sums.botCache += this.numberValue(finalizationTiming.botCacheMs);
+      sums.createBots += this.numberValue(finalizationTiming.createBotsMs);
+      sums.ensureBotCaches += this.numberValue(
+        finalizationTiming.ensureBotCachesMs,
+      );
+      sums.planCache += this.numberValue(finalizationTiming.planCacheMs);
+      sums.aggregation += this.numberValue(finalizationTiming.aggregationMs);
+      sums.finalizerQueueWait += this.numberValue(
+        finalizationTiming.queueWaitMs,
+      );
+      sums.finalizerClaim += this.numberValue(finalizationTiming.claimMs);
+      sums.finalizerLoadRangeContext += this.numberValue(
+        finalizationTiming.loadRangeContextMs,
+      );
+      sums.finalizerReadEvaluation += this.numberValue(
+        finalizationTiming.readEvaluationMs,
+      );
+      sums.finalizerPersistence += this.numberValue(
+        finalizationTiming.persistenceMs,
       );
       sums.cacheRead += this.numberValue(workerTiming.cacheReadMs);
       sums.recentFilter += this.numberValue(workerTiming.recentFilterMs);

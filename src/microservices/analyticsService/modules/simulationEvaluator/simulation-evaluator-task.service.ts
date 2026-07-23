@@ -293,43 +293,47 @@ export class SimulationEvaluatorTaskService
     );
     if (hasExclusiveTask) return null;
 
-    const readyTasks = await this.prisma.simulationEvaluatorTask.findMany({
-      where: {
-        status: SimulationEvaluatorTaskStatus.Ready,
-        OR: [
-          {
-            kind: SimulationEvaluatorTaskKind.PrebuildPlatformCache,
-            targetWorkerId: workerId,
+    // A targeted administration task is a barrier.  Look it up separately
+    // from evaluation work: ordering a mixed ready-task scan by createdAt used
+    // to let older (and continually arriving) evaluations hide a later
+    // capacity command indefinitely.
+    const pendingExclusiveTask =
+      await this.prisma.simulationEvaluatorTask.findFirst({
+        where: {
+          status: SimulationEvaluatorTaskStatus.Ready,
+          targetWorkerId: workerId,
+          kind: {
+            in: [
+              SimulationEvaluatorTaskKind.PrebuildPlatformCache,
+              SimulationEvaluatorTaskKind.SetWorkerCapacity,
+              SimulationEvaluatorTaskKind.UpgradeWorker,
+            ],
           },
-          {
-            kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
-            targetWorkerId: workerId,
-          },
-          {
-            kind: SimulationEvaluatorTaskKind.UpgradeWorker,
-            targetWorkerId: workerId,
-          },
-          ...(cachedPlatforms.length
-            ? [
-                {
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+    const readyTasks = pendingExclusiveTask
+      ? [pendingExclusiveTask]
+      : await this.prisma.simulationEvaluatorTask.findMany({
+          where: {
+            status: SimulationEvaluatorTaskStatus.Ready,
+            ...(cachedPlatforms.length
+              ? {
                   kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
                   platform: { in: cachedPlatforms },
                   OR: [{ targetWorkerId: null }, { targetWorkerId: workerId }],
-                },
-              ]
-            : []),
-        ],
-      },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      take: workflow.readyTaskScanLimit,
-    });
+                }
+              : { id: '__no_eligible_evaluation_task__' }),
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: workflow.readyTaskScanLimit,
+        });
     const readyTask = readyTasks.find((task) => {
       if (
         task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache ||
         task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity ||
         task.kind === SimulationEvaluatorTaskKind.UpgradeWorker
       ) {
-        if (activeEvaluationCount > 0) return false;
         return task.targetWorkerId === workerId;
       }
       // A capacity update is an exclusive task, so it cannot run until active

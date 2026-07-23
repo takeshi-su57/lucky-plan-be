@@ -1450,6 +1450,7 @@ export class SimulationsService {
 
   /** Admin escape hatch for failed plans left behind by an interrupted run. */
   async recoverResearch(id: number): Promise<SimulationResearch> {
+    const now = new Date();
     const recovered = await this.prisma.$transaction(async (tx) => {
       const research = await tx.simulationResearch.findUnique({
         where: { id },
@@ -1472,6 +1473,38 @@ export class SimulationsService {
           leaseExpiresAt: null,
           attempts: 0,
           lastError: 'Reset by an administrator for recovery',
+        },
+      });
+      // Event-log waits are retryable rather than failures.  A recovery must
+      // wake them up now; merely restarting the research preserved a stale
+      // nextFinalizationAt and could leave the last simulations Running
+      // indefinitely.
+      await tx.simulationExecutionPlan.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+        },
+        data: {
+          nextFinalizationAt: now,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          lastError: 'Finalization retry requested by an administrator',
+        },
+      });
+      // Never take an active lease away from a live finalizer, but release a
+      // stale one so the dispatcher can reclaim it immediately.
+      await tx.simulationExecutionPlan.updateMany({
+        where: {
+          simulation: { is: { researchId: id } },
+          status: SimulationExecutionPlanStatus.Finalizing,
+          leaseExpiresAt: { lte: now },
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Dispatched,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          nextFinalizationAt: now,
+          lastError: 'Expired finalizer lease reset by an administrator',
         },
       });
       await tx.simulation.updateMany({
