@@ -644,6 +644,8 @@ export class SimulationEvaluatorWorkerView {
   @Field(() => String) desiredState: string;
   @Field(() => Int) desiredCapacity: number;
   @Field(() => Int) activeCapacity: number;
+  @Field(() => String, { nullable: true }) version: string | null;
+  @Field(() => Date, { nullable: true }) versionReportedAt: Date | null;
   @Field(() => Int) claimedEvaluationTasks: number;
   @Field(() => Int) evaluationClaimLimit: number;
   @Field(() => Date, { nullable: true })

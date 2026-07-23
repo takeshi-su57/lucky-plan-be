@@ -3,7 +3,7 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { ChildProcess, fork } from 'child_process';
+import { ChildProcess, fork, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
@@ -13,12 +13,16 @@ import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules
 import { SimulationEvaluatorWorkerClientService } from './simulation-evaluator-worker-client.service';
 import { WorkerDiagnosticSnapshot } from './simulation-evaluator-worker-client.service';
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
+import { simulationEvaluatorWorkerVersion } from './simulation-evaluator-worker-version';
 
 type ClaimedTask = {
   id: string;
   kind: SimulationEvaluatorTaskKind;
   leaseToken: string;
 };
+
+export const evaluatorWorkerRestartExitCode = (platform: NodeJS.Platform) =>
+  platform === 'win32' ? 1 : 0;
 
 @Injectable()
 export class SimulationEvaluatorWorkerRuntimeService
@@ -52,18 +56,20 @@ export class SimulationEvaluatorWorkerRuntimeService
   }> = [];
   private lastPollAt: Date | null = null;
   private lastPollError: string | null = null;
+  private upgradeScheduled = false;
   private readonly recentLogs: {
     at: string;
     level: string;
     message: string;
   }[] = [];
 
-  onApplicationBootstrap() {
+  async onApplicationBootstrap() {
     void this.writeParentSessionHeartbeat();
     this.heartbeat = setInterval(
       () => void this.sendHeartbeat(),
       SIMULATION_EVALUATOR.heartbeatIntervalMs,
     );
+    void this.finalizePendingUpgradeWithRetry();
     void this.run();
   }
 
@@ -171,6 +177,25 @@ export class SimulationEvaluatorWorkerRuntimeService
           result = { activeCapacity: this.capacity };
           break;
         }
+        case SimulationEvaluatorTaskKind.UpgradeWorker: {
+          const version = String(input.version || '');
+          const releaseUrl = String(input.releaseUrl || '');
+          if (!this.isNewerVersion(version, this.workerVersion())) {
+            result = {
+              status: 'skipped',
+              currentVersion: this.workerVersion(),
+              version,
+            };
+            break;
+          }
+          await this.prepareSelfUpgrade(task, version, releaseUrl);
+          result = {
+            status: 'scheduled',
+            currentVersion: this.workerVersion(),
+            version,
+          };
+          break;
+        }
         default:
           throw new Error(
             `Unsupported simulation evaluator task kind: ${task.kind}`,
@@ -178,12 +203,30 @@ export class SimulationEvaluatorWorkerRuntimeService
       }
       const executionMs = Math.round(performance.now() - executionStartedAt);
       const completionStartedAt = performance.now();
-      await this.client.complete(task.id, task.leaseToken, result);
+      const restartingForUpgrade =
+        task.kind === SimulationEvaluatorTaskKind.UpgradeWorker &&
+        result.status === 'scheduled';
+      if (!restartingForUpgrade)
+        await this.client.complete(task.id, task.leaseToken, result);
+      if (
+        task.kind === SimulationEvaluatorTaskKind.UpgradeWorker &&
+        result.status === 'scheduled'
+      ) {
+        await this.flushUpgradeProgress();
+        this.log(
+          'info',
+          `Upgrade to ${String(result.version)} scheduled; stopping for replacement`,
+        );
+        setTimeout(
+          () => process.exit(evaluatorWorkerRestartExitCode(process.platform)),
+          500,
+        ).unref();
+      }
       const completionMs = Math.round(performance.now() - completionStartedAt);
       const timing = result.timing as Record<string, unknown> | undefined;
       this.log(
         'info',
-        `Task ${task.id} completed totalMs=${Math.round(performance.now() - taskStartedAt)} inputMs=${inputMs} executionMs=${executionMs} completeMs=${completionMs}${timing ? ` evaluationTiming=${JSON.stringify(timing)}` : ''}`,
+        `Task ${task.id} ${restartingForUpgrade ? 'prepared for restart' : 'completed'} totalMs=${Math.round(performance.now() - taskStartedAt)} inputMs=${inputMs} executionMs=${executionMs} completeMs=${completionMs}${timing ? ` evaluationTiming=${JSON.stringify(timing)}` : ''}`,
       );
     } catch (error) {
       await this.client
@@ -192,7 +235,12 @@ export class SimulationEvaluatorWorkerRuntimeService
       this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
       this.releaseStartingChild(task.id);
-      this.client.endTask(task.id);
+      if (
+        task.kind !== SimulationEvaluatorTaskKind.UpgradeWorker ||
+        !this.upgradeScheduled
+      ) {
+        this.client.endTask(task.id);
+      }
       this.drainPendingEvaluations();
     }
   }
@@ -204,6 +252,247 @@ export class SimulationEvaluatorWorkerRuntimeService
       await this.stopChild(this.idleChildren.values().next().value!);
     }
     this.capacity = this.children.size;
+  }
+
+  private workerVersion() {
+    return simulationEvaluatorWorkerVersion();
+  }
+
+  private isNewerVersion(target: string, current: string) {
+    const parse = (value: string) => {
+      const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(value);
+      return match
+        ? ([
+            Number(match[1]),
+            Number(match[2]),
+            Number(match[3]),
+            match[4] || '',
+          ] as [number, number, number, string])
+        : null;
+    };
+    const next = parse(target);
+    const installed = parse(current);
+    if (!next || !installed) return false;
+    for (let index = 0; index < 3; index += 1) {
+      if (next[index]! !== installed[index]!)
+        return next[index]! > installed[index]!;
+    }
+    // A stable release supersedes its prerelease; other prerelease ordering is
+    // deliberately not accepted automatically.
+    return Boolean(!next[3] && installed[3]);
+  }
+
+  private async prepareSelfUpgrade(
+    task: ClaimedTask,
+    version: string,
+    releaseUrl: string,
+  ) {
+    if (this.upgradeScheduled)
+      throw new Error('An upgrade is already scheduled');
+    const script = join(
+      process.cwd(),
+      'scripts',
+      'evaluator-worker-self-update.js',
+    );
+    if (!existsSync(script)) {
+      throw new Error('This worker release does not support self-upgrade');
+    }
+    let url: URL;
+    try {
+      url = new URL(releaseUrl);
+    } catch {
+      throw new Error('Invalid worker release URL');
+    }
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'github.com' ||
+      !url.pathname.startsWith('/takeshi-su57/lucky-plan-be/releases/download/')
+    ) {
+      throw new Error('Worker release URL is not an approved GitHub release');
+    }
+    this.client.reportTaskProgress(task.id, task.leaseToken, {
+      progressPercent: 10,
+      progressRecords: 0,
+      progressTotalRecords: 1,
+      progressBytes: 0,
+      progressMessage: `Downloading evaluator worker ${version}`,
+    });
+    const child = spawn(
+      process.execPath,
+      [
+        script,
+        '--task-id',
+        task.id,
+        '--lease-token',
+        task.leaseToken,
+        '--version',
+        version,
+        '--url',
+        url.toString(),
+        '--checksum-url',
+        `${url.toString()}.sha256`,
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
+    );
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.setEncoding('utf8');
+    child.stderr?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      stdout += chunk;
+      const lines = stdout.split('\n');
+      stdout = lines.pop() || '';
+      for (const line of lines) {
+        try {
+          const progress = JSON.parse(line) as {
+            percent?: number;
+            bytes?: number;
+            totalBytes?: number;
+            message?: string;
+          };
+          if (
+            typeof progress.percent !== 'number' ||
+            typeof progress.message !== 'string'
+          )
+            continue;
+          this.client.reportTaskProgress(task.id, task.leaseToken, {
+            progressPercent: Math.min(89, Math.max(10, progress.percent)),
+            progressRecords: 0,
+            progressTotalRecords: 0,
+            progressBytes: Math.max(0, progress.bytes || 0),
+            progressMessage: progress.message.slice(0, 500),
+          });
+        } catch {
+          // Ignore non-JSON diagnostic output from platform extraction tools.
+        }
+      }
+    });
+    child.stderr?.on('data', (chunk: string) => {
+      stderr = `${stderr}${chunk}`.slice(-2_000);
+    });
+    await new Promise<void>((resolvePromise, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code) =>
+        code === 0
+          ? resolvePromise()
+          : reject(
+              new Error(
+                `Upgrade preparation exited with ${code}${stderr.trim() ? `: ${stderr.trim()}` : ''}`,
+              ),
+            ),
+      );
+    });
+    this.upgradeScheduled = true;
+    this.client.reportTaskProgress(task.id, task.leaseToken, {
+      progressPercent: 90,
+      progressRecords: 1,
+      progressTotalRecords: 1,
+      progressBytes: 0,
+      progressMessage: `Verified ${version}; restarting to apply update`,
+    });
+  }
+
+  private async flushUpgradeProgress() {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await this.client.heartbeat(this.getDiagnosticSnapshot());
+        return;
+      } catch (error) {
+        this.log(
+          'error',
+          `Could not flush upgrade progress (attempt ${attempt}/3): ${this.describeError(error)}`,
+        );
+        if (attempt < 3)
+          await this.delay(SIMULATION_EVALUATOR.heartbeatIntervalMs);
+      }
+    }
+    this.log(
+      'error',
+      'Continuing update restart without a final progress acknowledgement',
+    );
+  }
+
+  private async finalizePendingUpgradeWithRetry() {
+    const resultPath = join(
+      process.cwd(),
+      ...SIMULATION_EVALUATOR.workerCacheDirectory,
+      'update-result.json',
+    );
+    let result: {
+      taskId?: string;
+      leaseToken?: string;
+      version?: string;
+      status?: string;
+      error?: string;
+    };
+    try {
+      result = JSON.parse(await fs.readFile(resultPath, 'utf8')) as {
+        taskId?: string;
+        leaseToken?: string;
+        version?: string;
+        status?: string;
+        error?: string;
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+        this.log(
+          'error',
+          `Could not read update result: ${this.describeError(error)}`,
+        );
+      return;
+    }
+    if (!result.taskId || !result.leaseToken) return;
+    this.client.beginTask(result.taskId, result.leaseToken);
+    this.client.reportTaskProgress(result.taskId, result.leaseToken, {
+      progressPercent: 95,
+      progressRecords: 1,
+      progressTotalRecords: 1,
+      progressBytes: 0,
+      progressMessage:
+        result.status === 'applied'
+          ? `Evaluator worker ${result.version || 'unknown'} started; confirming upgrade`
+          : 'Update apply failed; reporting rollback',
+    });
+    while (!this.stopping) {
+      try {
+        if (
+          result.status === 'applied' &&
+          result.version === this.workerVersion()
+        ) {
+          await this.client.complete(result.taskId, result.leaseToken, {
+            status: 'completed',
+            version: result.version,
+          });
+        } else {
+          await this.client.fail(
+            result.taskId,
+            result.leaseToken,
+            result.error ||
+              `Upgrade to ${result.version || 'unknown'} did not apply`,
+          );
+        }
+        await fs.unlink(resultPath);
+        this.client.endTask(result.taskId);
+        this.log(
+          'info',
+          `Upgrade task ${result.taskId} finalized as ${result.status}`,
+        );
+        return;
+      } catch (error) {
+        const detail = this.describeError(error);
+        if (detail.includes('409')) {
+          await fs.unlink(resultPath).catch(() => undefined);
+          this.client.endTask(result.taskId);
+          this.log(
+            'error',
+            `Upgrade task ${result.taskId} could not be finalized because its lease expired`,
+          );
+          return;
+        }
+        this.log('error', `Could not finalize update; retrying: ${detail}`);
+        await this.delay(SIMULATION_EVALUATOR.heartbeatIntervalMs);
+      }
+    }
   }
 
   private spawnChild() {

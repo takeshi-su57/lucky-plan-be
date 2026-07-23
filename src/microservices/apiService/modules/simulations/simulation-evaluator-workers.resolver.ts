@@ -26,6 +26,32 @@ import {
   SimulationEvaluatorWorkerView,
   SimulationEvaluatorPipelineView,
 } from './entities/simulations.entity';
+import { readBackendReleaseMetadata } from 'src/release-metadata';
+
+const EVALUATOR_WORKER_RELEASE_URL = (version: string) =>
+  `https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v${encodeURIComponent(version)}/lucky-evaluator-worker-node22.zip`;
+
+const isReleaseVersion = (value: string) =>
+  /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value);
+const isNewerReleaseVersion = (target: string, current: string) => {
+  const parse = (value: string) => {
+    const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(value);
+    return match
+      ? {
+          numbers: [Number(match[1]), Number(match[2]), Number(match[3])],
+          prerelease: match[4] || '',
+        }
+      : null;
+  };
+  const next = parse(target);
+  const installed = parse(current);
+  if (!next || !installed) return false;
+  for (let index = 0; index < next.numbers.length; index += 1) {
+    if (next.numbers[index] !== installed.numbers[index])
+      return next.numbers[index]! > installed.numbers[index]!;
+  }
+  return !next.prerelease && Boolean(installed.prerelease);
+};
 
 @Resolver()
 export class SimulationEvaluatorWorkersResolver {
@@ -301,6 +327,61 @@ export class SimulationEvaluatorWorkersResolver {
       rangeStartedAt: new Date(),
       rangeEndedAt: new Date(),
       input: { capacity },
+    });
+    return task.id;
+  }
+
+  @Mutation(() => String)
+  @Roles(UserPermission.Admin)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  async upgradeSimulationEvaluatorWorker(
+    @Args('workerId') workerId: string,
+    @Args('version') version: string,
+  ) {
+    if (!isReleaseVersion(version)) {
+      throw new Error('Version must use semver format, for example 1.2.3');
+    }
+    const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
+      where: { id: workerId },
+      select: { id: true, authorizationStatus: true, version: true },
+    });
+    if (!worker) throw new Error('Worker not found');
+    if (
+      worker.authorizationStatus !==
+      SimulationEvaluatorWorkerAuthorizationStatus.Approved
+    ) {
+      throw new Error('Only approved workers can be upgraded');
+    }
+    if (!worker.version) {
+      throw new Error(
+        'This worker does not support self-upgrade; install a versioned release manually first',
+      );
+    }
+    if (!isNewerReleaseVersion(version, worker.version)) {
+      throw new Error(
+        `Version ${version} must be newer than installed version ${worker.version}`,
+      );
+    }
+    const latestVersion = readBackendReleaseMetadata().version;
+    if (!isReleaseVersion(latestVersion)) {
+      throw new Error('Latest evaluator worker release is unavailable');
+    }
+    if (version !== latestVersion) {
+      throw new Error(`Latest evaluator worker version is ${latestVersion}`);
+    }
+    const now = new Date();
+    const task = await this.tasks.createTask({
+      kind: SimulationEvaluatorTaskKind.UpgradeWorker,
+      targetWorkerId: worker.id,
+      rangeStartedAt: now,
+      rangeEndedAt: now,
+      // Include a request nonce so an admin can retry a download/replacement
+      // failure for the same release version.
+      input: {
+        version,
+        releaseUrl: EVALUATOR_WORKER_RELEASE_URL(version),
+        requestedAt: now.toISOString(),
+      },
     });
     return task.id;
   }

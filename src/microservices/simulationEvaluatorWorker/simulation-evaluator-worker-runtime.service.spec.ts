@@ -1,9 +1,18 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { promises as fs } from 'fs';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 
-import { SimulationEvaluatorWorkerRuntimeService } from './simulation-evaluator-worker-runtime.service';
+import {
+  evaluatorWorkerRestartExitCode,
+  SimulationEvaluatorWorkerRuntimeService,
+} from './simulation-evaluator-worker-runtime.service';
 
 describe('SimulationEvaluatorWorkerRuntimeService', () => {
+  it('uses a failure exit on Windows so Task Scheduler restarts the worker', () => {
+    expect(evaluatorWorkerRestartExitCode('win32')).toBe(1);
+    expect(evaluatorWorkerRestartExitCode('linux')).toBe(0);
+  });
+
   it('rehydrates the desired child capacity before polling after a restart', async () => {
     const client = {
       joinHeartbeat: jest.fn(async () => ({
@@ -97,5 +106,92 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     (runtime as any).offerIdleChild(replacement);
 
     await expect(acquired).resolves.toBe(replacement);
+  });
+
+  it('keeps an upgrade lease active and flushes progress before restart', async () => {
+    jest.useFakeTimers();
+    const client = {
+      getInput: jest.fn(async () => ({
+        input: { version: '3.0.2', releaseUrl: 'https://example.invalid' },
+      })),
+      heartbeat: jest.fn(async () => undefined),
+      complete: jest.fn(
+        async (
+          _taskId: string,
+          _leaseToken: string,
+          _result: Record<string, unknown>,
+        ) => undefined,
+      ),
+      fail: jest.fn(async () => undefined),
+      endTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    jest.spyOn(runtime as any, 'prepareSelfUpgrade').mockImplementation(() => {
+      (runtime as any).upgradeScheduled = true;
+      return Promise.resolve();
+    });
+    const exit = jest
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as never);
+
+    await (runtime as any).processTask({
+      id: 'upgrade-1',
+      kind: SimulationEvaluatorTaskKind.UpgradeWorker,
+      leaseToken: 'lease-1',
+    });
+
+    expect(client.heartbeat).toHaveBeenCalledTimes(1);
+    expect(client.complete).not.toHaveBeenCalled();
+    expect(client.endTask).not.toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+    expect(exit).toHaveBeenCalledWith(
+      evaluatorWorkerRestartExitCode(process.platform),
+    );
+    exit.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it('finalizes a persisted upgrade result and releases its lease', async () => {
+    const readFile = jest.spyOn(fs, 'readFile').mockResolvedValue(
+      JSON.stringify({
+        taskId: 'upgrade-1',
+        leaseToken: 'lease-1',
+        version: '0.0.1',
+        status: 'applied',
+      }),
+    );
+    const unlink = jest.spyOn(fs, 'unlink').mockResolvedValue();
+    const client = {
+      beginTask: jest.fn(),
+      reportTaskProgress: jest.fn(),
+      complete: jest.fn(
+        async (
+          _taskId: string,
+          _leaseToken: string,
+          _result: Record<string, unknown>,
+        ) => undefined,
+      ),
+      fail: jest.fn(async () => undefined),
+      endTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+
+    await (runtime as any).finalizePendingUpgradeWithRetry();
+
+    expect(client.beginTask).toHaveBeenCalledWith('upgrade-1', 'lease-1');
+    expect(client.complete).toHaveBeenCalledWith('upgrade-1', 'lease-1', {
+      status: 'completed',
+      version: '0.0.1',
+    });
+    expect(client.endTask).toHaveBeenCalledWith('upgrade-1');
+    expect(unlink).toHaveBeenCalled();
+    readFile.mockRestore();
+    unlink.mockRestore();
   });
 });

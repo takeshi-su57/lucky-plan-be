@@ -1,5 +1,6 @@
 const {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   rmSync,
@@ -7,6 +8,7 @@ const {
 } = require('fs');
 const { execFileSync } = require('child_process');
 const { join, resolve } = require('path');
+const packageJson = require('../package.json');
 
 const root = resolve(__dirname, '..');
 const dist = join(root, 'dist');
@@ -26,6 +28,10 @@ const cacheAdoptEntry = join(
   'src',
   'simulation-evaluator-worker-adopt.main.js',
 );
+const workerVersion =
+  process.env.SIMULATION_EVALUATOR_WORKER_VERSION ||
+  process.env.LUCKY_BACKEND_VERSION ||
+  packageJson.version;
 
 if (
   !existsSync(parentEntry) ||
@@ -54,12 +60,27 @@ writeFileSync(
   join(scripts, 'worker-launcher.js'),
   [
     "const { join } = require('path');",
+    "const { execFileSync } = require('child_process');",
     "process.chdir(join(__dirname, '..'));",
+    "execFileSync(process.execPath, [join(process.cwd(), 'scripts', 'apply-pending-evaluator-worker-update.js')], { stdio: 'inherit' });",
     "process.env.SERVICE = 'SIMULATION_EVALUATOR_WORKER_SERVICE';",
+    "process.env.SIMULATION_EVALUATOR_WORKER_VERSION = require('../version.json').version;",
     "process.env.SIMULATION_EVALUATOR_CHILD_ENTRY = join(process.cwd(), 'child', 'index.js');",
     "require('../parent/index.js');",
     '',
   ].join('\n'),
+);
+cpSync(
+  join(__dirname, 'evaluator-worker-self-update.js'),
+  join(scripts, 'evaluator-worker-self-update.js'),
+);
+cpSync(
+  join(__dirname, 'apply-pending-evaluator-worker-update.js'),
+  join(scripts, 'apply-pending-evaluator-worker-update.js'),
+);
+writeFileSync(
+  join(release, 'version.json'),
+  `${JSON.stringify({ version: workerVersion }, null, 2)}\n`,
 );
 
 writeFileSync(
@@ -87,7 +108,20 @@ if ($Command -notin $validCommands) {
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 $root = Split-Path -Parent $PSScriptRoot
-$node = (Get-Command node.exe -ErrorAction Stop).Source
+$node = if ($env:LUCKY_EVALUATOR_NODE) {
+  $env:LUCKY_EVALUATOR_NODE
+} else {
+  (Get-Command node.exe -ErrorAction Stop).Source
+}
+$nodeVersion = & $node -p "process.versions.node"
+if ([version]$nodeVersion -lt [version]'22.13.0') {
+  throw "Node.js 22.13.0 or newer is required. Scheduled task Node: $node ($nodeVersion)"
+}
+& $node -e "require('node:sqlite').DatabaseSync"
+if ($LASTEXITCODE -ne 0) {
+  throw "The selected Node.js binary does not provide node:sqlite: $node"
+}
+$env:LUCKY_EVALUATOR_NODE = $node
 $envFile = Join-Path $root '.env'
 
 function Get-WorkerInstance {
@@ -181,7 +215,7 @@ set -eu
 
 COMMAND=\${1:-status}
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
-NODE=$(command -v node || true)
+NODE=\${NODE_BINARY:-$(command -v node || true)}
 
 get_instance() {
   if [ ! -f "$ROOT/.env" ]; then
@@ -204,7 +238,15 @@ usage() {
 }
 
 case "$COMMAND" in install|adopt|start|stop|status|uninstall) ;; *) usage; exit 1 ;; esac
-if [ -z "$NODE" ]; then echo 'Node.js 22 or newer is required.' >&2; exit 1; fi
+if [ -z "$NODE" ] || [ ! -x "$NODE" ]; then
+  echo 'Node.js 22.13.0 or newer is required. Set NODE_BINARY to an absolute Node.js path when sudo uses a different PATH.' >&2
+  exit 1
+fi
+if ! "$NODE" -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 13)) process.exit(1); require('node:sqlite').DatabaseSync" >/dev/null 2>&1; then
+  echo "Node.js 22.13.0 or newer with node:sqlite is required. Selected binary: $NODE ($("$NODE" --version 2>/dev/null || echo unknown))" >&2
+  echo 'If your newer Node.js is installed through nvm, run: sudo NODE_BINARY="$(command -v node)" ./linux.sh install' >&2
+  exit 1
+fi
 if [ "$COMMAND" != status ] && [ "$(id -u)" -ne 0 ]; then echo "Run with sudo: sudo ./linux.sh $COMMAND" >&2; exit 1; fi
 
 assert_configuration() {
@@ -238,8 +280,26 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
   systemctl daemon-reload
+  systemctl reset-failed "$SERVICE" 2>/dev/null || true
   systemctl enable --now "$SERVICE"
-  systemctl --no-pager status "$SERVICE"
+  ATTEMPT=0
+  while [ "$ATTEMPT" -lt 15 ]; do
+    if [ -f "$ROOT/.cache/simulation-evaluator-worker/cache.sqlite" ]; then
+      sleep 2
+      RESTARTS=$(systemctl show "$SERVICE" --property=NRestarts --value)
+      if systemctl is-active --quiet "$SERVICE" && [ "$RESTARTS" = "0" ]; then
+        systemctl --no-pager status "$SERVICE"
+        return
+      fi
+      break
+    fi
+    sleep 1
+    ATTEMPT=$((ATTEMPT + 1))
+  done
+  echo "Worker installation failed its startup check. Node: $NODE ($("$NODE" --version))" >&2
+  systemctl --no-pager status "$SERVICE" >&2 || true
+  journalctl --no-pager -u "$SERVICE" -n 50 >&2 || true
+  return 1
 }
 
 case "$COMMAND" in
@@ -272,7 +332,7 @@ writeFileSync(
   join(release, 'README.md'),
   `# Lucky evaluator worker
 
-Requires Node.js 22 or newer. Configure \`.env\` before starting the worker.
+Requires Node.js 22.13.0 or newer. Configure \`.env\` before starting the worker.
 
 \`SIMULATION_EVALUATOR_WORKER_INSTANCE\` is required and creates an isolated service identity. For example, \`dev\` uses \`LuckyEvaluatorWorker-dev\` on Windows and \`lucky-evaluator-worker-dev.service\` on Linux. Install each instance in its own directory so its identity and cache remain isolated.
 

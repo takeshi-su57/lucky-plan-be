@@ -3,6 +3,7 @@ import {
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
 } from 'generated/prisma/enums';
+import * as releaseMetadata from 'src/release-metadata';
 
 import { SimulationEvaluatorWorkersResolver } from './simulation-evaluator-workers.resolver';
 
@@ -70,5 +71,97 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       maxOutstandingDynamicPlans: 500,
       backpressureActive: false,
     });
+  });
+
+  it('rejects an evaluator upgrade that is not newer than the reported version', async () => {
+    const prisma = {
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'worker-1',
+          authorizationStatus: 'Approved',
+          version: '3.0.10',
+        } as never),
+      },
+    };
+    const tasks = { createTask: jest.fn() };
+    const resolver = new SimulationEvaluatorWorkersResolver(
+      prisma as never,
+      {} as never,
+      tasks as never,
+      {} as never,
+    );
+
+    await expect(
+      resolver.upgradeSimulationEvaluatorWorker('worker-1', '3.0.9'),
+    ).rejects.toThrow(
+      'Version 3.0.9 must be newer than installed version 3.0.10',
+    );
+    expect(tasks.createTask).not.toHaveBeenCalled();
+  });
+
+  it('rejects self-upgrade for an unversioned legacy worker', async () => {
+    const prisma = {
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'worker-1',
+          authorizationStatus: 'Approved',
+          version: null,
+        } as never),
+      },
+    };
+    const tasks = { createTask: jest.fn() };
+    const resolver = new SimulationEvaluatorWorkersResolver(
+      prisma as never,
+      {} as never,
+      tasks as never,
+      {} as never,
+    );
+
+    await expect(
+      resolver.upgradeSimulationEvaluatorWorker('worker-1', '3.0.11'),
+    ).rejects.toThrow('install a versioned release manually first');
+    expect(tasks.createTask).not.toHaveBeenCalled();
+  });
+
+  it('queues only the latest backend-matched evaluator release', async () => {
+    const release = jest
+      .spyOn(releaseMetadata, 'readBackendReleaseMetadata')
+      .mockReturnValue({
+        version: '3.0.11',
+        gitSha: 'test',
+        builtAt: '2026-07-23T00:00:00.000Z',
+      });
+    const prisma = {
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'worker-1',
+          authorizationStatus: 'Approved',
+          version: '3.0.10',
+        } as never),
+      },
+    };
+    const tasks = {
+      createTask: jest.fn().mockResolvedValue({ id: 'upgrade-1' } as never),
+    };
+    const resolver = new SimulationEvaluatorWorkersResolver(
+      prisma as never,
+      {} as never,
+      tasks as never,
+      {} as never,
+    );
+
+    await expect(
+      resolver.upgradeSimulationEvaluatorWorker('worker-1', '3.0.11'),
+    ).resolves.toBe('upgrade-1');
+    expect(tasks.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          version: '3.0.11',
+          releaseUrl:
+            'https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v3.0.11/lucky-evaluator-worker-node22.zip',
+        }),
+      }),
+    );
+    release.mockRestore();
   });
 });

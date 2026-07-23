@@ -23,7 +23,12 @@ const MAX_SIGNATURE_AGE_MS = 2 * 60_000;
 export class SimulationEvaluatorWorkerAuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async enroll(workerId: string, publicKey: string, displayName?: string) {
+  async enroll(
+    workerId: string,
+    publicKey: string,
+    displayName?: string,
+    version?: string,
+  ) {
     const normalizedDisplayName = displayName?.trim() || null;
     const existing = await this.prisma.simulationEvaluatorWorker.findUnique({
       where: { id: workerId },
@@ -53,6 +58,7 @@ export class SimulationEvaluatorWorkerAuthService {
             : {}),
           runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
           lastHeartbeatAt: now,
+          ...this.versionUpdate(version),
         },
       });
       return {
@@ -71,6 +77,7 @@ export class SimulationEvaluatorWorkerAuthService {
           SimulationEvaluatorWorkerAuthorizationStatus.Pending,
         runtimeStatus: SimulationEvaluatorWorkerRuntimeStatus.Online,
         lastHeartbeatAt: now,
+        ...this.versionUpdate(version),
       },
     });
     return {
@@ -126,7 +133,7 @@ export class SimulationEvaluatorWorkerAuthService {
     return worker;
   }
 
-  async recordPresence(workerId: string) {
+  async recordPresence(workerId: string, version?: string) {
     const now = new Date();
     const activeTask = await this.prisma.simulationEvaluatorTask.findFirst({
       where: {
@@ -149,8 +156,16 @@ export class SimulationEvaluatorWorkerAuthService {
             : SimulationEvaluatorWorkerRuntimeStatus.Busy
           : SimulationEvaluatorWorkerRuntimeStatus.Free,
         lastHeartbeatAt: now,
+        ...this.versionUpdate(version),
       },
     });
+  }
+
+  private versionUpdate(version?: string) {
+    return typeof version === 'string' &&
+      /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)
+      ? { version, versionReportedAt: new Date() }
+      : {};
   }
 
   async recordDiagnostic(workerId: string, diagnostic: unknown) {

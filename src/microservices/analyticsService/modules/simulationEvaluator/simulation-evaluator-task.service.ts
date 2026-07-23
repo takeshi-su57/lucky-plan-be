@@ -305,6 +305,10 @@ export class SimulationEvaluatorTaskService
             kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
             targetWorkerId: workerId,
           },
+          {
+            kind: SimulationEvaluatorTaskKind.UpgradeWorker,
+            targetWorkerId: workerId,
+          },
           ...(cachedPlatforms.length
             ? [
                 {
@@ -322,7 +326,8 @@ export class SimulationEvaluatorTaskService
     const readyTask = readyTasks.find((task) => {
       if (
         task.kind === SimulationEvaluatorTaskKind.PrebuildPlatformCache ||
-        task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity
+        task.kind === SimulationEvaluatorTaskKind.SetWorkerCapacity ||
+        task.kind === SimulationEvaluatorTaskKind.UpgradeWorker
       ) {
         if (activeEvaluationCount > 0) return false;
         return task.targetWorkerId === workerId;

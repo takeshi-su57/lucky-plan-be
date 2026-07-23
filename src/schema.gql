@@ -54,6 +54,12 @@ type BotBackwardDetails {
   strategyId: Int!
 }
 
+type BackendReleaseInfo {
+  builtAt: String!
+  gitSha: String!
+  version: String!
+}
+
 type BotConnection {
   edges: [BotEdge!]!
   pageInfo: BotPageInfo!
@@ -550,6 +556,7 @@ type Mutation {
   resumeSystem(password: String): Boolean!
   retrySimulationEvaluatorWorkerCache(cacheId: Int!): String!
   setSimulationEvaluatorWorkerCapacity(capacity: Float!, workerId: String!): String!
+  upgradeSimulationEvaluatorWorker(version: String!, workerId: String!): String!
   startAdaption(contractId: Int!, shouldRestart: Boolean!): Boolean!
   startPlan(id: Int!): Boolean!
   startSubService(service: String!): Boolean!
@@ -745,6 +752,7 @@ type PnlSnapshotV2InitializedFlag {
 }
 
 type Query {
+  backendReleaseInfo: BackendReleaseInfo!
   allLogs(after: Int, checked: Boolean!, first: Int!, severity: LogSeverity): LogsConnection!
   findContract(id: Int!): Contract!
   findStrategy(id: Int!): Strategy
@@ -1047,6 +1055,8 @@ type SimulationEvaluatorWorkerView {
   platformCaches: [SimulationEvaluatorWorkerCacheView!]!
   prebuildProgress: SimulationEvaluatorWorkerPrebuildProgressView
   runtimeStatus: String!
+  version: String
+  versionReportedAt: Date
 }
 
 type SimulationPlan {
@@ -1408,6 +1418,8 @@ enum UserPermission {
 enum Version {
   V1
   V2
+  V6_V7
+  V8_V9_2
   V9
   V10
 }

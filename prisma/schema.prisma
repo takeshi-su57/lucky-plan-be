@@ -246,6 +246,7 @@ enum SimulationEvaluatorTaskKind {
   EvaluateLeaders
   PrebuildPlatformCache
   SetWorkerCapacity
+  UpgradeWorker
 }
 
 enum SimulationEvaluatorTaskStatus {
@@ -306,6 +307,8 @@ model SimulationEvaluatorWorker {
   desiredState        SimulationEvaluatorWorkerDesiredState        @default(Running)
   desiredCapacity     Int                                          @default(1)
   activeCapacity      Int                                          @default(1)
+  version             String?
+  versionReportedAt   DateTime?
   lastHeartbeatAt     DateTime?
   lastTaskAt          DateTime?
   lastError           String?

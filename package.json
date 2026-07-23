@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "postbuild": "node scripts/write-release-metadata.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -18,7 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "build:worker": "npm run build && node scripts/build-evaluator-worker-release.js",
+    "build:worker": "npm run build",
+    "postbuild:worker": "node scripts/build-evaluator-worker-release.js",
     "build:cross": "npm run build:worker",
     "backfill:pnl-snapshot-cache": "ts-node -r tsconfig-paths/register src/pnl-snapshot-cache-backfill.main.ts"
   },
