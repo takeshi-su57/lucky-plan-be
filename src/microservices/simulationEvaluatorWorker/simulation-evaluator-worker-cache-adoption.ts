@@ -36,7 +36,8 @@ export async function adoptPrebuiltCache(cacheDirectory = cacheDir) {
     }
 
     // Identity and task leases belong only to the worker that created the cache.
-    if (tables.has('worker_identity')) database.exec('DELETE FROM worker_identity');
+    if (tables.has('worker_identity'))
+      database.exec('DELETE FROM worker_identity');
     if (tables.has('prebuild_task_checkpoint'))
       database.exec('DELETE FROM prebuild_task_checkpoint');
     database.exec('PRAGMA wal_checkpoint(TRUNCATE)');

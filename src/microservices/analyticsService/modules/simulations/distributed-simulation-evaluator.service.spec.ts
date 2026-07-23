@@ -3,7 +3,9 @@ import { Simulation } from 'src/microservices/apiService/modules/simulations/ent
 
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 
-const workflowConfig = { get: jest.fn(async () => ({ leaderScoringWindowDays: 180 })) };
+const workflowConfig = {
+  get: jest.fn(async () => ({ leaderScoringWindowDays: 180 })),
+};
 
 describe('DistributedSimulationEvaluatorService', () => {
   it('uses only stable evaluation fields in evaluator task input', async () => {
@@ -13,7 +15,10 @@ describe('DistributedSimulationEvaluatorService', () => {
         result: { evaluatedCandidates: [] },
       })),
     };
-    const service = new DistributedSimulationEvaluatorService(tasks as never, workflowConfig as never);
+    const service = new DistributedSimulationEvaluatorService(
+      tasks as never,
+      workflowConfig as never,
+    );
     const baseSimulation = {
       id: 7,
       platform: 'GNS',
@@ -113,7 +118,10 @@ describe('DistributedSimulationEvaluatorService cache eligibility', () => {
     const tasks = {
       countReadyWorkers,
     };
-    const service = new DistributedSimulationEvaluatorService(tasks as never, workflowConfig as never);
+    const service = new DistributedSimulationEvaluatorService(
+      tasks as never,
+      workflowConfig as never,
+    );
 
     await expect(
       service.canEvaluateLeadersForRange(simulation, {
@@ -133,7 +141,10 @@ describe('DistributedSimulationEvaluatorService cache eligibility', () => {
     const tasks = {
       createTask: jest.fn(async (input: unknown) => input),
     };
-    const service = new DistributedSimulationEvaluatorService(tasks as never, workflowConfig as never);
+    const service = new DistributedSimulationEvaluatorService(
+      tasks as never,
+      workflowConfig as never,
+    );
     const range = {
       startedAt: new Date('2025-01-06T00:00:00.000Z'),
       endedAt: new Date('2025-01-11T00:00:00.000Z'),

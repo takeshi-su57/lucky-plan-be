@@ -5,6 +5,33 @@ import { PerpTradeHistoryOperation } from 'src/microservices/apiService/modules/
 import { SimulationCacheService } from './simulation-cache.service';
 
 describe('SimulationCacheService Layer 1 snapshots', () => {
+  it('waits for a future close before completing a bot cache', () => {
+    const service = new SimulationCacheService({} as never, {} as never);
+    const bot = {
+      startedAt: new Date('2026-01-01T00:00:00.000Z'),
+      stoppedAt: new Date('2026-01-02T00:00:00.000Z'),
+    };
+    const open = {
+      id: 101,
+      contractId: 1,
+      positionKey: 'position-1',
+      operation: PerpTradeHistoryOperation.OPEN,
+      date: new Date('2026-01-01T01:00:00.000Z'),
+    };
+    expect(service.isBotCacheComplete(bot, [open] as never[])).toBe(false);
+    expect(
+      service.isBotCacheComplete(bot, [
+        open,
+        {
+          ...open,
+          id: 102,
+          operation: PerpTradeHistoryOperation.CLOSE,
+          date: new Date('2026-01-03T00:00:00.000Z'),
+        },
+      ] as never[]),
+    ).toBe(true);
+  });
+
   it('persists a leader position even when the source Layer 2 configuration rejects it', () => {
     const service = new SimulationCacheService({} as never, {} as never);
     const getSnapshotIds = (

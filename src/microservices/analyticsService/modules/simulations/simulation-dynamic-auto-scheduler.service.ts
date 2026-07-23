@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import {
+  SimulationEvaluatorTaskKind,
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
   SimulationStatus,
@@ -10,6 +11,7 @@ import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
 import { SimulationWorkflowConfigService } from 'src/global/simulation-workflow-config.service';
 import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulation-evaluator-task.service';
+import { SIMULATION_EVALUATOR } from '../simulationEvaluator/simulation-evaluator.constants';
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { buildAutomationHorizon } from './utils/simulation-automation-queue.utils';
@@ -54,8 +56,36 @@ export function allocateFairPlanSlots(
   return allocation;
 }
 
+export function calculateEvaluatorQueueRefill(
+  workerCapacity: number,
+  availableTasks: number,
+  outstandingPlans: number,
+  maxOutstandingPlans: number,
+  awaitingFinalizationPlans = 0,
+  maxAwaitingFinalizationPlans = Number.POSITIVE_INFINITY,
+) {
+  if (awaitingFinalizationPlans >= maxAwaitingFinalizationPlans) return 0;
+  const lowWatermark =
+    workerCapacity * SIMULATION_EVALUATOR.queueLowWatermarkCapacityMultiplier;
+  if (availableTasks >= lowWatermark) return 0;
+
+  const highWatermark =
+    workerCapacity * SIMULATION_EVALUATOR.queueHighWatermarkCapacityMultiplier;
+  return Math.max(
+    0,
+    Math.min(
+      highWatermark - availableTasks,
+      maxOutstandingPlans - outstandingPlans,
+    ),
+  );
+}
+
 @Injectable()
 export class SimulationDynamicAutoSchedulerService {
+  private finalizerDispatchRunning = false;
+  private readonly activeFinalizerPlans = new Set<string>();
+  private readonly activeFinalizerSimulations = new Set<number>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly runner: SimulationAutoRunnerService,
@@ -66,8 +96,12 @@ export class SimulationDynamicAutoSchedulerService {
   ) {}
 
   async processAvailableSimulations(now = new Date()) {
+    await this.processQueueMaintenance(now);
+    await this.processFinalizations(now);
+  }
+
+  async processQueueMaintenance(now = new Date()) {
     await this.reconcileInterruptedPlans(now);
-    await this.finalizeCompletedPlans(now);
     await this.fillEvaluatorQueue(now);
     // A shutdown can happen after finalizeSimulationRange has persisted the
     // simulation result but before this service has marked the execution plan
@@ -75,6 +109,11 @@ export class SimulationDynamicAutoSchedulerService {
     // depend on there being another range to dispatch: a fully dispatched
     // research has no candidates, which used to leave that stale state forever.
     await this.reconcileResearchProgress();
+  }
+
+  async processFinalizations(now = new Date()) {
+    await this.reconcileInterruptedPlans(now);
+    await this.dispatchCompletedPlans(now);
   }
 
   private async reconcileResearchProgress() {
@@ -131,6 +170,7 @@ export class SimulationDynamicAutoSchedulerService {
             .filter((plan) =>
               [
                 SimulationExecutionPlanStatus.Dispatched,
+                SimulationExecutionPlanStatus.AwaitingEventLogs,
                 SimulationExecutionPlanStatus.Finalizing,
                 SimulationExecutionPlanStatus.Completed,
               ].some((status) => status === plan.status),
@@ -148,6 +188,7 @@ export class SimulationDynamicAutoSchedulerService {
           (plan) =>
             plan.status === SimulationExecutionPlanStatus.Pending ||
             plan.status === SimulationExecutionPlanStatus.Dispatched ||
+            plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs ||
             plan.status === SimulationExecutionPlanStatus.Finalizing,
         ).length;
         return undispatchedRanges.length
@@ -173,22 +214,58 @@ export class SimulationDynamicAutoSchedulerService {
       true,
     );
     const workflow = await this.workflowConfig.get();
-    const target = Math.min(
-      workflow.maxOutstandingDynamicPlans,
-      workerCapacity,
-    );
     const outstanding = await this.prisma.simulationExecutionPlan.count({
       where: {
         status: {
           in: [
             SimulationExecutionPlanStatus.Pending,
             SimulationExecutionPlanStatus.Dispatched,
+            SimulationExecutionPlanStatus.AwaitingEventLogs,
             SimulationExecutionPlanStatus.Finalizing,
           ],
         },
       },
     });
-    let deficit = Math.max(0, target - outstanding);
+    const availableTasks = await this.prisma.simulationEvaluatorTask.count({
+      where: {
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        status: {
+          in: [
+            SimulationEvaluatorTaskStatus.Queued,
+            SimulationEvaluatorTaskStatus.Ready,
+          ],
+        },
+      },
+    });
+    const awaitingFinalization =
+      await this.prisma.simulationExecutionPlan.count({
+        where: {
+          OR: [
+            {
+              status: SimulationExecutionPlanStatus.Dispatched,
+              evaluatorTask: {
+                is: { status: SimulationEvaluatorTaskStatus.Completed },
+              },
+            },
+            {
+              status: {
+                in: [
+                  SimulationExecutionPlanStatus.AwaitingEventLogs,
+                  SimulationExecutionPlanStatus.Finalizing,
+                ],
+              },
+            },
+          ],
+        },
+      });
+    let deficit = calculateEvaluatorQueueRefill(
+      workerCapacity,
+      availableTasks,
+      outstanding,
+      workflow.maxOutstandingDynamicPlans,
+      awaitingFinalization,
+      workflow.maxAwaitingFinalizationPlans,
+    );
 
     const allocation = allocateFairPlanSlots(
       candidates.map((candidate, order) => ({
@@ -328,46 +405,131 @@ export class SimulationDynamicAutoSchedulerService {
     }
   }
 
-  private async finalizeCompletedPlans(now: Date) {
-    const workflow = await this.workflowConfig.get();
-    const plans = await this.prisma.simulationExecutionPlan.findMany({
-      where: {
-        status: SimulationExecutionPlanStatus.Dispatched,
-        simulation: {
-          is: {
-            status: { not: SimulationStatus.Cancelled },
-            research: { is: { status: { not: SimulationStatus.Cancelled } } },
+  private async dispatchCompletedPlans(now: Date) {
+    if (this.finalizerDispatchRunning) return;
+    this.finalizerDispatchRunning = true;
+    try {
+      const workflow = await this.workflowConfig.get();
+      const availableSlots = Math.max(
+        0,
+        workflow.finalizerConcurrency - this.activeFinalizerPlans.size,
+      );
+      if (!availableSlots) return;
+      const plans = await this.prisma.simulationExecutionPlan.findMany({
+        where: {
+          OR: [
+            {
+              status: SimulationExecutionPlanStatus.Dispatched,
+              evaluatorTask: {
+                is: { status: SimulationEvaluatorTaskStatus.Completed },
+              },
+            },
+            {
+              status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+              nextFinalizationAt: { lte: now },
+              evaluatorTask: {
+                is: { status: SimulationEvaluatorTaskStatus.Completed },
+              },
+            },
+          ],
+          simulation: {
+            is: {
+              status: { not: SimulationStatus.Cancelled },
+              research: { is: { status: { not: SimulationStatus.Cancelled } } },
+              OR: [
+                { automationLeaseToken: null },
+                { automationLeaseExpiresAt: { lte: now } },
+              ],
+            },
           },
         },
-        evaluatorTask: {
-          is: { status: SimulationEvaluatorTaskStatus.Completed },
+        include: {
+          evaluatorTask: true,
+          simulation: { include: { research: true } },
         },
-      },
-      include: {
-        evaluatorTask: true,
-        simulation: { include: { research: true } },
-      },
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take: workflow.finalizerBatchSize,
-    });
-    await Promise.all(
-      plans.map((plan) =>
-        this.finalizePlan(plan, now, workflow.finalizerLeaseMs),
-      ),
-    );
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        // Scan beyond the concurrency limit so a run of old plans from one
+        // simulation cannot hide ready work belonging to other simulations.
+        take: Math.min(500, workflow.finalizerBatchSize * availableSlots),
+      });
+      for (const plan of plans) {
+        if (this.activeFinalizerPlans.size >= workflow.finalizerConcurrency)
+          break;
+        if (
+          this.activeFinalizerPlans.has(plan.id) ||
+          this.activeFinalizerSimulations.has(plan.simulationId)
+        )
+          continue;
+        this.activeFinalizerPlans.add(plan.id);
+        this.activeFinalizerSimulations.add(plan.simulationId);
+        void this.finalizePlan(plan, new Date(), workflow)
+          .catch(() => undefined)
+          .finally(() => {
+            this.activeFinalizerPlans.delete(plan.id);
+            this.activeFinalizerSimulations.delete(plan.simulationId);
+            void this.dispatchCompletedPlans(new Date());
+          });
+      }
+    } finally {
+      this.finalizerDispatchRunning = false;
+    }
   }
 
-  private async finalizePlan(plan: any, now: Date, finalizerLeaseMs: number) {
+  private async finalizePlan(
+    plan: any,
+    now: Date,
+    workflow: {
+      finalizerLeaseMs: number;
+      finalizerRetryDelayMs: number;
+    },
+  ) {
     const leaseToken = randomUUID();
+    const leaseExpiresAt = new Date(now.getTime() + workflow.finalizerLeaseMs);
+    const simulationClaim = await this.prisma.simulation.updateMany({
+      where: {
+        id: plan.simulationId,
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      data: {
+        automationLeaseToken: leaseToken,
+        automationLeaseExpiresAt: leaseExpiresAt,
+      },
+    });
+    if (!simulationClaim.count) return;
     const claim = await this.prisma.simulationExecutionPlan.updateMany({
-      where: { id: plan.id, status: SimulationExecutionPlanStatus.Dispatched },
+      where: {
+        id: plan.id,
+        status: {
+          in: [
+            SimulationExecutionPlanStatus.Dispatched,
+            SimulationExecutionPlanStatus.AwaitingEventLogs,
+          ],
+        },
+      },
       data: {
         status: SimulationExecutionPlanStatus.Finalizing,
         leaseToken,
-        leaseExpiresAt: new Date(now.getTime() + finalizerLeaseMs),
+        leaseExpiresAt,
+        nextFinalizationAt: null,
       },
     });
-    if (!claim.count) return;
+    if (!claim.count) {
+      await this.releaseSimulationFinalizerLease(plan.simulationId, leaseToken);
+      return;
+    }
+    const renewal = setInterval(
+      () =>
+        void this.renewFinalizerLease(
+          plan.id,
+          plan.simulationId,
+          leaseToken,
+          workflow.finalizerLeaseMs,
+        ),
+      Math.max(10_000, Math.floor(workflow.finalizerLeaseMs / 3)),
+    );
     try {
       const range = {
         startedAt: plan.rangeStartedAt,
@@ -394,12 +556,27 @@ export class SimulationDynamicAutoSchedulerService {
         taskInput.candidateLeaders ?? [],
       );
       const aggregationStartedAt = performance.now();
-      const finalizedSimulation = await this.runner.finalizeSimulationRange(
+      const finalization = await this.runner.finalizeSimulationRange(
         plan.simulationId,
         range,
         context,
         evaluated,
       );
+      if (finalization.awaitingEventLogs) {
+        await this.prisma.simulationExecutionPlan.updateMany({
+          where: { id: plan.id, leaseToken },
+          data: {
+            status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+            leaseToken: null,
+            leaseExpiresAt: null,
+            nextFinalizationAt: new Date(
+              Date.now() + workflow.finalizerRetryDelayMs,
+            ),
+            lastError: null,
+          },
+        });
+        return;
+      }
       const aggregationMs = Math.round(
         performance.now() - aggregationStartedAt,
       );
@@ -419,12 +596,13 @@ export class SimulationDynamicAutoSchedulerService {
         data: {
           status: SimulationExecutionPlanStatus.Completed,
           completedAt: new Date(),
+          nextFinalizationAt: null,
           leaseToken: null,
           leaseExpiresAt: null,
           lastError: null,
         },
       });
-      if (finalizedSimulation?.status === SimulationStatus.Completed) {
+      if (finalization.simulation?.status === SimulationStatus.Completed) {
         await this.logSimulationTiming(plan.simulationId);
       }
       await this.syncResearch(plan.simulation.researchId);
@@ -436,10 +614,43 @@ export class SimulationDynamicAutoSchedulerService {
           attempts: { increment: 1 },
           leaseToken: null,
           leaseExpiresAt: null,
+          nextFinalizationAt: null,
           lastError: error instanceof Error ? error.message : String(error),
         },
       });
+    } finally {
+      clearInterval(renewal);
+      await this.releaseSimulationFinalizerLease(plan.simulationId, leaseToken);
     }
+  }
+
+  private async renewFinalizerLease(
+    planId: string,
+    simulationId: number,
+    leaseToken: string,
+    leaseMs: number,
+  ) {
+    const leaseExpiresAt = new Date(Date.now() + leaseMs);
+    await Promise.all([
+      this.prisma.simulationExecutionPlan.updateMany({
+        where: { id: planId, leaseToken },
+        data: { leaseExpiresAt },
+      }),
+      this.prisma.simulation.updateMany({
+        where: { id: simulationId, automationLeaseToken: leaseToken },
+        data: { automationLeaseExpiresAt: leaseExpiresAt },
+      }),
+    ]);
+  }
+
+  private async releaseSimulationFinalizerLease(
+    simulationId: number,
+    leaseToken: string,
+  ) {
+    await this.prisma.simulation.updateMany({
+      where: { id: simulationId, automationLeaseToken: leaseToken },
+      data: { automationLeaseToken: null, automationLeaseExpiresAt: null },
+    });
   }
 
   private async reconcileInterruptedPlans(now: Date) {
@@ -472,8 +683,11 @@ export class SimulationDynamicAutoSchedulerService {
     });
     await Promise.all(
       failedTasks.map((plan) =>
-        this.prisma.simulationExecutionPlan.update({
-          where: { id: plan.id },
+        this.prisma.simulationExecutionPlan.updateMany({
+          where: {
+            id: plan.id,
+            status: SimulationExecutionPlanStatus.Dispatched,
+          },
           data: {
             status: SimulationExecutionPlanStatus.Failed,
             attempts: { increment: 1 },
@@ -564,6 +778,7 @@ export class SimulationDynamicAutoSchedulerService {
       [
         SimulationExecutionPlanStatus.Pending,
         SimulationExecutionPlanStatus.Dispatched,
+        SimulationExecutionPlanStatus.AwaitingEventLogs,
         SimulationExecutionPlanStatus.Finalizing,
       ].some((status) => status === plan.status),
     ).length;
@@ -583,6 +798,7 @@ export class SimulationDynamicAutoSchedulerService {
     ).length;
     const finalizingPlans = executionPlans.filter(
       (plan) =>
+        plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs ||
         plan.status === SimulationExecutionPlanStatus.Finalizing ||
         (plan.status === SimulationExecutionPlanStatus.Dispatched &&
           plan.evaluatorTask?.status ===

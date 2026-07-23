@@ -574,7 +574,7 @@ export class SimulationCacheService {
       continue;
     }
 
-    await this.rebuildPlanCache(simulationPlanId);
+    return this.rebuildPlanCache(simulationPlanId);
   }
 
   async backfillSimulationCaches(simulationId: number) {

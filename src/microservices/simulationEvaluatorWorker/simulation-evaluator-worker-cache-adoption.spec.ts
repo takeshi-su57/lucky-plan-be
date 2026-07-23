@@ -39,9 +39,7 @@ describe('adoptPrebuiltCache', () => {
           .get(),
       ).toEqual({ count: 1 });
       expect(
-        adopted
-          .prepare('SELECT COUNT(*) AS count FROM worker_identity')
-          .get(),
+        adopted.prepare('SELECT COUNT(*) AS count FROM worker_identity').get(),
       ).toEqual({ count: 0 });
       expect(
         adopted
@@ -49,7 +47,9 @@ describe('adoptPrebuiltCache', () => {
           .get(),
       ).toEqual({ count: 0 });
       adopted.close();
-      await expect(access(join(cacheDirectory, 'parent-session.json'))).rejects.toMatchObject({
+      await expect(
+        access(join(cacheDirectory, 'parent-session.json')),
+      ).rejects.toMatchObject({
         code: 'ENOENT',
       });
     } finally {

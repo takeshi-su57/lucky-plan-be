@@ -1217,8 +1217,11 @@ type SimulationWorkflowConfigView {
   eventLogAddressBatchSize: Int!
   eventLogRecordBatchSize: Int!
   finalizerBatchSize: Int!
+  finalizerConcurrency: Int!
   finalizerLeaseMs: Int!
+  finalizerRetryDelayMs: Int!
   leaderScoringWindowDays: Int!
+  maxAwaitingFinalizationPlans: Int!
   maxOutstandingDynamicPlans: Int!
   maxSimulationsPerResearch: Int!
   prebuildChunkSourceRecordLimit: Int!
@@ -1324,8 +1327,11 @@ input UpdateSimulationWorkflowConfigInput {
   eventLogAddressBatchSize: Int
   eventLogRecordBatchSize: Int
   finalizerBatchSize: Int
+  finalizerConcurrency: Int
   finalizerLeaseMs: Int
+  finalizerRetryDelayMs: Int
   leaderScoringWindowDays: Int
+  maxAwaitingFinalizationPlans: Int
   maxOutstandingDynamicPlans: Int
   maxSimulationsPerResearch: Int
   prebuildChunkSourceRecordLimit: Int

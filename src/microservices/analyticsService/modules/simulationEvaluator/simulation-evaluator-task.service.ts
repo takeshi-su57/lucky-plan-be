@@ -331,7 +331,7 @@ export class SimulationEvaluatorTaskService
       // evaluations drain. Respect a lower desired capacity before the worker
       // has applied the command; otherwise every freed slot is immediately
       // refilled and scale-down can never complete under continuous load.
-      if (activeEvaluationCount >= this.getSchedulingCapacity(worker))
+      if (activeEvaluationCount >= this.getEvaluationClaimCapacity(worker))
         return false;
       if (
         !task.platform ||
@@ -530,6 +530,16 @@ export class SimulationEvaluatorTaskService
     desiredCapacity: number;
   }) {
     return Math.min(worker.activeCapacity, worker.desiredCapacity);
+  }
+
+  private getEvaluationClaimCapacity(worker: {
+    activeCapacity: number;
+    desiredCapacity: number;
+  }) {
+    return (
+      this.getSchedulingCapacity(worker) *
+      SIMULATION_EVALUATOR.workerClaimCapacityMultiplier
+    );
   }
 
   async complete(input: CompleteSimulationEvaluatorTaskInput) {

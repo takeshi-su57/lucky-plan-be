@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 
 import { SimulationEvaluatorWorkerRuntimeService } from './simulation-evaluator-worker-runtime.service';
 
@@ -49,5 +50,36 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     expect((runtime as any).approved).toBe(true);
     expect((runtime as any).heartbeatInFlight).toBe(false);
     consoleError.mockRestore();
+  });
+
+  it('heartbeats prefetched work while keeping it behind active child capacity', () => {
+    const client = {
+      beginTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    (runtime as any).idleChildren.add({});
+    const processTask = jest
+      .spyOn(runtime as any, 'processTask')
+      .mockImplementation(() => new Promise(() => undefined));
+    const first = {
+      id: 'task-1',
+      kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+      leaseToken: 'lease-1',
+    };
+    const prefetched = {
+      id: 'task-2',
+      kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+      leaseToken: 'lease-2',
+    };
+
+    (runtime as any).acceptTask(first);
+    (runtime as any).acceptTask(prefetched);
+
+    expect(client.beginTask).toHaveBeenCalledTimes(2);
+    expect(processTask).toHaveBeenCalledTimes(1);
+    expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
   });
 });

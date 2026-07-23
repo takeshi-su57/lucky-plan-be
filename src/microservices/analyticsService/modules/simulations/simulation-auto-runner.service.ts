@@ -62,6 +62,11 @@ export type SimulationRangeProcessingContext = {
   >;
 };
 
+export type FinalizeSimulationRangeResult = {
+  simulation: Simulation | null;
+  awaitingEventLogs: boolean;
+};
+
 @Injectable()
 export class SimulationAutoRunnerService {
   constructor(
@@ -311,19 +316,19 @@ export class SimulationAutoRunnerService {
     range: WindowRange,
     context: SimulationRangeProcessingContext,
     evaluatedCandidates: CandidateEvaluation[],
-  ): Promise<Simulation | null> {
+  ): Promise<FinalizeSimulationRangeResult> {
     const record = await this.prisma.simulation.findUnique({
       where: { id: simulationId },
     });
     const simulation = record ? this.mapSimulation(record) : null;
     if (!simulation || simulation.status === SimulationStatus.Cancelled) {
-      return null;
+      return { simulation: null, awaitingEventLogs: false };
     }
     const simulationPlan = await this.createSimulationPlanForRange(
       simulation,
       range,
     );
-    await this.createSimulationBotsForSelections(
+    const cacheCompleted = await this.createSimulationBotsForSelections(
       simulationPlan.id,
       range.startedAt,
       range.endedAt,
@@ -331,6 +336,9 @@ export class SimulationAutoRunnerService {
       [...evaluatedCandidates].sort((a, b) => b.score - a.score),
       context.platformContracts,
     );
+    if (!cacheCompleted) {
+      return { simulation: null, awaitingEventLogs: true };
+    }
 
     const plans = await this.prisma.simulationPlan.findMany({
       where: { simulationId },
@@ -375,7 +383,10 @@ export class SimulationAutoRunnerService {
     await this.aggregateSimulation(simulationId, {
       status: completed ? SimulationStatus.Completed : SimulationStatus.Running,
     });
-    return this.mapSimulation(updated);
+    return {
+      simulation: this.mapSimulation(updated),
+      awaitingEventLogs: false,
+    };
   }
 
   private async getSimulationPlanForUpdate(id: number) {
@@ -454,7 +465,9 @@ export class SimulationAutoRunnerService {
     contracts: { id: number; platform: Platform }[],
   ) {
     if (selectedCandidates.length === 0 || contracts.length === 0) {
-      return;
+      return (
+        await this.simulationCacheService.rebuildPlanCache(simulationPlanId)
+      ).completed;
     }
     const normalizedSimulation = this.mapSimulation(simulation);
 
@@ -463,7 +476,11 @@ export class SimulationAutoRunnerService {
     });
 
     if (existingBotCount > 0) {
-      return;
+      return (
+        await this.simulationCacheService.refreshIncompleteBotsForPlan(
+          simulationPlanId,
+        )
+      ).completed;
     }
 
     const hasPlatformContract = contracts.some(
@@ -471,7 +488,9 @@ export class SimulationAutoRunnerService {
     );
 
     if (!hasPlatformContract) {
-      return;
+      return (
+        await this.simulationCacheService.rebuildPlanCache(simulationPlanId)
+      ).completed;
     }
 
     const botInputs = selectedCandidates.map((candidate) => ({
@@ -533,7 +552,9 @@ export class SimulationAutoRunnerService {
     }));
 
     if (botInputs.length === 0) {
-      return;
+      return (
+        await this.simulationCacheService.rebuildPlanCache(simulationPlanId)
+      ).completed;
     }
 
     await this.prisma.simulationBot.createMany({
@@ -550,10 +571,12 @@ export class SimulationAutoRunnerService {
       await this.simulationCacheService.ensureSimulationBotCache(bot.id);
     }
 
-    await this.simulationCacheService.refreshIncompleteBotsForPlan(
-      simulationPlanId,
-    );
+    const planCache =
+      await this.simulationCacheService.refreshIncompleteBotsForPlan(
+        simulationPlanId,
+      );
     await this.emitSimulationPlanUpdated(simulationPlanId);
+    return planCache.completed;
   }
 
   private async aggregateSimulation(
@@ -582,27 +605,16 @@ export class SimulationAutoRunnerService {
     let totalLeaderPnl = 0;
 
     for (const plan of plans) {
-      await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
-
-      const refreshedPlan = await this.prisma.simulationPlan.findUnique({
-        where: { id: plan.id },
-        include: {
-          cache: true,
-          simulationBots: {
-            include: {
-              cache: true,
-            },
-          },
-        },
-      });
-
-      if (!refreshedPlan?.cache) {
+      // Finalization now certifies the current plan cache before aggregation.
+      // Previous completed plans are immutable, so rebuilding every bot in
+      // every prior plan here made N finalized ranges perform O(N²) work.
+      if (!plan.cache) {
         throw new Error(`Simulation plan cache not found for plan ${plan.id}`);
       }
 
-      totalLeaderPnl += refreshedPlan.cache.totalLeaderPnl;
+      totalLeaderPnl += plan.cache.totalLeaderPnl;
 
-      refreshedPlan.simulationBots.forEach((bot) => {
+      plan.simulationBots.forEach((bot) => {
         if (!bot.cache) {
           return;
         }

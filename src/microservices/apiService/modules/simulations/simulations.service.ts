@@ -1797,6 +1797,7 @@ export class SimulationsService {
             in: [
               SimulationExecutionPlanStatus.Pending,
               SimulationExecutionPlanStatus.Dispatched,
+              SimulationExecutionPlanStatus.AwaitingEventLogs,
               SimulationExecutionPlanStatus.Finalizing,
               SimulationExecutionPlanStatus.Failed,
             ],
