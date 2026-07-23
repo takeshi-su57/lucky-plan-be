@@ -748,6 +748,8 @@ enum Platform {
 }
 
 enum Version {
+  V6_V7
+  V8_V9_2
   V9
   V10
   V2
