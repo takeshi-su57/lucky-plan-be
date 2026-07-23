@@ -3,7 +3,6 @@ import {
   SimulationEvaluatorTaskStatus,
   SimulationExecutionPlanStatus,
 } from 'generated/prisma/enums';
-import * as releaseMetadata from 'src/release-metadata';
 
 import { SimulationEvaluatorWorkersResolver } from './simulation-evaluator-workers.resolver';
 
@@ -123,14 +122,7 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
     expect(tasks.createTask).not.toHaveBeenCalled();
   });
 
-  it('queues only the latest backend-matched evaluator release', async () => {
-    const release = jest
-      .spyOn(releaseMetadata, 'readBackendReleaseMetadata')
-      .mockReturnValue({
-        version: '3.0.11',
-        gitSha: 'test',
-        builtAt: '2026-07-23T00:00:00.000Z',
-      });
+  it('queues an administrator-selected newer evaluator release', async () => {
     const prisma = {
       simulationEvaluatorWorker: {
         findUnique: jest.fn().mockResolvedValue({
@@ -162,6 +154,5 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
         }),
       }),
     );
-    release.mockRestore();
   });
 });

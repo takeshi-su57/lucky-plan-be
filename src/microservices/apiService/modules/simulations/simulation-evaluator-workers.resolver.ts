@@ -26,7 +26,6 @@ import {
   SimulationEvaluatorWorkerView,
   SimulationEvaluatorPipelineView,
 } from './entities/simulations.entity';
-import { readBackendReleaseMetadata } from 'src/release-metadata';
 
 const EVALUATOR_WORKER_RELEASE_URL = (version: string) =>
   `https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v${encodeURIComponent(version)}/lucky-evaluator-worker-node22.zip`;
@@ -361,13 +360,6 @@ export class SimulationEvaluatorWorkersResolver {
       throw new Error(
         `Version ${version} must be newer than installed version ${worker.version}`,
       );
-    }
-    const latestVersion = readBackendReleaseMetadata().version;
-    if (!isReleaseVersion(latestVersion)) {
-      throw new Error('Latest evaluator worker release is unavailable');
-    }
-    if (version !== latestVersion) {
-      throw new Error(`Latest evaluator worker version is ${latestVersion}`);
     }
     const now = new Date();
     const task = await this.tasks.createTask({
