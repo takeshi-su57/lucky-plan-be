@@ -31,6 +31,12 @@ input AssetInput {
   kind: String!
 }
 
+type BackendReleaseInfo {
+  builtAt: String!
+  gitSha: String!
+  version: String!
+}
+
 type BotBackwardDetails {
   endedAt: Date
   follower: Follower!
@@ -52,12 +58,6 @@ type BotBackwardDetails {
   status: BotStatus!
   strategy: Strategy!
   strategyId: Int!
-}
-
-type BackendReleaseInfo {
-  builtAt: String!
-  gitSha: String!
-  version: String!
 }
 
 type BotConnection {
@@ -556,7 +556,6 @@ type Mutation {
   resumeSystem(password: String): Boolean!
   retrySimulationEvaluatorWorkerCache(cacheId: Int!): String!
   setSimulationEvaluatorWorkerCapacity(capacity: Float!, workerId: String!): String!
-  upgradeSimulationEvaluatorWorker(version: String!, workerId: String!): String!
   startAdaption(contractId: Int!, shouldRestart: Boolean!): Boolean!
   startPlan(id: Int!): Boolean!
   startSubService(service: String!): Boolean!
@@ -570,6 +569,7 @@ type Mutation {
   updateSl(input: UpdateSlInput!): ContractExecutionResult!
   updateStrategy(id: Int!, input: UpdateStrategyInput!): Strategy!
   updateTp(input: UpdateTpInput!): ContractExecutionResult!
+  upgradeSimulationEvaluatorWorker(version: String!, workerId: String!): String!
   withdrawAllETH(input: WithdrawAllInput!): Boolean!
   withdrawAllErc20(input: WithdrawAllInput!): Boolean!
   withdrawAsset(input: AssetInput!): Boolean!
@@ -752,8 +752,8 @@ type PnlSnapshotV2InitializedFlag {
 }
 
 type Query {
-  backendReleaseInfo: BackendReleaseInfo!
   allLogs(after: Int, checked: Boolean!, first: Int!, severity: LogSeverity): LogsConnection!
+  backendReleaseInfo: BackendReleaseInfo!
   findContract(id: Int!): Contract!
   findStrategy(id: Int!): Strategy
   getALLSLTPs: [SLTPRequest!]!
