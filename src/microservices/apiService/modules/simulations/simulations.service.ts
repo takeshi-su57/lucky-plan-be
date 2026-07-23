@@ -1475,22 +1475,6 @@ export class SimulationsService {
           lastError: 'Reset by an administrator for recovery',
         },
       });
-      // Event-log waits are retryable rather than failures.  A recovery must
-      // wake them up now; merely restarting the research preserved a stale
-      // nextFinalizationAt and could leave the last simulations Running
-      // indefinitely.
-      await tx.simulationExecutionPlan.updateMany({
-        where: {
-          simulation: { is: { researchId: id } },
-          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
-        },
-        data: {
-          nextFinalizationAt: now,
-          leaseToken: null,
-          leaseExpiresAt: null,
-          lastError: 'Finalization retry requested by an administrator',
-        },
-      });
       // Never take an active lease away from a live finalizer, but release a
       // stale one so the dispatcher can reclaim it immediately.
       await tx.simulationExecutionPlan.updateMany({

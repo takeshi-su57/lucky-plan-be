@@ -634,11 +634,7 @@ export class SimulationDynamicAutoSchedulerService {
         },
       });
       await this.syncResearch(plan.simulation.researchId);
-      const finalizedSimulation = await this.prisma.simulation.findUnique({
-        where: { id: plan.simulationId },
-        select: { status: true },
-      });
-      if (finalizedSimulation?.status === SimulationStatus.Completed) {
+      if (finalization.simulation?.status === SimulationStatus.Completed) {
         await this.logSimulationTiming(plan.simulationId);
       }
       await this.logger.log({
@@ -753,58 +749,47 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async syncResearch(researchId: number) {
-    // Execution plans, not created SimulationPlan records, are the source of
-    // truth.  A plan cache can exist while it still awaits event data.
+    // Simulation status is derived from the completed plan count. Restore it
+    // before aggregating the parent so an interrupted finalization cannot keep
+    // either record in Running after all plan windows were written.
     const simulationsToComplete = await this.prisma.simulation.findMany({
       where: {
         researchId,
         status: {
-          notIn: [SimulationStatus.Cancelled, SimulationStatus.Failed],
+          notIn: [
+            SimulationStatus.Cancelled,
+            SimulationStatus.Completed,
+            SimulationStatus.Failed,
+          ],
         },
       },
       select: {
         id: true,
-        status: true,
         completedPlans: true,
         totalSimulationPlans: true,
-        executionPlans: { select: { status: true } },
+        _count: { select: { simulationPlans: true } },
       },
     });
     const recoveredSimulations = await Promise.all(
-      simulationsToComplete.flatMap((simulation) => {
-        const completedPlans = simulation.executionPlans.filter(
-          (plan) => plan.status === SimulationExecutionPlanStatus.Completed,
-        ).length;
-        const completed =
-          simulation.totalSimulationPlans > 0 &&
-          completedPlans >= simulation.totalSimulationPlans;
-        const status = completed
-          ? SimulationStatus.Completed
-          : SimulationStatus.Running;
-        if (
-          simulation.status === status &&
-          simulation.completedPlans === completedPlans
+      simulationsToComplete
+        .filter(
+          (simulation) =>
+            simulation.totalSimulationPlans > 0 &&
+            simulation._count.simulationPlans >=
+              simulation.totalSimulationPlans,
         )
-          return [];
-        return [
+        .map((simulation) =>
           this.prisma.simulation.update({
             where: { id: simulation.id },
             data: {
-              completedPlans,
-              status,
-              progressPhase: completed
-                ? 'completed'
-                : 'dynamic-plan-scheduling',
-              progressMessage: completed
-                ? 'Simulation result completed'
-                : `Finalizing ${completedPlans} / ${simulation.totalSimulationPlans} plan windows`,
-              progressPercent: simulation.totalSimulationPlans
-                ? (completedPlans / simulation.totalSimulationPlans) * 100
-                : 0,
+              completedPlans: simulation._count.simulationPlans,
+              status: SimulationStatus.Completed,
+              progressPhase: 'completed',
+              progressMessage: 'Simulation result completed',
+              progressPercent: 100,
             },
           }),
-        ];
-      }),
+        ),
     );
     const research = await this.prisma.simulationResearch.findUnique({
       where: { id: researchId },

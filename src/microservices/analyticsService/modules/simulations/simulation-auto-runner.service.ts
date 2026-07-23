@@ -377,20 +377,21 @@ export class SimulationAutoRunnerService {
         break;
       cursor = item.endedAt;
     }
-    // Creating a SimulationPlan is an intermediate step.  The execution plan
-    // becomes terminal only after the scheduler persists its Completed state;
-    // SimulationDynamicAutoSchedulerService.syncResearch is the sole source
-    // of truth for simulation completion.
     const completedPlans = plans.length;
+    const completed = completedPlans >= context.allRanges.length;
     const progressStartedAt = performance.now();
     const updated = await this.prisma.simulation.update({
       where: { id: simulationId },
       data: {
         cursor,
         completedPlans,
-        status: SimulationStatus.Running,
-        progressPhase: 'plan-window-finalized',
-        progressMessage: `Finalized ${completedPlans} / ${context.allRanges.length} plan windows`,
+        status: completed
+          ? SimulationStatus.Completed
+          : SimulationStatus.Running,
+        progressPhase: completed ? 'completed' : 'plan-window-completed',
+        progressMessage: completed
+          ? 'Simulation result completed'
+          : `Completed ${completedPlans} / ${context.allRanges.length} plan windows`,
         progressPercent: context.allRanges.length
           ? (completedPlans / context.allRanges.length) * 100
           : 100,
@@ -400,7 +401,7 @@ export class SimulationAutoRunnerService {
     const progressMs = Math.round(performance.now() - progressStartedAt);
     const aggregationStartedAt = performance.now();
     const aggregation = await this.aggregateSimulation(simulationId, {
-      status: SimulationStatus.Running,
+      status: completed ? SimulationStatus.Completed : SimulationStatus.Running,
     });
     const aggregationMs = Math.round(performance.now() - aggregationStartedAt);
     return {
