@@ -46,7 +46,7 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       {
         get: jest.fn().mockResolvedValue({
           finalizerConcurrency: 8,
-          maxAwaitingFinalizationPlans: 200,
+          maxAwaitingFinalizationPlans: 6,
           maxOutstandingDynamicPlans: 500,
         } as never),
       } as never,
@@ -66,7 +66,7 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       failedExecutionPlans: 1,
       outstandingExecutionPlans: 20,
       finalizerConcurrency: 8,
-      maxAwaitingFinalizationPlans: 200,
+      maxAwaitingFinalizationPlans: 6,
       maxOutstandingDynamicPlans: 500,
       backpressureActive: false,
     });

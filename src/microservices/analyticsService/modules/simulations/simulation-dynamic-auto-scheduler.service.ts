@@ -188,7 +188,6 @@ export class SimulationDynamicAutoSchedulerService {
           (plan) =>
             plan.status === SimulationExecutionPlanStatus.Pending ||
             plan.status === SimulationExecutionPlanStatus.Dispatched ||
-            plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs ||
             plan.status === SimulationExecutionPlanStatus.Finalizing,
         ).length;
         return undispatchedRanges.length
@@ -220,7 +219,6 @@ export class SimulationDynamicAutoSchedulerService {
           in: [
             SimulationExecutionPlanStatus.Pending,
             SimulationExecutionPlanStatus.Dispatched,
-            SimulationExecutionPlanStatus.AwaitingEventLogs,
             SimulationExecutionPlanStatus.Finalizing,
           ],
         },
@@ -248,12 +246,7 @@ export class SimulationDynamicAutoSchedulerService {
               },
             },
             {
-              status: {
-                in: [
-                  SimulationExecutionPlanStatus.AwaitingEventLogs,
-                  SimulationExecutionPlanStatus.Finalizing,
-                ],
-              },
+              status: SimulationExecutionPlanStatus.Finalizing,
             },
           ],
         },
@@ -415,43 +408,53 @@ export class SimulationDynamicAutoSchedulerService {
         workflow.finalizerConcurrency - this.activeFinalizerPlans.size,
       );
       if (!availableSlots) return;
-      const plans = await this.prisma.simulationExecutionPlan.findMany({
-        where: {
-          OR: [
-            {
-              status: SimulationExecutionPlanStatus.Dispatched,
-              evaluatorTask: {
-                is: { status: SimulationEvaluatorTaskStatus.Completed },
-              },
-            },
-            {
-              status: SimulationExecutionPlanStatus.AwaitingEventLogs,
-              nextFinalizationAt: { lte: now },
-              evaluatorTask: {
-                is: { status: SimulationEvaluatorTaskStatus.Completed },
-              },
-            },
-          ],
-          simulation: {
-            is: {
-              status: { not: SimulationStatus.Cancelled },
-              research: { is: { status: { not: SimulationStatus.Cancelled } } },
-              OR: [
-                { automationLeaseToken: null },
-                { automationLeaseExpiresAt: { lte: now } },
-              ],
-            },
+      const commonWhere = {
+        evaluatorTask: {
+          is: { status: SimulationEvaluatorTaskStatus.Completed },
+        },
+        simulation: {
+          is: {
+            status: { not: SimulationStatus.Cancelled },
+            research: { is: { status: { not: SimulationStatus.Cancelled } } },
+            OR: [
+              { automationLeaseToken: null },
+              { automationLeaseExpiresAt: { lte: now } },
+            ],
           },
         },
+      };
+      const scanLimit = Math.min(
+        500,
+        workflow.finalizerBatchSize * availableSlots,
+      );
+      const queryOptions = {
         include: {
           evaluatorTask: true,
           simulation: { include: { research: true } },
         },
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        // Scan beyond the concurrency limit so a run of old plans from one
-        // simulation cannot hide ready work belonging to other simulations.
-        take: Math.min(500, workflow.finalizerBatchSize * availableSlots),
-      });
+        orderBy: [{ updatedAt: 'asc' as const }, { id: 'asc' as const }],
+        take: scanLimit,
+      };
+      const [newlyCompleted, futureEventRetries] = await Promise.all([
+        this.prisma.simulationExecutionPlan.findMany({
+          ...queryOptions,
+          where: {
+            ...commonWhere,
+            status: SimulationExecutionPlanStatus.Dispatched,
+          },
+        }),
+        this.prisma.simulationExecutionPlan.findMany({
+          ...queryOptions,
+          where: {
+            ...commonWhere,
+            status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+            nextFinalizationAt: { lte: now },
+          },
+        }),
+      ]);
+      // New evaluation results always get the first opportunity to use a
+      // finalizer slot. Passive future-event retries fill only spare slots.
+      const plans = [...newlyCompleted, ...futureEventRetries];
       for (const plan of plans) {
         if (this.activeFinalizerPlans.size >= workflow.finalizerConcurrency)
           break;

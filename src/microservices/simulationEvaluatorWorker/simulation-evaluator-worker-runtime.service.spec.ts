@@ -82,4 +82,20 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     expect(processTask).toHaveBeenCalledTimes(1);
     expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
   });
+
+  it('waits for a replacement when a reserved child exits during input loading', async () => {
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      {} as never,
+      {} as never,
+    );
+    const deadChild = { exitCode: 1, connected: false };
+    const replacement = { exitCode: null, connected: true };
+    (runtime as any).startingEvaluations.set('task-1', deadChild);
+
+    const acquired = (runtime as any).acquireEvaluationChild('task-1');
+    (runtime as any).children.add(replacement);
+    (runtime as any).offerIdleChild(replacement);
+
+    await expect(acquired).resolves.toBe(replacement);
+  });
 });

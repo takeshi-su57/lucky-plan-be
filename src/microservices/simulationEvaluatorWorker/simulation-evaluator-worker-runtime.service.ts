@@ -45,7 +45,11 @@ export class SimulationEvaluatorWorkerRuntimeService
   private readonly idleChildren = new Set<ChildProcess>();
   private readonly running = new Map<string, ChildProcess>();
   private readonly pendingEvaluations: ClaimedTask[] = [];
-  private readonly startingEvaluations = new Set<string>();
+  private readonly startingEvaluations = new Map<string, ChildProcess>();
+  private readonly idleChildWaiters: Array<{
+    resolve: (child: ChildProcess) => void;
+    reject: (error: Error) => void;
+  }> = [];
   private lastPollAt: Date | null = null;
   private lastPollError: string | null = null;
   private readonly recentLogs: {
@@ -65,6 +69,8 @@ export class SimulationEvaluatorWorkerRuntimeService
 
   async onModuleDestroy() {
     this.stopping = true;
+    for (const waiter of this.idleChildWaiters.splice(0))
+      waiter.reject(new Error('Evaluator worker is stopping'));
     if (this.heartbeat) clearInterval(this.heartbeat);
     await Promise.all([...this.children].map((child) => this.stopChild(child)));
     await this.removeParentSessionHeartbeat();
@@ -119,12 +125,10 @@ export class SimulationEvaluatorWorkerRuntimeService
   }
 
   private drainPendingEvaluations() {
-    while (
-      this.pendingEvaluations.length > 0 &&
-      this.idleChildren.size > this.startingEvaluations.size
-    ) {
+    while (this.pendingEvaluations.length > 0 && this.idleChildren.size > 0) {
       const task = this.pendingEvaluations.shift()!;
-      this.startingEvaluations.add(task.id);
+      const child = this.takeIdleChild()!;
+      this.startingEvaluations.set(task.id, child);
       void this.processTask(task);
     }
   }
@@ -139,11 +143,12 @@ export class SimulationEvaluatorWorkerRuntimeService
       let result: Record<string, unknown>;
       switch (task.kind) {
         case SimulationEvaluatorTaskKind.EvaluateLeaders:
-          // Input download is asynchronous. The starting set reserves one
-          // idle child during that gap so multiple prefetched tasks cannot all
-          // select the same child.
-          this.startingEvaluations.delete(task.id);
-          result = await this.evaluateInChild(task.id, task.leaseToken, input);
+          result = await this.evaluateInChild(
+            task.id,
+            task.leaseToken,
+            input,
+            await this.acquireEvaluationChild(task.id),
+          );
           break;
         case SimulationEvaluatorTaskKind.PrebuildPlatformCache:
           // Prebuild remains parent-only because it owns SQLite checkpoints and writes cache files.
@@ -186,7 +191,7 @@ export class SimulationEvaluatorWorkerRuntimeService
         .catch(() => undefined);
       this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
-      this.startingEvaluations.delete(task.id);
+      this.releaseStartingChild(task.id);
       this.client.endTask(task.id);
       this.drainPendingEvaluations();
     }
@@ -206,7 +211,7 @@ export class SimulationEvaluatorWorkerRuntimeService
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     });
     this.children.add(child);
-    this.idleChildren.add(child);
+    this.offerIdleChild(child);
     child.send({ type: 'parent-session', sessionId: this.sessionId });
     child.on('exit', () => {
       this.children.delete(child);
@@ -228,19 +233,20 @@ export class SimulationEvaluatorWorkerRuntimeService
     taskId: string,
     leaseToken: string,
     input: Record<string, unknown>,
-  ) {
-    const child = this.idleChildren.values().next().value as
-      | ChildProcess
-      | undefined;
-    if (!child) throw new Error('No idle child evaluator is available');
-    this.idleChildren.delete(child);
+    child: ChildProcess,
+  ): Promise<Record<string, unknown>> {
+    if (!this.isUsableChild(child)) {
+      return this.waitForIdleChild().then((replacement) =>
+        this.evaluateInChild(taskId, leaseToken, input, replacement),
+      );
+    }
     this.running.set(taskId, child);
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       const cleanup = () => {
         child.off('message', onMessage);
         child.off('exit', onExit);
         this.running.delete(taskId);
-        if (this.children.has(child)) this.idleChildren.add(child);
+        this.offerIdleChild(child);
       };
       const onMessage = (message: {
         type?: string;
@@ -287,8 +293,58 @@ export class SimulationEvaluatorWorkerRuntimeService
       // listener must remain attached until cleanup handles that result.
       child.on('message', onMessage);
       child.once('exit', onExit);
-      child.send({ type: 'evaluate', taskId, input });
+      try {
+        child.send({ type: 'evaluate', taskId, input });
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
     });
+  }
+
+  private acquireEvaluationChild(taskId: string) {
+    const reserved = this.startingEvaluations.get(taskId);
+    this.startingEvaluations.delete(taskId);
+    if (reserved && this.isUsableChild(reserved))
+      return Promise.resolve(reserved);
+    return this.waitForIdleChild();
+  }
+
+  private releaseStartingChild(taskId: string) {
+    const child = this.startingEvaluations.get(taskId);
+    this.startingEvaluations.delete(taskId);
+    if (child) this.offerIdleChild(child);
+  }
+
+  private takeIdleChild() {
+    const child = this.idleChildren.values().next().value as
+      | ChildProcess
+      | undefined;
+    if (child) this.idleChildren.delete(child);
+    return child;
+  }
+
+  private offerIdleChild(child: ChildProcess) {
+    if (!this.isUsableChild(child)) return;
+    const waiter = this.idleChildWaiters.shift();
+    if (waiter) waiter.resolve(child);
+    else this.idleChildren.add(child);
+  }
+
+  private waitForIdleChild() {
+    const child = this.takeIdleChild();
+    if (child) return Promise.resolve(child);
+    if (this.stopping)
+      return Promise.reject(new Error('Evaluator worker is stopping'));
+    return new Promise<ChildProcess>((resolve, reject) => {
+      this.idleChildWaiters.push({ resolve, reject });
+    });
+  }
+
+  private isUsableChild(child: ChildProcess) {
+    return (
+      this.children.has(child) && child.exitCode === null && child.connected
+    );
   }
 
   private async stopChild(child: ChildProcess) {

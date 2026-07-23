@@ -163,7 +163,6 @@ export class SimulationEvaluatorWorkersResolver {
             in: [
               SimulationExecutionPlanStatus.Pending,
               SimulationExecutionPlanStatus.Dispatched,
-              SimulationExecutionPlanStatus.AwaitingEventLogs,
               SimulationExecutionPlanStatus.Finalizing,
             ],
           },
@@ -175,8 +174,7 @@ export class SimulationEvaluatorWorkersResolver {
         total + Math.min(worker.activeCapacity, worker.desiredCapacity),
       0,
     );
-    const finalizerBacklog =
-      awaitingFinalization + finalizing + awaitingEventLogs;
+    const finalizerBacklog = awaitingFinalization + finalizing;
     return {
       fleetCapacity,
       queueLowWatermark:
