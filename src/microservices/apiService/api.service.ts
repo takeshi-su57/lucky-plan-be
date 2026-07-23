@@ -100,7 +100,10 @@ export class ApiService {
 
     const command = isWindows ? 'npm.cmd' : 'npm';
 
-    const child = spawn(command, ['run', 'start'], {
+    // Subservices share the API's compiled output. `npm run start` invokes the
+    // Nest compiler, which cleans dist and deletes release.json while the API
+    // is serving requests. They must run the already-built production entry.
+    const child = spawn(command, ['run', 'start:prod'], {
       cwd: process.cwd(),
       env: {
         ...process.env,
