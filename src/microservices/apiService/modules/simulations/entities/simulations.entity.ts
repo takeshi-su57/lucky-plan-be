@@ -35,6 +35,9 @@ export class SimulationWorkflowConfigView {
   @Field(() => Int) maxSimulationsPerResearch: number;
   @Field(() => Int) maxOutstandingDynamicPlans: number;
   @Field(() => Int) finalizerBatchSize: number;
+  @Field(() => Int) finalizerConcurrency: number;
+  @Field(() => Int) finalizerRetryDelayMs: number;
+  @Field(() => Int) maxAwaitingFinalizationPlans: number;
   @Field(() => Int) finalizerLeaseMs: number;
   @Field(() => Int) evaluatorTaskLeaseMs: number;
   @Field(() => Int) queuedTaskBatchSize: number;

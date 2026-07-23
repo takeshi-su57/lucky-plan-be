@@ -260,6 +260,7 @@ enum SimulationEvaluatorTaskStatus {
 enum SimulationExecutionPlanStatus {
   Pending
   Dispatched
+  AwaitingEventLogs
   Finalizing
   Completed
   Failed
@@ -419,20 +420,21 @@ model Simulation {
 }
 
 model SimulationExecutionPlan {
-  id              String                        @id @default(cuid())
-  simulationId    Int
-  evaluatorTaskId String?                       @unique
-  rangeStartedAt  DateTime
-  rangeEndedAt    DateTime
-  status          SimulationExecutionPlanStatus @default(Pending)
-  leaseToken      String?                       @db.VarChar(64)
-  leaseExpiresAt  DateTime?
-  attempts        Int                           @default(0)
-  lastError       String?
-  dispatchedAt    DateTime?
-  completedAt     DateTime?
-  createdAt       DateTime                      @default(now())
-  updatedAt       DateTime                      @updatedAt
+  id                 String                        @id @default(cuid())
+  simulationId       Int
+  evaluatorTaskId    String?                       @unique
+  rangeStartedAt     DateTime
+  rangeEndedAt       DateTime
+  status             SimulationExecutionPlanStatus @default(Pending)
+  leaseToken         String?                       @db.VarChar(64)
+  leaseExpiresAt     DateTime?
+  nextFinalizationAt DateTime?
+  attempts           Int                           @default(0)
+  lastError          String?
+  dispatchedAt       DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
 
   simulation    Simulation               @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   evaluatorTask SimulationEvaluatorTask? @relation(fields: [evaluatorTaskId], references: [id], onDelete: SetNull)
@@ -441,6 +443,7 @@ model SimulationExecutionPlan {
   @@index([status, createdAt])
   @@index([simulationId, status])
   @@index([status, leaseExpiresAt])
+  @@index([status, nextFinalizationAt])
 }
 
 model Bot {
@@ -623,21 +626,21 @@ model SimulationBotCachedEventLog {
 }
 
 model SimulationPlanCache {
-  id               Int       @id @default(autoincrement())
-  simulationPlanId Int       @unique
-  completed        Boolean   @default(false)
-  rebuilding       Boolean   @default(false)
-  completedBots    Int       @default(0)
-  incompleteBots   Int       @default(0)
-  openedPositions  Int       @default(0)
-  totalPositions   Int       @default(0)
-  totalLeaderPnl   Float     @default(0)
-  totalFollowerPnl Float     @default(0)
-  realizedEquityCurveJson String @default("[]")
-  lastBuiltAt      DateTime?
-  lastError        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                      Int       @id @default(autoincrement())
+  simulationPlanId        Int       @unique
+  completed               Boolean   @default(false)
+  rebuilding              Boolean   @default(false)
+  completedBots           Int       @default(0)
+  incompleteBots          Int       @default(0)
+  openedPositions         Int       @default(0)
+  totalPositions          Int       @default(0)
+  totalLeaderPnl          Float     @default(0)
+  totalFollowerPnl        Float     @default(0)
+  realizedEquityCurveJson String    @default("[]")
+  lastBuiltAt             DateTime?
+  lastError               String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   simulationPlan SimulationPlan @relation(fields: [simulationPlanId], references: [id], onDelete: Cascade)
 }

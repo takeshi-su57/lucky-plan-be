@@ -8,6 +8,9 @@ export type SimulationWorkflowConfig = {
   maxSimulationsPerResearch: number;
   maxOutstandingDynamicPlans: number;
   finalizerBatchSize: number;
+  finalizerConcurrency: number;
+  finalizerRetryDelayMs: number;
+  maxAwaitingFinalizationPlans: number;
   finalizerLeaseMs: number;
   evaluatorTaskLeaseMs: number;
   queuedTaskBatchSize: number;
@@ -22,8 +25,13 @@ export type SimulationWorkflowConfig = {
 
 export const SIMULATION_WORKFLOW_DEFAULTS: SimulationWorkflowConfig = {
   maxSimulationsPerResearch: 30,
-  maxOutstandingDynamicPlans: 20,
+  // This is a safety ceiling above the capacity-derived queue watermarks. A
+  // 48-slot fleet can retain 144 ready tasks plus its active claims.
+  maxOutstandingDynamicPlans: 500,
   finalizerBatchSize: 20,
+  finalizerConcurrency: 8,
+  finalizerRetryDelayMs: 60_000,
+  maxAwaitingFinalizationPlans: 200,
   finalizerLeaseMs: 30 * 60_000,
   evaluatorTaskLeaseMs: 90_000,
   queuedTaskBatchSize: 100,
@@ -41,6 +49,9 @@ const bounds: Record<keyof SimulationWorkflowConfig, [number, number]> = {
   maxSimulationsPerResearch: [1, 500],
   maxOutstandingDynamicPlans: [1, 500],
   finalizerBatchSize: [1, 500],
+  finalizerConcurrency: [1, 100],
+  finalizerRetryDelayMs: [10_000, 24 * 60 * 60_000],
+  maxAwaitingFinalizationPlans: [1, 500],
   finalizerLeaseMs: [60_000, 24 * 60 * 60_000],
   evaluatorTaskLeaseMs: [30_000, 60 * 60_000],
   queuedTaskBatchSize: [1, 1_000],

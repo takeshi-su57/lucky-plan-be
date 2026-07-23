@@ -15,6 +15,9 @@ export class UpdateSimulationWorkflowConfigInput {
   @Field(() => Int, { nullable: true }) maxSimulationsPerResearch?: number;
   @Field(() => Int, { nullable: true }) maxOutstandingDynamicPlans?: number;
   @Field(() => Int, { nullable: true }) finalizerBatchSize?: number;
+  @Field(() => Int, { nullable: true }) finalizerConcurrency?: number;
+  @Field(() => Int, { nullable: true }) finalizerRetryDelayMs?: number;
+  @Field(() => Int, { nullable: true }) maxAwaitingFinalizationPlans?: number;
   @Field(() => Int, { nullable: true }) finalizerLeaseMs?: number;
   @Field(() => Int, { nullable: true }) evaluatorTaskLeaseMs?: number;
   @Field(() => Int, { nullable: true }) queuedTaskBatchSize?: number;

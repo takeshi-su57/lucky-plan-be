@@ -11,7 +11,9 @@ import { SimulationEvaluatorTaskService } from './simulation-evaluator-task.serv
 import { SIMULATION_WORKFLOW_DEFAULTS } from 'src/global/simulation-workflow-config.service';
 
 const EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS = 60_000;
-const workflowConfig = { get: jest.fn(async () => SIMULATION_WORKFLOW_DEFAULTS) };
+const workflowConfig = {
+  get: jest.fn(async () => SIMULATION_WORKFLOW_DEFAULTS),
+};
 
 describe('SimulationEvaluatorTaskService worker freshness', () => {
   it('reuses an in-flight equivalent task after a research retry', async () => {
@@ -25,7 +27,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         create: jest.fn(),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     const task = await service.createTask({
       kind: 'EvaluateLeaders' as any,
@@ -69,7 +74,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         create: jest.fn(async () => workerBTask),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
     const rangeStartedAt = new Date('2026-01-01T00:00:00.000Z');
     const rangeEndedAt = new Date('2026-02-01T00:00:00.000Z');
     const input = {
@@ -108,7 +116,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         findUnique: jest.fn(async () => concurrentTask),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     await expect(
       service.createTask({
@@ -138,7 +149,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     await service.reconcileExpiredClaims(new Date('2026-07-19T00:00:00.000Z'));
 
@@ -159,7 +173,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
   });
 
   it('uses the desired capacity to drain a worker before a scale-down task runs', () => {
-    const service = new SimulationEvaluatorTaskService({} as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      {} as never,
+      workflowConfig as never,
+    );
 
     expect(
       (service as any).getSchedulingCapacity({
@@ -167,6 +184,20 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         desiredCapacity: 3,
       }),
     ).toBe(3);
+  });
+
+  it('allows one extra worker-capacity window to be prefetched', () => {
+    const service = new SimulationEvaluatorTaskService(
+      {} as never,
+      workflowConfig as never,
+    );
+
+    expect(
+      (service as any).getEvaluationClaimCapacity({
+        activeCapacity: 10,
+        desiredCapacity: 10,
+      }),
+    ).toBe(20);
   });
 
   it('counts eligible workers with a recent heartbeat as ready', async () => {
@@ -178,7 +209,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         groupBy: jest.fn(async () => []),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     await service.countReadyWorkers(
       Platform.GNS,
@@ -240,7 +274,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     const claimed = await service.claimNextTask('worker-1');
 
@@ -265,7 +302,10 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         updateMany: jest.fn(async () => ({ count: 2 })),
       },
     };
-    const service = new SimulationEvaluatorTaskService(prisma as never, workflowConfig as never);
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
 
     await (service as any).reconcileStaleIdleWorkers();
 

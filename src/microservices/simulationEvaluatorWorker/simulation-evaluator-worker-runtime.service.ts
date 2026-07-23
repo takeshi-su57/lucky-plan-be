@@ -44,6 +44,8 @@ export class SimulationEvaluatorWorkerRuntimeService
   private readonly children = new Set<ChildProcess>();
   private readonly idleChildren = new Set<ChildProcess>();
   private readonly running = new Map<string, ChildProcess>();
+  private readonly pendingEvaluations: ClaimedTask[] = [];
+  private readonly startingEvaluations = new Set<string>();
   private lastPollAt: Date | null = null;
   private lastPollError: string | null = null;
   private readonly recentLogs: {
@@ -95,7 +97,7 @@ export class SimulationEvaluatorWorkerRuntimeService
           await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
           continue;
         }
-        void this.processTask(task);
+        this.acceptTask(task);
       } catch (error) {
         this.lastPollError = this.describeError(error);
         this.log('error', `Poll/runtime error: ${this.lastPollError}`);
@@ -104,9 +106,31 @@ export class SimulationEvaluatorWorkerRuntimeService
     }
   }
 
+  private acceptTask(task: ClaimedTask) {
+    // Register a lease as soon as it is claimed, including while it waits in
+    // the local prefetch buffer, so heartbeat renewal covers queued work.
+    this.client.beginTask(task.id, task.leaseToken);
+    if (task.kind === SimulationEvaluatorTaskKind.EvaluateLeaders) {
+      this.pendingEvaluations.push(task);
+      this.drainPendingEvaluations();
+      return;
+    }
+    void this.processTask(task);
+  }
+
+  private drainPendingEvaluations() {
+    while (
+      this.pendingEvaluations.length > 0 &&
+      this.idleChildren.size > this.startingEvaluations.size
+    ) {
+      const task = this.pendingEvaluations.shift()!;
+      this.startingEvaluations.add(task.id);
+      void this.processTask(task);
+    }
+  }
+
   private async processTask(task: ClaimedTask) {
     const taskStartedAt = performance.now();
-    this.client.beginTask(task.id, task.leaseToken);
     try {
       const inputStartedAt = performance.now();
       const { input } = await this.client.getInput(task.id, task.leaseToken);
@@ -115,6 +139,10 @@ export class SimulationEvaluatorWorkerRuntimeService
       let result: Record<string, unknown>;
       switch (task.kind) {
         case SimulationEvaluatorTaskKind.EvaluateLeaders:
+          // Input download is asynchronous. The starting set reserves one
+          // idle child during that gap so multiple prefetched tasks cannot all
+          // select the same child.
+          this.startingEvaluations.delete(task.id);
           result = await this.evaluateInChild(task.id, task.leaseToken, input);
           break;
         case SimulationEvaluatorTaskKind.PrebuildPlatformCache:
@@ -158,7 +186,9 @@ export class SimulationEvaluatorWorkerRuntimeService
         .catch(() => undefined);
       this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
+      this.startingEvaluations.delete(task.id);
       this.client.endTask(task.id);
+      this.drainPendingEvaluations();
     }
   }
 
@@ -190,6 +220,7 @@ export class SimulationEvaluatorWorkerRuntimeService
       if (!this.stopping && this.children.size < this.desiredChildCapacity) {
         this.spawnChild();
       }
+      this.drainPendingEvaluations();
     });
   }
 
