@@ -200,6 +200,25 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     ).toBe(20);
   });
 
+  it('uses the persisted plan window for existing ready tasks', () => {
+    const service = new SimulationEvaluatorTaskService(
+      {} as never,
+      workflowConfig as never,
+    );
+
+    expect(
+      (service as any).getEvaluationRequiredCacheRange({
+        rangeStartedAt: new Date('2025-07-01T00:00:00.000Z'),
+        rangeEndedAt: new Date('2025-07-06T00:00:00.000Z'),
+        requiredCacheStartAt: new Date('2025-01-01T00:00:00.000Z'),
+        requiredCacheEndAt: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+    ).toEqual({
+      startedAt: new Date('2025-07-01T00:00:00.000Z'),
+      endedAt: new Date('2025-07-06T00:00:00.000Z'),
+    });
+  });
+
   it('claims a targeted capacity command ahead of evaluations already prefetched', async () => {
     const prisma = {
       simulationEvaluatorTask: {
@@ -302,6 +321,41 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(
       EXPECTED_WORKER_HEARTBEAT_TIMEOUT_MS - 1_000,
     );
+  });
+
+  it('accepts a worker whose prebuilt cache covers the plan but not its full lookback', async () => {
+    const prisma = {
+      simulationEvaluatorWorker: {
+        findMany: jest.fn(async () => [
+          {
+            id: 'worker-1',
+            activeCapacity: 3,
+            desiredCapacity: 3,
+            platformCaches: [
+              {
+                coveredStartAt: new Date('2024-12-01T00:00:00.000Z'),
+                coveredEndAt: new Date('2025-02-01T00:00:00.000Z'),
+              },
+            ],
+          },
+        ]),
+      },
+      simulationEvaluatorTask: {
+        groupBy: jest.fn(async () => []),
+      },
+    };
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
+
+    await expect(
+      service.countReadyWorkers(
+        Platform.GNS,
+        new Date('2025-01-01T00:00:00.000Z'),
+        new Date('2025-01-06T00:00:00.000Z'),
+      ),
+    ).resolves.toBe(3);
   });
 
   it('does not let a stale free worker claim tasks', async () => {

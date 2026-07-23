@@ -23,14 +23,11 @@ export class DistributedSimulationEvaluatorService {
     private readonly workflowConfig: SimulationWorkflowConfigService,
   ) {}
 
-  async canEvaluateLeadersForRange(
-    simulation: Simulation,
-    _range: WindowRange,
-  ) {
+  async canEvaluateLeadersForRange(simulation: Simulation, range: WindowRange) {
     const readyWorkers = await this.tasks.countReadyWorkers(
       simulation.platform,
-      simulation.startAt,
-      simulation.endAt,
+      range.startedAt,
+      range.endedAt,
     );
     return readyWorkers > 0;
   }
@@ -77,15 +74,18 @@ export class DistributedSimulationEvaluatorService {
       sizingFormular: simulation.sizingFormular,
     };
     const workflow = await this.workflowConfig.get();
+    const eventLogWindowStartedAt = dayjs(range.startedAt)
+      .subtract(workflow.leaderScoringWindowDays, 'day')
+      .toDate();
+    const eventLogWindowEndedAt = range.startedAt;
     return this.tasks.createTask({
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
       platform: simulation.platform,
-      // Cache readiness is defined by the research execution window. The
-      // scoring lookback below remains evaluation input, but must not block
-      // dispatch when historical prebuild coverage predates this research.
-      requiredCacheStartAt: simulation.startAt,
-      requiredCacheEndAt: simulation.endAt,
+      // Prebuilt coverage only gates the individual plan window. Historical
+      // scoring data outside that coverage is fetched on demand by the worker.
+      requiredCacheStartAt: range.startedAt,
+      requiredCacheEndAt: range.endedAt,
       rangeStartedAt: range.startedAt,
       rangeEndedAt: range.endedAt,
       input: JSON.parse(
@@ -99,10 +99,8 @@ export class DistributedSimulationEvaluatorService {
           contracts: [...contractById.values()],
           platform: simulation.platform,
           dispatchTiming,
-          eventLogWindowStartedAt: dayjs(range.startedAt)
-            .subtract(workflow.leaderScoringWindowDays, 'day')
-            .toISOString(),
-          eventLogWindowEndedAt: range.startedAt.toISOString(),
+          eventLogWindowStartedAt: eventLogWindowStartedAt.toISOString(),
+          eventLogWindowEndedAt: eventLogWindowEndedAt.toISOString(),
         }),
       ),
     });

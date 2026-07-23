@@ -348,6 +348,7 @@ export class SimulationEvaluatorTaskService
         !task.requiredCacheEndAt
       )
         return false;
+      const requiredCacheRange = this.getEvaluationRequiredCacheRange(task);
       return coversRange(
         readyCaches
           .filter((cache) => cache.platform === task.platform)
@@ -355,8 +356,8 @@ export class SimulationEvaluatorTaskService
             coveredStartAt: cache.coveredStartAt!,
             coveredEndAt: cache.coveredEndAt!,
           })),
-        task.requiredCacheStartAt,
-        task.requiredCacheEndAt,
+        requiredCacheRange.startedAt,
+        requiredCacheRange.endedAt,
       );
     });
     if (!readyTask) {
@@ -539,6 +540,22 @@ export class SimulationEvaluatorTaskService
     desiredCapacity: number;
   }) {
     return Math.min(worker.activeCapacity, worker.desiredCapacity);
+  }
+
+  private getEvaluationRequiredCacheRange(task: {
+    rangeStartedAt: Date | null;
+    rangeEndedAt: Date | null;
+    requiredCacheStartAt: Date | null;
+    requiredCacheEndAt: Date | null;
+  }) {
+    // Existing Ready tasks may retain older full-simulation cache columns.
+    // Their persisted plan range is the authoritative eligibility window, so
+    // they become claimable without rewriting or recreating queued work.
+    const startedAt = task.rangeStartedAt ?? task.requiredCacheStartAt;
+    const endedAt = task.rangeEndedAt ?? task.requiredCacheEndAt;
+    if (!startedAt || !endedAt)
+      throw new Error('Evaluation task cache range is missing');
+    return { startedAt, endedAt };
   }
 
   private getEvaluationClaimCapacity(worker: {
