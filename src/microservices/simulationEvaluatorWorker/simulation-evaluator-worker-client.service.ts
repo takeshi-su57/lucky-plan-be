@@ -8,6 +8,7 @@ import {
   SimulationEvaluatorWorkerCacheService,
   WorkerCachedEventLog,
 } from './simulation-evaluator-worker-cache.service';
+import { simulationEvaluatorWorkerVersion } from './simulation-evaluator-worker-version';
 
 export type ClaimedEvaluatorTask = {
   id: string;
@@ -74,6 +75,7 @@ export class SimulationEvaluatorWorkerClientService {
           workerId: identity.workerId,
           displayName: identity.displayName,
           publicKey: identity.publicKey,
+          version: simulationEvaluatorWorkerVersion(),
         }),
       },
     );
@@ -103,7 +105,11 @@ export class SimulationEvaluatorWorkerClientService {
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ events, diagnostic }),
+        body: JSON.stringify({
+          events,
+          diagnostic,
+          version: simulationEvaluatorWorkerVersion(),
+        }),
       },
     );
     const result = (await response.json()) as { acceptedEventIds: string[] };

@@ -8,6 +8,10 @@ import {
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { UserPermission } from 'generated/prisma/client';
+import {
+  BackendReleaseMetadata,
+  readBackendReleaseMetadata,
+} from 'src/release-metadata';
 
 import { ApiService } from './api.service';
 import { GqlAuthGuard } from './modules/auth/gql-auth.guard';
@@ -23,6 +27,13 @@ class ServerTime {
 
   @Field(() => Number)
   timestamp: number;
+}
+
+@ObjectType()
+class BackendReleaseInfo implements BackendReleaseMetadata {
+  @Field(() => String) version: string;
+  @Field(() => String) gitSha: string;
+  @Field(() => String) builtAt: string;
 }
 
 @Resolver()
@@ -95,6 +106,11 @@ export class ApiResolver {
   @Query(() => Boolean)
   systemStatus() {
     return this.apiService.isSystemPaused();
+  }
+
+  @Query(() => BackendReleaseInfo)
+  backendReleaseInfo(): BackendReleaseInfo {
+    return readBackendReleaseMetadata();
   }
 
   @Query(() => ServerTime)

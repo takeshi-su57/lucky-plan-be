@@ -1,0 +1,88 @@
+name: Release v3 backend and evaluator worker
+
+on:
+  push:
+    branches: [v3]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-v3
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/v3'
+    runs-on: ubuntu-latest
+    env:
+      # Prisma validates this value while generating the client. The release
+      # bundle itself never opens a database connection in CI.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/luckyplans?schema=public
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm test -- --runInBand
+
+      - name: Assign release version
+        run: |
+          VERSION="3.0.${GITHUB_RUN_NUMBER}"
+          echo "LUCKY_BACKEND_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "SIMULATION_EVALUATOR_WORKER_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build backend release metadata
+        run: npm run build
+
+      - name: Build portable evaluator worker
+        run: npm run build:cross
+
+      - name: Archive portable worker bundle
+        run: |
+          cd release
+          zip -r lucky-evaluator-worker-node22.zip evaluator-worker
+          sha256sum lucky-evaluator-worker-node22.zip > lucky-evaluator-worker-node22.zip.sha256
+
+      - name: Publish evaluator worker release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="worker-v${LUCKY_BACKEND_VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/lucky-evaluator-worker-node22.zip release/lucky-evaluator-worker-node22.zip.sha256 --clobber
+          else
+            gh release create "$TAG" release/lucky-evaluator-worker-node22.zip release/lucky-evaluator-worker-node22.zip.sha256 \
+              --target "$GITHUB_SHA" \
+              --title "Evaluator worker v${LUCKY_BACKEND_VERSION}" \
+              --generate-notes
+          fi
+
+      - name: Publish backend release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${LUCKY_BACKEND_VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/release.json --clobber
+          else
+            gh release create "$TAG" dist/release.json \
+              --target "$GITHUB_SHA" \
+              --title "Backend v${LUCKY_BACKEND_VERSION}" \
+              --generate-notes
+          fi
+
+      - name: Upload evaluator worker artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucky-evaluator-worker-node22-${{ env.LUCKY_BACKEND_VERSION }}
+          path: release/lucky-evaluator-worker-node22.zip
+          retention-days: 14

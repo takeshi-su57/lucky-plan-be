@@ -44,6 +44,7 @@ type EnrollmentRequest = {
   workerId?: string;
   displayName?: string;
   publicKey?: string;
+  version?: string;
 };
 type WorkerHeartbeatEvent = {
   id?: string;
@@ -95,7 +96,12 @@ export class SimulationEvaluatorGatewayController {
       ) {
         throw new BadRequestException('workerId and publicKey are required');
       }
-      return this.auth.enroll(body.workerId, body.publicKey, body.displayName);
+      return this.auth.enroll(
+        body.workerId,
+        body.publicKey,
+        body.displayName,
+        body.version,
+      );
     }
 
     const workerId = await this.authorize(
@@ -103,7 +109,7 @@ export class SimulationEvaluatorGatewayController {
       'POST',
       '/internal/simulation-evaluator/heartbeat',
     );
-    await this.auth.recordPresence(workerId);
+    await this.auth.recordPresence(workerId, body.version);
     await this.auth.recordDiagnostic(workerId, body.diagnostic);
     const events = body.events || [];
     if (!Array.isArray(events) || events.length > 100) {

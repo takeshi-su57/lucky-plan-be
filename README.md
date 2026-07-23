@@ -196,7 +196,11 @@ Each worker uses `SIMULATION_EVALUATOR_GATEWAY_URL` and stores its local SQLite 
 
 ## Portable Evaluator Worker Release
 
-The worker can be shipped without cloning the repository or installing npm dependencies on the target machine. Build a portable Node 22+ release bundle:
+## v3 Release Versioning
+
+Every push to `v3` creates a backend GitHub release using `3.0.<GitHub run number>` and attaches `dist/release.json`, which records the release version, source commit SHA, and build time. The same successful CI run always publishes `worker-v3.0.<GitHub run number>` with the portable worker ZIP. The backend and evaluator worker therefore always have a matching release version.
+
+The worker can be shipped without cloning the repository or installing npm dependencies on the target machine. Build a portable Node 22.13+ release bundle:
 
 ```bash
 npm run build:cross
@@ -223,7 +227,7 @@ Both commanders support `install`, `adopt`, `start`, `stop`, `status`, and `unin
 
 When upgrading a legacy release that used the fixed `LuckyEvaluatorWorker` task or `lucky-evaluator-worker.service`, uninstall that legacy service first, then install the instance-based release in a separate directory.
 
-The release workflow in `.github/workflows/release-evaluator-worker.yml` builds and publishes `lucky-evaluator-worker-node22.zip` when a `worker-v*` tag is pushed. It also uploads the ZIP as a short-lived Actions artifact.
+The `.github/workflows/release-v3.yml` workflow publishes `lucky-evaluator-worker-node22.zip` and its SHA-256 file for every successful `v3` run. It also uploads the ZIP as a short-lived Actions artifact. The matching backend release version is shown as the latest worker version in the control panel. From a worker's detail page, an admin can queue that release; the worker accepts only the server-generated GitHub release URL, reports download and verification progress, verifies the SHA-256 and bundle version, preserves `.env` and `.cache`, applies the staged release with rollback, then confirms the original task after its service restarts. Older bundles without the updater must be upgraded manually once before they can accept self-upgrade commands. Linux hosts need `unzip` installed for self-upgrades.
 
 ### Adopt a Prebuilt Cache
 

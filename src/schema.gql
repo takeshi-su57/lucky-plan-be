@@ -31,6 +31,12 @@ input AssetInput {
   kind: String!
 }
 
+type BackendReleaseInfo {
+  builtAt: String!
+  gitSha: String!
+  version: String!
+}
+
 type BotBackwardDetails {
   endedAt: Date
   follower: Follower!
@@ -563,6 +569,7 @@ type Mutation {
   updateSl(input: UpdateSlInput!): ContractExecutionResult!
   updateStrategy(id: Int!, input: UpdateStrategyInput!): Strategy!
   updateTp(input: UpdateTpInput!): ContractExecutionResult!
+  upgradeSimulationEvaluatorWorker(version: String!, workerId: String!): String!
   withdrawAllETH(input: WithdrawAllInput!): Boolean!
   withdrawAllErc20(input: WithdrawAllInput!): Boolean!
   withdrawAsset(input: AssetInput!): Boolean!
@@ -746,6 +753,7 @@ type PnlSnapshotV2InitializedFlag {
 
 type Query {
   allLogs(after: Int, checked: Boolean!, first: Int!, severity: LogSeverity): LogsConnection!
+  backendReleaseInfo: BackendReleaseInfo!
   findContract(id: Int!): Contract!
   findStrategy(id: Int!): Strategy
   getALLSLTPs: [SLTPRequest!]!
@@ -1047,6 +1055,8 @@ type SimulationEvaluatorWorkerView {
   platformCaches: [SimulationEvaluatorWorkerCacheView!]!
   prebuildProgress: SimulationEvaluatorWorkerPrebuildProgressView
   runtimeStatus: String!
+  version: String
+  versionReportedAt: Date
 }
 
 type SimulationPlan {
@@ -1408,6 +1418,8 @@ enum UserPermission {
 enum Version {
   V1
   V2
+  V6_V7
+  V8_V9_2
   V9
   V10
 }
