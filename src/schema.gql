@@ -774,10 +774,10 @@ type Query {
   isPnlSnapshotV2Initialized(dateStr: String!, platform: Platform!): PnlSnapshotV2InitializedFlag
   isSafeApp: Boolean!
   simulation(id: Int!): Simulation
+  simulationEvaluatorPipeline: SimulationEvaluatorPipelineView!
   simulationEvaluatorWorkerTaskConnection(archive: Boolean! = false, cursor: String, limit: Int! = 30, workerId: String!): SimulationEvaluatorWorkerTaskConnection!
   simulationEvaluatorWorkerTasks(workerId: String): [SimulationEvaluatorWorkerTaskView!]!
   simulationEvaluatorWorkers: [SimulationEvaluatorWorkerView!]!
-  simulationEvaluatorPipeline: SimulationEvaluatorPipelineView!
   simulationPlanDetailsBySimulation(simulationId: Int!): [SimulationPlanDetails!]!
   simulationPlansBySimulation(simulationId: Int!): [SimulationPlan!]!
   simulationResearch(id: Int!): SimulationResearchDetails
@@ -946,6 +946,25 @@ type SimulationBotDetails {
   totalPositions: Int!
 }
 
+type SimulationEvaluatorPipelineView {
+  awaitingEventLogPlans: Int!
+  awaitingFinalizationPlans: Int!
+  backpressureActive: Boolean!
+  claimedEvaluationTasks: Int!
+  failedExecutionPlans: Int!
+  finalizerConcurrency: Int!
+  finalizingPlans: Int!
+  fleetCapacity: Int!
+  maxAwaitingFinalizationPlans: Int!
+  maxOutstandingDynamicPlans: Int!
+  outstandingExecutionPlans: Int!
+  queueHighWatermark: Int!
+  queueLowWatermark: Int!
+  queuedEvaluationTasks: Int!
+  readyEvaluationTasks: Int!
+  workerClaimLimit: Int!
+}
+
 type SimulationEvaluatorWorkerCacheView {
   coveredEndAt: Date
   coveredStartAt: Date
@@ -980,25 +999,6 @@ type SimulationEvaluatorWorkerPrebuildProgressView {
   records: String!
   taskId: String!
   totalRecords: String!
-}
-
-type SimulationEvaluatorPipelineView {
-  awaitingEventLogPlans: Int!
-  awaitingFinalizationPlans: Int!
-  backpressureActive: Boolean!
-  claimedEvaluationTasks: Int!
-  failedExecutionPlans: Int!
-  finalizerConcurrency: Int!
-  finalizingPlans: Int!
-  fleetCapacity: Int!
-  maxAwaitingFinalizationPlans: Int!
-  maxOutstandingDynamicPlans: Int!
-  outstandingExecutionPlans: Int!
-  queuedEvaluationTasks: Int!
-  queueHighWatermark: Int!
-  queueLowWatermark: Int!
-  readyEvaluationTasks: Int!
-  workerClaimLimit: Int!
 }
 
 type SimulationEvaluatorWorkerTaskConnection {
@@ -1408,8 +1408,6 @@ enum UserPermission {
 enum Version {
   V1
   V2
-  V6_V7
-  V8_V9_2
   V9
   V10
 }
