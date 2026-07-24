@@ -45,6 +45,7 @@ describe('SimulationEvaluatorWorkerAuthService', () => {
         findFirst: jest.fn(async () => null),
       },
       simulationEvaluatorWorker: {
+        findUnique: jest.fn(async () => ({ desiredState: 'Running' })),
         update: jest.fn(async () => ({})),
       },
     };
@@ -64,6 +65,27 @@ describe('SimulationEvaluatorWorkerAuthService', () => {
     expect(workerUpdate.where).toEqual({ id: 'worker-1' });
     expect(workerUpdate.data.runtimeStatus).toBe(
       SimulationEvaluatorWorkerRuntimeStatus.Free,
+    );
+  });
+
+  it('keeps an idle draining worker paused when it heartbeats', async () => {
+    const prisma = {
+      simulationEvaluatorTask: {
+        findFirst: jest.fn(async () => null),
+      },
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn(async () => ({ desiredState: 'Draining' })),
+        update: jest.fn(async () => ({})),
+      },
+    };
+    const service = new SimulationEvaluatorWorkerAuthService(prisma as never);
+
+    await service.recordPresence('worker-1');
+
+    const workerUpdate = (prisma.simulationEvaluatorWorker.update as jest.Mock)
+      .mock.calls[0]![0] as any;
+    expect(workerUpdate.data.runtimeStatus).toBe(
+      SimulationEvaluatorWorkerRuntimeStatus.Paused,
     );
   });
 });
