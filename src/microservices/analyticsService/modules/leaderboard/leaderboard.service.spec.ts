@@ -47,6 +47,9 @@ describe('LeaderboardService', () => {
       eventName: 'PositionDecrease',
       args: { account: '0xLeader' },
     };
+    const getBlock = jest.fn(async (_blockNumber: bigint) => ({
+      timestamp: 1_700_000_000n,
+    }));
 
     const result = await (service as any).handlePerpTradeEventLogs({
       contract: {
@@ -55,7 +58,9 @@ describe('LeaderboardService', () => {
         platform: Platform.GMX,
         version: Version.V2,
       },
-      block: { timestamp: 1_700_000_000n },
+      fromBlock: 100n,
+      toBlock: 200n,
+      getBlock,
       perpTradeEventLogs: [
         {
           eventLog,
@@ -66,7 +71,13 @@ describe('LeaderboardService', () => {
       ],
     });
 
-    expect(eventToPerpTradeHistory).toHaveBeenCalledWith(42161, eventLog);
+    expect(eventToPerpTradeHistory).toHaveBeenCalledWith(
+      42161,
+      eventLog,
+      undefined,
+    );
+    expect(getBlock).toHaveBeenCalledWith(100n);
+    expect(getBlock).toHaveBeenCalledWith(200n);
     expect(createManyPerpTradingEventLogs).toHaveBeenCalledWith([
       {
         contractId: 7,
@@ -106,7 +117,9 @@ describe('LeaderboardService', () => {
         platform: Platform.GMX,
         version: Version.V2,
       },
-      block: { timestamp: 1_700_000_000n },
+      fromBlock: 100n,
+      toBlock: 200n,
+      getBlock: jest.fn(async () => ({ timestamp: 1_700_000_000n })),
       perpTradeEventLogs: [
         {
           eventLog: { eventName: 'Unknown' },
@@ -118,6 +131,64 @@ describe('LeaderboardService', () => {
     });
 
     expect(createManyPerpTradingEventLogs).toHaveBeenCalledWith([]);
+  });
+
+  it('interpolates event dates from the batch boundary block timestamps', async () => {
+    const createManyPerpTradingEventLogs = jest.fn(
+      async (_inputs: any[]) => [],
+    );
+    (getWeb3Info as jest.Mock).mockReturnValue({
+      eventToPerpTradeHistory: jest.fn().mockReturnValue({
+        address: '0xLeader',
+        usdPnl: 0,
+      }),
+    });
+    const service = new LeaderboardService(
+      {} as never,
+      {} as never,
+      {} as never,
+      { createManyPerpTradingEventLogs } as never,
+      {} as never,
+      {} as never,
+    );
+    const getBlock = jest.fn(async (blockNumber: bigint) => ({
+      timestamp: blockNumber === 100n ? 1_700_000_000n : 1_700_000_100n,
+    }));
+
+    await (service as any).handlePerpTradeEventLogs({
+      contract: {
+        id: 7,
+        chainId: 42161,
+        platform: Platform.GMX,
+        version: Version.V2,
+      },
+      fromBlock: 100n,
+      toBlock: 200n,
+      getBlock,
+      perpTradeEventLogs: [
+        {
+          eventLog: { eventName: 'PositionIncrease' },
+          blockNumber: 150,
+          logIndex: 4,
+          transactionHash: '0xtx1',
+        },
+        {
+          eventLog: { eventName: 'PositionDecrease' },
+          blockNumber: 150,
+          logIndex: 5,
+          transactionHash: '0xtx2',
+        },
+      ],
+    });
+
+    expect(getBlock).toHaveBeenCalledTimes(2);
+    expect(getBlock).toHaveBeenCalledWith(100n);
+    expect(getBlock).toHaveBeenCalledWith(200n);
+    expect(createManyPerpTradingEventLogs).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ date: new Date(1_700_000_050 * 1000) }),
+      ]),
+    );
   });
 
   it('aggressive adaption retries failed tasks and advances checkpoint only through contiguous completed ranges', async () => {

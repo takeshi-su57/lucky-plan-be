@@ -126,6 +126,7 @@ export class SimulationPlansService {
               ).eventToPerpTradeHistory(
                 contract.chainId,
                 JSON.parse(record.jsonLog) as any,
+                contract.address,
               );
 
               return history

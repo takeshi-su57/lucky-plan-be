@@ -13,7 +13,7 @@ The current implementation supports:
 - Redis transport for service status, process control, logging, and internal microservice messages.
 - Prisma 7 with Postgres and a generated client in `generated/prisma`.
 - EVM chain reads/writes through `viem`, with semaphore-controlled reads and mutex-controlled wallet writes.
-- Platform adapters for GNS V9/V10, GMX V2, and AVNT V1.
+- Platform adapters for historical GNS V6/V7 and V8/V9.2 plus current GNS V9/V10, GMX V2, and AVNT V1.
 - Walk-forward simulation tooling with a stable centralized flow and a worker-driven dynamic flow that evaluates research ranges concurrently.
 - External evaluator clients with administrator-controlled enrollment, pause/drain, cache prebuild, and child-process capacity.
 
@@ -109,6 +109,8 @@ The shared EVM layer lives in `src/web3`.
 - `web3/evm-chains.service.ts` configures supported chains, public/private/paid RPC fallbacks, read semaphores, websocket clients, and write mutexes.
 - `web3/evm-adapter.service.ts` provides higher-level operations for balances, approvals, transfers, gas estimation, blocks, receipts, and logs.
 - `platform/gns`, `platform/gmx`, and `platform/avnt` hold ABI files, config maps, event parsers, and conversion helpers.
+
+Historical GNS contract ranges, ABI topics, parser behavior, and validation are documented in `docs/gns-historical-event-ingestion.md`.
 
 Supported chain IDs currently include Ethereum mainnet, Polygon, Base, Arbitrum, Arbitrum Sepolia, ApeChain, Avalanche, and MegaETH.
 

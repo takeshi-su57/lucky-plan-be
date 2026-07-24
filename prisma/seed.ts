@@ -15,6 +15,140 @@ async function main() {
   const contractData = [
     {
       platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 137,
+      address: '0xb454d8a8c98035c65bb73fe2a11567b9b044e0fa',
+      description: 'Gains Polygon legacy DAI trading callbacks (V6.3 era)',
+      fromBlock: 36865608,
+      toBlock: 40827038,
+      lastBlockNumber: 36865608,
+      lastLeaderboardBlockNumber: 36865608,
+      backendUrl: 'https://backend-polygon.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 137,
+      address: '0x82e59334da8c667797009bbe82473b55c7a6b311',
+      description: 'Gains Polygon DAI trading callbacks (V6.3.2 through V7)',
+      fromBlock: 40827039,
+      toBlock: 58241479,
+      lastBlockNumber: 40827039,
+      lastLeaderboardBlockNumber: 40827039,
+      backendUrl: 'https://backend-polygon.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 137,
+      address: '0x0bbed2eac3237ba128643670b7cf3be475933755',
+      description: 'Gains Polygon WETH trading callbacks (V7 multi-collateral)',
+      fromBlock: 52650382,
+      toBlock: 58241479,
+      lastBlockNumber: 52650382,
+      lastLeaderboardBlockNumber: 52650382,
+      backendUrl: 'https://backend-polygon.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 137,
+      address: '0x2ac6749d0affd42c8d61ef25e433f92e375a1aef',
+      description: 'Gains Polygon USDC trading callbacks (V7 multi-collateral)',
+      fromBlock: 52650382,
+      toBlock: 58241479,
+      lastBlockNumber: 52650382,
+      lastLeaderboardBlockNumber: 52650382,
+      backendUrl: 'https://backend-polygon.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V8_V9_2,
+      chainId: 137,
+      address: '0x209a9a01980377916851af2ca075c2b170452018',
+      description:
+        'Gains Polygon merged diamond (V8 through pre-current V9 parser range)',
+      fromBlock: 58241480,
+      toBlock: 62908498,
+      lastBlockNumber: 58241480,
+      lastLeaderboardBlockNumber: 58241480,
+      backendUrl: 'https://backend-polygon.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 42161,
+      address: '0x6c612c804c84e3d20e3109c8efd06cd2d8b28f46',
+      description: 'Gains Arbitrum legacy DAI trading callbacks (V6.3 era)',
+      fromBlock: 49275558,
+      toBlock: 74190310,
+      lastBlockNumber: 49275558,
+      lastLeaderboardBlockNumber: 49275558,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 42161,
+      address: '0x298a695906e16aea0a184a2815a76ead1a0b7522',
+      description: 'Gains Arbitrum DAI trading callbacks (V6.3.2 through V7)',
+      fromBlock: 74190311,
+      toBlock: 190420045,
+      lastBlockNumber: 74190311,
+      lastLeaderboardBlockNumber: 74190311,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 42161,
+      address: '0x62a9f50c92a57c719ff741133caa55c7a81ce019',
+      description:
+        'Gains Arbitrum WETH trading callbacks (V7 multi-collateral)',
+      fromBlock: 173285454,
+      toBlock: 190420045,
+      lastBlockNumber: 173285454,
+      lastLeaderboardBlockNumber: 173285454,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V6_V7,
+      chainId: 42161,
+      address: '0x4542256c583bcad66a19a525b57203773a6485bf',
+      description:
+        'Gains Arbitrum USDC trading callbacks (V7 multi-collateral)',
+      fromBlock: 173285454,
+      toBlock: 190420045,
+      lastBlockNumber: 173285454,
+      lastLeaderboardBlockNumber: 173285454,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
+      version: Version.V8_V9_2,
+      chainId: 42161,
+      address: '0xff162c694eaa571f685030649814282ea457f169',
+      description:
+        'Gains Arbitrum merged diamond (V8 through pre-current V9 parser range)',
+      fromBlock: 190420046,
+      toBlock: 262719376,
+      lastBlockNumber: 190420046,
+      lastLeaderboardBlockNumber: 190420046,
+      backendUrl: 'https://backend-arbitrum.gains.trade',
+      status: ContractStatus.Dead,
+    },
+    {
+      platform: Platform.GNS,
       version: Version.V9,
       chainId: 137,
       address: '0x209a9a01980377916851af2ca075c2b170452018',
@@ -174,22 +308,28 @@ async function main() {
     },
   ];
 
-  for (const data of contractData) {
-    const result = await prisma.contract.upsert({
-      where: {
-        chainId_address_version_platform: {
-          chainId: data.chainId,
-          address: data.address,
-          version: data.version,
-          platform: data.platform,
+  // Do not reset cursors after a backfill has started. The explicit contract
+  // identity means a missing range is created and an existing one is retained.
+  await prisma.$transaction(
+    contractData.map((data) =>
+      prisma.contract.upsert({
+        where: {
+          chainId_address_version_platform: {
+            chainId: data.chainId,
+            address: data.address,
+            version: data.version,
+            platform: data.platform,
+          },
         },
-      },
-      update: {},
-      create: data,
-    });
+        update: {},
+        create: data,
+      }),
+    ),
+  );
 
-    console.log('contract data:', result);
-  }
+  console.log(
+    `Contract seed complete: ensured ${contractData.length} contract(s).`,
+  );
 }
 main()
   .then(async () => {

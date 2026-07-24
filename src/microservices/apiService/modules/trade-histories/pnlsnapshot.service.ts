@@ -168,6 +168,7 @@ export class PnlSnapshotsService {
             ).eventToPerpTradeHistory(
               contract.chainId,
               JSON.parse(record.jsonLog) as any,
+              contract.address,
             );
 
             if (!history) {

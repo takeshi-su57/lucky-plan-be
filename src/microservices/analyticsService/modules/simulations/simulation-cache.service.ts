@@ -27,7 +27,10 @@ import {
 } from './simulation-equity-curve';
 
 type SimulationBotWithContract = SimulationBot & {
-  leaderContracts: Pick<Contract, 'id' | 'platform' | 'version' | 'chainId'>[];
+  leaderContracts: Pick<
+    Contract,
+    'id' | 'platform' | 'version' | 'chainId' | 'address'
+  >[];
   cache?: SimulationBotCache | null;
 };
 
@@ -310,6 +313,7 @@ export class SimulationCacheService {
         ).eventToPerpTradeHistory(
           contract.chainId,
           JSON.parse(record.jsonLog) as never,
+          contract.address,
         );
 
         return history
