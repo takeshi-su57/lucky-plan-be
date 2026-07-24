@@ -3,14 +3,13 @@ import { promises as fs } from 'fs';
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 
 import {
-  evaluatorWorkerRestartExitCode,
+  EVALUATOR_WORKER_UPGRADE_EXIT_CODE,
   SimulationEvaluatorWorkerRuntimeService,
 } from './simulation-evaluator-worker-runtime.service';
 
 describe('SimulationEvaluatorWorkerRuntimeService', () => {
-  it('uses a failure exit on Windows so Task Scheduler restarts the worker', () => {
-    expect(evaluatorWorkerRestartExitCode('win32')).toBe(1);
-    expect(evaluatorWorkerRestartExitCode('linux')).toBe(0);
+  it('uses a dedicated exit code so the launcher applies an upgrade', () => {
+    expect(EVALUATOR_WORKER_UPGRADE_EXIT_CODE).toBe(75);
   });
 
   it('rehydrates the desired child capacity before polling after a restart', async () => {
@@ -270,9 +269,7 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     expect(client.complete).not.toHaveBeenCalled();
     expect(client.endTask).not.toHaveBeenCalled();
     jest.runOnlyPendingTimers();
-    expect(exit).toHaveBeenCalledWith(
-      evaluatorWorkerRestartExitCode(process.platform),
-    );
+    expect(exit).toHaveBeenCalledWith(EVALUATOR_WORKER_UPGRADE_EXIT_CODE);
     exit.mockRestore();
     jest.useRealTimers();
   });

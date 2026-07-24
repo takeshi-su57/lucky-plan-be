@@ -56,19 +56,9 @@ bundle(parentEntry, join(release, 'parent'));
 bundle(childEntry, join(release, 'child'));
 bundle(cacheAdoptEntry, join(release, 'adopt'));
 
-writeFileSync(
+cpSync(
+  join(__dirname, 'evaluator-worker-launcher.js'),
   join(scripts, 'worker-launcher.js'),
-  [
-    "const { join } = require('path');",
-    "const { execFileSync } = require('child_process');",
-    "process.chdir(join(__dirname, '..'));",
-    "execFileSync(process.execPath, [join(process.cwd(), 'scripts', 'apply-pending-evaluator-worker-update.js')], { stdio: 'inherit' });",
-    "process.env.SERVICE = 'SIMULATION_EVALUATOR_WORKER_SERVICE';",
-    "process.env.SIMULATION_EVALUATOR_WORKER_VERSION = require('../version.json').version;",
-    "process.env.SIMULATION_EVALUATOR_CHILD_ENTRY = join(process.cwd(), 'child', 'index.js');",
-    "require('../parent/index.js');",
-    '',
-  ].join('\n'),
 );
 cpSync(
   join(__dirname, 'evaluator-worker-self-update.js'),
@@ -170,7 +160,7 @@ function Install-Worker {
   $action = New-ScheduledTaskAction -Execute $node -Argument ('"' + (Join-Path $root 'scripts\\worker-launcher.js') + '"') -WorkingDirectory $root
   $trigger = New-ScheduledTaskTrigger -AtStartup
   $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-  $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable
+  $settings = New-ScheduledTaskSettingsSet -RestartCount 255 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -StartWhenAvailable
   Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $settings -Force | Out-Null
   Start-ScheduledTask -TaskName $TaskName
   Write-Host "Installed and started $TaskName." -ForegroundColor Green

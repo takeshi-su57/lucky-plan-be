@@ -21,8 +21,7 @@ type ClaimedTask = {
   leaseToken: string;
 };
 
-export const evaluatorWorkerRestartExitCode = (platform: NodeJS.Platform) =>
-  platform === 'win32' ? 1 : 0;
+export const EVALUATOR_WORKER_UPGRADE_EXIT_CODE = 75;
 
 @Injectable()
 export class SimulationEvaluatorWorkerRuntimeService
@@ -285,7 +284,7 @@ export class SimulationEvaluatorWorkerRuntimeService
           `Upgrade to ${String(result.version)} scheduled; stopping for replacement`,
         );
         setTimeout(
-          () => process.exit(evaluatorWorkerRestartExitCode(process.platform)),
+          () => process.exit(EVALUATOR_WORKER_UPGRADE_EXIT_CODE),
           500,
         ).unref();
       }
