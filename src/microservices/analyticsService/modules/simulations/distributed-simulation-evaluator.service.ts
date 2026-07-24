@@ -23,11 +23,14 @@ export class DistributedSimulationEvaluatorService {
     private readonly workflowConfig: SimulationWorkflowConfigService,
   ) {}
 
-  async canEvaluateLeadersForRange(simulation: Simulation, range: WindowRange) {
+  async canEvaluateLeadersForRange(
+    simulation: Simulation,
+    _range: WindowRange,
+  ) {
     const readyWorkers = await this.tasks.countReadyWorkers(
       simulation.platform,
-      range.startedAt,
-      range.endedAt,
+      simulation.startAt,
+      simulation.endAt,
     );
     return readyWorkers > 0;
   }
@@ -82,10 +85,11 @@ export class DistributedSimulationEvaluatorService {
       kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
       simulationId: simulation.id,
       platform: simulation.platform,
-      // Prebuilt coverage only gates the individual plan window. Historical
-      // scoring data outside that coverage is fetched on demand by the worker.
-      requiredCacheStartAt: range.startedAt,
-      requiredCacheEndAt: range.endedAt,
+      // Cache readiness is defined by the research execution window. The
+      // scoring lookback below remains evaluation input, but must not block
+      // dispatch when historical prebuild coverage predates this research.
+      requiredCacheStartAt: simulation.startAt,
+      requiredCacheEndAt: simulation.endAt,
       rangeStartedAt: range.startedAt,
       rangeEndedAt: range.endedAt,
       input: JSON.parse(

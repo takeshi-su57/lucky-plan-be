@@ -134,6 +134,87 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
     expect((runtime as any).pendingEvaluations).toEqual([prefetched]);
   });
 
+  it('waits for evaluations already running in children before a capacity command', () => {
+    const client = {
+      beginTask: jest.fn(),
+      fail: jest.fn(),
+      endTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    const capacity = {
+      id: 'capacity-1',
+      kind: SimulationEvaluatorTaskKind.SetWorkerCapacity,
+      leaseToken: 'capacity-lease',
+    };
+    const processTask = jest
+      .spyOn(runtime as any, 'processTask')
+      .mockImplementation(() => new Promise(() => undefined));
+    (runtime as any).activeEvaluationTaskIds.add('evaluation-running');
+
+    (runtime as any).acceptTask(capacity);
+
+    expect(processTask).not.toHaveBeenCalled();
+
+    (runtime as any).activeEvaluationTaskIds.delete('evaluation-running');
+    (runtime as any).drainWork();
+
+    expect(processTask).toHaveBeenCalledWith(capacity);
+  });
+
+  it('releases prefetched evaluations while the worker is draining', async () => {
+    const client = {
+      release: jest.fn(async () => undefined),
+      endTask: jest.fn(),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    (runtime as any).pendingEvaluations.push(
+      {
+        id: 'task-1',
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        leaseToken: 'lease-1',
+      },
+      {
+        id: 'task-2',
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        leaseToken: 'lease-2',
+      },
+    );
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    await (runtime as any).releasePendingEvaluations();
+
+    expect(client.release).toHaveBeenCalledTimes(2);
+    expect(client.endTask).toHaveBeenCalledTimes(2);
+    expect((runtime as any).pendingEvaluations).toEqual([]);
+    jest.restoreAllMocks();
+  });
+
+  it('retires a child that finishes after capacity was reduced', () => {
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      {} as never,
+      {} as never,
+    );
+    const completedChild = {};
+    const otherChild = {};
+    (runtime as any).children.add(completedChild);
+    (runtime as any).children.add(otherChild);
+    (runtime as any).desiredChildCapacity = 1;
+    const retireChild = jest
+      .spyOn(runtime as any, 'retireChild')
+      .mockResolvedValue(undefined);
+
+    (runtime as any).releaseEvaluationChild(completedChild);
+
+    expect(retireChild).toHaveBeenCalledWith(completedChild);
+    expect((runtime as any).idleChildren.has(completedChild)).toBe(false);
+  });
+
   it('waits for a replacement when a reserved child exits during input loading', async () => {
     const runtime = new SimulationEvaluatorWorkerRuntimeService(
       {} as never,

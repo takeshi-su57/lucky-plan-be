@@ -11,6 +11,7 @@ import {
   SimulationEvaluatorTaskKind,
   SimulationEvaluatorTaskStatus,
   SimulationEvaluatorWorkerAuthorizationStatus,
+  SimulationEvaluatorWorkerDesiredState,
   SimulationEvaluatorWorkerRuntimeStatus,
 } from 'generated/prisma/enums';
 import { Prisma } from 'generated/prisma/client';
@@ -133,16 +134,32 @@ export class SimulationEvaluatorWorkerAuthService {
     return worker;
   }
 
+  async getDesiredState(workerId: string) {
+    const worker = await this.prisma.simulationEvaluatorWorker.findUnique({
+      where: { id: workerId },
+      select: { desiredState: true },
+    });
+    if (!worker) throw new UnauthorizedException();
+    return worker.desiredState;
+  }
+
   async recordPresence(workerId: string, version?: string) {
     const now = new Date();
-    const activeTask = await this.prisma.simulationEvaluatorTask.findFirst({
-      where: {
-        workerId,
-        status: SimulationEvaluatorTaskStatus.Claimed,
-        leaseExpiresAt: { gt: now },
-      },
-      select: { kind: true },
-    });
+    const [worker, activeTask] = await Promise.all([
+      this.prisma.simulationEvaluatorWorker.findUnique({
+        where: { id: workerId },
+        select: { desiredState: true },
+      }),
+      this.prisma.simulationEvaluatorTask.findFirst({
+        where: {
+          workerId,
+          status: SimulationEvaluatorTaskStatus.Claimed,
+          leaseExpiresAt: { gt: now },
+        },
+        select: { kind: true },
+      }),
+    ]);
+    if (!worker) throw new UnauthorizedException();
     await this.prisma.simulationEvaluatorWorker.update({
       where: { id: workerId },
       data: {
@@ -154,7 +171,10 @@ export class SimulationEvaluatorWorkerAuthService {
             SimulationEvaluatorTaskKind.PrebuildPlatformCache
             ? SimulationEvaluatorWorkerRuntimeStatus.Prebuilding
             : SimulationEvaluatorWorkerRuntimeStatus.Busy
-          : SimulationEvaluatorWorkerRuntimeStatus.Free,
+          : worker.desiredState ===
+              SimulationEvaluatorWorkerDesiredState.Draining
+            ? SimulationEvaluatorWorkerRuntimeStatus.Paused
+            : SimulationEvaluatorWorkerRuntimeStatus.Free,
         lastHeartbeatAt: now,
         ...this.versionUpdate(version),
       },

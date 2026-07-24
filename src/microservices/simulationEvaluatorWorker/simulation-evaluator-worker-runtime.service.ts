@@ -48,6 +48,8 @@ export class SimulationEvaluatorWorkerRuntimeService
   private readonly children = new Set<ChildProcess>();
   private readonly idleChildren = new Set<ChildProcess>();
   private readonly running = new Map<string, ChildProcess>();
+  private readonly activeEvaluationTaskIds = new Set<string>();
+  private readonly retiringChildren = new Set<ChildProcess>();
   private readonly pendingEvaluations: ClaimedTask[] = [];
   private pendingExclusiveTask: ClaimedTask | null = null;
   private activeExclusiveTaskId: string | null = null;
@@ -104,9 +106,26 @@ export class SimulationEvaluatorWorkerRuntimeService
         // stop polling merely because child evaluators exited: doing so leaves
         // targeted prebuild commands Ready forever while the worker continues
         // to heartbeat as Free.
-        const { task } = await this.client.poll();
+        const { task, desiredState } = await this.client.poll();
         this.lastPollAt = new Date();
         this.lastPollError = null;
+        if (desiredState && desiredState !== 'Running') {
+          if (task?.kind === SimulationEvaluatorTaskKind.EvaluateLeaders) {
+            try {
+              await this.client.release(task.id, task.leaseToken);
+            } catch (error) {
+              this.client.beginTask(task.id, task.leaseToken);
+              this.pendingEvaluations.push(task);
+              this.log(
+                'error',
+                `Could not release newly claimed task ${task.id} while draining: ${this.describeError(error)}`,
+              );
+            }
+          }
+          await this.releasePendingEvaluations();
+          await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
+          continue;
+        }
         if (!task) {
           await this.delay(SIMULATION_EVALUATOR.pollDelayMs);
           continue;
@@ -144,9 +163,30 @@ export class SimulationEvaluatorWorkerRuntimeService
     this.drainWork();
   }
 
+  private async releasePendingEvaluations() {
+    const pending = this.pendingEvaluations.splice(0);
+    for (const task of pending) {
+      try {
+        await this.client.release(task.id, task.leaseToken);
+        this.client.endTask(task.id);
+        this.log('info', `Released prefetched task ${task.id} while draining`);
+      } catch (error) {
+        this.pendingEvaluations.push(task);
+        this.log(
+          'error',
+          `Could not release prefetched task ${task.id}: ${this.describeError(error)}`,
+        );
+      }
+    }
+  }
+
   private drainWork() {
     if (this.pendingExclusiveTask) {
-      if (this.startingEvaluations.size > 0 || this.activeExclusiveTaskId)
+      if (
+        this.startingEvaluations.size > 0 ||
+        this.activeEvaluationTaskIds.size > 0 ||
+        this.activeExclusiveTaskId
+      )
         return;
       const task = this.pendingExclusiveTask;
       this.pendingExclusiveTask = null;
@@ -165,6 +205,9 @@ export class SimulationEvaluatorWorkerRuntimeService
 
   private async processTask(task: ClaimedTask) {
     const taskStartedAt = performance.now();
+    const isEvaluation =
+      task.kind === SimulationEvaluatorTaskKind.EvaluateLeaders;
+    if (isEvaluation) this.activeEvaluationTaskIds.add(task.id);
     try {
       const inputStartedAt = performance.now();
       const { input } = await this.client.getInput(task.id, task.leaseToken);
@@ -259,6 +302,7 @@ export class SimulationEvaluatorWorkerRuntimeService
       this.log('error', `Task ${task.id} failed: ${this.describeError(error)}`);
     } finally {
       this.releaseStartingChild(task.id);
+      if (isEvaluation) this.activeEvaluationTaskIds.delete(task.id);
       if (this.activeExclusiveTaskId === task.id)
         this.activeExclusiveTaskId = null;
       if (
@@ -274,8 +318,11 @@ export class SimulationEvaluatorWorkerRuntimeService
   private async ensureCapacity(capacity: number) {
     this.desiredChildCapacity = capacity;
     while (this.children.size < capacity) this.spawnChild();
-    while (this.children.size > capacity && this.idleChildren.size > 0) {
-      await this.stopChild(this.idleChildren.values().next().value!);
+    while (
+      this.children.size - this.retiringChildren.size > capacity &&
+      this.idleChildren.size > 0
+    ) {
+      await this.retireChild(this.idleChildren.values().next().value!);
     }
     this.capacity = this.children.size;
   }
@@ -531,6 +578,7 @@ export class SimulationEvaluatorWorkerRuntimeService
     child.on('exit', () => {
       this.children.delete(child);
       this.idleChildren.delete(child);
+      this.retiringChildren.delete(child);
       for (const [taskId, active] of this.running)
         if (active === child) this.running.delete(taskId);
       this.capacity = this.children.size;
@@ -561,7 +609,7 @@ export class SimulationEvaluatorWorkerRuntimeService
         child.off('message', onMessage);
         child.off('exit', onExit);
         this.running.delete(taskId);
-        this.offerIdleChild(child);
+        this.releaseEvaluationChild(child);
       };
       const onMessage = (message: {
         type?: string;
@@ -644,6 +692,32 @@ export class SimulationEvaluatorWorkerRuntimeService
     const waiter = this.idleChildWaiters.shift();
     if (waiter) waiter.resolve(child);
     else this.idleChildren.add(child);
+  }
+
+  private releaseEvaluationChild(child: ChildProcess) {
+    if (
+      this.children.size - this.retiringChildren.size >
+      this.desiredChildCapacity
+    ) {
+      void this.retireChild(child).catch((error) =>
+        this.log(
+          'error',
+          `Could not retire excess evaluator child: ${this.describeError(error)}`,
+        ),
+      );
+      return;
+    }
+    this.offerIdleChild(child);
+  }
+
+  private async retireChild(child: ChildProcess) {
+    if (this.retiringChildren.has(child)) return;
+    this.retiringChildren.add(child);
+    try {
+      await this.stopChild(child);
+    } finally {
+      this.retiringChildren.delete(child);
+    }
   }
 
   private waitForIdleChild() {

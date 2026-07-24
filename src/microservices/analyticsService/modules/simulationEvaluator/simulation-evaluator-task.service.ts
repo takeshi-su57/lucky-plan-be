@@ -36,6 +36,7 @@ export class SimulationEvaluatorTaskService
   private dispatcher?: Worker;
   private dispatchTimer?: NodeJS.Timeout;
   private readonly logger = new Logger(SimulationEvaluatorTaskService.name);
+  private readonly lastNoClaimDiagnosticAt = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -348,7 +349,6 @@ export class SimulationEvaluatorTaskService
         !task.requiredCacheEndAt
       )
         return false;
-      const requiredCacheRange = this.getEvaluationRequiredCacheRange(task);
       return coversRange(
         readyCaches
           .filter((cache) => cache.platform === task.platform)
@@ -356,11 +356,17 @@ export class SimulationEvaluatorTaskService
             coveredStartAt: cache.coveredStartAt!,
             coveredEndAt: cache.coveredEndAt!,
           })),
-        requiredCacheRange.startedAt,
-        requiredCacheRange.endedAt,
+        task.requiredCacheStartAt,
+        task.requiredCacheEndAt,
       );
     });
     if (!readyTask) {
+      this.logNoClaimDiagnostic(
+        worker,
+        readyTasks,
+        readyCaches,
+        activeEvaluationCount,
+      );
       await this.recordWorkerHeartbeat(
         workerId,
         SimulationEvaluatorWorkerRuntimeStatus.Free,
@@ -523,6 +529,40 @@ export class SimulationEvaluatorTaskService
     return null;
   }
 
+  async releasePrefetchedEvaluation(
+    taskId: string,
+    workerId: string,
+    leaseToken: string,
+  ) {
+    const released = await this.prisma.simulationEvaluatorTask.updateMany({
+      where: {
+        id: taskId,
+        kind: SimulationEvaluatorTaskKind.EvaluateLeaders,
+        status: SimulationEvaluatorTaskStatus.Claimed,
+        workerId,
+        leaseToken,
+        leaseExpiresAt: { gt: new Date() },
+      },
+      data: {
+        status: SimulationEvaluatorTaskStatus.Ready,
+        workerId: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+        claimedAt: null,
+        progressPercent: 0,
+        progressMessage: null,
+        progressBytes: 0,
+        progressRecords: 0,
+        progressTotalRecords: 0,
+      },
+    });
+    if (released.count === 1) {
+      await this.refreshWorkerRuntimeStatus(workerId);
+      return true;
+    }
+    return false;
+  }
+
   async getClaimedTask(taskId: string, workerId: string, leaseToken: string) {
     return this.prisma.simulationEvaluatorTask.findFirst({
       where: {
@@ -542,22 +582,6 @@ export class SimulationEvaluatorTaskService
     return Math.min(worker.activeCapacity, worker.desiredCapacity);
   }
 
-  private getEvaluationRequiredCacheRange(task: {
-    rangeStartedAt: Date | null;
-    rangeEndedAt: Date | null;
-    requiredCacheStartAt: Date | null;
-    requiredCacheEndAt: Date | null;
-  }) {
-    // Existing Ready tasks may retain older full-simulation cache columns.
-    // Their persisted plan range is the authoritative eligibility window, so
-    // they become claimable without rewriting or recreating queued work.
-    const startedAt = task.rangeStartedAt ?? task.requiredCacheStartAt;
-    const endedAt = task.rangeEndedAt ?? task.requiredCacheEndAt;
-    if (!startedAt || !endedAt)
-      throw new Error('Evaluation task cache range is missing');
-    return { startedAt, endedAt };
-  }
-
   private getEvaluationClaimCapacity(worker: {
     activeCapacity: number;
     desiredCapacity: number;
@@ -565,6 +589,59 @@ export class SimulationEvaluatorTaskService
     return (
       this.getSchedulingCapacity(worker) *
       SIMULATION_EVALUATOR.workerClaimCapacityMultiplier
+    );
+  }
+
+  private logNoClaimDiagnostic(
+    worker: {
+      id: string;
+      activeCapacity: number;
+      desiredCapacity: number;
+    },
+    readyTasks: Array<{
+      id: string;
+      platform: import('generated/prisma/enums').Platform | null;
+      requiredCacheStartAt: Date | null;
+      requiredCacheEndAt: Date | null;
+    }>,
+    readyCaches: Array<{
+      platform: import('generated/prisma/enums').Platform;
+      coveredStartAt: Date | null;
+      coveredEndAt: Date | null;
+    }>,
+    activeEvaluationCount: number,
+  ) {
+    const now = Date.now();
+    if ((this.lastNoClaimDiagnosticAt.get(worker.id) ?? 0) > now - 30_000)
+      return;
+    this.lastNoClaimDiagnosticAt.set(worker.id, now);
+    const claimCapacity = this.getEvaluationClaimCapacity(worker);
+    const reason =
+      activeEvaluationCount >= claimCapacity
+        ? 'claim-capacity-full'
+        : readyTasks.length === 0
+          ? 'no-ready-evaluation-in-scan'
+          : 'cache-coverage-rejected-scanned-tasks';
+    this.logger.debug(
+      JSON.stringify({
+        event: 'simulation-evaluator.no-claim',
+        workerId: worker.id,
+        reason,
+        activeEvaluationCount,
+        claimCapacity,
+        scannedTaskCount: readyTasks.length,
+        scannedTasks: readyTasks.slice(0, 5).map((task) => ({
+          id: task.id,
+          platform: task.platform,
+          requiredCacheStartAt: task.requiredCacheStartAt,
+          requiredCacheEndAt: task.requiredCacheEndAt,
+        })),
+        readyCaches: readyCaches.map((cache) => ({
+          platform: cache.platform,
+          coveredStartAt: cache.coveredStartAt,
+          coveredEndAt: cache.coveredEndAt,
+        })),
+      }),
     );
   }
 

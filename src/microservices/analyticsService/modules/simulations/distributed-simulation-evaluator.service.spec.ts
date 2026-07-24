@@ -113,7 +113,7 @@ const simulation = {
 } as any;
 
 describe('DistributedSimulationEvaluatorService cache eligibility', () => {
-  it('uses the individual plan window for worker eligibility', async () => {
+  it('uses the complete simulation window for worker eligibility', async () => {
     const countReadyWorkers = jest.fn(async (..._args: unknown[]) => 18);
     const tasks = {
       countReadyWorkers,
@@ -132,12 +132,12 @@ describe('DistributedSimulationEvaluatorService cache eligibility', () => {
 
     expect(countReadyWorkers).toHaveBeenCalledWith(
       'GNS',
-      new Date('2025-01-06T00:00:00.000Z'),
-      new Date('2025-01-11T00:00:00.000Z'),
+      simulation.startAt,
+      simulation.endAt,
     );
   });
 
-  it('puts the individual plan window on dispatched evaluation tasks', async () => {
+  it('puts the complete simulation window on dispatched evaluation tasks', async () => {
     const tasks = {
       createTask: jest.fn(async (input: unknown) => input),
     };
@@ -154,8 +154,8 @@ describe('DistributedSimulationEvaluatorService cache eligibility', () => {
 
     expect(tasks.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        requiredCacheStartAt: range.startedAt,
-        requiredCacheEndAt: range.endedAt,
+        requiredCacheStartAt: simulation.startAt,
+        requiredCacheEndAt: simulation.endAt,
       }),
     );
   });

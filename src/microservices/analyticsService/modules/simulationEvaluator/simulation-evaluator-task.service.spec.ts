@@ -172,6 +172,50 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
     );
   });
 
+  it('returns a prefetched evaluation lease to the ready queue', async () => {
+    const prisma = {
+      simulationEvaluatorTask: {
+        updateMany: jest.fn(async () => ({ count: 1 })),
+        count: jest.fn(async () => 0),
+      },
+      simulationEvaluatorWorker: {
+        findUnique: jest.fn(async () => ({
+          desiredState: 'Draining',
+        })),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    const service = new SimulationEvaluatorTaskService(
+      prisma as never,
+      workflowConfig as never,
+    );
+
+    await expect(
+      service.releasePrefetchedEvaluation('task-1', 'worker-1', 'lease-1'),
+    ).resolves.toBe(true);
+
+    expect(
+      prisma.simulationEvaluatorTask.updateMany as unknown as jest.Mock,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'task-1',
+          kind: 'EvaluateLeaders',
+          status: 'Claimed',
+          workerId: 'worker-1',
+          leaseToken: 'lease-1',
+        }),
+        data: expect.objectContaining({
+          status: 'Ready',
+          workerId: null,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          claimedAt: null,
+        }),
+      }),
+    );
+  });
+
   it('uses the desired capacity to drain a worker before a scale-down task runs', () => {
     const service = new SimulationEvaluatorTaskService(
       {} as never,
@@ -198,25 +242,6 @@ describe('SimulationEvaluatorTaskService worker freshness', () => {
         desiredCapacity: 10,
       }),
     ).toBe(20);
-  });
-
-  it('uses the persisted plan window for existing ready tasks', () => {
-    const service = new SimulationEvaluatorTaskService(
-      {} as never,
-      workflowConfig as never,
-    );
-
-    expect(
-      (service as any).getEvaluationRequiredCacheRange({
-        rangeStartedAt: new Date('2025-07-01T00:00:00.000Z'),
-        rangeEndedAt: new Date('2025-07-06T00:00:00.000Z'),
-        requiredCacheStartAt: new Date('2025-01-01T00:00:00.000Z'),
-        requiredCacheEndAt: new Date('2026-07-01T00:00:00.000Z'),
-      }),
-    ).toEqual({
-      startedAt: new Date('2025-07-01T00:00:00.000Z'),
-      endedAt: new Date('2025-07-06T00:00:00.000Z'),
-    });
   });
 
   it('claims a targeted capacity command ahead of evaluations already prefetched', async () => {

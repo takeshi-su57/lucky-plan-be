@@ -185,7 +185,31 @@ export class SimulationEvaluatorGatewayController {
       '/internal/simulation-evaluator/poll',
     );
     const task = await this.tasks.claimNextTask(workerId);
-    return task ? { task } : { task: null };
+    const desiredState = await this.auth.getDesiredState(workerId);
+    return { task: task ?? null, desiredState };
+  }
+
+  @Post(':taskId/release')
+  async release(
+    @Param('taskId') taskId: string,
+    @Body() body: LeaseRequest,
+    @Headers() headers: Record<string, string | string[] | undefined>,
+  ) {
+    const workerId = await this.authorize(
+      headers,
+      'POST',
+      `/internal/simulation-evaluator/${taskId}/release`,
+    );
+    if (!body.leaseToken)
+      throw new BadRequestException('leaseToken is required');
+    const released = await this.tasks.releasePrefetchedEvaluation(
+      taskId,
+      workerId,
+      body.leaseToken,
+    );
+    if (!released)
+      throw new ConflictException('Evaluator task lease is no longer valid');
+    return { released: true };
   }
 
   @Post(':taskId/heartbeat')

@@ -164,7 +164,18 @@ export class SimulationEvaluatorWorkerClientService {
       },
     );
 
-    return (await response.json()) as { task: ClaimedEvaluatorTask | null };
+    return (await response.json()) as {
+      task: ClaimedEvaluatorTask | null;
+      desiredState?: string;
+    };
+  }
+
+  async release(taskId: string, leaseToken: string) {
+    await this.request(`${SIMULATION_EVALUATOR.gateway.task(taskId)}/release`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ leaseToken }),
+    });
   }
 
   async getInput(taskId: string, leaseToken: string) {
