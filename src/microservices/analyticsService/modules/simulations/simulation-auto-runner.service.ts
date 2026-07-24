@@ -54,11 +54,18 @@ export type SimulationRangeProcessingContext = {
     id: number;
     platform: Platform;
     chainId: number;
+    address: string;
     version: any;
   }[];
   contractById: Map<
     number,
-    { id: number; platform: Platform; chainId: number; version: any }
+    {
+      id: number;
+      platform: Platform;
+      chainId: number;
+      address: string;
+      version: any;
+    }
   >;
 };
 

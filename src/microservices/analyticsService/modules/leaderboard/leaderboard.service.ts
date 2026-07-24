@@ -143,12 +143,6 @@ export class LeaderboardService {
             }),
         });
 
-        const block = await this.evmAdapterService.getValidBlock({
-          chainId: contract.chainId,
-          priority: ChainPriority.HIGH,
-          blockNumber: fromBlock,
-        });
-
         const perpTradeEventLogs = eventLogs.filter((log) =>
           getWeb3Info(
             contract.platform,
@@ -158,7 +152,14 @@ export class LeaderboardService {
 
         await this.handlePerpTradeEventLogs({
           contract,
-          block,
+          fromBlock,
+          toBlock,
+          getBlock: async (blockNumber) =>
+            await this.evmAdapterService.getBlock({
+              chainId: contract.chainId,
+              priority: ChainPriority.HIGH,
+              blockNumber,
+            }),
           perpTradeEventLogs,
         });
 
@@ -438,10 +439,6 @@ export class LeaderboardService {
             address,
           }),
       });
-      const block = await this.getValidBlockFromClient(
-        worker.client,
-        task.fromBlock,
-      );
       const perpTradeEventLogs = eventLogs.filter((log) =>
         getWeb3Info(
           contract.platform,
@@ -451,7 +448,10 @@ export class LeaderboardService {
 
       await this.handlePerpTradeEventLogs({
         contract,
-        block,
+        fromBlock: task.fromBlock,
+        toBlock: task.toBlock,
+        getBlock: async (blockNumber) =>
+          await this.getValidBlockFromClient(worker.client, blockNumber),
         perpTradeEventLogs,
       });
 
@@ -600,11 +600,15 @@ export class LeaderboardService {
 
   private async handlePerpTradeEventLogs({
     contract,
-    block,
+    fromBlock,
+    toBlock,
+    getBlock,
     perpTradeEventLogs,
   }: {
     contract: Contract;
-    block: Block;
+    fromBlock: bigint;
+    toBlock: bigint;
+    getBlock: (blockNumber: bigint) => Promise<Block>;
     perpTradeEventLogs: {
       eventLog: any;
       blockNumber: number;
@@ -614,12 +618,23 @@ export class LeaderboardService {
   }) {
     const web3Info = getWeb3Info(contract.platform, contract.version);
 
+    if (perpTradeEventLogs.length === 0) {
+      return await this.eventLogsService.createManyPerpTradingEventLogs([]);
+    }
+
+    const getDateForBlock = await this.getDateForBlockInRange(
+      fromBlock,
+      toBlock,
+      getBlock,
+    );
+
     const perpTradingEventInputs: CreatePerpTradingEventLogInput[] =
       perpTradeEventLogs
         .map((log) => {
           const history = web3Info.eventToPerpTradeHistory(
             contract.chainId,
             log.eventLog,
+            contract.address,
           );
 
           if (!history) {
@@ -635,7 +650,7 @@ export class LeaderboardService {
             block: log.blockNumber,
             logIndex: log.logIndex,
             transactionHash: log.transactionHash,
-            date: new Date(Number(block.timestamp) * 1000),
+            date: getDateForBlock(log.blockNumber),
           };
         })
         .filter((item): item is CreatePerpTradingEventLogInput => !!item);
@@ -643,6 +658,31 @@ export class LeaderboardService {
     return await this.eventLogsService.createManyPerpTradingEventLogs(
       perpTradingEventInputs,
     );
+  }
+
+  private async getDateForBlockInRange(
+    fromBlock: bigint,
+    toBlock: bigint,
+    getBlock: (blockNumber: bigint) => Promise<Block>,
+  ): Promise<(blockNumber: number) => Date> {
+    const [firstBlock, lastBlock] = await Promise.all([
+      getBlock(fromBlock),
+      fromBlock === toBlock ? Promise.resolve(null) : getBlock(toBlock),
+    ]);
+    const firstTimestamp = Number(firstBlock.timestamp);
+    const lastTimestamp = Number(lastBlock?.timestamp ?? firstBlock.timestamp);
+    const blockSpan = Number(toBlock - fromBlock);
+    const timestampSpan = lastTimestamp - firstTimestamp;
+
+    return (blockNumber: number) => {
+      const blockOffset = Number(BigInt(blockNumber) - fromBlock);
+      const timestamp =
+        blockSpan === 0
+          ? firstTimestamp
+          : firstTimestamp + (blockOffset / blockSpan) * timestampSpan;
+
+      return new Date(Math.round(timestamp * 1000));
+    };
   }
 
   private serializeEventLog(eventLog: unknown) {

@@ -40,6 +40,7 @@ export function eventToActionParser(event: RegisteredEventType): ActionItem {
 export function eventToPerpTradeHistory(
   _chainId: number,
   event: RegisteredEventType,
+  _contractAddress: string,
 ): PurePerpTradeHistory | null {
   return eventParsersMap[event.eventName].eventToPerpTradeHistory(event as any);
 }

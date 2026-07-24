@@ -75,6 +75,7 @@ export type CandidateEvaluation = {
 export type ContractContext = {
   id: number;
   chainId: number;
+  address: string;
   version: any;
   platform: Platform;
 };
@@ -289,6 +290,7 @@ export class SimulationLeaderEvaluatorService {
         ).eventToPerpTradeHistory(
           contract.chainId,
           JSON.parse(record.jsonLog) as any,
+          contract.address,
         );
 
         return history

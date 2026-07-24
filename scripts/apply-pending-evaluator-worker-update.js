@@ -19,12 +19,16 @@ const items = [
   'parent',
   'child',
   'adopt',
-  'scripts',
   'windows.cmd',
   'linux.sh',
   'README.md',
   '.env.example',
   'version.json',
+];
+const updatableScripts = [
+  'evaluator-worker-self-update.js',
+  'windows-commander.ps1',
+  'linux-commander.sh',
 ];
 try {
   rmSync(backup, { recursive: true, force: true });
@@ -34,6 +38,12 @@ try {
     const to = join(backup, item);
     if (existsSync(from)) renameSync(from, to);
     cpSync(join(pending.release, item), from, { recursive: true });
+  }
+  for (const script of updatableScripts) {
+    cpSync(
+      join(pending.release, 'scripts', script),
+      join(root, 'scripts', script),
+    );
   }
   writeFileSync(
     resultPath,
