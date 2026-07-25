@@ -35,6 +35,7 @@ import {
   ValueRange,
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
+import { invalidateSimulationResearchReport } from 'src/utils/simulation-research-report-cache';
 import {
   DEFAULT_SCORE_FORMULAR,
   DEFAULT_SIZING_FORMULAR,
@@ -451,6 +452,10 @@ export class SimulationsService {
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
       status: record.status ?? SimulationStatus.Created,
+      aiReportReady: record.aiReportReady ?? false,
+      aiReportGenerating: record.aiReportGenerating ?? false,
+      aiReportError: record.aiReportError ?? null,
+      aiReportRevision: record.aiReportRevision ?? 0,
       cursor: record.cursor ?? null,
       progressPhase: record.progressPhase ?? 'created',
       progressMessage: record.progressMessage ?? 'Research created',
@@ -489,7 +494,7 @@ export class SimulationsService {
     };
   }
 
-  private async emitSimulationResearchUpdated(id: number) {
+  async emitSimulationResearchUpdated(id: number) {
     if (!this.redisClient) {
       return;
     }
@@ -1158,7 +1163,20 @@ export class SimulationsService {
       );
       await tx.simulationResearch.update({
         where: { id: input.id },
-        data: { title, description },
+        data: {
+          title,
+          description,
+          ...(research.status === SimulationStatus.Completed
+            ? {
+                aiReportReady: false,
+                aiReportGenerating: false,
+                aiReportError: null,
+                aiReportRevision: { increment: 1 },
+                aiReportAttempts: 0,
+                aiReportRetryAt: null,
+              }
+            : {}),
+        },
       });
 
       if (simulationIds.length > 0) {
@@ -1190,6 +1208,7 @@ export class SimulationsService {
       });
     });
 
+    await invalidateSimulationResearchReport(input.id);
     await this.emitSimulationResearchUpdated(input.id);
     await Promise.all(
       updated.simulations.map((simulation) =>
@@ -1692,6 +1711,12 @@ export class SimulationsService {
           lastError: null,
           retryAttempts: 0,
           nextRetryAt: null,
+          aiReportReady: false,
+          aiReportGenerating: false,
+          aiReportError: null,
+          aiReportRevision: { increment: 1 },
+          aiReportAttempts: 0,
+          aiReportRetryAt: null,
           progressPhase: 'queued',
           progressMessage: 'Research restarted and queued for automation',
           progressPercent: 0,
@@ -1704,6 +1729,7 @@ export class SimulationsService {
       });
     }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
+    await invalidateSimulationResearchReport(id);
     await this.emitSimulationResearchUpdated(id);
     return this.mapSimulationResearch(restarted);
   }

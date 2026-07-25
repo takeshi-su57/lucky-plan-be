@@ -5,7 +5,7 @@ import { SimulationsResolver } from './simulations.resolver';
 import { TradeHistoriesModule } from '../trade-histories/trade-histories.module';
 import { SimulationPlansService } from './simulation-plans.service';
 import { SimulationsController } from './simulations.controller';
-import { SimulationResearchReportService } from './simulation-research-report.service';
+import { SimulationResearchReportDownloadService } from './simulation-research-report-download.service';
 import { SimulationEvaluatorModule } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.module';
 import { SimulationEvaluatorGatewayController } from './simulation-evaluator-gateway.controller';
 import { SimulationEvaluatorWorkerDataService } from './simulation-evaluator-worker-data.service';
@@ -20,7 +20,7 @@ import { SimulationEvaluatorGatewayLoggingInterceptor } from './simulation-evalu
     SimulationsResolver,
     SimulationsService,
     SimulationPlansService,
-    SimulationResearchReportService,
+    SimulationResearchReportDownloadService,
     SimulationEvaluatorWorkerDataService,
     SimulationEvaluatorWorkerAuthService,
     SimulationEvaluatorGatewayLoggingInterceptor,

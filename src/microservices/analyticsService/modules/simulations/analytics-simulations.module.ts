@@ -8,6 +8,8 @@ import { DistributedSimulationEvaluatorService } from './distributed-simulation-
 import { SimulationDynamicAutoSchedulerService } from './simulation-dynamic-auto-scheduler.service';
 import { SimulationDynamicAutomationCronService } from './simulation-dynamic-automation-cron.service';
 import { SimulationEvaluatorModule } from '../simulationEvaluator/simulation-evaluator.module';
+import { SimulationResearchReportService } from './research-report/simulation-research-report.service';
+import { SimulationResearchReportCronService } from './simulation-research-report-cron.service';
 
 @Module({
   imports: [TradeHistoriesModule, SimulationEvaluatorModule],
@@ -18,6 +20,8 @@ import { SimulationEvaluatorModule } from '../simulationEvaluator/simulation-eva
     DistributedSimulationEvaluatorService,
     SimulationDynamicAutoSchedulerService,
     SimulationDynamicAutomationCronService,
+    SimulationResearchReportService,
+    SimulationResearchReportCronService,
   ],
 })
 export class AnalyticsSimulationsModule {}

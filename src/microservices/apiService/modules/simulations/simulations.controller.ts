@@ -13,7 +13,9 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 import { PubSub } from 'graphql-subscriptions';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
+import { createReadStream } from 'node:fs';
 import { UserPermission } from 'generated/prisma/client';
+import { ConflictException } from '@nestjs/common';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { PATTERNS, SUBSCRIPTION_TOKEN } from 'src/utils/constants';
@@ -22,13 +24,13 @@ import {
   SimulationPlan,
   SimulationResearch,
 } from './entities/simulations.entity';
-import { SimulationResearchReportService } from './simulation-research-report.service';
+import { SimulationResearchReportDownloadService } from './simulation-research-report-download.service';
 
 @Controller()
 export class SimulationsController {
   constructor(
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
-    private readonly simulationResearchReportService: SimulationResearchReportService,
+    private readonly reportDownloadService: SimulationResearchReportDownloadService,
   ) {}
 
   @Get('simulation-researches/:id/reports/ai')
@@ -48,16 +50,19 @@ export class SimulationsController {
         'A Trader or Admin role is required to export research',
       );
     }
-    const report =
-      await this.simulationResearchReportService.buildAiStandardZip(id);
-    response
-      .status(200)
-      .set({
-        'Content-Type': 'application/zip',
-        'Content-Length': report.length.toString(),
-        'Content-Disposition': `attachment; filename="simulation-research-${id}-ai-standard.zip"`,
-      })
-      .end(report);
+    // Reports are generated only by the serialized cron worker. Downloads
+    // are cache-only so a client can never trigger a resource-heavy build.
+    const reportPath = await this.reportDownloadService.getReadyArchivePath(id);
+    if (!reportPath) {
+      throw new ConflictException('The AI report is not ready yet');
+    }
+    response.status(200).set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="simulation-research-${id}-ai-standard.zip"`,
+    });
+    createReadStream(reportPath)
+      .on('error', (error) => response.destroy(error))
+      .pipe(response);
   }
 
   @EventPattern(PATTERNS.Simulations.SimulationResearchUpdated)

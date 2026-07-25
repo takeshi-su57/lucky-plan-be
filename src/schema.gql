@@ -1090,6 +1090,10 @@ type SimulationPlanDetails {
 }
 
 type SimulationResearch {
+  aiReportError: String
+  aiReportGenerating: Boolean!
+  aiReportReady: Boolean!
+  aiReportRevision: Int!
   collateral: [SimulationValueRangeGroup!]!
   completedPlans: Int!
   completedRanges: Int!
@@ -1139,6 +1143,10 @@ type SimulationResearch {
 }
 
 type SimulationResearchDetails {
+  aiReportError: String
+  aiReportGenerating: Boolean!
+  aiReportReady: Boolean!
+  aiReportRevision: Int!
   collateral: [SimulationValueRangeGroup!]!
   completedPlans: Int!
   completedRanges: Int!

@@ -202,6 +202,10 @@ export class SimulationAutoRunnerService {
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
       status: record.status ?? SimulationStatus.Created,
+      aiReportReady: record.aiReportReady ?? false,
+      aiReportGenerating: record.aiReportGenerating ?? false,
+      aiReportError: record.aiReportError ?? null,
+      aiReportRevision: record.aiReportRevision ?? 0,
       cursor: record.cursor ?? null,
       progressPhase: record.progressPhase ?? 'created',
       progressMessage: record.progressMessage ?? 'Research created',
@@ -260,8 +264,12 @@ export class SimulationAutoRunnerService {
       return;
     }
 
+    await this.emitSimulationResearchUpdated(simulation.researchId);
+  }
+
+  async emitSimulationResearchUpdated(researchId: number) {
     const research = await this.prisma.simulationResearch.findUnique({
-      where: { id: simulation.researchId },
+      where: { id: researchId },
       include: {
         simulations: {
           select: {

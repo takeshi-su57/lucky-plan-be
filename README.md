@@ -2,6 +2,12 @@
 
 Lucky Plans is a NestJS backend for automated perp copy-trading, leaderboard indexing, and strategy simulation. The same codebase can boot as the public API service or as Redis-backed workers, selected by the `SERVICE` environment variable.
 
+## Simulation research report storage
+
+The analytics service generates AI research reports and the API service streams
+them from `.cache/research`. Analytics is spawned by the API process with the
+same working directory, so both processes use the same report cache.
+
 ## What This System Does
 
 The backend tracks on-chain perp trading events from supported venues, stores normalized actions and trade history in Postgres, exposes product workflows through GraphQL, and runs worker loops that turn leader activity into follower missions and tasks.

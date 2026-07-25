@@ -529,6 +529,18 @@ export class SimulationResearch {
   @Field(() => SimulationStatus)
   status: SimulationStatus;
 
+  @Field(() => Boolean)
+  aiReportReady: boolean;
+
+  @Field(() => Boolean)
+  aiReportGenerating: boolean;
+
+  @Field(() => String, { nullable: true })
+  aiReportError: string | null;
+
+  @Field(() => Int)
+  aiReportRevision: number;
+
   @Field(() => Date, { nullable: true })
   cursor: Date | null;
 

@@ -212,6 +212,12 @@ model SimulationResearch {
   automationEnabled        Boolean          @default(true)
   automationLeaseToken     String?          @db.VarChar(64)
   automationLeaseExpiresAt DateTime?
+  aiReportReady            Boolean          @default(false)
+  aiReportGenerating       Boolean          @default(false)
+  aiReportError            String?
+  aiReportRevision         Int              @default(0)
+  aiReportAttempts         Int              @default(0)
+  aiReportRetryAt          DateTime?
 
   simulations      Simulation[]
   sourceSimulation Simulation?  @relation("SimulationResearchSource", fields: [sourceSimulationId], references: [id], onDelete: SetNull)
@@ -223,8 +229,17 @@ model SimulationResearch {
   @@index([status, nextRetryAt])
   @@index([automationEnabled, status, nextRetryAt])
   @@index([status, automationLeaseExpiresAt])
+  @@index([status, aiReportReady, finishedAt])
+  @@index([status, aiReportReady, aiReportRetryAt, finishedAt])
   @@index([createdAt])
   @@index([sourceSimulationId])
+}
+
+model SimulationResearchReportGenerationLock {
+  id          String    @id @default("global")
+  owner       String?
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
 }
 
 enum BotMode {
