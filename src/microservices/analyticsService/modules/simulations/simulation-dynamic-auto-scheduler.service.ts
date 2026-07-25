@@ -6,6 +6,7 @@ import {
   SimulationExecutionPlanStatus,
   SimulationStatus,
 } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { LogsService } from 'src/global/logs.service';
@@ -178,6 +179,8 @@ export class SimulationDynamicAutoSchedulerService {
       Array.isArray(value)
         ? (value as Array<{ min: number; max: number }>)
         : [];
+    const serializeRanges = (value: unknown): Prisma.InputJsonArray =>
+      ranges(value).map(({ min, max }) => ({ min, max }));
     const collateral = ranges(target.leaderExecutionCollateral);
     const size = ranges(target.leaderExecutionSize);
     const leverage = ranges(target.leaderExecutionLeverage);
@@ -212,11 +215,17 @@ export class SimulationDynamicAutoSchedulerService {
               maxSize: Math.max(...size.map((item) => item.max)),
               minLeverage: Math.min(...leverage.map((item) => item.min)),
               maxLeverage: Math.max(...leverage.map((item) => item.max)),
-              leaderExecutionCollateral: target.leaderExecutionCollateral,
-              leaderExecutionSize: target.leaderExecutionSize,
-              leaderExecutionLeverage: target.leaderExecutionLeverage,
-              followerRiskSize: target.followerRiskSize,
-              followerRiskCollateral: target.followerRiskCollateral,
+              leaderExecutionCollateral: serializeRanges(
+                target.leaderExecutionCollateral,
+              ),
+              leaderExecutionSize: serializeRanges(target.leaderExecutionSize),
+              leaderExecutionLeverage: serializeRanges(
+                target.leaderExecutionLeverage,
+              ),
+              followerRiskSize: serializeRanges(target.followerRiskSize),
+              followerRiskCollateral: serializeRanges(
+                target.followerRiskCollateral,
+              ),
               evaluationTradeCount: bot.evaluationTradeCount,
               evaluationSlope: bot.evaluationSlope,
               evaluationR2: bot.evaluationR2,
