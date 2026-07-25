@@ -28,6 +28,7 @@ import {
   SimulationSizingFormular,
 } from 'src/microservices/apiService/modules/simulations/simulation-formulars';
 import { mapSimulationBotConfiguration } from 'src/microservices/apiService/modules/simulations/simulation-bot-config.mapper';
+import { SimulationPlansService } from 'src/microservices/apiService/modules/simulations/simulation-plans.service';
 
 type ValueRange = {
   min: number;
@@ -75,12 +76,18 @@ export type FinalizeSimulationRangeResult = {
   timing?: Record<string, number>;
 };
 
+export type MaterializeSimulationRangeResult = {
+  simulation: Simulation | null;
+  timing?: Record<string, number>;
+};
+
 @Injectable()
 export class SimulationAutoRunnerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly simulationCacheService: SimulationCacheService,
     private readonly simulationLeaderEvaluatorService: SimulationLeaderEvaluatorService,
+    private readonly simulationPlansService: SimulationPlansService,
     @Inject(SERVICE_NAMES.REDIS_SERVICE)
     private readonly redisClient: ClientProxy,
   ) {}
@@ -436,6 +443,232 @@ export class SimulationAutoRunnerService {
     };
   }
 
+  /**
+   * Persist the plan and selected bots from a completed evaluator task.  Cache
+   * construction deliberately happens later, once every plan of a simulation
+   * has been materialized, so the final stage can process the full timeline in
+   * chronological order.
+   */
+  async materializeSimulationRange(
+    simulationId: number,
+    range: WindowRange,
+    context: SimulationRangeProcessingContext,
+    evaluatedCandidates: CandidateEvaluation[],
+  ): Promise<MaterializeSimulationRangeResult> {
+    const totalStartedAt = performance.now();
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return { simulation: null };
+    }
+    const createPlanStartedAt = performance.now();
+    const simulationPlan = await this.createSimulationPlanForRange(
+      simulation,
+      range,
+      false,
+    );
+    const createPlanMs = Math.round(performance.now() - createPlanStartedAt);
+    const createBotsStartedAt = performance.now();
+    const materialization = await this.createSimulationBotsForSelections(
+      simulationPlan.id,
+      range.startedAt,
+      range.endedAt,
+      simulation,
+      [...evaluatedCandidates].sort((a, b) => b.score - a.score),
+      context.platformContracts,
+      1,
+      false,
+    );
+    return {
+      simulation,
+      timing: {
+        createPlanMs,
+        ...materialization.timing,
+        materializeBotsMs: Math.round(performance.now() - createBotsStartedAt),
+        totalMs: Math.round(performance.now() - totalStartedAt),
+      },
+    };
+  }
+
+  /** Layer 3: rebuild every materialized plan from oldest to newest. */
+  async finalizeMaterializedSimulation(
+    simulationId: number,
+  ): Promise<FinalizeSimulationRangeResult> {
+    const totalStartedAt = performance.now();
+    const record = await this.prisma.simulation.findUnique({
+      where: { id: simulationId },
+    });
+    const simulation = record ? this.mapSimulation(record) : null;
+    if (!simulation || simulation.status === SimulationStatus.Cancelled) {
+      return { simulation: null, awaitingEventLogs: false };
+    }
+    const plans = await this.prisma.simulationPlan.findMany({
+      where: { simulationId },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+    const timing: Record<string, number> = {};
+    for (const plan of plans) {
+      const startedAt = performance.now();
+      const cache =
+        await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
+      timing[`plan:${plan.id}:cacheMs`] = Math.round(
+        performance.now() - startedAt,
+      );
+      if (!cache.completed) {
+        return {
+          simulation,
+          awaitingEventLogs: true,
+          timing: {
+            ...timing,
+            totalMs: Math.round(performance.now() - totalStartedAt),
+          },
+        };
+      }
+      await this.emitSimulationPlanUpdated(plan.id);
+    }
+    const completed = await this.prisma.simulation.update({
+      where: { id: simulationId },
+      data: {
+        cursor: plans.at(-1)?.endAt ?? simulation.cursor,
+        completedPlans: plans.length,
+        status: SimulationStatus.Completed,
+        progressPhase: 'completed',
+        progressMessage: 'Simulation result completed',
+        progressPercent: 100,
+      },
+    });
+    const aggregation = await this.aggregateSimulation(simulationId, {
+      status: SimulationStatus.Completed,
+    });
+    return {
+      simulation: this.mapSimulation(completed),
+      awaitingEventLogs: false,
+      timing: {
+        ...timing,
+        aggregatedPlanCount: aggregation.planCount,
+        aggregatedBotCount: aggregation.botCount,
+        aggregatedPositionCount: aggregation.positionCount,
+        totalMs: Math.round(performance.now() - totalStartedAt),
+      },
+    };
+  }
+
+  async finalizeSourceDerivedSimulation(simulationId: number) {
+    const plans = await this.prisma.simulationPlan.findMany({
+      where: { simulationId },
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+    const followerPositionPnls: number[] = [];
+    let totalLeaderPnl = 0;
+    let totalFollowerPnl = 0;
+    for (const plan of plans) {
+      const details =
+        await this.simulationPlansService.calculateSimulationPlanDetails(
+          plan.id,
+          { eventSource: 'sourceSnapshot' },
+        );
+      totalLeaderPnl += details.totalLeaderPnl;
+      totalFollowerPnl += details.totalFollowerPnl;
+      for (const bot of details.simulationBots) {
+        const pnls = bot.positions.map((position) => position.followerPnl);
+        followerPositionPnls.push(...pnls);
+        await this.prisma.simulationBotCache.upsert({
+          where: { simulationBotId: bot.id },
+          create: {
+            simulationBotId: bot.id,
+            completed: true,
+            lastFetchedAt: new Date(),
+            openedPositions: bot.openedPositions,
+            totalPositions: bot.totalPositions,
+            totalLeaderPnl: bot.totalPnl,
+            totalFollowerPnl: sum(pnls),
+            maxDuration: bot.maxDuration,
+            avgDuration: bot.avgDuration,
+            avgPnl: bot.avgPnl,
+            avgPositivePnl: bot.avgPositivePnl,
+            avgNegativePnl: bot.avgNegativePnl,
+            avgSize: bot.avgSize,
+            avgCollateral: bot.avgCollateral,
+            avgPnlPercentageBySize: bot.avgPnlPercentageBySize,
+            avgPnlPercentageByCollateral: bot.avgPnlPercentageByCollateral,
+            avgLeverage: bot.avgLeverage,
+            positionsJson: JSON.stringify(bot.positions),
+            followerPositionPnlsJson: JSON.stringify(pnls),
+          },
+          update: {
+            completed: true,
+            lastFetchedAt: new Date(),
+            openedPositions: bot.openedPositions,
+            totalPositions: bot.totalPositions,
+            totalLeaderPnl: bot.totalPnl,
+            totalFollowerPnl: sum(pnls),
+            maxDuration: bot.maxDuration,
+            avgDuration: bot.avgDuration,
+            avgPnl: bot.avgPnl,
+            avgPositivePnl: bot.avgPositivePnl,
+            avgNegativePnl: bot.avgNegativePnl,
+            avgSize: bot.avgSize,
+            avgCollateral: bot.avgCollateral,
+            avgPnlPercentageBySize: bot.avgPnlPercentageBySize,
+            avgPnlPercentageByCollateral: bot.avgPnlPercentageByCollateral,
+            avgLeverage: bot.avgLeverage,
+            positionsJson: JSON.stringify(bot.positions),
+            followerPositionPnlsJson: JSON.stringify(pnls),
+          },
+        });
+      }
+      await this.prisma.simulationPlanCache.upsert({
+        where: { simulationPlanId: plan.id },
+        create: {
+          simulationPlanId: plan.id,
+          completed: true,
+          completedBots: details.simulationBots.length,
+          incompleteBots: 0,
+          openedPositions: details.openedPositions,
+          totalPositions: details.totalPositions,
+          totalLeaderPnl: details.totalLeaderPnl,
+          totalFollowerPnl: details.totalFollowerPnl,
+          lastBuiltAt: new Date(),
+        },
+        update: {
+          completed: true,
+          completedBots: details.simulationBots.length,
+          incompleteBots: 0,
+          openedPositions: details.openedPositions,
+          totalPositions: details.totalPositions,
+          totalLeaderPnl: details.totalLeaderPnl,
+          totalFollowerPnl: details.totalFollowerPnl,
+          lastBuiltAt: new Date(),
+        },
+      });
+    }
+    const tradeCount = followerPositionPnls.length;
+    const completed = await this.prisma.simulation.update({
+      where: { id: simulationId },
+      data: {
+        status: SimulationStatus.Completed,
+        progressPhase: 'completed',
+        progressMessage: 'Layer 2/3 variant recalculation completed',
+        progressPercent: 100,
+        completedPlans: plans.length,
+        totalLeaderPnl,
+        totalFollowerPnl,
+        totalNetPnlUsd: totalFollowerPnl,
+        totalCostUsd: 0,
+        tradeCount,
+        winRate: tradeCount
+          ? followerPositionPnls.filter((pnl) => pnl > 0).length / tradeCount
+          : 0,
+        profitFactor: calculateProfitFactor(followerPositionPnls),
+        maxDrawdownUsd: calculateMaxDrawdown(cumulative(followerPositionPnls)),
+      },
+    });
+    await this.emitSimulationUpdated(completed);
+    return this.mapSimulation(completed);
+  }
+
   private async getSimulationPlanForUpdate(id: number) {
     return await this.prisma.simulationPlan.findUnique({
       where: { id },
@@ -463,6 +696,7 @@ export class SimulationAutoRunnerService {
   private async createSimulationPlanForRange(
     simulation: Simulation,
     range: WindowRange,
+    buildCache = true,
   ) {
     const existingSimulationPlan = await this.prisma.simulationPlan.findFirst({
       where: {
@@ -473,9 +707,11 @@ export class SimulationAutoRunnerService {
     });
 
     if (existingSimulationPlan) {
-      await this.simulationCacheService.ensureSimulationPlanCache(
-        existingSimulationPlan.id,
-      );
+      if (buildCache) {
+        await this.simulationCacheService.ensureSimulationPlanCache(
+          existingSimulationPlan.id,
+        );
+      }
 
       await this.emitSimulationPlanUpdated(existingSimulationPlan.id);
 
@@ -495,9 +731,11 @@ export class SimulationAutoRunnerService {
       },
     });
 
-    await this.simulationCacheService.ensureSimulationPlanCache(
-      simulationPlan.id,
-    );
+    if (buildCache) {
+      await this.simulationCacheService.ensureSimulationPlanCache(
+        simulationPlan.id,
+      );
+    }
     await this.emitSimulationPlanUpdated(simulationPlan.id);
 
     return simulationPlan;
@@ -511,12 +749,14 @@ export class SimulationAutoRunnerService {
     selectedCandidates: CandidateEvaluation[],
     contracts: { id: number; platform: Platform }[],
     botCacheConcurrency: number,
+    buildCaches = true,
   ): Promise<{
     completed: boolean;
     timing: Record<string, number>;
   }> {
     const timing: Record<string, number> = {};
     if (selectedCandidates.length === 0 || contracts.length === 0) {
+      if (!buildCaches) return { completed: true, timing };
       const startedAt = performance.now();
       const cache =
         await this.simulationCacheService.rebuildPlanCache(simulationPlanId);
@@ -530,13 +770,14 @@ export class SimulationAutoRunnerService {
     });
 
     if (existingBotCount > 0) {
+      timing.existingBotCount = existingBotCount;
+      if (!buildCaches) return { completed: true, timing };
       const startedAt = performance.now();
       const cache =
         await this.simulationCacheService.refreshIncompleteBotsForPlan(
           simulationPlanId,
         );
       timing.planCacheMs = Math.round(performance.now() - startedAt);
-      timing.existingBotCount = existingBotCount;
       return { completed: cache.completed, timing };
     }
 
@@ -545,6 +786,7 @@ export class SimulationAutoRunnerService {
     );
 
     if (!hasPlatformContract) {
+      if (!buildCaches) return { completed: true, timing };
       const startedAt = performance.now();
       const cache =
         await this.simulationCacheService.rebuildPlanCache(simulationPlanId);
@@ -611,6 +853,7 @@ export class SimulationAutoRunnerService {
     }));
 
     if (botInputs.length === 0) {
+      if (!buildCaches) return { completed: true, timing };
       const startedAt = performance.now();
       const cache =
         await this.simulationCacheService.rebuildPlanCache(simulationPlanId);
@@ -631,6 +874,10 @@ export class SimulationAutoRunnerService {
     });
 
     timing.createdBotCount = createdBots.length;
+    if (!buildCaches) {
+      await this.emitSimulationPlanUpdated(simulationPlanId);
+      return { completed: true, timing };
+    }
     const ensureBotCachesStartedAt = performance.now();
     await this.forEachWithConcurrency(
       createdBots,

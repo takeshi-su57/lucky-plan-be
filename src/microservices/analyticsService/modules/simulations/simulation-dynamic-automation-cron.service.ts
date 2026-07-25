@@ -7,47 +7,66 @@ import { SimulationDynamicAutoSchedulerService } from './simulation-dynamic-auto
 
 @Injectable()
 export class SimulationDynamicAutomationCronService {
-  private isMaintainingQueue = false;
-  private isDispatchingFinalizers = false;
+  private isRegisteringEvaluations = false;
+  private isHandlingResolvedEvaluations = false;
+  private isFinalizingMaterializedSimulation = false;
 
   constructor(
     private readonly scheduler: SimulationDynamicAutoSchedulerService,
     private readonly logger: LogsService,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
-  async maintainDynamicPlanQueue() {
-    if (this.isMaintainingQueue) return;
-    this.isMaintainingQueue = true;
+  @Cron(CronExpression.EVERY_30_SECONDS)
+  async registerLeaderEvaluationTasks() {
+    if (this.isRegisteringEvaluations) return;
+    this.isRegisteringEvaluations = true;
     try {
-      await this.scheduler.processQueueMaintenance();
+      await this.scheduler.registerLeaderEvaluationTasks();
     } catch (error) {
       await this.logger.nativeLog({
         severity: 'Error',
         summary:
-          'analytics.simulationDynamicAutomationCron>maintainDynamicPlanQueue',
+          'analytics.simulationDynamicAutomationCron>registerLeaderEvaluationTasks',
         details: getReadableError(error),
       });
     } finally {
-      this.isMaintainingQueue = false;
+      this.isRegisteringEvaluations = false;
     }
   }
 
   @Cron(CronExpression.EVERY_10_SECONDS)
-  async dispatchDynamicPlanFinalizers() {
-    if (this.isDispatchingFinalizers) return;
-    this.isDispatchingFinalizers = true;
+  async handleResolvedEvaluationTasks() {
+    if (this.isHandlingResolvedEvaluations) return;
+    this.isHandlingResolvedEvaluations = true;
     try {
-      await this.scheduler.processFinalizations();
+      await this.scheduler.handleResolvedEvaluationTasks();
     } catch (error) {
       await this.logger.nativeLog({
         severity: 'Error',
         summary:
-          'analytics.simulationDynamicAutomationCron>dispatchDynamicPlanFinalizers',
+          'analytics.simulationDynamicAutomationCron>handleResolvedEvaluationTasks',
         details: getReadableError(error),
       });
     } finally {
-      this.isDispatchingFinalizers = false;
+      this.isHandlingResolvedEvaluations = false;
+    }
+  }
+
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async finalizeMaterializedSimulation() {
+    if (this.isFinalizingMaterializedSimulation) return;
+    this.isFinalizingMaterializedSimulation = true;
+    try {
+      await this.scheduler.finalizeMaterializedSimulations();
+    } catch (error) {
+      await this.logger.nativeLog({
+        severity: 'Error',
+        summary:
+          'analytics.simulationDynamicAutomationCron>finalizeMaterializedSimulation',
+        details: getReadableError(error),
+      });
+    } finally {
+      this.isFinalizingMaterializedSimulation = false;
     }
   }
 }

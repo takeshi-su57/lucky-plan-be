@@ -26,6 +26,6 @@ import { SimulationEvaluatorGatewayLoggingInterceptor } from './simulation-evalu
     SimulationEvaluatorGatewayLoggingInterceptor,
     SimulationEvaluatorWorkersResolver,
   ],
-  exports: [SimulationsService],
+  exports: [SimulationsService, SimulationPlansService],
 })
 export class SimulationsModule {}

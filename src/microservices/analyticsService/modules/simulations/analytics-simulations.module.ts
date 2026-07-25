@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { TradeHistoriesModule } from 'src/microservices/apiService/modules/trade-histories/trade-histories.module';
+import { SimulationsModule } from 'src/microservices/apiService/modules/simulations/simulations.module';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
 import { SimulationCacheService } from './simulation-cache.service';
 import { SimulationLeaderEvaluatorService } from './simulation-leader-evaluator.service';
@@ -12,7 +13,7 @@ import { SimulationResearchReportService } from './research-report/simulation-re
 import { SimulationResearchReportCronService } from './simulation-research-report-cron.service';
 
 @Module({
-  imports: [TradeHistoriesModule, SimulationEvaluatorModule],
+  imports: [TradeHistoriesModule, SimulationEvaluatorModule, SimulationsModule],
   providers: [
     SimulationAutoRunnerService,
     SimulationLeaderEvaluatorService,

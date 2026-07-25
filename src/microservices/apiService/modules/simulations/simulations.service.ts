@@ -42,11 +42,6 @@ import {
   SimulationScoreFormular,
   SimulationSizingFormular,
 } from './simulation-formulars';
-import {
-  calculateMaxDrawdown,
-  calculateProfitFactor,
-  cumulative,
-} from 'src/microservices/analyticsService/modules/simulations/utils/simulation-automation.utils';
 
 const DEFAULT_SELECTED_LEADER_COUNT = 10;
 const DEFAULT_STANDARD_COLLATERAL_USD = 100;
@@ -846,7 +841,7 @@ export class SimulationsService {
             input.followerRiskCollateral,
           ),
           sourceSimulationId: sourceSimulation.id,
-          automationEnabled: false,
+          automationEnabled: true,
           status: SimulationStatus.Running,
           progressPhase: 'recalculating-layer-2-3',
           progressMessage: 'Reusing Layer 1 leader evaluations',
@@ -904,77 +899,83 @@ export class SimulationsService {
         });
         const planIds: number[] = [];
 
-        for (const sourcePlan of sourceSimulation.simulationPlans) {
-          const plan = await tx.simulationPlan.create({
-            data: {
-              title: `${title} ${dayjs(sourcePlan.startAt).format('YYYY-MM-DD')}`,
-              description,
-              startAt: sourcePlan.startAt,
-              endAt: sourcePlan.endAt,
-              cursor: sourcePlan.cursor,
-              simulationId: simulation.id,
-              sourceSimulationPlanId: sourcePlan.id,
-            },
-          });
-          planIds.push(plan.id);
-
-          if (sourcePlan.simulationBots.length > 0) {
-            await tx.simulationBot.createMany({
-              data: sourcePlan.simulationBots.map((sourceBot) => ({
-                sourceSimulationBotId: sourceBot.id,
-                leaderAddress: sourceBot.leaderAddress,
-                leaderPlatform: sourceBot.leaderPlatform,
-                simulationPlanId: plan.id,
-                startedAt: sourceBot.startedAt,
-                stoppedAt: sourceBot.stoppedAt,
-                mode: sourceBot.mode,
-                ratio: sourceBot.ratio,
-                score: sourceBot.score,
-                minCollateral: Math.min(
-                  ...variant.leaderExecutionCollateral.map(
-                    (range) => range.min,
-                  ),
-                ),
-                maxCollateral: Math.max(
-                  ...variant.leaderExecutionCollateral.map(
-                    (range) => range.max,
-                  ),
-                ),
-                minSize: Math.min(
-                  ...variant.leaderExecutionSize.map((range) => range.min),
-                ),
-                maxSize: Math.max(
-                  ...variant.leaderExecutionSize.map((range) => range.max),
-                ),
-                minLeverage: Math.min(
-                  ...variant.leaderExecutionLeverage.map((range) => range.min),
-                ),
-                maxLeverage: Math.max(
-                  ...variant.leaderExecutionLeverage.map((range) => range.max),
-                ),
-                leaderExecutionCollateral: this.serializeRanges(
-                  variant.leaderExecutionCollateral,
-                ),
-                leaderExecutionSize: this.serializeRanges(
-                  variant.leaderExecutionSize,
-                ),
-                leaderExecutionLeverage: this.serializeRanges(
-                  variant.leaderExecutionLeverage,
-                ),
-                followerRiskSize: this.serializeRanges(
-                  variant.followerRiskSize,
-                ),
-                followerRiskCollateral: this.serializeRanges(
-                  variant.followerRiskCollateral,
-                ),
-                evaluationTradeCount: sourceBot.evaluationTradeCount,
-                evaluationSlope: sourceBot.evaluationSlope,
-                evaluationR2: sourceBot.evaluationR2,
-                evaluationCopiedPnlUsd: sourceBot.evaluationCopiedPnlUsd,
-                evaluationProfitFactor: sourceBot.evaluationProfitFactor,
-                evaluationMaxDrawdownUsd: sourceBot.evaluationMaxDrawdownUsd,
-              })),
+        if (process.env.SIMULATION_RUN_LEGACY_INLINE_LAYER_3 === 'true') {
+          for (const sourcePlan of sourceSimulation.simulationPlans) {
+            const plan = await tx.simulationPlan.create({
+              data: {
+                title: `${title} ${dayjs(sourcePlan.startAt).format('YYYY-MM-DD')}`,
+                description,
+                startAt: sourcePlan.startAt,
+                endAt: sourcePlan.endAt,
+                cursor: sourcePlan.cursor,
+                simulationId: simulation.id,
+                sourceSimulationPlanId: sourcePlan.id,
+              },
             });
+            planIds.push(plan.id);
+
+            if (sourcePlan.simulationBots.length > 0) {
+              await tx.simulationBot.createMany({
+                data: sourcePlan.simulationBots.map((sourceBot) => ({
+                  sourceSimulationBotId: sourceBot.id,
+                  leaderAddress: sourceBot.leaderAddress,
+                  leaderPlatform: sourceBot.leaderPlatform,
+                  simulationPlanId: plan.id,
+                  startedAt: sourceBot.startedAt,
+                  stoppedAt: sourceBot.stoppedAt,
+                  mode: sourceBot.mode,
+                  ratio: sourceBot.ratio,
+                  score: sourceBot.score,
+                  minCollateral: Math.min(
+                    ...variant.leaderExecutionCollateral.map(
+                      (range) => range.min,
+                    ),
+                  ),
+                  maxCollateral: Math.max(
+                    ...variant.leaderExecutionCollateral.map(
+                      (range) => range.max,
+                    ),
+                  ),
+                  minSize: Math.min(
+                    ...variant.leaderExecutionSize.map((range) => range.min),
+                  ),
+                  maxSize: Math.max(
+                    ...variant.leaderExecutionSize.map((range) => range.max),
+                  ),
+                  minLeverage: Math.min(
+                    ...variant.leaderExecutionLeverage.map(
+                      (range) => range.min,
+                    ),
+                  ),
+                  maxLeverage: Math.max(
+                    ...variant.leaderExecutionLeverage.map(
+                      (range) => range.max,
+                    ),
+                  ),
+                  leaderExecutionCollateral: this.serializeRanges(
+                    variant.leaderExecutionCollateral,
+                  ),
+                  leaderExecutionSize: this.serializeRanges(
+                    variant.leaderExecutionSize,
+                  ),
+                  leaderExecutionLeverage: this.serializeRanges(
+                    variant.leaderExecutionLeverage,
+                  ),
+                  followerRiskSize: this.serializeRanges(
+                    variant.followerRiskSize,
+                  ),
+                  followerRiskCollateral: this.serializeRanges(
+                    variant.followerRiskCollateral,
+                  ),
+                  evaluationTradeCount: sourceBot.evaluationTradeCount,
+                  evaluationSlope: sourceBot.evaluationSlope,
+                  evaluationR2: sourceBot.evaluationR2,
+                  evaluationCopiedPnlUsd: sourceBot.evaluationCopiedPnlUsd,
+                  evaluationProfitFactor: sourceBot.evaluationProfitFactor,
+                  evaluationMaxDrawdownUsd: sourceBot.evaluationMaxDrawdownUsd,
+                })),
+              });
+            }
           }
         }
 
@@ -984,158 +985,17 @@ export class SimulationsService {
       return { research, simulations };
     });
 
-    try {
-      for (let index = 0; index < created.simulations.length; index++) {
-        const simulation = created.simulations[index];
-        const followerPositionPnls: number[] = [];
-        let totalLeaderPnl = 0;
-        let totalFollowerPnl = 0;
-
-        for (const planId of simulation.planIds) {
-          const details =
-            await this.simulationPlansService.calculateSimulationPlanDetails(
-              planId,
-              { eventSource: 'sourceSnapshot' },
-            );
-          totalLeaderPnl += details.totalLeaderPnl;
-          totalFollowerPnl += details.totalFollowerPnl;
-
-          for (const bot of details.simulationBots) {
-            const botPnls = bot.positions.map(
-              (position) => position.followerPnl,
-            );
-            followerPositionPnls.push(...botPnls);
-            await this.prisma.simulationBotCache.upsert({
-              where: { simulationBotId: bot.id },
-              create: {
-                simulationBotId: bot.id,
-                completed: true,
-                lastFetchedAt: new Date(),
-                openedPositions: bot.openedPositions,
-                totalPositions: bot.totalPositions,
-                totalLeaderPnl: bot.totalPnl,
-                totalFollowerPnl: botPnls.reduce((sum, pnl) => sum + pnl, 0),
-                maxDuration: bot.maxDuration,
-                avgDuration: bot.avgDuration,
-                avgPnl: bot.avgPnl,
-                avgPositivePnl: bot.avgPositivePnl,
-                avgNegativePnl: bot.avgNegativePnl,
-                avgSize: bot.avgSize,
-                avgCollateral: bot.avgCollateral,
-                avgPnlPercentageBySize: bot.avgPnlPercentageBySize,
-                avgPnlPercentageByCollateral: bot.avgPnlPercentageByCollateral,
-                avgLeverage: bot.avgLeverage,
-                positionsJson: JSON.stringify(bot.positions),
-                followerPositionPnlsJson: JSON.stringify(botPnls),
-              },
-              update: {},
-            });
-          }
-
-          await this.prisma.simulationPlanCache.upsert({
-            where: { simulationPlanId: planId },
-            create: {
-              simulationPlanId: planId,
-              completed: true,
-              completedBots: details.simulationBots.length,
-              incompleteBots: 0,
-              openedPositions: details.openedPositions,
-              totalPositions: details.totalPositions,
-              totalLeaderPnl: details.totalLeaderPnl,
-              totalFollowerPnl: details.totalFollowerPnl,
-              lastBuiltAt: new Date(),
-            },
-            update: {},
-          });
-        }
-
-        const tradeCount = followerPositionPnls.length;
-        const positiveTrades = followerPositionPnls.filter(
-          (pnl) => pnl > 0,
-        ).length;
-        await this.prisma.simulation.update({
-          where: { id: simulation.id },
-          data: {
-            status: SimulationStatus.Completed,
-            progressPhase: 'completed',
-            progressMessage: 'Layer 2/3 variant recalculation completed',
-            progressPercent: 100,
-            completedPlans: simulation.planIds.length,
-            totalLeaderPnl,
-            totalFollowerPnl,
-            totalNetPnlUsd: totalFollowerPnl,
-            totalCostUsd: 0,
-            tradeCount,
-            winRate: tradeCount > 0 ? positiveTrades / tradeCount : 0,
-            profitFactor: calculateProfitFactor(followerPositionPnls),
-            maxDrawdownUsd: calculateMaxDrawdown(
-              cumulative(followerPositionPnls),
-            ),
-          },
-        });
-
-        await this.prisma.simulationResearch.update({
-          where: { id: created.research.id },
-          data: {
-            completedPlans: { increment: simulation.planIds.length },
-            progressPercent: ((index + 1) / created.simulations.length) * 100,
-            progressMessage: `Recalculated ${index + 1} / ${created.simulations.length} simulations`,
-          },
-        });
-      }
-
-      const completed = await this.prisma.simulationResearch.update({
-        where: { id: created.research.id },
-        data: {
-          status: SimulationStatus.Completed,
-          progressPhase: 'completed',
-          progressMessage: 'Layer 2/3 variant completed from shared Layer 1',
-          progressPercent: 100,
-          completedRanges: sourceSimulation.simulationPlans.length,
-          finishedAt: new Date(),
-        },
-        include: { simulations: { select: { status: true } } },
-      });
-      return this.mapSimulationResearch(completed);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      await this.prisma.simulation.updateMany({
-        where: {
-          researchId: created.research.id,
-          status: { not: SimulationStatus.Completed },
-        },
-        data: {
-          status: SimulationStatus.Failed,
-          progressPhase: 'layer-2-3-recalculation-failed',
-          progressMessage: 'Layer 2/3 recalculation failed',
-          error: errorMessage,
-        },
-      });
-      const completedSimulations = await this.prisma.simulation.count({
-        where: {
-          researchId: created.research.id,
-          status: SimulationStatus.Completed,
-        },
-      });
-      const failed = await this.prisma.simulationResearch.update({
-        where: { id: created.research.id },
-        data: {
-          status: SimulationStatus.Failed,
-          progressPhase: 'layer-2-3-recalculation-failed',
-          progressMessage:
-            completedSimulations > 0
-              ? `${completedSimulations} variant(s) completed before recalculation failed; remaining variants were marked failed`
-              : 'Layer 2/3 variant recalculation failed; all variants were marked failed',
-          progressPercent:
-            (completedSimulations / created.simulations.length) * 100,
-          lastError: errorMessage,
-          finishedAt: new Date(),
-        },
-        include: { simulations: { select: { status: true } } },
-      });
-      return this.mapSimulationResearch(failed);
+    const queued = await this.prisma.simulationResearch.findUniqueOrThrow({
+      where: { id: created.research.id },
+      include: { simulations: { select: { status: true } } },
+    });
+    await this.emitSimulationResearchUpdated(queued.id);
+    if (process.env.SIMULATION_RUN_LEGACY_INLINE_LAYER_3 === 'true') {
+      throw new Error(
+        'SIMULATION_RUN_LEGACY_INLINE_LAYER_3 is no longer supported; use the analytics cron workflow',
+      );
     }
+    return this.mapSimulationResearch(queued);
   }
 
   async updateSimulationResearch(

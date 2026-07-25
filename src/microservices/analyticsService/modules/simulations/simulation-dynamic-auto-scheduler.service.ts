@@ -24,8 +24,6 @@ type DispatchCandidate = {
   simulation: any;
   ranges: WindowRange[];
   undispatchedRanges: WindowRange[];
-  outstanding: number;
-  fairnessLoad: number;
 };
 
 export function allocateFairPlanSlots(
@@ -67,7 +65,9 @@ export function calculateEvaluatorQueueRefill(
   if (awaitingFinalizationPlans >= maxAwaitingFinalizationPlans) return 0;
   const lowWatermark =
     workerCapacity * SIMULATION_EVALUATOR.queueLowWatermarkCapacityMultiplier;
-  if (availableTasks >= lowWatermark) return 0;
+  // At exactly 2× capacity, refill to 3×. The pause applies only once the
+  // current queue is *larger* than the low watermark.
+  if (availableTasks > lowWatermark) return 0;
 
   const highWatermark =
     workerCapacity * SIMULATION_EVALUATOR.queueHighWatermarkCapacityMultiplier;
@@ -96,11 +96,18 @@ export class SimulationDynamicAutoSchedulerService {
   ) {}
 
   async processAvailableSimulations(now = new Date()) {
-    await this.processQueueMaintenance(now);
-    await this.processFinalizations(now);
+    await this.registerLeaderEvaluationTasks(now);
+    await this.handleResolvedEvaluationTasks(now);
+    await this.finalizeMaterializedSimulations(now);
   }
 
-  async processQueueMaintenance(now = new Date()) {
+  /**
+   * Layer 1: keep the evaluator fleet fed from the oldest unfinished
+   * simulation.  This is intentionally not fair: completing the oldest
+   * research before moving on prevents short and long simulations from making
+   * indistinguishable percentage progress.
+   */
+  async registerLeaderEvaluationTasks(now = new Date()) {
     await this.reconcileInterruptedPlans(now);
     await this.fillEvaluatorQueue(now);
     // A shutdown can happen after finalizeSimulationRange has persisted the
@@ -111,9 +118,291 @@ export class SimulationDynamicAutoSchedulerService {
     await this.reconcileResearchProgress();
   }
 
-  async processFinalizations(now = new Date()) {
+  /** Layer 2: turn completed evaluator results into plans and bots only. */
+  async handleResolvedEvaluationTasks(now = new Date()) {
     await this.reconcileInterruptedPlans(now);
     await this.dispatchCompletedPlans(now);
+    await this.materializeSourceDerivedSimulation(now);
+  }
+
+  private async materializeSourceDerivedSimulation(now: Date) {
+    const target = await this.prisma.simulation.findFirst({
+      where: {
+        sourceSimulationId: { not: null },
+        status: SimulationStatus.Running,
+        simulationPlans: { none: {} },
+        research: {
+          is: {
+            automationEnabled: true,
+            status: {
+              notIn: [
+                SimulationStatus.Cancelled,
+                SimulationStatus.Completed,
+                SimulationStatus.Failed,
+              ],
+            },
+          },
+        },
+      },
+      include: {
+        sourceSimulation: {
+          include: {
+            simulationPlans: {
+              orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+              include: { simulationBots: { orderBy: { id: 'asc' } } },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (!target?.sourceSimulation) return;
+    const leaseToken = randomUUID();
+    const claimed = await this.prisma.simulation.updateMany({
+      where: {
+        id: target.id,
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      data: {
+        automationLeaseToken: leaseToken,
+        automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
+        progressPhase: 'materializing-layer-2-variants',
+        progressMessage: 'Copying plans and bots from the Layer 1 source',
+      },
+    });
+    if (!claimed.count) return;
+    const ranges = (value: unknown) =>
+      Array.isArray(value)
+        ? (value as Array<{ min: number; max: number }>)
+        : [];
+    const collateral = ranges(target.leaderExecutionCollateral);
+    const size = ranges(target.leaderExecutionSize);
+    const leverage = ranges(target.leaderExecutionLeverage);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        for (const sourcePlan of target.sourceSimulation!.simulationPlans) {
+          const plan = await tx.simulationPlan.create({
+            data: {
+              title: `${target.title} ${sourcePlan.startAt.toISOString().slice(0, 10)}`,
+              description: target.description,
+              startAt: sourcePlan.startAt,
+              endAt: sourcePlan.endAt,
+              cursor: sourcePlan.cursor,
+              simulationId: target.id,
+              sourceSimulationPlanId: sourcePlan.id,
+            },
+          });
+          await tx.simulationBot.createMany({
+            data: sourcePlan.simulationBots.map((bot) => ({
+              sourceSimulationBotId: bot.id,
+              leaderAddress: bot.leaderAddress,
+              leaderPlatform: bot.leaderPlatform,
+              simulationPlanId: plan.id,
+              startedAt: bot.startedAt,
+              stoppedAt: bot.stoppedAt,
+              mode: bot.mode,
+              ratio: bot.ratio,
+              score: bot.score,
+              minCollateral: Math.min(...collateral.map((item) => item.min)),
+              maxCollateral: Math.max(...collateral.map((item) => item.max)),
+              minSize: Math.min(...size.map((item) => item.min)),
+              maxSize: Math.max(...size.map((item) => item.max)),
+              minLeverage: Math.min(...leverage.map((item) => item.min)),
+              maxLeverage: Math.max(...leverage.map((item) => item.max)),
+              leaderExecutionCollateral: target.leaderExecutionCollateral,
+              leaderExecutionSize: target.leaderExecutionSize,
+              leaderExecutionLeverage: target.leaderExecutionLeverage,
+              followerRiskSize: target.followerRiskSize,
+              followerRiskCollateral: target.followerRiskCollateral,
+              evaluationTradeCount: bot.evaluationTradeCount,
+              evaluationSlope: bot.evaluationSlope,
+              evaluationR2: bot.evaluationR2,
+              evaluationCopiedPnlUsd: bot.evaluationCopiedPnlUsd,
+              evaluationProfitFactor: bot.evaluationProfitFactor,
+              evaluationMaxDrawdownUsd: bot.evaluationMaxDrawdownUsd,
+            })),
+          });
+        }
+      });
+      await this.prisma.simulation.update({
+        where: { id: target.id, automationLeaseToken: leaseToken },
+        data: {
+          automationLeaseToken: null,
+          automationLeaseExpiresAt: null,
+          progressPhase: 'layer-2-variants-materialized',
+          progressMessage: 'Waiting for Layer 3 source-snapshot calculation',
+        },
+      });
+    } catch (error) {
+      await this.prisma.simulation.update({
+        where: { id: target.id, automationLeaseToken: leaseToken },
+        data: {
+          automationLeaseToken: null,
+          automationLeaseExpiresAt: null,
+          status: SimulationStatus.Failed,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  }
+
+  /** Layer 3: process a fully materialized simulation in chronological order. */
+  async finalizeMaterializedSimulations(now = new Date()) {
+    await this.finalizeSourceDerivedSimulation(now);
+    const candidates = await this.prisma.simulation.findMany({
+      where: {
+        sourceSimulationId: null,
+        research: {
+          is: {
+            automationEnabled: true,
+            status: {
+              notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+            },
+          },
+        },
+        status: {
+          notIn: [
+            SimulationStatus.Cancelled,
+            SimulationStatus.Completed,
+            SimulationStatus.Failed,
+          ],
+        },
+        executionPlans: {
+          some: { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+        },
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      include: {
+        executionPlans: { select: { id: true, status: true } },
+        research: true,
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 50,
+    });
+    const candidate = candidates.find(
+      (simulation) =>
+        simulation.totalSimulationPlans > 0 &&
+        simulation.executionPlans.length === simulation.totalSimulationPlans &&
+        simulation.executionPlans.every(
+          (plan) =>
+            plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs,
+        ),
+    );
+    if (!candidate || this.activeFinalizerSimulations.has(candidate.id)) return;
+
+    const leaseToken = randomUUID();
+    const claimed = await this.prisma.simulation.updateMany({
+      where: {
+        id: candidate.id,
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      data: {
+        automationLeaseToken: leaseToken,
+        automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
+        progressPhase: 'building-layer-2-3-caches',
+        progressMessage: 'Building plan caches in chronological order',
+      },
+    });
+    if (!claimed.count) return;
+    this.activeFinalizerSimulations.add(candidate.id);
+    try {
+      const finalization = await this.runner.finalizeMaterializedSimulation(
+        candidate.id,
+      );
+      if (finalization.awaitingEventLogs) return;
+      await this.prisma.simulationExecutionPlan.updateMany({
+        where: {
+          simulationId: candidate.id,
+          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Completed,
+          completedAt: new Date(),
+        },
+      });
+      if (candidate.researchId !== null) {
+        await this.syncResearch(candidate.researchId);
+      }
+      await this.logSimulationTiming(candidate.id);
+    } catch (error) {
+      await this.prisma.simulation.update({
+        where: { id: candidate.id },
+        data: {
+          status: SimulationStatus.Failed,
+          progressPhase: 'layer-3-cache-failed',
+          progressMessage: 'Layer 3 cache construction failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    } finally {
+      this.activeFinalizerSimulations.delete(candidate.id);
+      await this.releaseSimulationFinalizerLease(candidate.id, leaseToken);
+    }
+  }
+
+  private async finalizeSourceDerivedSimulation(now: Date) {
+    const candidate = await this.prisma.simulation.findFirst({
+      where: {
+        sourceSimulationId: { not: null },
+        research: {
+          is: {
+            automationEnabled: true,
+            status: {
+              notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+            },
+          },
+        },
+        status: SimulationStatus.Running,
+        simulationPlans: { some: {} },
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      include: {
+        research: true,
+        _count: { select: { simulationPlans: true } },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (
+      !candidate ||
+      candidate._count.simulationPlans !== candidate.totalSimulationPlans
+    )
+      return;
+    const leaseToken = randomUUID();
+    const claimed = await this.prisma.simulation.updateMany({
+      where: {
+        id: candidate.id,
+        OR: [
+          { automationLeaseToken: null },
+          { automationLeaseExpiresAt: { lte: now } },
+        ],
+      },
+      data: {
+        automationLeaseToken: leaseToken,
+        automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
+        progressPhase: 'recalculating-layer-2-3',
+        progressMessage: 'Recalculating from Layer 1 source snapshots',
+      },
+    });
+    if (!claimed.count) return;
+    try {
+      await this.runner.finalizeSourceDerivedSimulation(candidate.id);
+      if (candidate.researchId !== null)
+        await this.syncResearch(candidate.researchId);
+    } finally {
+      await this.releaseSimulationFinalizerLease(candidate.id, leaseToken);
+    }
   }
 
   private async reconcileResearchProgress() {
@@ -133,6 +422,7 @@ export class SimulationDynamicAutoSchedulerService {
   private async fillEvaluatorQueue(now: Date) {
     const simulations = await this.prisma.simulation.findMany({
       where: {
+        sourceSimulationId: null,
         research: {
           is: {
             automationEnabled: true,
@@ -150,7 +440,10 @@ export class SimulationDynamicAutoSchedulerService {
         },
       },
       include: { research: true, executionPlans: true },
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      // Oldest research wins. `updatedAt` is deliberately not used here: it
+      // continually changes while work is dispatched and would otherwise make
+      // newer, smaller simulations compete with an older one.
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     if (!simulations.length) return;
 
@@ -184,20 +477,12 @@ export class SimulationDynamicAutoSchedulerService {
             range.endedAt <= horizon &&
             !existingKeys.has(this.rangeKey(range.startedAt, range.endedAt)),
         );
-        const outstanding = simulation.executionPlans.filter(
-          (plan) =>
-            plan.status === SimulationExecutionPlanStatus.Pending ||
-            plan.status === SimulationExecutionPlanStatus.Dispatched ||
-            plan.status === SimulationExecutionPlanStatus.Finalizing,
-        ).length;
         return undispatchedRanges.length
           ? [
               {
                 simulation,
                 ranges,
                 undispatchedRanges,
-                outstanding,
-                fairnessLoad: simulation.completedPlans + outstanding,
               },
             ]
           : [];
@@ -205,11 +490,18 @@ export class SimulationDynamicAutoSchedulerService {
     );
     if (!candidates.length) return;
 
-    const first = candidates[0];
+    // Do not let a later simulation refill the fleet while the oldest
+    // unfinished simulation is still draining its previously dispatched work.
+    if (candidates[0].simulation.id !== simulations[0].id) return;
+
+    // Do not distribute this refill among simulations.  A single oldest
+    // simulation owns the evaluator queue until it has no dispatchable range
+    // left, which gives research jobs a predictable completion order.
+    const oldest = candidates[0];
     const workerCapacity = await this.evaluatorTasks.countReadyWorkers(
-      first.simulation.platform,
-      first.simulation.startAt,
-      first.simulation.endAt,
+      oldest.simulation.platform,
+      oldest.simulation.startAt,
+      oldest.simulation.endAt,
       true,
     );
     const workflow = await this.workflowConfig.get();
@@ -219,6 +511,7 @@ export class SimulationDynamicAutoSchedulerService {
           in: [
             SimulationExecutionPlanStatus.Pending,
             SimulationExecutionPlanStatus.Dispatched,
+            SimulationExecutionPlanStatus.AwaitingEventLogs,
             SimulationExecutionPlanStatus.Finalizing,
           ],
         },
@@ -260,39 +553,18 @@ export class SimulationDynamicAutoSchedulerService {
       workflow.maxAwaitingFinalizationPlans,
     );
 
-    const allocation = allocateFairPlanSlots(
-      candidates.map((candidate, order) => ({
-        simulationId: candidate.simulation.id,
-        outstanding: candidate.fairnessLoad,
-        availablePlans: candidate.undispatchedRanges.length,
-        order,
-      })),
-      deficit,
-    );
-    for (const simulationId of allocation) {
-      const candidate = candidates.find(
-        (item) => item.simulation.id === simulationId,
-      );
-      if (!candidate) continue;
-      const range = candidate.undispatchedRanges.shift()!;
+    while (deficit > 0 && oldest.undispatchedRanges.length > 0) {
+      const range = oldest.undispatchedRanges.shift()!;
       const dispatched = await this.dispatchPlan(
-        candidate.simulation,
+        oldest.simulation,
         range,
-        candidate.ranges,
+        oldest.ranges,
       );
       if (dispatched) {
-        candidate.outstanding += 1;
-        candidate.fairnessLoad += 1;
         deficit -= 1;
       }
     }
-    await Promise.all(
-      [
-        ...new Set(
-          candidates.map((candidate) => candidate.simulation.researchId),
-        ),
-      ].map((researchId) => this.syncResearch(researchId)),
-    );
+    await this.syncResearch(oldest.simulation.researchId);
   }
 
   private async dispatchPlan(
@@ -444,26 +716,13 @@ export class SimulationDynamicAutoSchedulerService {
         orderBy: [{ updatedAt: 'asc' as const }, { id: 'asc' as const }],
         take: scanLimit,
       };
-      const [newlyCompleted, futureEventRetries] = await Promise.all([
-        this.prisma.simulationExecutionPlan.findMany({
-          ...queryOptions,
-          where: {
-            ...commonWhere,
-            status: SimulationExecutionPlanStatus.Dispatched,
-          },
-        }),
-        this.prisma.simulationExecutionPlan.findMany({
-          ...queryOptions,
-          where: {
-            ...commonWhere,
-            status: SimulationExecutionPlanStatus.AwaitingEventLogs,
-            nextFinalizationAt: { lte: now },
-          },
-        }),
-      ]);
-      // New evaluation results always get the first opportunity to use a
-      // finalizer slot. Passive future-event retries fill only spare slots.
-      const plans = [...newlyCompleted, ...futureEventRetries];
+      const plans = await this.prisma.simulationExecutionPlan.findMany({
+        ...queryOptions,
+        where: {
+          ...commonWhere,
+          status: SimulationExecutionPlanStatus.Dispatched,
+        },
+      });
       for (const plan of plans) {
         if (this.activeFinalizerPlans.size >= workflow.finalizerConcurrency)
           break;
@@ -474,7 +733,7 @@ export class SimulationDynamicAutoSchedulerService {
           continue;
         this.activeFinalizerPlans.add(plan.id);
         this.activeFinalizerSimulations.add(plan.simulationId);
-        void this.finalizePlan(plan, new Date(), workflow)
+        void this.materializePlan(plan, new Date(), workflow)
           .catch(() => undefined)
           .finally(() => {
             this.activeFinalizerPlans.delete(plan.id);
@@ -487,7 +746,7 @@ export class SimulationDynamicAutoSchedulerService {
     }
   }
 
-  private async finalizePlan(
+  private async materializePlan(
     plan: any,
     now: Date,
     workflow: {
@@ -518,10 +777,7 @@ export class SimulationDynamicAutoSchedulerService {
       where: {
         id: plan.id,
         status: {
-          in: [
-            SimulationExecutionPlanStatus.Dispatched,
-            SimulationExecutionPlanStatus.AwaitingEventLogs,
-          ],
+          in: [SimulationExecutionPlanStatus.Dispatched],
         },
       },
       data: {
@@ -580,29 +836,13 @@ export class SimulationDynamicAutoSchedulerService {
         performance.now() - readEvaluationStartedAt,
       );
       const runnerStartedAt = performance.now();
-      const finalization = await this.runner.finalizeSimulationRange(
+      const finalization = await this.runner.materializeSimulationRange(
         plan.simulationId,
         range,
         context,
         evaluated,
-        workflow.finalizerBotCacheConcurrency,
       );
       const runnerMs = Math.round(performance.now() - runnerStartedAt);
-      if (finalization.awaitingEventLogs) {
-        await this.prisma.simulationExecutionPlan.updateMany({
-          where: { id: plan.id, leaseToken },
-          data: {
-            status: SimulationExecutionPlanStatus.AwaitingEventLogs,
-            leaseToken: null,
-            leaseExpiresAt: null,
-            nextFinalizationAt: new Date(
-              Date.now() + workflow.finalizerRetryDelayMs,
-            ),
-            lastError: null,
-          },
-        });
-        return;
-      }
       const result = this.withFinalizationTiming(plan.evaluatorTask.result, {
         queueWaitMs: Math.max(
           0,
@@ -625,8 +865,7 @@ export class SimulationDynamicAutoSchedulerService {
       await this.prisma.simulationExecutionPlan.updateMany({
         where: { id: plan.id, leaseToken },
         data: {
-          status: SimulationExecutionPlanStatus.Completed,
-          completedAt: new Date(),
+          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
           nextFinalizationAt: null,
           leaseToken: null,
           leaseExpiresAt: null,
@@ -634,9 +873,6 @@ export class SimulationDynamicAutoSchedulerService {
         },
       });
       await this.syncResearch(plan.simulation.researchId);
-      if (finalization.simulation?.status === SimulationStatus.Completed) {
-        await this.logSimulationTiming(plan.simulationId);
-      }
       await this.logger.log({
         severity: 'Debug',
         summary: 'analytics.simulation.performance.finalizer',
