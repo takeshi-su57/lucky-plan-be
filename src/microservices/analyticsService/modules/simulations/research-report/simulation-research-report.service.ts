@@ -12,8 +12,6 @@ import {
 import { ResearchReportArchive } from './simulation-research-report.archive';
 import {
   csvCell,
-  REPORT_CHUNK_MAX_BYTES,
-  REPORT_CHUNK_MAX_ROWS,
   ResearchReportChunkWriter,
 } from './simulation-research-report.chunk-writer';
 import {
@@ -28,6 +26,7 @@ import {
 
 @Injectable()
 export class SimulationResearchReportService {
+  private static readonly PLAN_BATCH_SIZE = 50;
   private readonly builds = new Map<string, Promise<string>>();
 
   constructor(private readonly prisma: PrismaService) {}
@@ -130,7 +129,7 @@ export class SimulationResearchReportService {
 
       await zip.addText(
         'AI_README.md',
-        '# Lucky Plans AI Research Report\n\nStart with `manifest.json`, `research.json`, and `summaries/simulations/`. Compare simulations before opening plan summaries or canonical plan-level position chunks. Raw position rows are executed follower-position facts only and must never be summed across sibling simulations.\n',
+        '# Lucky Plans AI Research Report\n\nStart with `manifest.json`, `research.json`, and `summaries/simulations/`. Each simulation stores at most 50 complete plans in `plans/batch-plans-*.json`. Raw position rows are executed follower-position facts only and must never be summed across sibling simulations.\n',
       );
       await zip.addText(
         'schemas/position.schema.json',
@@ -198,11 +197,20 @@ export class SimulationResearchReportService {
         const simulationPath = `simulations/simulation-${String(simulationIndex + 1).padStart(3, '0')}`;
         const simulationAggregate = createPositionAggregate();
         let botCount = 0;
-        const simulationEquity = new ResearchReportChunkWriter(
-          zip,
-          `${simulationPath}/realized-equity-by-plan`,
-          'jsonl',
-        );
+        let planBatch: any[] = [];
+        let planBatchIndex = 0;
+        const planBatchFiles: string[] = [];
+        const flushPlanBatch = async () => {
+          if (!planBatch.length) return;
+          planBatchIndex += 1;
+          const filename = `${simulationPath}/plans/batch-plans-${String(planBatchIndex).padStart(5, '0')}.json`;
+          await zip.addText(
+            filename,
+            JSON.stringify({ schemaVersion: '3.0.0', plans: planBatch }),
+          );
+          planBatchFiles.push(filename);
+          planBatch = [];
+        };
         const planHeaders = await this.prisma.simulationPlan.findMany({
           where: { simulationId: simulation.id },
           orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
@@ -214,18 +222,13 @@ export class SimulationResearchReportService {
             where: { id: planHeader.id },
             include: { cache: true },
           });
-          const planPath = `${simulationPath}/plans/plan-${String(planIndex + 1).padStart(3, '0')}`;
           const aggregate = createPositionAggregate();
-          const positions = new ResearchReportChunkWriter(
-            zip,
-            `${planPath}/positions`,
-            'jsonl',
-          );
+          const positionRows: any[] = [];
+          const botRecords: any[] = [];
           const botHeaders = await this.prisma.simulationBot.findMany({
             where: { simulationPlanId: plan.id },
             orderBy: { id: 'asc' },
           });
-          const botFiles: string[] = [];
 
           for (const botHeader of botHeaders) {
             // Loading the cache here, not in findMany, keeps only one bot's
@@ -261,44 +264,33 @@ export class SimulationResearchReportService {
                 context,
                 positionIndex - 1,
               );
-              await positions.writeLine(JSON.stringify(position));
+              positionRows.push(position);
               addPositionToAggregate(aggregate, position);
               addPositionToAggregate(simulationAggregate, position);
             }
-            const botFile = `${planPath}/bots/bot-${String(bot.id).padStart(6, '0')}.json`;
-            await zip.addText(
-              botFile,
-              JSON.stringify(
-                {
-                  id: bot.id,
-                  leaderAddress: bot.leaderAddress,
-                  leaderPlatform: bot.leaderPlatform,
-                  mode: bot.mode,
-                  startedAt: bot.startedAt,
-                  stoppedAt: bot.stoppedAt,
-                  selection: {
-                    score: bot.score,
-                    ratio: bot.ratio,
-                    evaluationMetrics: {
-                      tradeCount: bot.evaluationTradeCount,
-                      slope: bot.evaluationSlope,
-                      r2: bot.evaluationR2,
-                    },
-                  },
-                  aggregation: {
-                    leaderPnlUsd: bot.cache?.totalLeaderPnl ?? bot.totalPnl,
-                    followerPnlUsd: bot.cache?.totalFollowerPnl ?? null,
-                    positionCount:
-                      bot.cache?.totalPositions ?? bot.totalPositions,
-                  },
-                  positionDataset: '../positions/manifest.json',
-                  positionFilter: { botId: bot.id },
+            botRecords.push({
+              id: bot.id,
+              leaderAddress: bot.leaderAddress,
+              leaderPlatform: bot.leaderPlatform,
+              mode: bot.mode,
+              startedAt: bot.startedAt,
+              stoppedAt: bot.stoppedAt,
+              selection: {
+                score: bot.score,
+                ratio: bot.ratio,
+                evaluationMetrics: {
+                  tradeCount: bot.evaluationTradeCount,
+                  slope: bot.evaluationSlope,
+                  r2: bot.evaluationR2,
                 },
-                null,
-                2,
-              ),
-            );
-            botFiles.push(botFile);
+              },
+              aggregation: {
+                leaderPnlUsd: bot.cache?.totalLeaderPnl ?? bot.totalPnl,
+                followerPnlUsd: bot.cache?.totalFollowerPnl ?? null,
+                positionCount: bot.cache?.totalPositions ?? bot.totalPositions,
+              },
+              positionCount: bot.cache?.totalPositions ?? bot.totalPositions,
+            });
             await botSummary.writeLine(
               [
                 simulation.id,
@@ -319,64 +311,35 @@ export class SimulationResearchReportService {
             );
           }
 
-          const positionFiles = await positions.close();
-          await zip.addText(
-            `${planPath}/positions/manifest.json`,
-            JSON.stringify(
-              {
-                canonical: true,
-                rowFormat: 'jsonl',
-                executedFollowerPositionsOnly: true,
-                maxRowsPerChunk: REPORT_CHUNK_MAX_ROWS,
-                maxUncompressedBytesPerChunk: REPORT_CHUNK_MAX_BYTES,
-                files: positionFiles,
-                botFilterField: 'botId',
-              },
-              null,
-              2,
-            ),
-          );
           const equity = parseCachedEquity(plan.cache?.realizedEquityCurveJson);
-          const planEquity = new ResearchReportChunkWriter(
-            zip,
-            `${planPath}/realized-equity`,
-            'jsonl',
-          );
-          for (const point of equity) {
-            const row = { planId: plan.id, ...point };
-            await planEquity.writeLine(JSON.stringify(row));
-            await simulationEquity.writeLine(JSON.stringify(row));
-          }
-          const equityFiles = await planEquity.close();
           const summary = summarizePositionAggregate(aggregate);
-          await zip.addText(
-            `${planPath}/plan.json`,
-            JSON.stringify(
-              {
-                id: plan.id,
-                index: planIndex + 1,
-                simulationId: simulation.id,
-                window: {
-                  startAt: plan.startAt,
-                  endAt: plan.endAt,
-                  cursor: plan.cursor,
-                },
-                cache: {
-                  completed: plan.cache?.completed ?? false,
-                  completedBots: plan.cache?.completedBots ?? 0,
-                  incompleteBots:
-                    plan.cache?.incompleteBots ?? botHeaders.length,
-                  lastError: plan.cache?.lastError ?? null,
-                },
-                summary,
-                positionFiles,
-                equityFiles,
-                botFiles,
-              },
-              null,
-              2,
-            ),
-          );
+          planBatch.push({
+            id: plan.id,
+            index: planIndex + 1,
+            simulationId: simulation.id,
+            window: {
+              startAt: plan.startAt,
+              endAt: plan.endAt,
+              cursor: plan.cursor,
+            },
+            cache: {
+              completed: plan.cache?.completed ?? false,
+              completedBots: plan.cache?.completedBots ?? 0,
+              incompleteBots: plan.cache?.incompleteBots ?? botHeaders.length,
+              lastError: plan.cache?.lastError ?? null,
+            },
+            summary,
+            bots: botRecords,
+            positions: positionRows,
+            realizedEquity: equity.map((point) => ({
+              planId: plan.id,
+              ...point,
+            })),
+          });
+          if (
+            planBatch.length >= SimulationResearchReportService.PLAN_BATCH_SIZE
+          )
+            await flushPlanBatch();
           await planSummary.writeLine(
             [
               simulation.id,
@@ -397,7 +360,7 @@ export class SimulationResearchReportService {
           );
         }
 
-        const equityFiles = await simulationEquity.close();
+        await flushPlanBatch();
         const summary = summarizePositionAggregate(simulationAggregate);
         await zip.addText(
           `${simulationPath}/simulation.json`,
@@ -425,7 +388,7 @@ export class SimulationResearchReportService {
               summary,
               planCount: planHeaders.length,
               botCount,
-              realizedEquityFiles: equityFiles,
+              planBatchFiles,
             },
             null,
             2,
@@ -454,7 +417,7 @@ export class SimulationResearchReportService {
           metadataFile: `${simulationPath}/simulation.json`,
           planCount: planHeaders.length,
           executedPositionCount: summary.positionCount,
-          realizedEquityFiles: equityFiles,
+          planBatchFiles,
         });
       }
 
@@ -468,7 +431,7 @@ export class SimulationResearchReportService {
         'manifest.json',
         JSON.stringify(
           {
-            schemaVersion: '2.0.0',
+            schemaVersion: '3.0.0',
             reportType: 'luckyplans-ai-research',
             generatedAt: new Date().toISOString(),
             research: { id: research.id, metadataFile: 'research.json' },
@@ -482,7 +445,7 @@ export class SimulationResearchReportService {
               simulationSummaryFiles: summaryFiles.simulations,
               planSummaryFiles: summaryFiles.plans,
               botSummaryFiles: summaryFiles.bots,
-              rawPositionFormat: 'JSONL',
+              rawPositionFormat: 'JSON arrays embedded in plan batches',
               rawPositionSemantics: 'executed follower positions only',
               positionHistoryIncluded: false,
               canonicalPositionLevel: 'plan',
