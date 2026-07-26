@@ -38,6 +38,11 @@ describe('failed evaluator reconciliation', () => {
       .fn<(...args: any[]) => Promise<{ count: number }>>()
       .mockResolvedValue({ count: 1 });
     const prisma = {
+      simulation: {
+        updateMany: jest
+          .fn<(...args: any[]) => Promise<{ count: number }>>()
+          .mockResolvedValue({ count: 0 }),
+      },
       simulationExecutionPlan: {
         updateMany,
         findMany: jest
@@ -69,6 +74,47 @@ describe('failed evaluator reconciliation', () => {
         },
       }),
     );
+  });
+
+  it('releases an orphaned materializer lease after the grace period', async () => {
+    const releaseLease = jest
+      .fn<(...args: any[]) => Promise<{ count: number }>>()
+      .mockResolvedValue({ count: 2 });
+    const logger = { log: jest.fn(async () => undefined) };
+    const prisma = {
+      simulation: { updateMany: releaseLease },
+      simulationExecutionPlan: {
+        updateMany: jest
+          .fn<(...args: any[]) => Promise<{ count: number }>>()
+          .mockResolvedValue({ count: 0 }),
+        findMany: jest
+          .fn<() => Promise<Array<{ id: string }>>>()
+          .mockResolvedValue([]),
+      },
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      logger as never,
+      {} as never,
+    );
+    const now = new Date('2026-07-26T00:00:00.000Z');
+
+    await (
+      scheduler as unknown as {
+        reconcileInterruptedPlans(now: Date): Promise<void>;
+      }
+    ).reconcileInterruptedPlans(now);
+
+    const orphanRecoveryCall = releaseLease.mock.calls[0][0];
+    expect(orphanRecoveryCall.where.sourceSimulationId).toBeNull();
+    expect(orphanRecoveryCall.where.executionPlans.some.status).toBe(
+      SimulationExecutionPlanStatus.Dispatched,
+    );
+    expect(orphanRecoveryCall.data.automationLeaseToken).toBeNull();
+    expect(logger.log).toHaveBeenCalled();
   });
 });
 

@@ -86,6 +86,10 @@ export class SimulationDynamicAutoSchedulerService {
   private finalizerDispatchRunning = false;
   private readonly activeFinalizerPlans = new Set<string>();
   private readonly activeFinalizerSimulations = new Set<number>();
+  // A materializer normally persists its plan lease in the same database
+  // transaction as the simulation lease.  Retain a short grace period for a
+  // live claim, then recover any lease that has no matching finalizing plan.
+  private readonly orphanedMaterializerLeaseGraceMs = 60_000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -767,38 +771,46 @@ export class SimulationDynamicAutoSchedulerService {
     const leaseToken = randomUUID();
     const leaseExpiresAt = new Date(now.getTime() + workflow.finalizerLeaseMs);
     const claimStartedAt = performance.now();
-    const simulationClaim = await this.prisma.simulation.updateMany({
-      where: {
-        id: plan.simulationId,
-        OR: [
-          { automationLeaseToken: null },
-          { automationLeaseExpiresAt: { lte: now } },
-        ],
-      },
-      data: {
-        automationLeaseToken: leaseToken,
-        automationLeaseExpiresAt: leaseExpiresAt,
-      },
-    });
-    if (!simulationClaim.count) return;
-    const claim = await this.prisma.simulationExecutionPlan.updateMany({
-      where: {
-        id: plan.id,
-        status: {
-          in: [SimulationExecutionPlanStatus.Dispatched],
+    // Commit both lease records together.  Previously a process could stop
+    // between these writes, leaving a simulation lease with no plan owner and
+    // blocking the finalizer for the entire lease duration.
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const simulationClaim = await tx.simulation.updateMany({
+        where: {
+          id: plan.simulationId,
+          OR: [
+            { automationLeaseToken: null },
+            { automationLeaseExpiresAt: { lte: now } },
+          ],
         },
-      },
-      data: {
-        status: SimulationExecutionPlanStatus.Finalizing,
-        leaseToken,
-        leaseExpiresAt,
-        nextFinalizationAt: null,
-      },
+        data: {
+          automationLeaseToken: leaseToken,
+          automationLeaseExpiresAt: leaseExpiresAt,
+        },
+      });
+      if (!simulationClaim.count) return false;
+      const planClaim = await tx.simulationExecutionPlan.updateMany({
+        where: {
+          id: plan.id,
+          status: {
+            in: [SimulationExecutionPlanStatus.Dispatched],
+          },
+        },
+        data: {
+          status: SimulationExecutionPlanStatus.Finalizing,
+          leaseToken,
+          leaseExpiresAt,
+          nextFinalizationAt: null,
+        },
+      });
+      if (planClaim.count) return true;
+      await tx.simulation.updateMany({
+        where: { id: plan.simulationId, automationLeaseToken: leaseToken },
+        data: { automationLeaseToken: null, automationLeaseExpiresAt: null },
+      });
+      return false;
     });
-    if (!claim.count) {
-      await this.releaseSimulationFinalizerLease(plan.simulationId, leaseToken);
-      return;
-    }
+    if (!claimed) return;
     const claimMs = Math.round(performance.now() - claimStartedAt);
     const renewal = setInterval(
       () =>
@@ -990,6 +1002,40 @@ export class SimulationDynamicAutoSchedulerService {
         }),
       ),
     );
+
+    const orphanedMaterializerLeases = await this.prisma.simulation.updateMany({
+      where: {
+        sourceSimulationId: null,
+        automationLeaseToken: { not: null },
+        automationLeaseExpiresAt: { gt: now },
+        updatedAt: {
+          lte: new Date(now.getTime() - this.orphanedMaterializerLeaseGraceMs),
+        },
+        executionPlans: {
+          some: {
+            status: SimulationExecutionPlanStatus.Dispatched,
+            evaluatorTask: {
+              is: { status: SimulationEvaluatorTaskStatus.Completed },
+            },
+          },
+          none: { status: SimulationExecutionPlanStatus.Finalizing },
+        },
+      },
+      data: {
+        automationLeaseToken: null,
+        automationLeaseExpiresAt: null,
+      },
+    });
+    if (orphanedMaterializerLeases.count) {
+      await this.logger.log({
+        severity: 'Warning',
+        summary: 'analytics.simulation.recoveredOrphanedMaterializerLeases',
+        details: JSON.stringify({
+          count: orphanedMaterializerLeases.count,
+          graceMs: this.orphanedMaterializerLeaseGraceMs,
+        }),
+      });
+    }
   }
 
   private async syncResearch(researchId: number) {
