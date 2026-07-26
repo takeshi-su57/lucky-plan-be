@@ -16,7 +16,7 @@ export class SimulationDynamicAutomationCronService {
     private readonly logger: LogsService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async registerLeaderEvaluationTasks() {
     if (this.isRegisteringEvaluations) return;
     this.isRegisteringEvaluations = true;
@@ -34,7 +34,7 @@ export class SimulationDynamicAutomationCronService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async handleResolvedEvaluationTasks() {
     if (this.isHandlingResolvedEvaluations) return;
     this.isHandlingResolvedEvaluations = true;
@@ -52,7 +52,7 @@ export class SimulationDynamicAutomationCronService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async finalizeMaterializedSimulation() {
     if (this.isFinalizingMaterializedSimulation) return;
     this.isFinalizingMaterializedSimulation = true;
