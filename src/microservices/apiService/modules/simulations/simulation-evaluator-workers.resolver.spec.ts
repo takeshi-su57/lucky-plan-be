@@ -38,6 +38,28 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
         ),
       },
       simulationExecutionPlan: { count: executionPlanCount },
+      simulation: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            totalSimulationPlans: 2,
+            automationLeaseToken: null,
+            automationLeaseExpiresAt: null,
+            _count: { executionPlans: 2 },
+          },
+          {
+            totalSimulationPlans: 2,
+            automationLeaseToken: null,
+            automationLeaseExpiresAt: null,
+            _count: { executionPlans: 2 },
+          },
+          {
+            totalSimulationPlans: 2,
+            automationLeaseToken: 'lease-1',
+            automationLeaseExpiresAt: new Date(Date.now() + 60_000),
+            _count: { executionPlans: 2 },
+          },
+        ] as never),
+      },
     };
     const resolver = new SimulationEvaluatorWorkersResolver(
       prisma as never,
@@ -63,6 +85,8 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       awaitingFinalizationPlans: 3,
       finalizingPlans: 2,
       awaitingEventLogPlans: 4,
+      readyToFinalizeSimulations: 2,
+      finalizingSimulations: 1,
       failedExecutionPlans: 1,
       outstandingExecutionPlans: 20,
       finalizerConcurrency: 8,
@@ -150,7 +174,7 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
         input: expect.objectContaining({
           version: '3.0.11',
           releaseUrl:
-            'https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v3.0.11/lucky-evaluator-worker-node22.zip',
+            'https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v3.0.11/lucky-evaluator-worker-node25.zip',
         }),
       }),
     );

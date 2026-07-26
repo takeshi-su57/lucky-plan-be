@@ -104,8 +104,8 @@ $node = if ($env:LUCKY_EVALUATOR_NODE) {
   (Get-Command node.exe -ErrorAction Stop).Source
 }
 $nodeVersion = & $node -p "process.versions.node"
-if ([version]$nodeVersion -lt [version]'22.13.0') {
-  throw "Node.js 22.13.0 or newer is required. Scheduled task Node: $node ($nodeVersion)"
+if ([version]$nodeVersion -lt [version]'25.0.0') {
+  throw "Node.js 25.0.0 or newer is required. Scheduled task Node: $node ($nodeVersion)"
 }
 & $node -e "require('node:sqlite').DatabaseSync"
 if ($LASTEXITCODE -ne 0) {
@@ -229,11 +229,11 @@ usage() {
 
 case "$COMMAND" in install|adopt|start|stop|status|uninstall) ;; *) usage; exit 1 ;; esac
 if [ -z "$NODE" ] || [ ! -x "$NODE" ]; then
-  echo 'Node.js 22.13.0 or newer is required. Set NODE_BINARY to an absolute Node.js path when sudo uses a different PATH.' >&2
+  echo 'Node.js 25.0.0 or newer is required. Set NODE_BINARY to an absolute Node.js path when sudo uses a different PATH.' >&2
   exit 1
 fi
-if ! "$NODE" -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 13)) process.exit(1); require('node:sqlite').DatabaseSync" >/dev/null 2>&1; then
-  echo "Node.js 22.13.0 or newer with node:sqlite is required. Selected binary: $NODE ($("$NODE" --version 2>/dev/null || echo unknown))" >&2
+if ! "$NODE" -e "const major = Number(process.versions.node.split('.')[0]); if (major < 25) process.exit(1); require('node:sqlite').DatabaseSync" >/dev/null 2>&1; then
+  echo "Node.js 25.0.0 or newer with node:sqlite is required. Selected binary: $NODE ($("$NODE" --version 2>/dev/null || echo unknown))" >&2
   echo 'If your newer Node.js is installed through nvm, run: sudo NODE_BINARY="$(command -v node)" ./linux.sh install' >&2
   exit 1
 fi
@@ -322,7 +322,7 @@ writeFileSync(
   join(release, 'README.md'),
   `# Lucky evaluator worker
 
-Requires Node.js 22.13.0 or newer. Configure \`.env\` before starting the worker.
+Requires Node.js 25.0.0 or newer. Configure \`.env\` before starting the worker.
 
 \`SIMULATION_EVALUATOR_WORKER_INSTANCE\` is required and creates an isolated service identity. For example, \`dev\` uses \`LuckyEvaluatorWorker-dev\` on Windows and \`lucky-evaluator-worker-dev.service\` on Linux. Install each instance in its own directory so its identity and cache remain isolated.
 

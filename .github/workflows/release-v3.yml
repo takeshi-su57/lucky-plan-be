@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 25
           cache: npm
 
       - run: npm ci
@@ -49,8 +49,8 @@ jobs:
       - name: Archive portable worker bundle
         run: |
           cd release
-          zip -r lucky-evaluator-worker-node22.zip evaluator-worker
-          sha256sum lucky-evaluator-worker-node22.zip > lucky-evaluator-worker-node22.zip.sha256
+          zip -r lucky-evaluator-worker-node25.zip evaluator-worker
+          sha256sum lucky-evaluator-worker-node25.zip > lucky-evaluator-worker-node25.zip.sha256
 
       - name: Publish evaluator worker release
         env:
@@ -58,9 +58,9 @@ jobs:
         run: |
           TAG="worker-v${LUCKY_BACKEND_VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release/lucky-evaluator-worker-node22.zip release/lucky-evaluator-worker-node22.zip.sha256 --clobber
+            gh release upload "$TAG" release/lucky-evaluator-worker-node25.zip release/lucky-evaluator-worker-node25.zip.sha256 --clobber
           else
-            gh release create "$TAG" release/lucky-evaluator-worker-node22.zip release/lucky-evaluator-worker-node22.zip.sha256 \
+            gh release create "$TAG" release/lucky-evaluator-worker-node25.zip release/lucky-evaluator-worker-node25.zip.sha256 \
               --target "$GITHUB_SHA" \
               --title "Evaluator worker v${LUCKY_BACKEND_VERSION}" \
               --generate-notes
@@ -83,6 +83,6 @@ jobs:
       - name: Upload evaluator worker artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lucky-evaluator-worker-node22-${{ env.LUCKY_BACKEND_VERSION }}
-          path: release/lucky-evaluator-worker-node22.zip
+          name: lucky-evaluator-worker-node25-${{ env.LUCKY_BACKEND_VERSION }}
+          path: release/lucky-evaluator-worker-node25.zip
           retention-days: 14

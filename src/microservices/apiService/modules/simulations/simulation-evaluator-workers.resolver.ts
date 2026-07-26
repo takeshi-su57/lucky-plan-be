@@ -32,7 +32,7 @@ import {
 } from './entities/simulations.entity';
 
 const EVALUATOR_WORKER_RELEASE_URL = (version: string) =>
-  `https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v${encodeURIComponent(version)}/lucky-evaluator-worker-node22.zip`;
+  `https://github.com/takeshi-su57/lucky-plan-be/releases/download/worker-v${encodeURIComponent(version)}/lucky-evaluator-worker-node25.zip`;
 
 const isReleaseVersion = (value: string) =>
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value);
