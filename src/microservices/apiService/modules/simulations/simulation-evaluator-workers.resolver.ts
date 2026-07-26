@@ -1,6 +1,10 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Int, Query, Mutation, Resolver } from '@nestjs/graphql';
-import { Platform, UserPermission } from 'generated/prisma/client';
+import {
+  Platform,
+  SimulationStatus,
+  UserPermission,
+} from 'generated/prisma/client';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { SimulationEvaluatorTaskService } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-task.service';
@@ -147,6 +151,7 @@ export class SimulationEvaluatorWorkersResolver {
       awaitingEventLogs,
       failed,
       outstanding,
+      finalizerCandidates,
     ] = await Promise.all([
       this.prisma.simulationEvaluatorWorker.findMany({
         where: {
@@ -193,6 +198,39 @@ export class SimulationEvaluatorWorkersResolver {
           },
         },
       }),
+      this.prisma.simulation.findMany({
+        where: {
+          sourceSimulationId: null,
+          research: {
+            is: {
+              automationEnabled: true,
+              status: {
+                notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+              },
+            },
+          },
+          status: {
+            notIn: [
+              SimulationStatus.Cancelled,
+              SimulationStatus.Completed,
+              SimulationStatus.Failed,
+            ],
+          },
+          totalSimulationPlans: { gt: 0 },
+          executionPlans: {
+            some: { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+            none: {
+              status: { not: SimulationExecutionPlanStatus.AwaitingEventLogs },
+            },
+          },
+        },
+        select: {
+          totalSimulationPlans: true,
+          automationLeaseToken: true,
+          automationLeaseExpiresAt: true,
+          _count: { select: { executionPlans: true } },
+        },
+      }),
     ]);
     const fleetCapacity = workers.reduce(
       (total, worker) =>
@@ -200,6 +238,16 @@ export class SimulationEvaluatorWorkersResolver {
       0,
     );
     const finalizerBacklog = awaitingFinalization + finalizing;
+    const completeFinalizerCandidates = finalizerCandidates.filter(
+      (simulation) =>
+        simulation._count.executionPlans === simulation.totalSimulationPlans,
+    );
+    const finalizingSimulations = completeFinalizerCandidates.filter(
+      (simulation) =>
+        simulation.automationLeaseToken !== null &&
+        simulation.automationLeaseExpiresAt !== null &&
+        simulation.automationLeaseExpiresAt > new Date(),
+    ).length;
     return {
       fleetCapacity,
       queueLowWatermark:
@@ -216,6 +264,9 @@ export class SimulationEvaluatorWorkersResolver {
       awaitingFinalizationPlans: awaitingFinalization,
       finalizingPlans: finalizing,
       awaitingEventLogPlans: awaitingEventLogs,
+      readyToFinalizeSimulations:
+        completeFinalizerCandidates.length - finalizingSimulations,
+      finalizingSimulations,
       failedExecutionPlans: failed,
       outstandingExecutionPlans: outstanding,
       finalizerConcurrency: workflow.finalizerConcurrency,

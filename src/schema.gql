@@ -962,6 +962,7 @@ type SimulationEvaluatorPipelineView {
   failedExecutionPlans: Int!
   finalizerConcurrency: Int!
   finalizingPlans: Int!
+  finalizingSimulations: Int!
   fleetCapacity: Int!
   maxAwaitingFinalizationPlans: Int!
   maxOutstandingDynamicPlans: Int!
@@ -970,6 +971,7 @@ type SimulationEvaluatorPipelineView {
   queueLowWatermark: Int!
   queuedEvaluationTasks: Int!
   readyEvaluationTasks: Int!
+  readyToFinalizeSimulations: Int!
   workerClaimLimit: Int!
 }
 

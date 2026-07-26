@@ -688,6 +688,8 @@ export class SimulationEvaluatorPipelineView {
   @Field(() => Int) awaitingFinalizationPlans: number;
   @Field(() => Int) finalizingPlans: number;
   @Field(() => Int) awaitingEventLogPlans: number;
+  @Field(() => Int) readyToFinalizeSimulations: number;
+  @Field(() => Int) finalizingSimulations: number;
   @Field(() => Int) failedExecutionPlans: number;
   @Field(() => Int) outstandingExecutionPlans: number;
   @Field(() => Int) finalizerConcurrency: number;
