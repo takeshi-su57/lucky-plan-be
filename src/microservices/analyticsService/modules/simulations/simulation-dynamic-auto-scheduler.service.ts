@@ -264,69 +264,90 @@ export class SimulationDynamicAutoSchedulerService {
 
   /** Layer 3: process a fully materialized simulation in chronological order. */
   async finalizeMaterializedSimulations(now = new Date()) {
-    await this.finalizeSourceDerivedSimulation(now);
-    const candidates = await this.prisma.simulation.findMany({
-      where: {
-        sourceSimulationId: null,
-        research: {
-          is: {
-            automationEnabled: true,
-            status: {
-              notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+    const workflow = await this.workflowConfig.get();
+    const availableSlots = Math.max(
+      0,
+      workflow.finalizerConcurrency - this.activeFinalizerSimulations.size,
+    );
+    if (availableSlots) {
+      const candidates = await this.prisma.simulation.findMany({
+        where: {
+          sourceSimulationId: null,
+          research: {
+            is: {
+              automationEnabled: true,
+              status: {
+                notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+              },
             },
           },
-        },
-        status: {
-          notIn: [
-            SimulationStatus.Cancelled,
-            SimulationStatus.Completed,
-            SimulationStatus.Failed,
+          status: {
+            notIn: [
+              SimulationStatus.Cancelled,
+              SimulationStatus.Completed,
+              SimulationStatus.Failed,
+            ],
+          },
+          executionPlans: {
+            some: { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+          },
+          OR: [
+            { automationLeaseToken: null },
+            { automationLeaseExpiresAt: { lte: now } },
           ],
         },
-        executionPlans: {
-          some: { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+        include: {
+          executionPlans: { select: { id: true, status: true } },
+          research: true,
         },
-        OR: [
-          { automationLeaseToken: null },
-          { automationLeaseExpiresAt: { lte: now } },
-        ],
-      },
-      include: {
-        executionPlans: { select: { id: true, status: true } },
-        research: true,
-      },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      take: 50,
-    });
-    const candidate = candidates.find(
-      (simulation) =>
-        simulation.totalSimulationPlans > 0 &&
-        simulation.executionPlans.length === simulation.totalSimulationPlans &&
-        simulation.executionPlans.every(
-          (plan) =>
-            plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs,
-        ),
-    );
-    if (!candidate || this.activeFinalizerSimulations.has(candidate.id)) return;
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take: Math.max(50, availableSlots * 4),
+      });
 
-    const leaseToken = randomUUID();
-    const claimed = await this.prisma.simulation.updateMany({
-      where: {
-        id: candidate.id,
-        OR: [
-          { automationLeaseToken: null },
-          { automationLeaseExpiresAt: { lte: now } },
-        ],
-      },
-      data: {
-        automationLeaseToken: leaseToken,
-        automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
-        progressPhase: 'building-layer-2-3-caches',
-        progressMessage: 'Building plan caches in chronological order',
-      },
-    });
-    if (!claimed.count) return;
-    this.activeFinalizerSimulations.add(candidate.id);
+      const readyCandidates = candidates
+        .filter(
+          (simulation) =>
+            simulation.totalSimulationPlans > 0 &&
+            simulation.executionPlans.length ===
+              simulation.totalSimulationPlans &&
+            simulation.executionPlans.every(
+              (plan) =>
+                plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs,
+            ) &&
+            !this.activeFinalizerSimulations.has(simulation.id),
+        )
+        .slice(0, availableSlots);
+
+      await Promise.all(
+        readyCandidates.map(async (candidate) => {
+          const leaseToken = randomUUID();
+          const claimed = await this.prisma.simulation.updateMany({
+            where: {
+              id: candidate.id,
+              OR: [
+                { automationLeaseToken: null },
+                { automationLeaseExpiresAt: { lte: now } },
+              ],
+            },
+            data: {
+              automationLeaseToken: leaseToken,
+              automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
+              progressPhase: 'building-layer-2-3-caches',
+              progressMessage: 'Building plan caches in chronological order',
+            },
+          });
+          if (!claimed.count) return;
+          this.activeFinalizerSimulations.add(candidate.id);
+          void this.finalizeClaimedSimulation(candidate, leaseToken);
+        }),
+      );
+      if (readyCandidates.length) return;
+    }
+
+    await this.finalizeSourceDerivedSimulation(now);
+  }
+
+  private async finalizeClaimedSimulation(candidate: any, leaseToken: string) {
     try {
       const finalization = await this.runner.finalizeMaterializedSimulation(
         candidate.id,
@@ -366,6 +387,9 @@ export class SimulationDynamicAutoSchedulerService {
     const candidate = await this.prisma.simulation.findFirst({
       where: {
         sourceSimulationId: { not: null },
+        sourceSimulation: {
+          is: { status: SimulationStatus.Completed },
+        },
         research: {
           is: {
             automationEnabled: true,
@@ -413,6 +437,16 @@ export class SimulationDynamicAutoSchedulerService {
       await this.runner.finalizeSourceDerivedSimulation(candidate.id);
       if (candidate.researchId !== null)
         await this.syncResearch(candidate.researchId);
+    } catch (error) {
+      await this.prisma.simulation.update({
+        where: { id: candidate.id },
+        data: {
+          status: SimulationStatus.Failed,
+          progressPhase: 'source-snapshot-finalization-failed',
+          progressMessage: 'Source-snapshot finalization failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
     } finally {
       await this.releaseSimulationFinalizerLease(candidate.id, leaseToken);
     }

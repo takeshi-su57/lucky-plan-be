@@ -1096,6 +1096,7 @@ type SimulationResearch {
   aiReportGenerating: Boolean!
   aiReportReady: Boolean!
   aiReportRevision: Int!
+  awaitingEventPlans: Int!
   collateral: [SimulationValueRangeGroup!]!
   completedPlans: Int!
   completedRanges: Int!
@@ -1106,6 +1107,8 @@ type SimulationResearch {
   description: String!
   direction: BotMode!
   endAt: Date!
+  evaluatedPlans: Int!
+  finalizedPlans: Int!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
@@ -1117,6 +1120,7 @@ type SimulationResearch {
   leaderExecutionLeverage: [SimulationValueRangeGroup!]!
   leaderExecutionSize: [SimulationValueRangeGroup!]!
   leverage: [SimulationValueRangeGroup!]!
+  materializedPlans: Int!
   nextRetryAt: Date
   outstandingPlans: Int!
   platform: Platform!
@@ -1149,6 +1153,7 @@ type SimulationResearchDetails {
   aiReportGenerating: Boolean!
   aiReportReady: Boolean!
   aiReportRevision: Int!
+  awaitingEventPlans: Int!
   collateral: [SimulationValueRangeGroup!]!
   completedPlans: Int!
   completedRanges: Int!
@@ -1159,6 +1164,8 @@ type SimulationResearchDetails {
   description: String!
   direction: BotMode!
   endAt: Date!
+  evaluatedPlans: Int!
+  finalizedPlans: Int!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
@@ -1170,6 +1177,7 @@ type SimulationResearchDetails {
   leaderExecutionLeverage: [SimulationValueRangeGroup!]!
   leaderExecutionSize: [SimulationValueRangeGroup!]!
   leverage: [SimulationValueRangeGroup!]!
+  materializedPlans: Int!
   nextRetryAt: Date
   outstandingPlans: Int!
   platform: Platform!

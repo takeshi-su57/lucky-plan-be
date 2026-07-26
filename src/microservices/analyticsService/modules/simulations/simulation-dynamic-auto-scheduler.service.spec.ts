@@ -247,6 +247,108 @@ describe('research completion reconciliation', () => {
   });
 });
 
+describe('materialized simulation finalization', () => {
+  it('claims ready simulations up to finalizer concurrency', async () => {
+    const candidates = [1, 2, 3].map((id) => ({
+      id,
+      researchId: 42,
+      totalSimulationPlans: 2,
+      executionPlans: [
+        {
+          id: `${id}-1`,
+          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+        },
+        {
+          id: `${id}-2`,
+          status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+        },
+      ],
+    }));
+    const updateMany = jest
+      .fn<(...args: any[]) => Promise<{ count: number }>>()
+      .mockResolvedValue({ count: 1 });
+    const finalizeMaterializedSimulation = jest
+      .fn<
+        (
+          simulationId: number,
+        ) => Promise<{ simulation: null; awaitingEventLogs: boolean }>
+      >()
+      .mockResolvedValue({
+        simulation: null,
+        awaitingEventLogs: true,
+      });
+    const findMany = jest
+      .fn<(...args: any[]) => Promise<typeof candidates>>()
+      .mockResolvedValue(candidates);
+    const prisma = {
+      simulation: {
+        findFirst: jest.fn(async () => null),
+        findMany,
+        updateMany,
+      },
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      { finalizeMaterializedSimulation } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {
+        get: jest.fn(async () => ({ finalizerConcurrency: 2 })),
+      } as never,
+    );
+
+    await scheduler.finalizeMaterializedSimulations(
+      new Date('2026-07-26T00:00:00.000Z'),
+    );
+
+    expect(finalizeMaterializedSimulation).toHaveBeenCalledTimes(2);
+    expect(finalizeMaterializedSimulation).toHaveBeenNthCalledWith(1, 1);
+    expect(finalizeMaterializedSimulation).toHaveBeenNthCalledWith(2, 2);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+    );
+  });
+
+  it('does not finalize a derived simulation before its source completes', async () => {
+    const findFirst = jest
+      .fn<(...args: any[]) => Promise<null>>()
+      .mockResolvedValue(null);
+    const prisma = {
+      simulation: {
+        findFirst,
+        findMany: jest.fn(async () => []),
+      },
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {
+        get: jest.fn(async () => ({ finalizerConcurrency: 2 })),
+      } as never,
+    );
+
+    await scheduler.finalizeMaterializedSimulations(
+      new Date('2026-07-26T00:00:00.000Z'),
+    );
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sourceSimulation: {
+            is: { status: 'Completed' },
+          },
+        }),
+      }),
+    );
+  });
+});
+
 describe('dynamic dispatch selection', () => {
   it('dispatches the oldest ready simulation when an older one has no ready range', async () => {
     const noRangeSimulation = {
