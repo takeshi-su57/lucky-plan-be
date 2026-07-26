@@ -1146,6 +1146,25 @@ export class SimulationDynamicAutoSchedulerService {
           plan.evaluatorTask?.status ===
             SimulationEvaluatorTaskStatus.Completed),
     ).length;
+    const evaluatedPlans = executionPlans.filter(
+      (plan) =>
+        plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs ||
+        plan.status === SimulationExecutionPlanStatus.Finalizing ||
+        plan.status === SimulationExecutionPlanStatus.Completed ||
+        (plan.status === SimulationExecutionPlanStatus.Dispatched &&
+          plan.evaluatorTask?.status === SimulationEvaluatorTaskStatus.Completed),
+    ).length;
+    const materializedPlans = executionPlans.filter(
+      (plan) =>
+        plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs ||
+        plan.status === SimulationExecutionPlanStatus.Completed,
+    ).length;
+    const awaitingEventPlans = executionPlans.filter(
+      (plan) => plan.status === SimulationExecutionPlanStatus.AwaitingEventLogs,
+    ).length;
+    const finalizedPlans = executionPlans.filter(
+      (plan) => plan.status === SimulationExecutionPlanStatus.Completed,
+    ).length;
     await this.prisma.simulationResearch.update({
       where: { id: researchId },
       data: {
@@ -1158,6 +1177,10 @@ export class SimulationDynamicAutoSchedulerService {
         queuedPlans,
         runningPlans,
         finalizingPlans,
+        evaluatedPlans,
+        materializedPlans,
+        awaitingEventPlans,
+        finalizedPlans,
         progressPercent: totalPlans ? (completedPlans / totalPlans) * 100 : 100,
         progressPhase: completed ? 'completed' : 'dynamic-plan-scheduling',
         progressMessage: completed

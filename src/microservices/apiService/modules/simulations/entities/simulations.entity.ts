@@ -577,6 +577,18 @@ export class SimulationResearch {
   @Field(() => Int)
   finalizingPlans: number;
 
+  @Field(() => Int)
+  evaluatedPlans: number;
+
+  @Field(() => Int)
+  materializedPlans: number;
+
+  @Field(() => Int)
+  awaitingEventPlans: number;
+
+  @Field(() => Int)
+  finalizedPlans: number;
+
   @Field(() => Date, { nullable: true })
   startedAt: Date | null;
 

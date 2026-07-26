@@ -204,6 +204,10 @@ model SimulationResearch {
   queuedPlans              Int              @default(0)
   runningPlans             Int              @default(0)
   finalizingPlans          Int              @default(0)
+  evaluatedPlans           Int              @default(0)
+  materializedPlans        Int              @default(0)
+  awaitingEventPlans       Int              @default(0)
+  finalizedPlans           Int              @default(0)
   startedAt                DateTime?
   finishedAt               DateTime?
   lastError                String?
