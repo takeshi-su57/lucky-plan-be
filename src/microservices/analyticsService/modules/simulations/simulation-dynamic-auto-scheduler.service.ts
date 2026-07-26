@@ -499,13 +499,14 @@ export class SimulationDynamicAutoSchedulerService {
     );
     if (!candidates.length) return;
 
-    // Do not let a later simulation refill the fleet while the oldest
-    // unfinished simulation is still draining its previously dispatched work.
-    if (candidates[0].simulation.id !== simulations[0].id) return;
-
-    // Do not distribute this refill among simulations.  A single oldest
-    // simulation owns the evaluator queue until it has no dispatchable range
-    // left, which gives research jobs a predictable completion order.
+    // A simulation with no currently-dispatchable ranges must not block every
+    // later research.  This used to return here when the oldest simulation was
+    // waiting for its already-dispatched work to finish; after a restart or an
+    // interrupted finalization that could leave all newer, ready researches at
+    // "Running" with zero execution plans indefinitely.
+    //
+    // Keep the ordering deterministic by selecting the oldest *dispatchable*
+    // simulation rather than the oldest unfinished simulation.
     const oldest = candidates[0];
     const workerCapacity = await this.evaluatorTasks.countReadyWorkers(
       oldest.simulation.platform,

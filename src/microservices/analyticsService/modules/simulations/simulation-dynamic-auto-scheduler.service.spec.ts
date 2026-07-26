@@ -71,3 +71,85 @@ describe('failed evaluator reconciliation', () => {
     );
   });
 });
+
+describe('dynamic dispatch selection', () => {
+  it('dispatches the oldest ready simulation when an older one has no ready range', async () => {
+    const noRangeSimulation = {
+      id: 1,
+      researchId: 10,
+      platform: 'AVNT',
+      startAt: new Date('2025-01-01T00:00:00.000Z'),
+      endAt: new Date('2025-01-01T00:00:00.000Z'),
+      days: 1,
+      gapDays: 0,
+      executionPlans: [],
+      research: { startedAt: null },
+    };
+    const readySimulation = {
+      ...noRangeSimulation,
+      id: 2,
+      researchId: 11,
+      startAt: new Date('2025-01-01T00:00:00.000Z'),
+      endAt: new Date('2025-01-03T00:00:00.000Z'),
+    };
+    const upsert = jest
+      .fn<(...args: any[]) => Promise<any>>()
+      .mockResolvedValue({
+        id: 'plan-1',
+        status: SimulationExecutionPlanStatus.Pending,
+        attempts: 0,
+      });
+    const prisma = {
+      simulation: {
+        findMany: jest.fn(async () => [noRangeSimulation, readySimulation]),
+        update: jest.fn(),
+      },
+      simulationExecutionPlan: {
+        count: jest.fn(async () => 0),
+        upsert,
+        update: jest.fn(),
+      },
+      simulationEvaluatorTask: { count: jest.fn(async () => 0) },
+      simulationResearch: { update: jest.fn() },
+      $transaction: jest.fn(async () => undefined),
+    };
+    const runner = {
+      findCandidateLeadersForRange: jest.fn(async () => ({
+        simulation: readySimulation,
+        candidateLeaders: [],
+      })),
+      loadSimulationRangeProcessingContext: jest.fn(async () => ({
+        contractById: new Map(),
+      })),
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      runner as never,
+      {
+        enqueueLeadersForRange: jest.fn(async () => ({ id: 'task-1' })),
+      } as never,
+      { countReadyWorkers: jest.fn(async () => 1) } as never,
+      {} as never,
+      {
+        get: jest.fn(async () => ({
+          maxOutstandingDynamicPlans: 500,
+          maxAwaitingFinalizationPlans: 200,
+        })),
+      } as never,
+    );
+    jest.spyOn(scheduler as any, 'syncResearch').mockResolvedValue(undefined);
+
+    await (
+      scheduler as unknown as {
+        fillEvaluatorQueue(now: Date): Promise<void>;
+      }
+    ).fillEvaluatorQueue(new Date('2025-01-03T00:00:00.000Z'));
+
+    expect(upsert).toHaveBeenCalled();
+    expect(
+      upsert.mock.calls.every(
+        ([input]) => input.create.simulationId === readySimulation.id,
+      ),
+    ).toBe(true);
+  });
+});
