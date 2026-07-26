@@ -43,6 +43,16 @@ type TaskHeartbeatEvent = {
 
 type WorkerHeartbeatEvent = TaskProgressEvent | TaskHeartbeatEvent;
 
+export class WorkerGatewayRequestError extends Error {
+  constructor(
+    readonly status: number,
+    detail: string,
+  ) {
+    super(`Worker gateway request failed: ${status} ${detail}`);
+    this.name = 'WorkerGatewayRequestError';
+  }
+}
+
 export type WorkerDiagnosticSnapshot = {
   pid: number;
   uptimeSeconds: number;
@@ -338,8 +348,9 @@ export class SimulationEvaluatorWorkerClientService {
     }
 
     if (!response.ok) {
-      throw new Error(
-        `Worker gateway request failed: ${response.status} ${await response.text()}`,
+      throw new WorkerGatewayRequestError(
+        response.status,
+        await response.text(),
       );
     }
 
@@ -398,8 +409,9 @@ export class SimulationEvaluatorWorkerClientService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Worker gateway request failed: ${response.status} ${await response.text()}`,
+      throw new WorkerGatewayRequestError(
+        response.status,
+        await response.text(),
       );
     }
 

@@ -10,8 +10,11 @@ import { join } from 'path';
 
 import { SimulationEvaluatorTaskKind } from 'generated/prisma/enums';
 import { SIMULATION_EVALUATOR } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator.constants';
-import { SimulationEvaluatorWorkerClientService } from './simulation-evaluator-worker-client.service';
-import { WorkerDiagnosticSnapshot } from './simulation-evaluator-worker-client.service';
+import {
+  SimulationEvaluatorWorkerClientService,
+  WorkerDiagnosticSnapshot,
+  WorkerGatewayRequestError,
+} from './simulation-evaluator-worker-client.service';
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
 import { simulationEvaluatorWorkerVersion } from './simulation-evaluator-worker-version';
 
@@ -131,6 +134,7 @@ export class SimulationEvaluatorWorkerRuntimeService
         }
         this.acceptTask(task);
       } catch (error) {
+        this.resetApprovalAfterAuthorizationFailure(error);
         this.lastPollError = this.describeError(error);
         this.log('error', `Poll/runtime error: ${this.lastPollError}`);
         await this.delay(SIMULATION_EVALUATOR.enrollmentRetryDelayMs);
@@ -771,6 +775,7 @@ export class SimulationEvaluatorWorkerRuntimeService
     try {
       await this.client.heartbeat(this.getDiagnosticSnapshot());
     } catch (error) {
+      this.resetApprovalAfterAuthorizationFailure(error);
       this.log('error', `Heartbeat failed: ${this.describeError(error)}`);
     } finally {
       this.heartbeatInFlight = false;
@@ -784,6 +789,12 @@ export class SimulationEvaluatorWorkerRuntimeService
   private describeTaskError(task: ClaimedTask, error: unknown) {
     const detail = this.describeError(error);
     return `Task ${task.id} (${task.kind}) failed: ${detail}`;
+  }
+
+  private resetApprovalAfterAuthorizationFailure(error: unknown) {
+    if (error instanceof WorkerGatewayRequestError && error.status === 401) {
+      this.approved = false;
+    }
   }
 
   private describeError(error: unknown) {

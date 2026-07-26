@@ -6,6 +6,7 @@ import {
   EVALUATOR_WORKER_UPGRADE_EXIT_CODE,
   SimulationEvaluatorWorkerRuntimeService,
 } from './simulation-evaluator-worker-runtime.service';
+import { WorkerGatewayRequestError } from './simulation-evaluator-worker-client.service';
 
 describe('SimulationEvaluatorWorkerRuntimeService', () => {
   it('uses a dedicated exit code so the launcher applies an upgrade', () => {
@@ -56,6 +57,32 @@ describe('SimulationEvaluatorWorkerRuntimeService', () => {
 
     expect(client.heartbeat).toHaveBeenCalledTimes(1);
     expect((runtime as any).approved).toBe(true);
+    expect((runtime as any).heartbeatInFlight).toBe(false);
+    consoleError.mockRestore();
+  });
+
+  it('re-enters enrollment when the server no longer recognizes the worker', async () => {
+    const client = {
+      heartbeat: jest.fn(async () => {
+        throw new WorkerGatewayRequestError(
+          401,
+          '{"message":"Worker is not approved"}',
+        );
+      }),
+    };
+    const runtime = new SimulationEvaluatorWorkerRuntimeService(
+      client as never,
+      {} as never,
+    );
+    (runtime as any).approved = true;
+    const consoleError = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    await (runtime as any).sendHeartbeat();
+
+    expect(client.heartbeat).toHaveBeenCalledTimes(1);
+    expect((runtime as any).approved).toBe(false);
     expect((runtime as any).heartbeatInFlight).toBe(false);
     consoleError.mockRestore();
   });
