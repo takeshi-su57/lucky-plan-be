@@ -521,8 +521,6 @@ export class SimulationDynamicAutoSchedulerService {
           in: [
             SimulationExecutionPlanStatus.Pending,
             SimulationExecutionPlanStatus.Dispatched,
-            SimulationExecutionPlanStatus.AwaitingEventLogs,
-            SimulationExecutionPlanStatus.Finalizing,
           ],
         },
       },
