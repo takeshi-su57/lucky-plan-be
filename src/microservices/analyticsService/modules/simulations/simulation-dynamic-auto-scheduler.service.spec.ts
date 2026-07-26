@@ -118,6 +118,135 @@ describe('failed evaluator reconciliation', () => {
   });
 });
 
+describe('research completion reconciliation', () => {
+  it('does not complete a simulation whose materialized plans await event logs', async () => {
+    const simulationUpdate = jest.fn(async () => undefined);
+    const prisma = {
+      simulation: {
+        findMany: jest.fn(async () => [
+          {
+            id: 1,
+            status: 'Running',
+            completedPlans: 0,
+            totalSimulationPlans: 2,
+            executionPlans: [
+              { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+              { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+            ],
+          },
+        ]),
+        update: simulationUpdate,
+        findFirst: jest.fn(async () => null),
+      },
+      simulationResearch: {
+        findUnique: jest.fn(async () => ({
+          simulations: [
+            {
+              totalSimulationPlans: 2,
+              completedPlans: 0,
+              executionPlans: [
+                {
+                  status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+                  createdAt: new Date(),
+                  dispatchedAt: null,
+                  completedAt: null,
+                  evaluatorTask: null,
+                },
+              ],
+            },
+          ],
+        })),
+        update: jest.fn(async () => undefined),
+      },
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      { emitSimulationUpdated: jest.fn(async () => undefined) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await (
+      scheduler as unknown as {
+        syncResearch(researchId: number): Promise<void>;
+      }
+    ).syncResearch(42);
+
+    expect(simulationUpdate).not.toHaveBeenCalled();
+  });
+
+  it('reopens a prematurely completed simulation so Layer 3 can finish it', async () => {
+    const simulationUpdate = jest
+      .fn<(...args: any[]) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const prisma = {
+      simulation: {
+        findMany: jest.fn(async () => [
+          {
+            id: 1,
+            status: 'Completed',
+            completedPlans: 2,
+            totalSimulationPlans: 2,
+            executionPlans: [
+              { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+              { status: SimulationExecutionPlanStatus.AwaitingEventLogs },
+            ],
+          },
+        ]),
+        update: simulationUpdate,
+        findFirst: jest.fn(async () => null),
+      },
+      simulationResearch: {
+        findUnique: jest.fn(async () => ({
+          simulations: [
+            {
+              totalSimulationPlans: 2,
+              completedPlans: 0,
+              executionPlans: [
+                {
+                  status: SimulationExecutionPlanStatus.AwaitingEventLogs,
+                  createdAt: new Date(),
+                  dispatchedAt: null,
+                  completedAt: null,
+                  evaluatorTask: null,
+                },
+              ],
+            },
+          ],
+        })),
+        update: jest.fn(async () => undefined),
+      },
+    };
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      prisma as never,
+      { emitSimulationUpdated: jest.fn(async () => undefined) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await (
+      scheduler as unknown as {
+        syncResearch(researchId: number): Promise<void>;
+      }
+    ).syncResearch(42);
+
+    expect(simulationUpdate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        where: { id: 1 },
+        data: expect.objectContaining({
+          status: 'Running',
+          completedPlans: 0,
+          progressPhase: 'awaiting-event-logs',
+        }),
+      }),
+    );
+  });
+});
+
 describe('dynamic dispatch selection', () => {
   it('dispatches the oldest ready simulation when an older one has no ready range', async () => {
     const noRangeSimulation = {

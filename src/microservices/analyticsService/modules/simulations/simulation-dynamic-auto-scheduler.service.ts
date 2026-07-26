@@ -423,8 +423,22 @@ export class SimulationDynamicAutoSchedulerService {
       where: {
         automationEnabled: true,
         status: {
-          notIn: [SimulationStatus.Cancelled, SimulationStatus.Completed],
+          notIn: [SimulationStatus.Cancelled, SimulationStatus.Failed],
         },
+        OR: [
+          { status: { not: SimulationStatus.Completed } },
+          {
+            simulations: {
+              some: {
+                executionPlans: {
+                  some: {
+                    status: { not: SimulationExecutionPlanStatus.Completed },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       select: { id: true },
     });
@@ -1039,40 +1053,75 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async syncResearch(researchId: number) {
-    // Simulation status is derived from the completed plan count. Restore it
-    // before aggregating the parent so an interrupted finalization cannot keep
-    // either record in Running after all plan windows were written.
+    // Restore a simulation only after its execution plans have actually
+    // completed.  Layer 2 writes SimulationPlan rows before Layer 3 processes
+    // their event logs and builds bot caches, so plan-row count alone is not a
+    // completion signal.
     const simulationsToComplete = await this.prisma.simulation.findMany({
       where: {
         researchId,
         status: {
-          notIn: [
-            SimulationStatus.Cancelled,
-            SimulationStatus.Completed,
-            SimulationStatus.Failed,
-          ],
+          notIn: [SimulationStatus.Cancelled, SimulationStatus.Failed],
         },
       },
       select: {
         id: true,
+        status: true,
         completedPlans: true,
         totalSimulationPlans: true,
-        _count: { select: { simulationPlans: true } },
+        executionPlans: { select: { status: true } },
       },
     });
-    const recoveredSimulations = await Promise.all(
+    const resumedSimulations = await Promise.all(
       simulationsToComplete
         .filter(
           (simulation) =>
+            simulation.status === SimulationStatus.Completed &&
             simulation.totalSimulationPlans > 0 &&
-            simulation._count.simulationPlans >=
-              simulation.totalSimulationPlans,
+            simulation.executionPlans.some(
+              (plan) => plan.status !== SimulationExecutionPlanStatus.Completed,
+            ),
         )
         .map((simulation) =>
           this.prisma.simulation.update({
             where: { id: simulation.id },
             data: {
-              completedPlans: simulation._count.simulationPlans,
+              completedPlans: simulation.executionPlans.filter(
+                (plan) =>
+                  plan.status === SimulationExecutionPlanStatus.Completed,
+              ).length,
+              status: SimulationStatus.Running,
+              progressPhase: 'awaiting-event-logs',
+              progressMessage:
+                'Waiting for plan event logs and cache completion',
+              progressPercent:
+                (simulation.executionPlans.filter(
+                  (plan) =>
+                    plan.status === SimulationExecutionPlanStatus.Completed,
+                ).length /
+                  simulation.totalSimulationPlans) *
+                100,
+            },
+          }),
+        ),
+    );
+    const recoveredSimulations = await Promise.all(
+      simulationsToComplete
+        .filter(
+          (simulation) =>
+            simulation.status !== SimulationStatus.Completed &&
+            simulation.totalSimulationPlans > 0 &&
+            simulation.executionPlans.length >=
+              simulation.totalSimulationPlans &&
+            simulation.executionPlans.every(
+              (plan) => plan.status === SimulationExecutionPlanStatus.Completed,
+            ),
+        )
+        .map((simulation) =>
+          this.prisma.simulation.update({
+            where: { id: simulation.id },
+            data: {
+              completedPlans: simulation.totalSimulationPlans,
               status: SimulationStatus.Completed,
               progressPhase: 'completed',
               progressMessage: 'Simulation result completed',
@@ -1152,7 +1201,8 @@ export class SimulationDynamicAutoSchedulerService {
         plan.status === SimulationExecutionPlanStatus.Finalizing ||
         plan.status === SimulationExecutionPlanStatus.Completed ||
         (plan.status === SimulationExecutionPlanStatus.Dispatched &&
-          plan.evaluatorTask?.status === SimulationEvaluatorTaskStatus.Completed),
+          plan.evaluatorTask?.status ===
+            SimulationEvaluatorTaskStatus.Completed),
     ).length;
     const materializedPlans = executionPlans.filter(
       (plan) =>
@@ -1190,7 +1240,7 @@ export class SimulationDynamicAutoSchedulerService {
       },
     });
     await Promise.all(
-      recoveredSimulations.map((simulation) =>
+      [...resumedSimulations, ...recoveredSimulations].map((simulation) =>
         this.runner.emitSimulationUpdated(simulation),
       ),
     );

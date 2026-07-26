@@ -1106,10 +1106,6 @@ type SimulationResearch {
   description: String!
   direction: BotMode!
   endAt: Date!
-  evaluatedPlans: Int!
-  materializedPlans: Int!
-  awaitingEventPlans: Int!
-  finalizedPlans: Int!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
@@ -1163,10 +1159,6 @@ type SimulationResearchDetails {
   description: String!
   direction: BotMode!
   endAt: Date!
-  evaluatedPlans: Int!
-  materializedPlans: Int!
-  awaitingEventPlans: Int!
-  finalizedPlans: Int!
   finalizingPlans: Int!
   finishedAt: Date
   followerRiskCollateral: [SimulationValueRangeGroup!]!
