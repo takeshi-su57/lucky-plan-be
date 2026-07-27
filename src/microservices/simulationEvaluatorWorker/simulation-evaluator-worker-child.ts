@@ -12,6 +12,10 @@ import {
 } from 'src/microservices/analyticsService/modules/simulations/simulation-leader-evaluator.service';
 import { WorkerCachedEventLog } from './simulation-evaluator-worker-cache.service';
 import { getSimulationEvaluatorEventLogCacheDriver } from './simulation-evaluator-worker-event-log-cache-driver';
+import {
+  readSqliteCachedLogsByAddress,
+  SQLITE_EVENT_LOG_ADDRESS_BATCH_SIZE,
+} from './simulation-evaluator-worker-sqlite-event-log-reader';
 
 type EvaluateMessage = {
   type: 'evaluate';
@@ -142,69 +146,94 @@ async function evaluate(
     progressMessage: `Preparing cached history for ${totalCandidates} leaders`,
   });
 
-  for (const leaderAddress of input.candidateLeaders) {
-    const cacheReadStartedAt = performance.now();
-    const records = await readCachedLogs(
-      input.simulation.platform,
-      leaderAddress,
-      eventLogWindowStartedAt,
-      eventLogWindowEndedAt,
-    );
-    timings.cacheReadMs += performance.now() - cacheReadStartedAt;
-    eventLogRecords += records.length;
-    const recentFilterStartedAt = performance.now();
-    const recentTradeCount = records.filter((record) => {
-      const date = new Date(record.date);
-      return date >= recentActivityCutoff && date < rangeStartedAt;
-    }).length;
-    timings.recentFilterMs += performance.now() - recentFilterStartedAt;
-    if (recentTradeCount >= minimumTradeCount) {
-      const historyConversionStartedAt = performance.now();
-      const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
-        records.map((record) => ({ ...record, date: new Date(record.date) })),
-        contractById,
-      );
-      timings.historyConversionMs +=
-        performance.now() - historyConversionStartedAt;
-      const positionBuildStartedAt = performance.now();
-      const positions = EventLogsService.buildPerpTradePositionsWithSummary(
-        input.simulation.platform,
-        histories,
-        {
-          collateralRanges: input.simulation.collateral,
-          sizeRanges: input.simulation.size,
-          leverageRanges: input.simulation.leverage,
-        },
-      ).positions;
-      timings.positionBuildMs += performance.now() - positionBuildStartedAt;
-      const scoringStartedAt = performance.now();
-      const evaluation =
-        SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
-          leaderAddress,
-          SimulationLeaderEvaluatorService.getClosedPositionsBefore(
-            positions,
-            rangeStartedAt,
-          ),
-          input.simulation,
-        );
-      timings.scoringMs += performance.now() - scoringStartedAt;
-      if (
-        !evaluation.rejectedReason &&
-        input.simulation.score.some(
-          (range) =>
-            evaluation.score >= range.min && evaluation.score <= range.max,
-        )
-      ) {
-        evaluations.push(evaluation);
-      }
+  const candidateBatches =
+    eventLogCacheDriver === 'sqlite'
+      ? chunk(input.candidateLeaders, SQLITE_EVENT_LOG_ADDRESS_BATCH_SIZE)
+      : [input.candidateLeaders];
+
+  for (const candidateBatch of candidateBatches) {
+    const sqliteCacheReadStartedAt = performance.now();
+    const sqliteRecordsByAddress =
+      eventLogCacheDriver === 'sqlite'
+        ? readSqliteCachedLogsByAddress(getCacheDatabase(), {
+            platform: input.simulation.platform,
+            addresses: candidateBatch,
+            startedAt: eventLogWindowStartedAt,
+            endedAt: eventLogWindowEndedAt,
+          })
+        : null;
+    if (sqliteRecordsByAddress) {
+      timings.cacheReadMs += performance.now() - sqliteCacheReadStartedAt;
     }
-    completedCandidates += 1;
-    reportProgress({
-      completedCandidates,
-      totalCandidates,
-      eventLogRecords,
-      progressMessage: `Evaluated ${completedCandidates} of ${totalCandidates} leaders (${eventLogRecords.toLocaleString()} cached event logs read)`,
-    });
+
+    for (const leaderAddress of candidateBatch) {
+      const cacheReadStartedAt = performance.now();
+      const records = sqliteRecordsByAddress
+        ? sqliteRecordsByAddress.get(leaderAddress.toLowerCase()) || []
+        : await readFileCachedLogs(
+            input.simulation.platform,
+            leaderAddress,
+            eventLogWindowStartedAt,
+            eventLogWindowEndedAt,
+          );
+      if (!sqliteRecordsByAddress) {
+        timings.cacheReadMs += performance.now() - cacheReadStartedAt;
+      }
+      eventLogRecords += records.length;
+      const recentFilterStartedAt = performance.now();
+      const recentTradeCount = records.filter((record) => {
+        const date = new Date(record.date);
+        return date >= recentActivityCutoff && date < rangeStartedAt;
+      }).length;
+      timings.recentFilterMs += performance.now() - recentFilterStartedAt;
+      if (recentTradeCount >= minimumTradeCount) {
+        const historyConversionStartedAt = performance.now();
+        const histories = SimulationLeaderEvaluatorService.eventLogsToHistories(
+          records.map((record) => ({ ...record, date: new Date(record.date) })),
+          contractById,
+        );
+        timings.historyConversionMs +=
+          performance.now() - historyConversionStartedAt;
+        const positionBuildStartedAt = performance.now();
+        const positions = EventLogsService.buildPerpTradePositionsWithSummary(
+          input.simulation.platform,
+          histories,
+          {
+            collateralRanges: input.simulation.collateral,
+            sizeRanges: input.simulation.size,
+            leverageRanges: input.simulation.leverage,
+          },
+        ).positions;
+        timings.positionBuildMs += performance.now() - positionBuildStartedAt;
+        const scoringStartedAt = performance.now();
+        const evaluation =
+          SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
+            leaderAddress,
+            SimulationLeaderEvaluatorService.getClosedPositionsBefore(
+              positions,
+              rangeStartedAt,
+            ),
+            input.simulation,
+          );
+        timings.scoringMs += performance.now() - scoringStartedAt;
+        if (
+          !evaluation.rejectedReason &&
+          input.simulation.score.some(
+            (range) =>
+              evaluation.score >= range.min && evaluation.score <= range.max,
+          )
+        ) {
+          evaluations.push(evaluation);
+        }
+      }
+      completedCandidates += 1;
+      reportProgress({
+        completedCandidates,
+        totalCandidates,
+        eventLogRecords,
+        progressMessage: `Evaluated ${completedCandidates} of ${totalCandidates} leaders (${eventLogRecords.toLocaleString()} cached event logs read)`,
+      });
+    }
   }
   const round = (value: number) => Math.round(value);
   return {
@@ -224,15 +253,12 @@ async function evaluate(
   };
 }
 
-async function readCachedLogs(
+async function readFileCachedLogs(
   platform: Platform,
   address: string,
   startedAt: Date,
   endedAt: Date,
 ) {
-  if (eventLogCacheDriver === 'sqlite') {
-    return readSqliteCachedLogs(platform, address, startedAt, endedAt);
-  }
   const records = await Promise.all(
     monthBuckets(startedAt, endedAt).map(async ({ year, month }) => {
       try {
@@ -272,56 +298,22 @@ async function readCachedLogs(
   );
 }
 
-function readSqliteCachedLogs(
-  platform: Platform,
-  address: string,
-  startedAt: Date,
-  endedAt: Date,
-): WorkerCachedEventLog[] {
+function getCacheDatabase() {
   if (!cacheDatabase) {
     cacheDatabase = new DatabaseSync(join(cacheDir, 'cache.sqlite'), {
       readOnly: true,
       timeout: 5_000,
     });
   }
-  return cacheDatabase
-    .prepare(
-      `SELECT address, date, block, log_index, contract_id, platform,
-              transaction_hash, json_log, usd_pnl
-       FROM perp_trading_event_log
-       WHERE platform = ? AND address = ? AND date >= ? AND date < ?
-       ORDER BY date, block, log_index, contract_id`,
-    )
-    .all(
-      platform,
-      address.toLowerCase(),
-      startedAt.toISOString(),
-      endedAt.toISOString(),
-    )
-    .map((row) => {
-      const record = row as {
-        address: string;
-        date: string;
-        block: number;
-        log_index: number;
-        contract_id: number;
-        platform: Platform;
-        transaction_hash: string;
-        json_log: string;
-        usd_pnl: number;
-      };
-      return {
-        address: record.address,
-        date: record.date,
-        block: record.block,
-        logIndex: record.log_index,
-        contractId: record.contract_id,
-        platform: record.platform,
-        transactionHash: record.transaction_hash,
-        jsonLog: record.json_log,
-        usdPnl: record.usd_pnl,
-      };
-    });
+  return cacheDatabase;
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let offset = 0; offset < items.length; offset += size) {
+    chunks.push(items.slice(offset, offset + size));
+  }
+  return chunks;
 }
 
 function monthBuckets(startedAt: Date, endedAt: Date) {
