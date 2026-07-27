@@ -1282,6 +1282,7 @@ type SimulationWorkflowConfigView {
   prebuildChunkSourceRecordLimit: Int!
   queuedTaskBatchSize: Int!
   readyTaskScanLimit: Int!
+  sourceDerivedRecalculationConcurrency: Int!
 }
 
 type Strategy {
@@ -1393,6 +1394,7 @@ input UpdateSimulationWorkflowConfigInput {
   prebuildChunkSourceRecordLimit: Int
   queuedTaskBatchSize: Int
   readyTaskScanLimit: Int
+  sourceDerivedRecalculationConcurrency: Int
 }
 
 input UpdateSlInput {

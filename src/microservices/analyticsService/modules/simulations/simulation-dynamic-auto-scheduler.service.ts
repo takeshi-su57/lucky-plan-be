@@ -340,10 +340,18 @@ export class SimulationDynamicAutoSchedulerService {
     // before launching the slower, ordinary finalizers so sustained Layer 1
     // traffic cannot starve Layer 2/3 research indefinitely.
     const workflow = await this.workflowConfig.get();
-    await this.startSourceDerivedSimulation(
-      now,
-      Math.max(30_000, workflow.finalizerLeaseMs ?? 30 * 60_000),
+    const sourceDerivedLeaseMs = Math.max(
+      30_000,
+      workflow.finalizerLeaseMs ?? 30 * 60_000,
     );
+    const sourceDerivedSlots = Math.max(
+      0,
+      (workflow.sourceDerivedRecalculationConcurrency ?? 1) -
+        this.activeSourceDerivedSimulations.size,
+    );
+    for (let index = 0; index < sourceDerivedSlots; index += 1) {
+      await this.startSourceDerivedSimulation(now, sourceDerivedLeaseMs);
+    }
     const availableSlots = Math.max(
       0,
       workflow.finalizerConcurrency - this.activeFinalizerSimulations.size,
@@ -461,7 +469,6 @@ export class SimulationDynamicAutoSchedulerService {
   }
 
   private async startSourceDerivedSimulation(now: Date, leaseMs: number) {
-    if (this.activeSourceDerivedSimulations.size > 0) return;
     const candidate = await this.prisma.simulation.findFirst({
       where: {
         sourceSimulationId: { not: null },

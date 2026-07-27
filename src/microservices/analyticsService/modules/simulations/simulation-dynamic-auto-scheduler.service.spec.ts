@@ -248,6 +248,34 @@ describe('research completion reconciliation', () => {
 });
 
 describe('materialized simulation finalization', () => {
+  it('starts source-derived recalculations up to their configured concurrency', async () => {
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {
+        get: jest.fn(async () => ({
+          finalizerConcurrency: 2,
+          sourceDerivedRecalculationConcurrency: 3,
+        })),
+      } as never,
+    );
+    const startSourceDerivedSimulation = jest.fn(async () => undefined);
+    (
+      scheduler as unknown as {
+        startSourceDerivedSimulation: typeof startSourceDerivedSimulation;
+      }
+    ).startSourceDerivedSimulation = startSourceDerivedSimulation;
+
+    await scheduler.finalizeMaterializedSimulations(
+      new Date('2026-07-26T00:00:00.000Z'),
+    );
+
+    expect(startSourceDerivedSimulation).toHaveBeenCalledTimes(3);
+  });
+
   it('claims ready simulations up to finalizer concurrency', async () => {
     const candidates = [1, 2, 3].map((id) => ({
       id,
