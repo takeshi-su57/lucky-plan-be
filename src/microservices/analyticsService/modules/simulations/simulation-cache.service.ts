@@ -427,7 +427,9 @@ export class SimulationCacheService {
     });
 
     try {
-      if (options.fetchSourceEventLogs !== false) {
+      const fetchSourceEventLogs =
+        options.fetchSourceEventLogs !== false && !bot.sourceSimulationBotId;
+      if (fetchSourceEventLogs) {
         await this.appendNewEventLogsForBot(cache.id, botWithContracts);
       }
 
@@ -450,6 +452,7 @@ export class SimulationCacheService {
           eventSnapshotVersion: canCertifyFullLayer1Snapshot
             ? 2
             : cache.eventSnapshotVersion,
+          ...(fetchSourceEventLogs ? { snapshotCapturedAt: new Date() } : {}),
           openedPositions: summary.openedPositions,
           totalPositions: summary.totalPositions,
           totalLeaderPnl: summary.totalLeaderPnl,
