@@ -15,6 +15,7 @@ import { SimulationEvaluatorTaskService } from '../simulationEvaluator/simulatio
 import { SIMULATION_EVALUATOR } from '../simulationEvaluator/simulation-evaluator.constants';
 import { DistributedSimulationEvaluatorService } from './distributed-simulation-evaluator.service';
 import { SimulationAutoRunnerService } from './simulation-auto-runner.service';
+import { getEventLogOrderBy } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
 import { buildAutomationHorizon } from './utils/simulation-automation-queue.utils';
 import {
   buildSimulationRanges,
@@ -154,7 +155,16 @@ export class SimulationDynamicAutoSchedulerService {
           include: {
             simulationPlans: {
               orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
-              include: { simulationBots: { orderBy: { id: 'asc' } } },
+              include: {
+                simulationBots: {
+                  orderBy: { id: 'asc' },
+                  include: {
+                    cache: {
+                      include: { eventLogs: { orderBy: getEventLogOrderBy() } },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -202,7 +212,7 @@ export class SimulationDynamicAutoSchedulerService {
               sourceSimulationPlanId: sourcePlan.id,
             },
           });
-          await tx.simulationBot.createMany({
+          const derivedBots = await tx.simulationBot.createManyAndReturn({
             data: sourcePlan.simulationBots.map((bot) => ({
               sourceSimulationBotId: bot.id,
               leaderAddress: bot.leaderAddress,
@@ -237,7 +247,60 @@ export class SimulationDynamicAutoSchedulerService {
               evaluationProfitFactor: bot.evaluationProfitFactor,
               evaluationMaxDrawdownUsd: bot.evaluationMaxDrawdownUsd,
             })),
+            select: { id: true, sourceSimulationBotId: true },
           });
+          const sourceBotById = new Map(
+            sourcePlan.simulationBots.map((bot) => [bot.id, bot]),
+          );
+          const copiedCaches = await tx.simulationBotCache.createManyAndReturn({
+            data: derivedBots.map((bot) => {
+              const sourceCache = sourceBotById.get(
+                bot.sourceSimulationBotId!,
+              )?.cache;
+              if (
+                !sourceCache?.snapshotCapturedAt ||
+                sourceCache.eventSnapshotVersion < 2
+              ) {
+                throw new Error(
+                  `Source snapshot is unavailable for simulation bot ${bot.sourceSimulationBotId}`,
+                );
+              }
+              return {
+                simulationBotId: bot.id,
+                completed: sourceCache.completed,
+                eventSnapshotVersion: sourceCache.eventSnapshotVersion,
+                snapshotCapturedAt: sourceCache.snapshotCapturedAt,
+              };
+            }),
+            select: { id: true, simulationBotId: true },
+          });
+          const copiedCacheIdByBotId = new Map(
+            copiedCaches.map((cache) => [cache.simulationBotId, cache.id]),
+          );
+          const copiedEventLogs = derivedBots.flatMap((bot) => {
+            const sourceCache = sourceBotById.get(
+              bot.sourceSimulationBotId!,
+            )!.cache!;
+            const simulationBotCacheId = copiedCacheIdByBotId.get(bot.id)!;
+            return sourceCache.eventLogs.map((eventLog) => ({
+              simulationBotCacheId,
+              sourceEventLogKey: eventLog.sourceEventLogKey,
+              contractId: eventLog.contractId,
+              address: eventLog.address,
+              platform: eventLog.platform,
+              block: eventLog.block,
+              logIndex: eventLog.logIndex,
+              transactionHash: eventLog.transactionHash,
+              date: eventLog.date,
+              jsonLog: eventLog.jsonLog,
+              usdPnl: eventLog.usdPnl,
+            }));
+          });
+          if (copiedEventLogs.length) {
+            await tx.simulationBotCachedEventLog.createMany({
+              data: copiedEventLogs,
+            });
+          }
         }
       });
       await this.prisma.simulation.update({

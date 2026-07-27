@@ -26,14 +26,14 @@ const emptySummary = {
   avgLeverage: 0,
 };
 
-function makeBot(sourceCache: unknown) {
+function makeBot(snapshotCache: unknown) {
   return {
     id: 2,
     leaderAddress: '0xleader',
     leaderPlatform: Platform.GNS,
     simulationPlanId: 2,
     sourceSimulationBotId: 1,
-    sourceSimulationBot: { cache: sourceCache },
+    cache: snapshotCache,
     startedAt: new Date('2026-01-01'),
     stoppedAt: new Date('2026-01-02'),
     mode: BotMode.Reversed,
@@ -116,6 +116,7 @@ describe('SimulationPlansService source snapshots', () => {
       makeBot({
         completed: true,
         eventSnapshotVersion: 2,
+        snapshotCapturedAt: new Date('2026-01-02'),
         eventLogs: [sourceEvent],
       }),
     );
@@ -140,9 +141,47 @@ describe('SimulationPlansService source snapshots', () => {
     expect(liveFindMany).not.toHaveBeenCalled();
   });
 
+  it('rejects an unverified version-2 cache', async () => {
+    const { service, liveFindMany } = makeService(
+      makeBot({ completed: false, eventSnapshotVersion: 2, eventLogs: [] }),
+    );
+
+    await expect(
+      service.calculateSimulationPlanDetails(2, {
+        persistSummary: false,
+        eventSource: 'sourceSnapshot',
+      }),
+    ).rejects.toThrow('Source snapshot is unavailable');
+    expect(liveFindMany).not.toHaveBeenCalled();
+  });
+
   it('accepts an empty completed version-2 source snapshot', async () => {
     const { service, liveFindMany } = makeService(
-      makeBot({ completed: true, eventSnapshotVersion: 2, eventLogs: [] }),
+      makeBot({
+        completed: true,
+        eventSnapshotVersion: 2,
+        snapshotCapturedAt: new Date('2026-01-02'),
+        eventLogs: [],
+      }),
+    );
+
+    const details = await service.calculateSimulationPlanDetails(2, {
+      persistSummary: false,
+      eventSource: 'sourceSnapshot',
+    });
+
+    expect(details.simulationBots[0].positions).toEqual([]);
+    expect(liveFindMany).not.toHaveBeenCalled();
+  });
+
+  it('accepts an incomplete version-2 source snapshot without querying live logs', async () => {
+    const { service, liveFindMany } = makeService(
+      makeBot({
+        completed: false,
+        eventSnapshotVersion: 2,
+        snapshotCapturedAt: new Date('2026-01-02'),
+        eventLogs: [],
+      }),
     );
 
     const details = await service.calculateSimulationPlanDetails(2, {

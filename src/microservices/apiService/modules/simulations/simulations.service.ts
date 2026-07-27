@@ -765,6 +765,7 @@ export class SimulationsService {
                   select: {
                     completed: true,
                     eventSnapshotVersion: true,
+                    snapshotCapturedAt: true,
                   },
                 },
               },
@@ -787,11 +788,14 @@ export class SimulationsService {
       (plan) => plan.simulationBots,
     );
     const missingSnapshot = sourceBots.find(
-      (bot) => !bot.cache?.completed || bot.cache.eventSnapshotVersion < 2,
+      (bot) =>
+        !bot.cache ||
+        bot.cache.eventSnapshotVersion < 2 ||
+        !bot.cache.snapshotCapturedAt,
     );
     if (missingSnapshot) {
       throw new Error(
-        `Source simulation bot ${missingSnapshot.id} has no complete Layer 1 event snapshot`,
+        `Source simulation bot ${missingSnapshot.id} has no Layer 1 event snapshot`,
       );
     }
 

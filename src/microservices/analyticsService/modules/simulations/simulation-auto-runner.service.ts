@@ -556,11 +556,27 @@ export class SimulationAutoRunnerService {
     const plans = await this.prisma.simulationPlan.findMany({
       where: { simulationId },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+      include: {
+        simulationBots: {
+          select: {
+            id: true,
+            cache: {
+              select: { completed: true },
+            },
+          },
+        },
+      },
     });
     const followerPositionPnls: number[] = [];
     let totalLeaderPnl = 0;
     let totalFollowerPnl = 0;
     for (const plan of plans) {
+      const sourceCacheCompletedByBotId = new Map(
+        plan.simulationBots.map((bot) => [
+          bot.id,
+          bot.cache?.completed ?? false,
+        ]),
+      );
       const details =
         await this.simulationPlansService.calculateSimulationPlanDetails(
           plan.id,
@@ -571,11 +587,13 @@ export class SimulationAutoRunnerService {
       for (const bot of details.simulationBots) {
         const pnls = bot.positions.map((position) => position.followerPnl);
         followerPositionPnls.push(...pnls);
+        const sourceCacheCompleted =
+          sourceCacheCompletedByBotId.get(bot.id) ?? false;
         await this.prisma.simulationBotCache.upsert({
           where: { simulationBotId: bot.id },
           create: {
             simulationBotId: bot.id,
-            completed: true,
+            completed: sourceCacheCompleted,
             lastFetchedAt: new Date(),
             openedPositions: bot.openedPositions,
             totalPositions: bot.totalPositions,
@@ -595,7 +613,7 @@ export class SimulationAutoRunnerService {
             followerPositionPnlsJson: JSON.stringify(pnls),
           },
           update: {
-            completed: true,
+            completed: sourceCacheCompleted,
             lastFetchedAt: new Date(),
             openedPositions: bot.openedPositions,
             totalPositions: bot.totalPositions,
@@ -616,13 +634,17 @@ export class SimulationAutoRunnerService {
           },
         });
       }
+      const completedBots = details.simulationBots.filter((bot) =>
+        sourceCacheCompletedByBotId.get(bot.id),
+      ).length;
+      const incompleteBots = details.simulationBots.length - completedBots;
       await this.prisma.simulationPlanCache.upsert({
         where: { simulationPlanId: plan.id },
         create: {
           simulationPlanId: plan.id,
-          completed: true,
-          completedBots: details.simulationBots.length,
-          incompleteBots: 0,
+          completed: incompleteBots === 0,
+          completedBots,
+          incompleteBots,
           openedPositions: details.openedPositions,
           totalPositions: details.totalPositions,
           totalLeaderPnl: details.totalLeaderPnl,
@@ -630,9 +652,9 @@ export class SimulationAutoRunnerService {
           lastBuiltAt: new Date(),
         },
         update: {
-          completed: true,
-          completedBots: details.simulationBots.length,
-          incompleteBots: 0,
+          completed: incompleteBots === 0,
+          completedBots,
+          incompleteBots,
           openedPositions: details.openedPositions,
           totalPositions: details.totalPositions,
           totalLeaderPnl: details.totalLeaderPnl,

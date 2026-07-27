@@ -600,6 +600,7 @@ model SimulationBotCache {
   rebuilding                   Boolean   @default(false)
   rebuildRequested             Boolean   @default(false)
   eventSnapshotVersion         Int       @default(2)
+  snapshotCapturedAt           DateTime?
   lastFetchedAt                DateTime?
   openedPositions              Int       @default(0)
   totalPositions               Int       @default(0)

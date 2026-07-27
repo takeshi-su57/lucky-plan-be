@@ -43,11 +43,9 @@ export class SimulationPlansService {
       include: {
         simulationBots: {
           include: {
-            sourceSimulationBot: {
+            cache: {
               include: {
-                cache: {
-                  include: { eventLogs: { orderBy: getEventLogOrderBy() } },
-                },
+                eventLogs: { orderBy: getEventLogOrderBy() },
               },
             },
           },
@@ -83,10 +81,12 @@ export class SimulationPlansService {
 
     for (const bot of simulationPlan.simulationBots) {
       const stoppedAt = bot.stoppedAt;
-      const sourceCache = bot.sourceSimulationBot?.cache;
+      const sourceCache = bot.cache;
       if (
         eventSource === 'sourceSnapshot' &&
-        (!sourceCache?.completed || sourceCache.eventSnapshotVersion < 2)
+        (!sourceCache ||
+          sourceCache.eventSnapshotVersion < 2 ||
+          !sourceCache.snapshotCapturedAt)
       ) {
         throw new Error(
           `Source snapshot is unavailable for simulation bot ${bot.id}`,
