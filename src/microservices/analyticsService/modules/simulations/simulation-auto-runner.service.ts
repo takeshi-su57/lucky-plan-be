@@ -664,8 +664,8 @@ export class SimulationAutoRunnerService {
       });
     }
     const tradeCount = followerPositionPnls.length;
-    const completed = await this.prisma.simulation.update({
-      where: { id: simulationId },
+    const completion = await this.prisma.simulation.updateMany({
+      where: { id: simulationId, status: SimulationStatus.Running },
       data: {
         status: SimulationStatus.Completed,
         progressPhase: 'completed',
@@ -684,6 +684,10 @@ export class SimulationAutoRunnerService {
         maxDrawdownUsd: calculateMaxDrawdown(cumulative(followerPositionPnls)),
       },
     });
+    const completed = await this.prisma.simulation.findUniqueOrThrow({
+      where: { id: simulationId },
+    });
+    if (!completion.count) return this.mapSimulation(completed);
     await this.emitSimulationUpdated(completed);
     return this.mapSimulation(completed);
   }

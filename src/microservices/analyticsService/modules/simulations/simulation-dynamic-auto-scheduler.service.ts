@@ -28,6 +28,11 @@ type DispatchCandidate = {
   undispatchedRanges: WindowRange[];
 };
 
+const SOURCE_DERIVED_MATERIALIZATION_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 10 * 60_000,
+} as const;
+
 export function allocateFairPlanSlots(
   candidates: Array<{
     simulationId: number;
@@ -303,7 +308,7 @@ export class SimulationDynamicAutoSchedulerService {
             });
           }
         }
-      });
+      }, SOURCE_DERIVED_MATERIALIZATION_TRANSACTION_OPTIONS);
       await this.prisma.simulation.update({
         where: { id: target.id, automationLeaseToken: leaseToken },
         data: {
@@ -1309,6 +1314,11 @@ export class SimulationDynamicAutoSchedulerService {
     if (!research) return;
 
     if (research.sourceSimulationId != null) {
+      if (
+        research.status === SimulationStatus.Cancelled ||
+        research.status === SimulationStatus.Paused
+      )
+        return;
       const totalPlans = research.simulations.reduce(
         (sum, simulation) => sum + simulation.totalSimulationPlans,
         0,

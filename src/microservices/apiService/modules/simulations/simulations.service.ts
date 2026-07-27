@@ -1263,6 +1263,16 @@ export class SimulationsService {
         throw new Error('Cannot delete a running simulation');
       }
 
+      const dependentResearch = await tx.simulationResearch.findFirst({
+        where: { sourceSimulationId: id },
+        select: { id: true },
+      });
+      if (dependentResearch) {
+        throw new Error(
+          `Cannot delete simulation while source-derived research ${dependentResearch.id} depends on it`,
+        );
+      }
+
       await this.deleteSimulationRecordsInTransaction(tx, [id]);
     }, SIMULATION_DELETION_TRANSACTION_OPTIONS);
 
@@ -1294,6 +1304,23 @@ export class SimulationsService {
         )
       ) {
         throw new Error('Cannot delete research with a running simulation');
+      }
+
+      const dependentResearch = await tx.simulationResearch.findFirst({
+        where: {
+          id: { not: id },
+          sourceSimulationId: {
+            in: research.simulations.map(
+              (simulation: { id: number }) => simulation.id,
+            ),
+          },
+        },
+        select: { id: true },
+      });
+      if (dependentResearch) {
+        throw new Error(
+          `Cannot delete research while source-derived research ${dependentResearch.id} depends on one of its simulations`,
+        );
       }
 
       await this.deleteSimulationRecordsInTransaction(
@@ -1332,6 +1359,14 @@ export class SimulationsService {
   }
 
   async resumeResearch(id: number): Promise<SimulationResearch> {
+    const research = await this.prisma.simulationResearch.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!research) throw new Error('SimulationResearch not found');
+    if (research.status === SimulationStatus.Failed) {
+      return this.recoverResearch(id);
+    }
     return this.queueResearch(id, true);
   }
 
@@ -1492,6 +1527,134 @@ export class SimulationsService {
         tx,
         research.simulations.map((simulation) => simulation.id),
       );
+
+      if (research.sourceSimulationId !== null) {
+        const sourceSimulation = await tx.simulation.findUnique({
+          where: { id: research.sourceSimulationId },
+          select: {
+            status: true,
+            selectedLeaderCount: true,
+            cursor: true,
+            standardCollateralUsd: true,
+            trade: true,
+            r2: true,
+            slope: true,
+            collateral: true,
+            size: true,
+            leverage: true,
+            score: true,
+            scoreFormular: true,
+            sizingFormular: true,
+            _count: { select: { simulationPlans: true } },
+          },
+        });
+        if (
+          !sourceSimulation ||
+          sourceSimulation.status !== SimulationStatus.Completed
+        ) {
+          throw new Error(
+            'Cannot restart source-derived research without its completed source simulation',
+          );
+        }
+        const variants = buildLayerVariantParameterGrid({
+          leaderExecutionCollateral: this.normalizeResearchGroups(
+            research.leaderExecutionCollateral,
+          ),
+          leaderExecutionSize: this.normalizeResearchGroups(
+            research.leaderExecutionSize,
+          ),
+          leaderExecutionLeverage: this.normalizeResearchGroups(
+            research.leaderExecutionLeverage,
+          ),
+          followerRiskSize: this.normalizeResearchGroups(
+            research.followerRiskSize,
+          ),
+          followerRiskCollateral: this.normalizeResearchGroups(
+            research.followerRiskCollateral,
+          ),
+        });
+        const totalSimulationPlans = sourceSimulation._count.simulationPlans;
+        await tx.simulation.createMany({
+          data: variants.map((variant) => ({
+            title: research.title,
+            description: research.description,
+            platform: research.platform,
+            researchId: research.id,
+            sourceSimulationId: research.sourceSimulationId,
+            direction: research.direction,
+            startAt: research.startAt,
+            endAt: research.endAt,
+            days: research.days,
+            gapDays: research.gapDays,
+            cursor: sourceSimulation.cursor,
+            status: SimulationStatus.Running,
+            progressPhase: 'recalculating-layer-2-3',
+            progressMessage: 'Recalculating follower positions',
+            totalSimulationPlans,
+            selectedLeaderCount: sourceSimulation.selectedLeaderCount,
+            standardCollateralUsd: sourceSimulation.standardCollateralUsd,
+            trade: sourceSimulation.trade as any,
+            r2: sourceSimulation.r2 as any,
+            slope: sourceSimulation.slope as any,
+            collateral: sourceSimulation.collateral as any,
+            size: sourceSimulation.size as any,
+            leverage: sourceSimulation.leverage as any,
+            score: sourceSimulation.score as any,
+            scoreFormular: sourceSimulation.scoreFormular,
+            sizingFormular: sourceSimulation.sizingFormular,
+            leaderExecutionCollateral: this.serializeRanges(
+              variant.leaderExecutionCollateral,
+            ),
+            leaderExecutionSize: this.serializeRanges(
+              variant.leaderExecutionSize,
+            ),
+            leaderExecutionLeverage: this.serializeRanges(
+              variant.leaderExecutionLeverage,
+            ),
+            followerRiskSize: this.serializeRanges(variant.followerRiskSize),
+            followerRiskCollateral: this.serializeRanges(
+              variant.followerRiskCollateral,
+            ),
+          })),
+        });
+        return tx.simulationResearch.update({
+          where: { id },
+          data: {
+            cursor: null,
+            status: SimulationStatus.Running,
+            automationEnabled: true,
+            automationLeaseToken: null,
+            automationLeaseExpiresAt: null,
+            startedAt: new Date(),
+            finishedAt: null,
+            lastError: null,
+            retryAttempts: 0,
+            nextRetryAt: null,
+            aiReportReady: false,
+            aiReportGenerating: false,
+            aiReportError: null,
+            aiReportRevision: { increment: 1 },
+            aiReportAttempts: 0,
+            aiReportRetryAt: null,
+            progressPhase: 'materializing-layer-2-variants',
+            progressMessage: 'Restarted from completed Layer 1 snapshots',
+            progressPercent: 0,
+            totalRanges: totalSimulationPlans,
+            completedRanges: 0,
+            totalPlans: totalSimulationPlans * variants.length,
+            completedPlans: 0,
+            outstandingPlans: totalSimulationPlans * variants.length,
+            queuedPlans: totalSimulationPlans * variants.length,
+            runningPlans: 0,
+            finalizingPlans: 0,
+            evaluatedPlans: totalSimulationPlans * variants.length,
+            materializedPlans: 0,
+            awaitingEventPlans: 0,
+            finalizedPlans: 0,
+          },
+          include: { simulations: { select: { status: true } } },
+        });
+      }
 
       const combinations = buildSimulationParameterGrid({
         direction: research.direction,
