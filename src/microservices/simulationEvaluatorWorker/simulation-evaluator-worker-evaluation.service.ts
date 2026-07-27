@@ -168,34 +168,54 @@ export class SimulationEvaluatorWorkerEvaluationService {
           { cause: error },
         );
       }
-
-      await this.cache.mergeEventLogs(chunk.eventLogs);
-
       totalRecords = chunk.totalRecords ?? totalRecords;
-      recordsProcessed += chunk.eventLogs.length;
-      bytesDownloaded += chunk.compressedBytes;
       if (!chunk.done && !chunk.nextCursor) {
         throw new Error('Prebuild chunk is missing a next cursor');
       }
+      this.validatePrebuildChunk(
+        chunk.eventLogs,
+        chunk.nextCursor,
+        cursor,
+        platform,
+        startedAt,
+        endedAt,
+        chunk.done,
+      );
+      recordsProcessed += chunk.eventLogs.length;
+      bytesDownloaded += chunk.compressedBytes;
       cursor = chunk.nextCursor;
       done = chunk.done;
 
       // Event logs are written before the cursor checkpoint. If the process
       // stops between those writes, replaying the last idempotent batch is
       // safe; advancing past data that was not persisted is not.
-      this.cache.savePrebuildTaskCheckpoint(
-        taskId,
-        platform,
-        startedAt,
-        endedAt,
-        {
-          cursor,
-          done,
-          recordsProcessed,
-          bytesDownloaded,
-          totalRecords,
-        },
-      );
+      const checkpoint = {
+        cursor,
+        done,
+        recordsProcessed,
+        bytesDownloaded,
+        totalRecords,
+      };
+      if (this.cache.isSqliteEventLogCache()) {
+        this.cache.commitSqlitePrebuildChunk({
+          taskId,
+          platform,
+          startedAt,
+          endedAt,
+          eventLogs: chunk.eventLogs,
+          checkpoint,
+          completed: done,
+        });
+      } else {
+        await this.cache.mergeEventLogs(chunk.eventLogs);
+        this.cache.savePrebuildTaskCheckpoint(
+          taskId,
+          platform,
+          startedAt,
+          endedAt,
+          checkpoint,
+        );
+      }
       const progressPercent = totalRecords
         ? Math.min(100, (recordsProcessed / totalRecords) * 100)
         : chunk.done
@@ -214,8 +234,10 @@ export class SimulationEvaluatorWorkerEvaluationService {
       });
     }
 
-    this.cache.markPlatformCoverage(platform, startedAt, endedAt);
-    this.cache.clearPrebuildTaskCheckpoint(taskId);
+    if (!this.cache.isSqliteEventLogCache()) {
+      this.cache.markPlatformCoverage(platform, startedAt, endedAt);
+      this.cache.clearPrebuildTaskCheckpoint(taskId);
+    }
 
     return {
       platform,
@@ -339,6 +361,82 @@ export class SimulationEvaluatorWorkerEvaluationService {
       throw new Error('Incomplete evaluation task input');
     }
     return value as unknown as EvaluateLeadersTaskInput;
+  }
+
+  private validatePrebuildChunk(
+    eventLogs: Awaited<
+      ReturnType<SimulationEvaluatorWorkerClientService['getPrebuildChunk']>
+    >['eventLogs'],
+    nextCursor: Awaited<
+      ReturnType<SimulationEvaluatorWorkerClientService['getPrebuildChunk']>
+    >['nextCursor'],
+    cursor: {
+      date: string;
+      block: number;
+      logIndex: number;
+      contractId: number;
+    } | null,
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+    done: boolean,
+  ) {
+    let previous = cursor;
+    for (const eventLog of eventLogs) {
+      const date = new Date(eventLog.date);
+      if (
+        eventLog.platform !== platform ||
+        Number.isNaN(+date) ||
+        date < startedAt ||
+        date >= endedAt ||
+        ![eventLog.contractId, eventLog.block, eventLog.logIndex].every(
+          Number.isSafeInteger,
+        )
+      ) {
+        throw new Error('Prebuild chunk contains an invalid event log');
+      }
+      const current = {
+        date: date.toISOString(),
+        block: eventLog.block,
+        logIndex: eventLog.logIndex,
+        contractId: eventLog.contractId,
+      };
+      if (previous && this.comparePrebuildCursor(current, previous) <= 0) {
+        throw new Error('Prebuild chunk event logs are not strictly ordered');
+      }
+      previous = current;
+    }
+
+    if (!nextCursor) {
+      if (!done) throw new Error('Prebuild chunk is missing a next cursor');
+      return;
+    }
+    if (eventLogs.length === 0) {
+      throw new Error('Prebuild chunk has a cursor but no event logs');
+    }
+    const last = previous!;
+    if (this.comparePrebuildCursor(nextCursor, last) !== 0) {
+      throw new Error(
+        'Prebuild chunk cursor does not match its final event log',
+      );
+    }
+  }
+
+  private comparePrebuildCursor(
+    left: { date: string; block: number; logIndex: number; contractId: number },
+    right: {
+      date: string;
+      block: number;
+      logIndex: number;
+      contractId: number;
+    },
+  ) {
+    return (
+      +new Date(left.date) - +new Date(right.date) ||
+      left.block - right.block ||
+      left.logIndex - right.logIndex ||
+      left.contractId - right.contractId
+    );
   }
 
   private parsePrebuildPlatformCacheInput(

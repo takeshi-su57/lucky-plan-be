@@ -12,6 +12,10 @@ import {
   coversRange,
   mergeRanges,
 } from 'src/microservices/analyticsService/modules/simulationEvaluator/simulation-evaluator-coverage';
+import {
+  getSimulationEvaluatorEventLogCacheDriver,
+  SimulationEvaluatorEventLogCacheDriver,
+} from './simulation-evaluator-worker-event-log-cache-driver';
 
 export type WorkerCachedEventLog = {
   address: string;
@@ -47,12 +51,31 @@ export type PrebuildTaskCheckpoint = {
   totalRecords: number;
 };
 
+export type SqlitePrebuildChunkCommit = {
+  taskId: string;
+  platform: Platform;
+  startedAt: Date;
+  endedAt: Date;
+  eventLogs: WorkerCachedEventLog[];
+  checkpoint: PrebuildTaskCheckpoint;
+  completed: boolean;
+};
+
+const CACHE_MIGRATIONS = new Set([
+  'base-v1',
+  'worker-identity-display-name-v2',
+  'prebuild-checkpoint-cursor-v3',
+  'sqlite-event-log-v1',
+]);
+
 @Injectable()
 export class SimulationEvaluatorWorkerCacheService
   implements OnModuleInit, OnModuleDestroy
 {
   private database?: DatabaseSync;
   private identity?: SimulationEvaluatorWorkerIdentity;
+  private readonly eventLogCacheDriver: SimulationEvaluatorEventLogCacheDriver =
+    getSimulationEvaluatorEventLogCacheDriver();
   private readonly cacheDir = join(
     process.cwd(),
     ...SIMULATION_EVALUATOR.workerCacheDirectory,
@@ -60,11 +83,46 @@ export class SimulationEvaluatorWorkerCacheService
 
   async onModuleInit() {
     await fs.mkdir(this.cacheDir, { recursive: true });
-    this.database = new DatabaseSync(join(this.cacheDir, 'cache.sqlite'));
+    this.database = new DatabaseSync(join(this.cacheDir, 'cache.sqlite'), {
+      timeout: 5_000,
+    });
     this.database.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA synchronous = NORMAL;
+    `);
+    this.applyCacheMigrations();
+    this.identity =
+      this.readWorkerIdentity() || (await this.createWorkerIdentity());
+    const identity = this.identity;
+    console.log(
+      `[simulation-evaluator-worker] Worker ID: ${identity.workerId} (${identity.displayName})`,
+    );
+  }
+
+  private applyCacheMigrations() {
+    const database = this.getDatabase();
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS worker_cache_migration (
+        name TEXT PRIMARY KEY,
+        applied_at TEXT NOT NULL
+      ) STRICT;
+    `);
+    const unsupportedMigration = database
+      .prepare('SELECT name FROM worker_cache_migration')
+      .all()
+      .map((row) => (row as { name: string }).name)
+      .find((name) => !CACHE_MIGRATIONS.has(name));
+    if (unsupportedMigration) {
+      throw new Error(
+        `Worker cache was migrated by a newer unsupported release (${unsupportedMigration})`,
+      );
+    }
+    this.applyCacheMigration('base-v1', () => {
+      database.exec(`
       CREATE TABLE IF NOT EXISTS worker_identity (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         worker_id TEXT NOT NULL,
+        display_name TEXT,
         public_key TEXT NOT NULL,
         private_key TEXT NOT NULL
       ) STRICT;
@@ -96,29 +154,203 @@ export class SimulationEvaluatorWorkerCacheService
         total_records INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT NOT NULL
       ) STRICT;
-    `);
-    const columns = this.database
-      .prepare('PRAGMA table_info(worker_identity)')
+      `);
+    });
+    this.applyCacheMigration('worker-identity-display-name-v2', () => {
+      this.addColumnIfMissing('worker_identity', 'display_name', 'TEXT');
+    });
+    this.applyCacheMigration('prebuild-checkpoint-cursor-v3', () => {
+      this.addColumnIfMissing(
+        'prebuild_task_checkpoint',
+        'cursor_date',
+        'TEXT',
+      );
+      this.addColumnIfMissing(
+        'prebuild_task_checkpoint',
+        'cursor_contract_id',
+        'INTEGER',
+      );
+      this.addColumnIfMissing(
+        'prebuild_task_checkpoint',
+        'cursor_block',
+        'INTEGER',
+      );
+      this.addColumnIfMissing(
+        'prebuild_task_checkpoint',
+        'cursor_log_index',
+        'INTEGER',
+      );
+    });
+    if (this.eventLogCacheDriver === 'sqlite') {
+      this.applyCacheMigration('sqlite-event-log-v1', () => {
+        database.exec(`
+        CREATE TABLE IF NOT EXISTS perp_trading_event_log (
+          contract_id INTEGER NOT NULL,
+          json_log TEXT NOT NULL,
+          usd_pnl REAL NOT NULL,
+          block INTEGER NOT NULL,
+          log_index INTEGER NOT NULL,
+          transaction_hash TEXT NOT NULL,
+          date TEXT NOT NULL,
+          address TEXT NOT NULL,
+          platform TEXT NOT NULL,
+          PRIMARY KEY (contract_id, block, log_index)
+        ) STRICT;
+        CREATE INDEX IF NOT EXISTS perp_trading_event_log_platform_address_date_idx
+          ON perp_trading_event_log (
+            platform, address, date, block, log_index, contract_id
+          );
+        `);
+      });
+    }
+    this.validateCacheSchema();
+  }
+
+  private validateCacheSchema() {
+    this.requireTableColumns('worker_identity', [
+      'id',
+      'worker_id',
+      'display_name',
+      'public_key',
+      'private_key',
+    ]);
+    this.requireTableColumns('platform_cache_coverage', [
+      'platform',
+      'started_at',
+      'ended_at',
+    ]);
+    this.requireTableColumns('address_cache_coverage', [
+      'platform',
+      'address',
+      'started_at',
+      'ended_at',
+    ]);
+    this.requireTableColumns('prebuild_task_checkpoint', [
+      'task_id',
+      'platform',
+      'started_at',
+      'ended_at',
+      'cursor_date',
+      'cursor_contract_id',
+      'cursor_block',
+      'cursor_log_index',
+      'done',
+      'records_processed',
+      'bytes_downloaded',
+      'total_records',
+      'updated_at',
+    ]);
+    if (this.eventLogCacheDriver !== 'sqlite') return;
+
+    this.requireTableColumns('perp_trading_event_log', [
+      'contract_id',
+      'json_log',
+      'usd_pnl',
+      'block',
+      'log_index',
+      'transaction_hash',
+      'date',
+      'address',
+      'platform',
+    ]);
+    this.requirePrimaryKey('perp_trading_event_log', [
+      'contract_id',
+      'block',
+      'log_index',
+    ]);
+    const indexes = this.getDatabase()
+      .prepare("PRAGMA index_list('perp_trading_event_log')")
       .all() as { name: string }[];
-    if (!columns.some((column) => column.name === 'display_name')) {
-      this.database.exec(
-        'ALTER TABLE worker_identity ADD COLUMN display_name TEXT',
+    if (
+      !indexes.some(
+        (index) =>
+          index.name === 'perp_trading_event_log_platform_address_date_idx',
+      )
+    ) {
+      throw new Error(
+        'SQLite event-log cache is missing its evaluator lookup index; rebuild the local cache',
       );
     }
-    const checkpointColumns = this.database
-      .prepare('PRAGMA table_info(prebuild_task_checkpoint)')
-      .all() as { name: string }[];
-    if (!checkpointColumns.some((column) => column.name === 'cursor_date')) {
-      this.database.exec(
-        'ALTER TABLE prebuild_task_checkpoint ADD COLUMN cursor_date TEXT',
-      );
-    }
-    this.identity =
-      this.readWorkerIdentity() || (await this.createWorkerIdentity());
-    const identity = this.identity;
-    console.log(
-      `[simulation-evaluator-worker] Worker ID: ${identity.workerId} (${identity.displayName})`,
+  }
+
+  private requireTableColumns(table: string, expectedColumns: string[]) {
+    const actualColumns = new Set(
+      (
+        this.getDatabase().prepare(`PRAGMA table_info(${table})`).all() as {
+          name: string;
+        }[]
+      ).map((column) => column.name),
     );
+    const missing = expectedColumns.filter(
+      (column) => !actualColumns.has(column),
+    );
+    if (missing.length > 0) {
+      throw new Error(
+        `Worker cache schema is incompatible (${table} is missing ${missing.join(', ')}); rebuild the local cache`,
+      );
+    }
+  }
+
+  private requirePrimaryKey(table: string, expectedColumns: string[]) {
+    const primaryKeyColumns = (
+      this.getDatabase().prepare(`PRAGMA table_info(${table})`).all() as {
+        name: string;
+        pk: number;
+      }[]
+    )
+      .filter((column) => column.pk > 0)
+      .sort((left, right) => left.pk - right.pk)
+      .map((column) => column.name);
+    if (primaryKeyColumns.join(',') !== expectedColumns.join(',')) {
+      throw new Error(
+        `Worker cache schema is incompatible (${table} has an unexpected primary key); rebuild the local cache`,
+      );
+    }
+  }
+
+  private applyCacheMigration(name: string, apply: () => void) {
+    const database = this.getDatabase();
+    if (
+      database
+        .prepare('SELECT 1 FROM worker_cache_migration WHERE name = ?')
+        .get(name)
+    ) {
+      return;
+    }
+    database.exec('BEGIN IMMEDIATE');
+    try {
+      if (
+        !database
+          .prepare('SELECT 1 FROM worker_cache_migration WHERE name = ?')
+          .get(name)
+      ) {
+        apply();
+        database
+          .prepare(
+            'INSERT INTO worker_cache_migration (name, applied_at) VALUES (?, ?)',
+          )
+          .run(name, new Date().toISOString());
+      }
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  private addColumnIfMissing(
+    table: string,
+    column: string,
+    definition: string,
+  ) {
+    const columns = this.getDatabase()
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as { name: string }[];
+    if (!columns.some((item) => item.name === column)) {
+      this.getDatabase().exec(
+        `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
+      );
+    }
   }
 
   getWorkerIdentity(): SimulationEvaluatorWorkerIdentity {
@@ -242,6 +474,10 @@ export class SimulationEvaluatorWorkerCacheService
     this.database?.close();
   }
 
+  isSqliteEventLogCache() {
+    return this.eventLogCacheDriver === 'sqlite';
+  }
+
   async getEventLogs(input: {
     platform: Platform;
     address: string;
@@ -262,6 +498,9 @@ export class SimulationEvaluatorWorkerCacheService
       )
     )
       return null;
+    if (this.eventLogCacheDriver === 'sqlite') {
+      return this.getSqliteEventLogs(input);
+    }
     const buckets = this.monthBuckets(input.startedAt, input.endedAt);
     const records = (
       await Promise.all(
@@ -304,6 +543,10 @@ export class SimulationEvaluatorWorkerCacheService
   }
 
   async mergeEventLogs(eventLogs: WorkerCachedEventLog[]) {
+    if (this.eventLogCacheDriver === 'sqlite') {
+      this.mergeSqliteEventLogs(eventLogs);
+      return;
+    }
     const groups = new Map<string, WorkerCachedEventLog[]>();
 
     for (const eventLog of eventLogs) {
@@ -351,6 +594,128 @@ export class SimulationEvaluatorWorkerCacheService
         await fs.rename(temporary, path);
       }),
     );
+  }
+
+  private getSqliteEventLogs(input: {
+    platform: Platform;
+    address: string;
+    startedAt: Date;
+    endedAt: Date;
+  }): WorkerCachedEventLog[] {
+    return this.getDatabase()
+      .prepare(
+        `SELECT address, date, block, log_index, contract_id, platform,
+                transaction_hash, json_log, usd_pnl
+         FROM perp_trading_event_log
+         WHERE platform = ? AND address = ? AND date >= ? AND date < ?
+         ORDER BY date, block, log_index, contract_id`,
+      )
+      .all(
+        input.platform,
+        input.address.toLowerCase(),
+        input.startedAt.toISOString(),
+        input.endedAt.toISOString(),
+      )
+      .map((row) => {
+        const record = row as {
+          address: string;
+          date: string;
+          block: number;
+          log_index: number;
+          contract_id: number;
+          platform: Platform;
+          transaction_hash: string;
+          json_log: string;
+          usd_pnl: number;
+        };
+        return {
+          address: record.address,
+          date: record.date,
+          block: record.block,
+          logIndex: record.log_index,
+          contractId: record.contract_id,
+          platform: record.platform,
+          transactionHash: record.transaction_hash,
+          jsonLog: record.json_log,
+          usdPnl: record.usd_pnl,
+        };
+      });
+  }
+
+  private mergeSqliteEventLogs(eventLogs: WorkerCachedEventLog[]) {
+    const database = this.getDatabase();
+    database.exec('BEGIN');
+    try {
+      this.upsertSqliteEventLogs(eventLogs);
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  private upsertSqliteEventLogs(eventLogs: WorkerCachedEventLog[]) {
+    const database = this.getDatabase();
+    const insert = database.prepare(
+      `INSERT INTO perp_trading_event_log (
+         contract_id, json_log, usd_pnl, block, log_index, transaction_hash,
+         date, address, platform
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(contract_id, block, log_index) DO UPDATE SET
+         json_log = excluded.json_log,
+         usd_pnl = excluded.usd_pnl,
+         transaction_hash = excluded.transaction_hash,
+         date = excluded.date,
+         address = excluded.address,
+         platform = excluded.platform`,
+    );
+    for (const eventLog of eventLogs) {
+      const date = new Date(eventLog.date);
+      if (Number.isNaN(+date)) continue;
+      insert.run(
+        eventLog.contractId,
+        eventLog.jsonLog,
+        eventLog.usdPnl,
+        eventLog.block,
+        eventLog.logIndex,
+        eventLog.transactionHash,
+        date.toISOString(),
+        eventLog.address.toLowerCase(),
+        eventLog.platform,
+      );
+    }
+  }
+
+  commitSqlitePrebuildChunk(input: SqlitePrebuildChunkCommit) {
+    if (!this.isSqliteEventLogCache()) {
+      throw new Error('SQLite event-log cache is not enabled');
+    }
+    const database = this.getDatabase();
+    database.exec('BEGIN IMMEDIATE');
+    try {
+      this.upsertSqliteEventLogs(input.eventLogs);
+      this.savePrebuildTaskCheckpointInTransaction(
+        input.taskId,
+        input.platform,
+        input.startedAt,
+        input.endedAt,
+        input.checkpoint,
+      );
+      if (input.completed) {
+        this.markPlatformCoverageInTransaction(
+          input.platform,
+          input.startedAt,
+          input.endedAt,
+        );
+        database
+          .prepare('DELETE FROM prebuild_task_checkpoint WHERE task_id = ?')
+          .run(input.taskId);
+      }
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   getPrebuildTaskCheckpoint(
@@ -407,6 +772,22 @@ export class SimulationEvaluatorWorkerCacheService
   }
 
   savePrebuildTaskCheckpoint(
+    taskId: string,
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+    checkpoint: PrebuildTaskCheckpoint,
+  ) {
+    this.savePrebuildTaskCheckpointInTransaction(
+      taskId,
+      platform,
+      startedAt,
+      endedAt,
+      checkpoint,
+    );
+  }
+
+  private savePrebuildTaskCheckpointInTransaction(
     taskId: string,
     platform: Platform,
     startedAt: Date,
@@ -475,6 +856,22 @@ export class SimulationEvaluatorWorkerCacheService
 
   markPlatformCoverage(platform: Platform, startedAt: Date, endedAt: Date) {
     const database = this.getDatabase();
+    database.exec('BEGIN');
+    try {
+      this.markPlatformCoverageInTransaction(platform, startedAt, endedAt);
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  private markPlatformCoverageInTransaction(
+    platform: Platform,
+    startedAt: Date,
+    endedAt: Date,
+  ) {
+    const database = this.getDatabase();
     const existing = database
       .prepare(
         'SELECT started_at, ended_at FROM platform_cache_coverage WHERE platform = ?',
@@ -487,25 +884,18 @@ export class SimulationEvaluatorWorkerCacheService
       })),
       { coveredStartAt: startedAt, coveredEndAt: endedAt },
     ]);
-    database.exec('BEGIN');
-    try {
-      database
-        .prepare('DELETE FROM platform_cache_coverage WHERE platform = ?')
-        .run(platform);
-      const insert = database.prepare(
-        'INSERT INTO platform_cache_coverage (platform, started_at, ended_at) VALUES (?, ?, ?)',
+    database
+      .prepare('DELETE FROM platform_cache_coverage WHERE platform = ?')
+      .run(platform);
+    const insert = database.prepare(
+      'INSERT INTO platform_cache_coverage (platform, started_at, ended_at) VALUES (?, ?, ?)',
+    );
+    for (const range of merged) {
+      insert.run(
+        platform,
+        range.coveredStartAt.toISOString(),
+        range.coveredEndAt.toISOString(),
       );
-      for (const range of merged) {
-        insert.run(
-          platform,
-          range.coveredStartAt.toISOString(),
-          range.coveredEndAt.toISOString(),
-        );
-      }
-      database.exec('COMMIT');
-    } catch (error) {
-      database.exec('ROLLBACK');
-      throw error;
     }
   }
 

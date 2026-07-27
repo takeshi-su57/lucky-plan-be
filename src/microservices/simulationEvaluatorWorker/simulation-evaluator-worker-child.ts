@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { DatabaseSync } from 'node:sqlite';
 
 import { Platform } from 'generated/prisma/enums';
 import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
@@ -10,6 +11,7 @@ import {
   SimulationLeaderEvaluatorService,
 } from 'src/microservices/analyticsService/modules/simulations/simulation-leader-evaluator.service';
 import { WorkerCachedEventLog } from './simulation-evaluator-worker-cache.service';
+import { getSimulationEvaluatorEventLogCacheDriver } from './simulation-evaluator-worker-event-log-cache-driver';
 
 type EvaluateMessage = {
   type: 'evaluate';
@@ -35,7 +37,9 @@ type EvaluationProgressMessage = {
 
 const cacheDir = join(process.cwd(), '.cache', 'simulation-evaluator-worker');
 const parentSessionPath = join(cacheDir, 'parent-session.json');
+const eventLogCacheDriver = getSimulationEvaluatorEventLogCacheDriver();
 let parentSessionId: string | undefined;
+let cacheDatabase: DatabaseSync | undefined;
 
 process.on(
   'message',
@@ -226,6 +230,9 @@ async function readCachedLogs(
   startedAt: Date,
   endedAt: Date,
 ) {
+  if (eventLogCacheDriver === 'sqlite') {
+    return readSqliteCachedLogs(platform, address, startedAt, endedAt);
+  }
   const records = await Promise.all(
     monthBuckets(startedAt, endedAt).map(async ({ year, month }) => {
       try {
@@ -263,6 +270,58 @@ async function readCachedLogs(
       a.block - b.block ||
       a.logIndex - b.logIndex,
   );
+}
+
+function readSqliteCachedLogs(
+  platform: Platform,
+  address: string,
+  startedAt: Date,
+  endedAt: Date,
+): WorkerCachedEventLog[] {
+  if (!cacheDatabase) {
+    cacheDatabase = new DatabaseSync(join(cacheDir, 'cache.sqlite'), {
+      readOnly: true,
+      timeout: 5_000,
+    });
+  }
+  return cacheDatabase
+    .prepare(
+      `SELECT address, date, block, log_index, contract_id, platform,
+              transaction_hash, json_log, usd_pnl
+       FROM perp_trading_event_log
+       WHERE platform = ? AND address = ? AND date >= ? AND date < ?
+       ORDER BY date, block, log_index, contract_id`,
+    )
+    .all(
+      platform,
+      address.toLowerCase(),
+      startedAt.toISOString(),
+      endedAt.toISOString(),
+    )
+    .map((row) => {
+      const record = row as {
+        address: string;
+        date: string;
+        block: number;
+        log_index: number;
+        contract_id: number;
+        platform: Platform;
+        transaction_hash: string;
+        json_log: string;
+        usd_pnl: number;
+      };
+      return {
+        address: record.address,
+        date: record.date,
+        block: record.block,
+        logIndex: record.log_index,
+        contractId: record.contract_id,
+        platform: record.platform,
+        transactionHash: record.transaction_hash,
+        jsonLog: record.json_log,
+        usdPnl: record.usd_pnl,
+      };
+    });
 }
 
 function monthBuckets(startedAt: Date, endedAt: Date) {

@@ -315,7 +315,7 @@ esac
 chmodSync(join(scripts, 'linux-commander.sh'), 0o755);
 
 const envTemplate =
-  'SIMULATION_EVALUATOR_WORKER_INSTANCE=\nSIMULATION_EVALUATOR_GATEWAY_URL=\nSIMULATION_EVALUATOR_WORKER_NAME=\n';
+  'SIMULATION_EVALUATOR_WORKER_INSTANCE=\nSIMULATION_EVALUATOR_GATEWAY_URL=\nSIMULATION_EVALUATOR_WORKER_NAME=\n# file (default) or sqlite (experimental)\nSIMULATION_EVALUATOR_EVENT_LOG_CACHE_DRIVER=file\n';
 writeFileSync(join(release, '.env.example'), envTemplate);
 writeFileSync(join(release, '.env'), envTemplate);
 writeFileSync(

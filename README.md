@@ -222,9 +222,12 @@ Configure `.env` in the extracted release:
 SIMULATION_EVALUATOR_WORKER_INSTANCE=dev
 SIMULATION_EVALUATOR_GATEWAY_URL=https://api.example.com
 SIMULATION_EVALUATOR_WORKER_NAME=dev-worker-01
+SIMULATION_EVALUATOR_EVENT_LOG_CACHE_DRIVER=file
 ```
 
 Install each worker instance in its own directory. The instance value isolates its service name, local identity, and cache; use a distinct value such as `dev` or `prod` for every worker environment on the same host.
+
+`SIMULATION_EVALUATOR_EVENT_LOG_CACHE_DRIVER` defaults to `file`, which preserves the existing monthly JSON event-log cache. Set it to `sqlite` to enable the experimental indexed `perp_trading_event_log` cache in `.cache/simulation-evaluator-worker/cache.sqlite`. SQLite mode uses WAL with a five-second busy timeout; the parent is the writer and each evaluator child opens its own read-only connection. The local database maintains its own transactional `worker_cache_migration` ledger; it is independent of Prisma and upgrades legacy worker metadata on startup before children start. SQLite prebuilds atomically persist each page's rows and checkpoint, and atomically mark final coverage and clear that checkpoint.
 
 Then use the single platform commander to install it as a background service:
 

@@ -5,6 +5,71 @@ import { Platform } from 'generated/prisma/enums';
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
 
 describe('SimulationEvaluatorWorkerEvaluationService prebuild checkpoints', () => {
+  it('atomically commits a completed SQLite prebuild chunk', async () => {
+    const startedAt = '2026-01-01T00:00:00.000Z';
+    const endedAt = '2026-02-01T00:00:00.000Z';
+    const eventLog = {
+      address: '0xabc',
+      date: '2026-01-15T00:00:00.000Z',
+      block: 20,
+      logIndex: 30,
+      contractId: 10,
+      platform: Platform.GNS,
+      transactionHash: '0xtransaction',
+      jsonLog: '{}',
+      usdPnl: 1,
+    };
+    const client = {
+      getPrebuildChunk: jest.fn(async () => ({
+        eventLogs: [eventLog],
+        nextCursor: {
+          date: eventLog.date,
+          block: eventLog.block,
+          logIndex: eventLog.logIndex,
+          contractId: eventLog.contractId,
+        },
+        done: true,
+        totalRecords: 1,
+        compressedBytes: 50,
+      })),
+      reportTaskProgress: jest.fn(),
+    };
+    const cache = {
+      isSqliteEventLogCache: jest.fn(() => true),
+      hasPlatformCoverage: jest.fn(() => false),
+      getPrebuildTaskCheckpoint: jest.fn(() => null),
+      commitSqlitePrebuildChunk: jest.fn(),
+      mergeEventLogs: jest.fn(),
+      savePrebuildTaskCheckpoint: jest.fn(),
+      markPlatformCoverage: jest.fn(),
+      clearPrebuildTaskCheckpoint: jest.fn(),
+    };
+    const service = new SimulationEvaluatorWorkerEvaluationService(
+      client as never,
+      cache as never,
+    );
+
+    await service.prebuildPlatformCache('task-1', 'lease-1', {
+      platform: Platform.GNS,
+      eventLogWindowStartedAt: startedAt,
+      eventLogWindowEndedAt: endedAt,
+    });
+
+    expect(cache.commitSqlitePrebuildChunk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: 'task-1',
+        eventLogs: [eventLog],
+        completed: true,
+        checkpoint: expect.objectContaining({
+          done: true,
+          recordsProcessed: 1,
+        }),
+      }),
+    );
+    expect(cache.markPlatformCoverage).not.toHaveBeenCalled();
+    expect(cache.clearPrebuildTaskCheckpoint).not.toHaveBeenCalled();
+  });
+
   it('resumes from the persisted cursor and clears the checkpoint after completion', async () => {
     const cursor = { contractId: 10, block: 20, logIndex: 30 };
     const client = {
@@ -18,6 +83,7 @@ describe('SimulationEvaluatorWorkerEvaluationService prebuild checkpoints', () =
       reportTaskProgress: jest.fn(),
     };
     const cache = {
+      isSqliteEventLogCache: jest.fn(() => false),
       hasPlatformCoverage: jest.fn(() => false),
       getPrebuildTaskCheckpoint: jest.fn(() => ({
         cursor,
