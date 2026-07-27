@@ -708,6 +708,10 @@ export class SimulationEvaluatorPipelineView {
   @Field(() => Int) maxAwaitingFinalizationPlans: number;
   @Field(() => Int) maxOutstandingDynamicPlans: number;
   @Field(() => Boolean) backpressureActive: boolean;
+  @Field(() => Int) sourceDerivedWaitingToMaterialize: number;
+  @Field(() => Int) sourceDerivedReadyToRecalculate: number;
+  @Field(() => Int) sourceDerivedRecalculating: number;
+  @Field(() => Int) sourceDerivedFailed: number;
 }
 
 @ObjectType()

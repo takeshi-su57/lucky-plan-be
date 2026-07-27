@@ -39,7 +39,34 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       },
       simulationExecutionPlan: { count: executionPlanCount },
       simulation: {
-        findMany: jest.fn().mockResolvedValue([
+        count: jest.fn().mockResolvedValue(2 as never),
+        findMany: jest.fn((args: any) =>
+          typeof args.where.sourceSimulationId === 'object' &&
+          args.where.sourceSimulationId !== null
+            ? Promise.resolve([
+                {
+                  status: 'Running',
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: null,
+                  automationLeaseExpiresAt: null,
+                  _count: { simulationPlans: 0 },
+                },
+                {
+                  status: 'Running',
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: null,
+                  automationLeaseExpiresAt: null,
+                  _count: { simulationPlans: 2 },
+                },
+                {
+                  status: 'Running',
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: 'derived-lease',
+                  automationLeaseExpiresAt: new Date(Date.now() + 60_000),
+                  _count: { simulationPlans: 2 },
+                },
+              ] as never)
+            : Promise.resolve([
           {
             totalSimulationPlans: 2,
             automationLeaseToken: null,
@@ -58,7 +85,8 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
             automationLeaseExpiresAt: new Date(Date.now() + 60_000),
             _count: { executionPlans: 2 },
           },
-        ] as never),
+              ] as never),
+        ),
       },
     };
     const resolver = new SimulationEvaluatorWorkersResolver(
@@ -93,6 +121,10 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
       maxAwaitingFinalizationPlans: 6,
       maxOutstandingDynamicPlans: 500,
       backpressureActive: false,
+      sourceDerivedWaitingToMaterialize: 1,
+      sourceDerivedReadyToRecalculate: 1,
+      sourceDerivedRecalculating: 1,
+      sourceDerivedFailed: 2,
     });
   });
 

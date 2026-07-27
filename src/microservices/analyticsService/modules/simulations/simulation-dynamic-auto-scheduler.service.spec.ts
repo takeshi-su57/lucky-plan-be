@@ -347,6 +347,91 @@ describe('materialized simulation finalization', () => {
       }),
     );
   });
+
+  it('includes legacy completed derived research with zero finalizer counters in reconciliation', async () => {
+    const findMany = jest.fn<(...args: any[]) => Promise<any>>(async () => []);
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      { simulationResearch: { findMany } } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await (scheduler as any).reconcileResearchProgress();
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            {
+              sourceSimulationId: { not: null },
+              status: 'Completed',
+              totalPlans: { gt: 0 },
+              finalizedPlans: 0,
+            },
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('propagates a derived child failure to its research', async () => {
+    const researchUpdate = jest.fn<(...args: any[]) => Promise<any>>(
+      async () => undefined,
+    );
+    const scheduler = new SimulationDynamicAutoSchedulerService(
+      {
+        simulation: {
+          findMany: jest.fn(async () => [
+            {
+              id: 7,
+              status: 'Failed',
+              completedPlans: 0,
+              totalSimulationPlans: 1,
+              executionPlans: [],
+            },
+          ]),
+        },
+        simulationResearch: {
+          findUnique: jest.fn(async () => ({
+            id: 3,
+            sourceSimulationId: 1,
+            simulations: [
+              {
+                status: 'Failed',
+                error: 'snapshot failed',
+                totalSimulationPlans: 1,
+                completedPlans: 0,
+                _count: { simulationPlans: 1 },
+                executionPlans: [],
+              },
+            ],
+          })),
+          update: researchUpdate,
+        },
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await (scheduler as any).syncResearch(3);
+
+    expect(researchUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 3 },
+        data: expect.objectContaining({
+          status: 'Failed',
+          progressPhase: 'source-derived-failed',
+          lastError: 'snapshot failed',
+        }),
+      }),
+    );
+  });
 });
 
 describe('dynamic dispatch selection', () => {

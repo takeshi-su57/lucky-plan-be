@@ -152,6 +152,8 @@ export class SimulationEvaluatorWorkersResolver {
       failed,
       outstanding,
       finalizerCandidates,
+      sourceDerivedCandidates,
+      sourceDerivedFailed,
     ] = await Promise.all([
       this.prisma.simulationEvaluatorWorker.findMany({
         where: {
@@ -231,6 +233,31 @@ export class SimulationEvaluatorWorkersResolver {
           _count: { select: { executionPlans: true } },
         },
       }),
+      this.prisma.simulation.findMany({
+        where: {
+          sourceSimulationId: { not: null },
+          status: SimulationStatus.Running,
+          research: {
+            is: {
+              automationEnabled: true,
+              status: { notIn: [SimulationStatus.Cancelled] },
+            },
+          },
+        },
+        select: {
+          status: true,
+          totalSimulationPlans: true,
+          automationLeaseToken: true,
+          automationLeaseExpiresAt: true,
+          _count: { select: { simulationPlans: true } },
+        },
+      }),
+      this.prisma.simulation.count({
+        where: {
+          sourceSimulationId: { not: null },
+          status: SimulationStatus.Failed,
+        },
+      }),
     ]);
     const fleetCapacity = workers.reduce(
       (total, worker) =>
@@ -247,6 +274,31 @@ export class SimulationEvaluatorWorkersResolver {
         simulation.automationLeaseToken !== null &&
         simulation.automationLeaseExpiresAt !== null &&
         simulation.automationLeaseExpiresAt > new Date(),
+    ).length;
+    const now = new Date();
+    const sourceDerivedRecalculating = sourceDerivedCandidates.filter(
+      (simulation) =>
+        simulation.status === SimulationStatus.Running &&
+        simulation.automationLeaseToken !== null &&
+        simulation.automationLeaseExpiresAt !== null &&
+        simulation.automationLeaseExpiresAt > now,
+    ).length;
+    const sourceDerivedWaitingToMaterialize = sourceDerivedCandidates.filter(
+      (simulation) =>
+        simulation.status === SimulationStatus.Running &&
+        simulation._count.simulationPlans === 0 &&
+        (simulation.automationLeaseToken === null ||
+          simulation.automationLeaseExpiresAt === null ||
+          simulation.automationLeaseExpiresAt <= now),
+    ).length;
+    const sourceDerivedReadyToRecalculate = sourceDerivedCandidates.filter(
+      (simulation) =>
+        simulation.status === SimulationStatus.Running &&
+        simulation.totalSimulationPlans > 0 &&
+        simulation._count.simulationPlans === simulation.totalSimulationPlans &&
+        (simulation.automationLeaseToken === null ||
+          simulation.automationLeaseExpiresAt === null ||
+          simulation.automationLeaseExpiresAt <= now),
     ).length;
     return {
       fleetCapacity,
@@ -274,6 +326,10 @@ export class SimulationEvaluatorWorkersResolver {
       maxOutstandingDynamicPlans: workflow.maxOutstandingDynamicPlans,
       backpressureActive:
         finalizerBacklog >= workflow.maxAwaitingFinalizationPlans,
+      sourceDerivedWaitingToMaterialize,
+      sourceDerivedReadyToRecalculate,
+      sourceDerivedRecalculating,
+      sourceDerivedFailed,
     };
   }
 

@@ -86,6 +86,7 @@ export class SimulationDynamicAutoSchedulerService {
   private finalizerDispatchRunning = false;
   private readonly activeFinalizerPlans = new Set<string>();
   private readonly activeFinalizerSimulations = new Set<number>();
+  private readonly activeSourceDerivedSimulations = new Set<number>();
   // A materializer normally persists its plan lease in the same database
   // transaction as the simulation lease.  Retain a short grace period for a
   // live claim, then recover any lease that has no matching finalizing plan.
@@ -259,12 +260,22 @@ export class SimulationDynamicAutoSchedulerService {
           error: error instanceof Error ? error.message : String(error),
         },
       });
+      if (target.researchId !== null)
+        await this.syncResearch(target.researchId);
     }
   }
 
   /** Layer 3: process a fully materialized simulation in chronological order. */
   async finalizeMaterializedSimulations(now = new Date()) {
+    // Source-derived simulations reuse a completed Layer 1 snapshot and do
+    // not consume evaluator capacity.  Give this short path a guaranteed turn
+    // before launching the slower, ordinary finalizers so sustained Layer 1
+    // traffic cannot starve Layer 2/3 research indefinitely.
     const workflow = await this.workflowConfig.get();
+    await this.startSourceDerivedSimulation(
+      now,
+      Math.max(30_000, workflow.finalizerLeaseMs ?? 30 * 60_000),
+    );
     const availableSlots = Math.max(
       0,
       workflow.finalizerConcurrency - this.activeFinalizerSimulations.size,
@@ -343,8 +354,6 @@ export class SimulationDynamicAutoSchedulerService {
       );
       if (readyCandidates.length) return;
     }
-
-    await this.finalizeSourceDerivedSimulation(now);
   }
 
   private async finalizeClaimedSimulation(candidate: any, leaseToken: string) {
@@ -383,7 +392,8 @@ export class SimulationDynamicAutoSchedulerService {
     }
   }
 
-  private async finalizeSourceDerivedSimulation(now: Date) {
+  private async startSourceDerivedSimulation(now: Date, leaseMs: number) {
+    if (this.activeSourceDerivedSimulations.size > 0) return;
     const candidate = await this.prisma.simulation.findFirst({
       where: {
         sourceSimulationId: { not: null },
@@ -413,6 +423,7 @@ export class SimulationDynamicAutoSchedulerService {
     });
     if (
       !candidate ||
+      this.activeSourceDerivedSimulations.has(candidate.id) ||
       candidate._count.simulationPlans !== candidate.totalSimulationPlans
     )
       return;
@@ -427,12 +438,34 @@ export class SimulationDynamicAutoSchedulerService {
       },
       data: {
         automationLeaseToken: leaseToken,
-        automationLeaseExpiresAt: new Date(now.getTime() + 30 * 60_000),
+        automationLeaseExpiresAt: new Date(now.getTime() + leaseMs),
         progressPhase: 'recalculating-layer-2-3',
         progressMessage: 'Recalculating from Layer 1 source snapshots',
       },
     });
     if (!claimed.count) return;
+    this.activeSourceDerivedSimulations.add(candidate.id);
+    void this.finalizeClaimedSourceDerivedSimulation(
+      candidate,
+      leaseToken,
+      leaseMs,
+    );
+  }
+
+  private async finalizeClaimedSourceDerivedSimulation(
+    candidate: { id: number; researchId: number | null },
+    leaseToken: string,
+    leaseMs: number,
+  ) {
+    const renewal = setInterval(
+      () =>
+        void this.renewSimulationFinalizerLease(
+          candidate.id,
+          leaseToken,
+          leaseMs,
+        ),
+      Math.max(10_000, Math.floor(leaseMs / 3)),
+    );
     try {
       await this.runner.finalizeSourceDerivedSimulation(candidate.id);
       if (candidate.researchId !== null)
@@ -447,9 +480,24 @@ export class SimulationDynamicAutoSchedulerService {
           error: error instanceof Error ? error.message : String(error),
         },
       });
+      if (candidate.researchId !== null)
+        await this.syncResearch(candidate.researchId);
     } finally {
+      clearInterval(renewal);
+      this.activeSourceDerivedSimulations.delete(candidate.id);
       await this.releaseSimulationFinalizerLease(candidate.id, leaseToken);
     }
+  }
+
+  private async renewSimulationFinalizerLease(
+    simulationId: number,
+    leaseToken: string,
+    leaseMs: number,
+  ) {
+    await this.prisma.simulation.updateMany({
+      where: { id: simulationId, automationLeaseToken: leaseToken },
+      data: { automationLeaseExpiresAt: new Date(Date.now() + leaseMs) },
+    });
   }
 
   private async reconcileResearchProgress() {
@@ -471,6 +519,12 @@ export class SimulationDynamicAutoSchedulerService {
                 },
               },
             },
+          },
+          {
+            sourceSimulationId: { not: null },
+            status: SimulationStatus.Completed,
+            totalPlans: { gt: 0 },
+            finalizedPlans: 0,
           },
         ],
       },
@@ -1169,8 +1223,11 @@ export class SimulationDynamicAutoSchedulerService {
       include: {
         simulations: {
           select: {
+            status: true,
+            error: true,
             totalSimulationPlans: true,
             completedPlans: true,
+            _count: { select: { simulationPlans: true } },
             executionPlans: {
               select: {
                 status: true,
@@ -1187,6 +1244,73 @@ export class SimulationDynamicAutoSchedulerService {
       },
     });
     if (!research) return;
+
+    if (research.sourceSimulationId != null) {
+      const totalPlans = research.simulations.reduce(
+        (sum, simulation) => sum + simulation.totalSimulationPlans,
+        0,
+      );
+      const materializedPlans = research.simulations.reduce(
+        (sum, simulation) => sum + simulation._count.simulationPlans,
+        0,
+      );
+      const finalizedPlans = research.simulations.reduce(
+        (sum, simulation) => sum + simulation.completedPlans,
+        0,
+      );
+      const completed =
+        totalPlans === 0 ||
+        research.simulations.every(
+          (simulation) => simulation.status === SimulationStatus.Completed,
+        );
+      const failedSimulation = research.simulations.find(
+        (simulation) => simulation.status === SimulationStatus.Failed,
+      );
+      const materialized = Math.min(materializedPlans, totalPlans);
+      const finalized = Math.min(finalizedPlans, totalPlans);
+
+      await this.prisma.simulationResearch.update({
+        where: { id: researchId },
+        data: {
+          status: failedSimulation
+            ? SimulationStatus.Failed
+            : completed
+              ? SimulationStatus.Completed
+              : SimulationStatus.Running,
+          totalPlans,
+          completedPlans: finalized,
+          // This is a deliberate semantic mapping: the source simulation's
+          // completed Layer 1 snapshots satisfy the evaluator milestone.
+          evaluatedPlans: totalPlans,
+          materializedPlans: materialized,
+          finalizedPlans: finalized,
+          outstandingPlans: Math.max(0, totalPlans - finalized),
+          queuedPlans: Math.max(0, totalPlans - materialized),
+          runningPlans: Math.max(0, materialized - finalized),
+          finalizingPlans: Math.max(0, materialized - finalized),
+          awaitingEventPlans: 0,
+          progressPercent: totalPlans ? (finalized / totalPlans) * 100 : 100,
+          progressPhase: failedSimulation
+            ? 'source-derived-failed'
+            : completed
+              ? 'completed'
+              : materialized < totalPlans
+                ? 'materializing-layer-2-variants'
+                : 'recalculating-layer-2-3',
+          progressMessage: failedSimulation
+            ? 'Source-derived simulation failed'
+            : completed
+              ? 'Layer 2/3 variant recalculation completed'
+              : materialized < totalPlans
+                ? `${materialized} / ${totalPlans} Layer 2 plan variants materialized`
+                : `${finalized} / ${totalPlans} Layer 3 variant plans recalculated`,
+          lastError: failedSimulation?.error ?? null,
+          ...(completed ? { finishedAt: new Date() } : {}),
+        },
+      });
+      return;
+    }
+
     const totalPlans = research.simulations.reduce(
       (sum, item) => sum + item.totalSimulationPlans,
       0,
