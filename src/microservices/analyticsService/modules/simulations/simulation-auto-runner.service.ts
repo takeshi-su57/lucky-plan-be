@@ -515,21 +515,14 @@ export class SimulationAutoRunnerService {
     const timing: Record<string, number> = {};
     for (const plan of plans) {
       const startedAt = performance.now();
-      const cache =
-        await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
+      await this.simulationCacheService.refreshIncompleteBotsForPlan(plan.id);
       timing[`plan:${plan.id}:cacheMs`] = Math.round(
         performance.now() - startedAt,
       );
-      if (!cache.completed) {
-        return {
-          simulation,
-          awaitingEventLogs: true,
-          timing: {
-            ...timing,
-            totalMs: Math.round(performance.now() - totalStartedAt),
-          },
-        };
-      }
+      // `cache.completed` means every opened position has subsequently
+      // closed. It is useful cache metadata, but an open position is a valid
+      // simulation outcome and must not prevent finalization of the current
+      // event snapshot.
       await this.emitSimulationPlanUpdated(plan.id);
     }
     const completed = await this.prisma.simulation.update({
