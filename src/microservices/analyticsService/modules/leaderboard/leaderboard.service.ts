@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Address, Block, decodeEventLog, PublicClient } from 'viem';
-import { Contract, ContractStatus, Platform } from 'generated/prisma/client';
+import { AbiEvent, Address, Block, decodeEventLog, PublicClient } from 'viem';
+import {
+  Contract,
+  ContractStatus,
+  Platform,
+  Version,
+} from 'generated/prisma/client';
 
 import { getReadableError } from 'src/utils';
 import { ChainPriority, ServiceStatus } from 'src/types';
@@ -20,6 +25,7 @@ import { getWeb3Info } from 'src/web3/utils';
 import { delay } from 'src/utils';
 
 import { avntGeneralAbi } from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
+import { assertGmxV1BackfillReady } from 'src/web3/platform/gmx/v1/configs/backfill-preflight';
 
 type AggressiveAdaptionOptions = {
   basePenaltyMs?: number;
@@ -83,6 +89,7 @@ export class LeaderboardService {
 
     try {
       const contract = await this.contractsService.findOne(contractId);
+      assertGmxV1BackfillReady(contract);
 
       const currentBlock = await this.evmAdapterService.getLatestFinalizedBlock(
         {
@@ -133,13 +140,14 @@ export class LeaderboardService {
 
         const eventLogs = await this.fetchEventLogs({
           contract,
-          getLogs: async (address) =>
+          getLogs: async (address, events) =>
             await this.evmAdapterService.getLogs({
               chainId: contract.chainId,
               priority: ChainPriority.HIGH,
               address,
               fromBlock,
               toBlock,
+              events,
             }),
         });
 
@@ -200,6 +208,7 @@ export class LeaderboardService {
 
     try {
       const contract = await this.contractsService.findOne(contractId);
+      assertGmxV1BackfillReady(contract);
       const currentBlock = await this.evmAdapterService.getLatestFinalizedBlock(
         {
           chainId: contract.chainId,
@@ -432,11 +441,12 @@ export class LeaderboardService {
     try {
       const eventLogs = await this.fetchEventLogs({
         contract,
-        getLogs: async (address) =>
+        getLogs: async (address, events) =>
           await worker.client.getLogs({
             fromBlock: task.fromBlock,
             toBlock: task.toBlock,
             address,
+            events,
           }),
       });
       const perpTradeEventLogs = eventLogs.filter((log) =>
@@ -482,34 +492,40 @@ export class LeaderboardService {
     getLogs,
   }: {
     contract: Contract;
-    getLogs: (address: Address) => Promise<any[]>;
+    getLogs: (
+      address: Address,
+      events?: readonly AbiEvent[] | readonly unknown[],
+    ) => Promise<any[]>;
   }) {
     if (contract.platform === Platform.AVNT) {
       return await this.fetchAvntEventLogs(getLogs);
     }
 
-    const logs = (await getLogs(contract.address as Address)).filter(
-      (log) => log.topics.length > 0,
-    );
+    const info = getWeb3Info(contract.platform, contract.version);
+    const rawLogs = info.logEvents
+      ? await getLogs(contract.address as Address, info.logEvents)
+      : await getLogs(contract.address as Address);
+    const logs = rawLogs.filter((log) => log.topics.length > 0);
 
-    return logs
-      .filter((log) => {
-        const info = getWeb3Info(contract.platform, contract.version);
-
-        return info.eventSignatures
+    const decodedLogs = logs
+      .filter((log) =>
+        info.eventSignatures
           ? info.eventSignatures[log.topics[0] as string]
-          : true;
-      })
+          : true,
+      )
       .map((log) => {
         const decoded: any = decodeEventLog({
-          abi: getWeb3Info(contract.platform, contract.version).abi,
+          abi: info.abi,
           data: log.data,
           topics: log.topics,
         });
 
         let eventLog = decoded;
 
-        if (contract.platform === Platform.GMX) {
+        if (
+          contract.platform === Platform.GMX &&
+          contract.version === Version.V2
+        ) {
           eventLog = parseEvent(decoded.args.eventName, decoded.args.eventData);
         }
 
@@ -520,10 +536,17 @@ export class LeaderboardService {
           transactionHash: String(log.transactionHash ?? ''),
         };
       });
+
+    return info.normalizeEventLogs
+      ? info.normalizeEventLogs(decodedLogs)
+      : decodedLogs;
   }
 
   private async fetchAvntEventLogs(
-    getLogs: (address: Address) => Promise<any[]>,
+    getLogs: (
+      address: Address,
+      events?: readonly AbiEvent[] | readonly unknown[],
+    ) => Promise<any[]>,
   ) {
     const tradingCallbackLogs = (
       await getLogs(avntContractAddresses.TradingCallback as `0x${string}`)

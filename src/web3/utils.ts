@@ -1,10 +1,15 @@
 import { Platform, Version } from 'generated/prisma/client';
+import { Abi, AbiEvent } from 'viem';
 
 import { gnsLegacyTradingCallbacksAbi as gnsV6V7Abi } from 'src/web3/platform/gns/v6-v7/abi/GNSTradingCallbacks';
 import { gnsV8V92MultiCollatDiamondAbi as gnsV8V92Abi } from 'src/web3/platform/gns/v8-v9.2/abi/GNSMultiCollatDiamond';
 import { gnsMultiCollatDiamondAbi as gnsV10Abi } from 'src/web3/platform/gns/v10/abi/GNSMultiCollatDiamond';
 import { gnsMultiCollatDiamondAbi as gnsV9Abi } from 'src/web3/platform/gns/v9/abi/GNSMultiCollatDiamond';
 import { EventEmitterAbi as gmxV2Abi } from 'src/web3/platform/gmx/v2/abi/EventEmitter';
+import {
+  gmxV1EventSignatures,
+  gmxV1VaultAbi,
+} from 'src/web3/platform/gmx/v1/abi/Vault';
 import {
   eventParsers as eventParsersV10,
   isOpenMissionAction as isOpenMissionActionV10,
@@ -20,12 +25,20 @@ import {
   eventToPerpTradeHistory as eventToPerpTradeHistoryV9,
 } from 'src/web3/platform/gns/v9/eventParsers';
 import {
-  eventParsers as eventParsersForGMX,
-  isOpenMissionAction as isOpenMissionActionForGMX,
-  isCloseMissionAction as isCloseMissionActionForGMX,
-  eventToActionParser as eventToActionParserForGMX,
-  eventToPerpTradeHistory as eventToPerpTradeHistoryForGMX,
+  eventParsers as eventParsersForGMXV2,
+  isOpenMissionAction as isOpenMissionActionForGMXV2,
+  isCloseMissionAction as isCloseMissionActionForGMXV2,
+  eventToActionParser as eventToActionParserForGMXV2,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryForGMXV2,
 } from 'src/web3/platform/gmx/v2/eventParsers';
+import {
+  eventParsers as eventParsersForGMXV1,
+  isOpenMissionAction as isOpenMissionActionForGMXV1,
+  isCloseMissionAction as isCloseMissionActionForGMXV1,
+  eventToActionParser as eventToActionParserForGMXV1,
+  eventToPerpTradeHistory as eventToPerpTradeHistoryForGMXV1,
+  normalizeGmxV1EventLogs,
+} from 'src/web3/platform/gmx/v1/eventParsers';
 import {
   eventParsers as eventParsersForAVNT,
   isOpenMissionAction as isOpenMissionActionForAVNT,
@@ -81,14 +94,29 @@ const gnsV8V92PerpTradeEventNames = eventParsersV8V92.map(
   (item) => item.eventName,
 );
 const gnsV10PerpTradeEventNames = eventParsersV10.map((item) => item.eventName);
-const gmxV2PerpTradeEventNames = eventParsersForGMX.map(
+const gmxV1PerpTradeEventNames = eventParsersForGMXV1.map(
+  (item) => item.eventName,
+);
+const gmxV2PerpTradeEventNames = eventParsersForGMXV2.map(
   (item) => item.eventName,
 );
 const avntV1PerpTradeEventNames = eventParsersForAVNT.map(
   (item) => item.eventName,
 );
 
-const info = {
+type Web3Info = {
+  tradeEventNames: string[];
+  eventSignatures: Record<string, string> | null;
+  eventToActionParser: (event: any) => any;
+  isOpenMissionAction: (action: any) => boolean;
+  isCloseMissionAction: (action: any) => boolean;
+  abi: Abi;
+  eventToPerpTradeHistory: (chainId: number, event: any, address: string) => any;
+  normalizeEventLogs: ((logs: any[]) => any[]) | null;
+  logEvents: readonly AbiEvent[] | null;
+};
+
+const info: Record<Platform, Partial<Record<Version, Web3Info>>> = {
   [Platform.GNS]: {
     [Version.V6_V7]: {
       tradeEventNames: gnsV6V7PerpTradeEventNames,
@@ -98,6 +126,8 @@ const info = {
       isCloseMissionAction: isCloseMissionActionV6V7,
       abi: gnsV6V7Abi,
       eventToPerpTradeHistory: eventToPerpTradeHistoryV6V7,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
     [Version.V8_V9_2]: {
       tradeEventNames: gnsV8V92PerpTradeEventNames,
@@ -107,6 +137,8 @@ const info = {
       isCloseMissionAction: isCloseMissionActionV8V92,
       abi: gnsV8V92Abi,
       eventToPerpTradeHistory: eventToPerpTradeHistoryV8V92,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
     [Version.V9]: {
       tradeEventNames: gnsV9PerpTradeEventNames,
@@ -116,6 +148,8 @@ const info = {
       isCloseMissionAction: isCloseMissionActionV9,
       abi: gnsV9Abi,
       eventToPerpTradeHistory: eventToPerpTradeHistoryV9,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
     [Version.V10]: {
       tradeEventNames: gnsV10PerpTradeEventNames,
@@ -125,17 +159,32 @@ const info = {
       isCloseMissionAction: isCloseMissionActionV10,
       abi: gnsV10Abi,
       eventToPerpTradeHistory: eventToPerpTradeHistoryV10,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
   },
   [Platform.GMX]: {
+    [Version.V1]: {
+      tradeEventNames: gmxV1PerpTradeEventNames,
+      eventSignatures: gmxV1EventSignatures,
+      eventToActionParser: eventToActionParserForGMXV1,
+      isOpenMissionAction: isOpenMissionActionForGMXV1,
+      isCloseMissionAction: isCloseMissionActionForGMXV1,
+      abi: gmxV1VaultAbi,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryForGMXV1,
+      normalizeEventLogs: normalizeGmxV1EventLogs,
+      logEvents: gmxV1VaultAbi,
+    },
     [Version.V2]: {
       tradeEventNames: gmxV2PerpTradeEventNames,
       eventSignatures: null,
-      eventToActionParser: eventToActionParserForGMX,
-      isOpenMissionAction: isOpenMissionActionForGMX,
-      isCloseMissionAction: isCloseMissionActionForGMX,
+      eventToActionParser: eventToActionParserForGMXV2,
+      isOpenMissionAction: isOpenMissionActionForGMXV2,
+      isCloseMissionAction: isCloseMissionActionForGMXV2,
       abi: gmxV2Abi,
-      eventToPerpTradeHistory: eventToPerpTradeHistoryForGMX,
+      eventToPerpTradeHistory: eventToPerpTradeHistoryForGMXV2,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
   },
   [Platform.AVNT]: {
@@ -147,6 +196,8 @@ const info = {
       isCloseMissionAction: isCloseMissionActionForAVNT,
       abi: avntGeneralAbi,
       eventToPerpTradeHistory: eventToPerpTradeHistoryForAVNT,
+      normalizeEventLogs: null,
+      logEvents: null,
     },
   },
 };
@@ -159,15 +210,15 @@ export function getWeb3Info(platform: Platform, version: Version) {
       version === Version.V9 ||
       version === Version.V10
     ) {
-      return info[Platform.GNS][version];
+      return info[Platform.GNS][version] as Web3Info;
     } else {
       throw new Error('Invalid version');
     }
   }
 
   if (platform === Platform.GMX) {
-    if (version === Version.V2) {
-      return info[Platform.GMX][version];
+    if (version === Version.V1 || version === Version.V2) {
+      return info[Platform.GMX][version] as Web3Info;
     } else {
       throw new Error('Invalid version');
     }
@@ -175,7 +226,7 @@ export function getWeb3Info(platform: Platform, version: Version) {
 
   if (platform === Platform.AVNT) {
     if (version === Version.V1) {
-      return info[Platform.AVNT][version];
+      return info[Platform.AVNT][version] as Web3Info;
     } else {
       throw new Error('Invalid version');
     }

@@ -6,6 +6,7 @@ import {
 } from 'generated/prisma/client';
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { gmxV1VaultDeployments } from 'src/web3/platform/gmx/v1/configs';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -267,6 +268,21 @@ async function main() {
       backendUrl: 'https://backend-megaeth.gains.trade',
       status: ContractStatus.Dead,
     },
+    ...gmxV1VaultDeployments.map(
+      ({ chainId, address, fromBlock, toBlock, description }) => ({
+        platform: Platform.GMX,
+        version: Version.V1,
+        chainId,
+        address,
+        description,
+        fromBlock,
+        toBlock,
+        lastBlockNumber: fromBlock,
+        lastLeaderboardBlockNumber: fromBlock - 1,
+        backendUrl: '',
+        status: ContractStatus.Dead,
+      }),
+    ),
     {
       platform: Platform.GMX,
       version: Version.V2,
