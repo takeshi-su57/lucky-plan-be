@@ -1,10 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 
 import { SERVICE_NAMES } from './utils/constants';
+import { createApplicationLogger } from './global/application-logger';
 
 import { ApiModule } from './microservices/apiService/api.module';
 import { AnalyticsModule } from './microservices/analyticsService/analytics.module';
@@ -14,7 +15,12 @@ import { SimulationEvaluatorWorkerModule } from './microservices/simulationEvalu
 import 'dotenv';
 
 async function bootstrap() {
-  switch (process.env.SERVICE) {
+  const service = process.env.SERVICE ?? 'UNKNOWN_SERVICE';
+  const applicationLogger = createApplicationLogger(service);
+  Logger.overrideLogger(applicationLogger);
+  redirectConsole(service);
+
+  switch (service) {
     case SERVICE_NAMES.ANALYTICS_SERVICE: {
       const app = await NestFactory.createMicroservice<MicroserviceOptions>(
         AnalyticsModule,
@@ -26,6 +32,7 @@ async function bootstrap() {
             retryAttempts: Number.MAX_SAFE_INTEGER,
             retryDelay: 1000,
           },
+          logger: applicationLogger,
         },
       );
 
@@ -43,6 +50,7 @@ async function bootstrap() {
             retryAttempts: Number.MAX_SAFE_INTEGER,
             retryDelay: 1000,
           },
+          logger: applicationLogger,
         },
       );
 
@@ -52,11 +60,16 @@ async function bootstrap() {
     case SERVICE_NAMES.SIMULATION_EVALUATOR_WORKER_SERVICE: {
       await NestFactory.createApplicationContext(
         SimulationEvaluatorWorkerModule,
+        {
+          logger: applicationLogger,
+        },
       );
       break;
     }
     case SERVICE_NAMES.API_SERVICE: {
-      const app = await NestFactory.create<NestExpressApplication>(ApiModule);
+      const app = await NestFactory.create<NestExpressApplication>(ApiModule, {
+        logger: applicationLogger,
+      });
 
       // Increase body size limit for large optimizer payloads (Pareto front results)
       app.useBodyParser('json', { limit: '50mb' });
@@ -104,4 +117,23 @@ async function bootstrap() {
     }
   }
 }
+
+function redirectConsole(context: string): void {
+  const message = (args: unknown[]) =>
+    args
+      .map((value) =>
+        value instanceof Error
+          ? (value.stack ?? value.message)
+          : typeof value === 'string'
+            ? value
+            : JSON.stringify(value),
+      )
+      .join(' ');
+  console.log = (...args: unknown[]) => Logger.log(message(args), context);
+  console.warn = (...args: unknown[]) => Logger.warn(message(args), context);
+  console.error = (...args: unknown[]) =>
+    Logger.error(message(args), undefined, context);
+  console.debug = (...args: unknown[]) => Logger.debug(message(args), context);
+}
+
 bootstrap();

@@ -36,6 +36,26 @@ import { ApiController } from './api.controller';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      // graphql-ws does not have an HTTP request. Build the same request shape
+      // our guards use from its connection parameters before each operation.
+      context: (context: {
+        req?: unknown;
+        connectionParams?: { authorization?: unknown };
+        [key: string]: unknown;
+      }) => {
+        if (context.req) return context;
+
+        const authorization = context.connectionParams?.authorization;
+        return {
+          ...context,
+          req: {
+            headers: {
+              authorization:
+                typeof authorization === 'string' ? authorization : '',
+            },
+          },
+        };
+      },
       subscriptions: {
         'graphql-ws': true,
       },

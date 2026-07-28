@@ -14,7 +14,6 @@ import { SecurityService } from './modules/security/security.service';
 
 import { LogsService } from 'src/global/logs.service';
 import { PrismaService } from 'src/global/prisma.service';
-import { LogSeverity } from 'generated/prisma/enums';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -256,10 +255,5 @@ export class ApiService {
       },
     });
 
-    await this.prismaService.log.deleteMany({
-      where: {
-        severity: LogSeverity.Info,
-      },
-    });
   }
 }

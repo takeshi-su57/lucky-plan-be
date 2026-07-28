@@ -4,4 +4,5 @@ export class CreateLogInput {
   severity: LogSeverity;
   summary: string;
   details?: string | null;
+  service?: string;
 }

@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Query,
@@ -6,17 +6,23 @@ import {
   Args,
   Int,
   Subscription,
+  Context,
 } from '@nestjs/graphql';
-import { LogSeverity } from 'generated/prisma/client';
+import { LogSeverity, UserPermission } from 'generated/prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 
 import { LogsService } from './logs.service';
-import { Log, LogsConnection, SeverityCount } from './entities/log.entity';
+import { Log, LogReviewWeek, LogsConnection, SeverityCount } from './entities/log.entity';
 
 import { PUB_SUB } from 'src/global/global.module';
 import { SUBSCRIPTION_TOKEN } from 'src/utils/constants';
+import { GqlAuthGuard } from '../auth/gql-auth.guard';
+import { RolesGuard } from '../auth/gql-role.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Resolver(() => Log)
+@Roles(UserPermission.Admin)
+@UseGuards(GqlAuthGuard, RolesGuard)
 export class LogsResolver {
   constructor(
     private readonly logsService: LogsService,
@@ -35,14 +41,30 @@ export class LogsResolver {
     @Args('checked', { type: () => Boolean })
     checked: boolean,
     @Args('first', { type: () => Int }) first: number,
-    @Args('after', { type: () => Int, nullable: true }) after: number | null,
+    @Args('after', { type: () => String, nullable: true }) after: string | null,
   ) {
     return this.logsService.allLogs(severity, checked, first, after);
   }
 
   @Mutation(() => Log)
-  checkLog(@Args('id', { type: () => Int }) id: number) {
-    return this.logsService.check(id);
+  checkLog(
+    @Args('id', { type: () => String }) id: string,
+    @Context() context: { req: { user: { address: string } } },
+  ) {
+    return this.logsService.check(id, context.req.user.address);
+  }
+
+  @Query(() => [LogReviewWeek])
+  logReviewWeeks() {
+    return this.logsService.getReviewWeeks();
+  }
+
+  @Mutation(() => LogReviewWeek)
+  reviewLogWeek(
+    @Args('weekStart', { type: () => Date }) weekStart: Date,
+    @Context() context: { req: { user: { address: string } } },
+  ) {
+    return this.logsService.reviewWeek(weekStart, context.req.user.address);
   }
 
   @Subscription(() => Log, {

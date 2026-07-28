@@ -93,15 +93,23 @@ model PnlSnapshotV2InitializedFlag {
   @@unique([platform, dateStr])
 }
 
-model Log {
-  id        Int         @id @default(autoincrement())
+model LogReview {
+  weekStart DateTime @id
+  reviewedAt DateTime @default(now())
+  reviewedBy String
+}
+
+// Transitional read-only mapping. The migration renames the former Log table
+// so administrators retain one month of history while file logging begins.
+model LegacyLog {
+  id        Int         @id
   severity  LogSeverity
-  timestamp DateTime    @default(now())
+  timestamp DateTime
   summary   String
   details   String?
-  checked   Boolean     @default(false)
+  checked   Boolean
 
-  @@index([severity, timestamp(sort: Desc)])
+  @@map("LegacyLog")
 }
 
 model User {

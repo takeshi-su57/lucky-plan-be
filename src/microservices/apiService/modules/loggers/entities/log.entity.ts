@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql';
 import { LogSeverity } from 'generated/prisma/client';
 
 registerEnumType(LogSeverity, {
@@ -7,8 +7,8 @@ registerEnumType(LogSeverity, {
 
 @ObjectType()
 export class Log {
-  @Field(() => Int)
-  id: number;
+  @Field(() => ID)
+  id: string;
 
   @Field(() => LogSeverity)
   severity: LogSeverity;
@@ -24,18 +24,21 @@ export class Log {
 
   @Field(() => Boolean)
   checked: boolean;
+
+  @Field()
+  service: string;
 }
 
 @ObjectType()
 export class LogsEdge {
-  @Field(() => Int) cursor: number;
+  @Field(() => String) cursor: string;
   @Field(() => Log) node: Log;
 }
 
 @ObjectType()
 export class LogsPageInfo {
   @Field(() => Boolean) hasNextPage: boolean;
-  @Field(() => Int, { nullable: true }) endCursor: number | null;
+  @Field(() => String, { nullable: true }) endCursor: string | null;
 }
 
 @ObjectType()
@@ -52,4 +55,11 @@ export class SeverityCount {
 
   @Field(() => Int)
   counts: number;
+}
+
+@ObjectType()
+export class LogReviewWeek {
+  @Field(() => Date) weekStart: Date;
+  @Field(() => Date, { nullable: true }) reviewedAt: Date | null;
+  @Field(() => String, { nullable: true }) reviewedBy: string | null;
 }
