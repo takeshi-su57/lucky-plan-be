@@ -252,6 +252,10 @@ export class SimulationDynamicAutoSchedulerService {
               evaluationCopiedPnlUsd: bot.evaluationCopiedPnlUsd,
               evaluationProfitFactor: bot.evaluationProfitFactor,
               evaluationMaxDrawdownUsd: bot.evaluationMaxDrawdownUsd,
+              behavioralFeatures:
+                bot.behavioralFeatures === null
+                  ? Prisma.JsonNull
+                  : bot.behavioralFeatures,
             })),
             select: { id: true, sourceSimulationBotId: true },
           });

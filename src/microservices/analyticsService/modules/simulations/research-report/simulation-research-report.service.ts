@@ -183,6 +183,7 @@ export class SimulationResearchReportService {
               score: research.score,
               scoreFormula: research.scoreFormular,
               sizingFormula: research.sizingFormular,
+              behavioralFilters: research.behavioralFilters,
             },
           },
           null,
@@ -283,6 +284,7 @@ export class SimulationResearchReportService {
                   slope: bot.evaluationSlope,
                   r2: bot.evaluationR2,
                 },
+                behavioralFeatures: bot.behavioralFeatures ?? null,
               },
               aggregation: {
                 leaderPnlUsd: bot.cache?.totalLeaderPnl ?? bot.totalPnl,
@@ -377,6 +379,7 @@ export class SimulationResearchReportService {
                 size: simulation.size,
                 leverage: simulation.leverage,
                 score: simulation.score,
+                behavioralFilters: simulation.behavioralFilters,
               },
               reportedMetrics: {
                 followerPnlUsd: simulation.totalFollowerPnl,

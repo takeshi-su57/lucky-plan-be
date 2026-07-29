@@ -25,6 +25,7 @@ import {
   SimulationExecutionPlanStatus,
   SimulationStatus,
 } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/client';
 import { SimulationPlansService } from './simulation-plans.service';
 import { mapSimulationPlanWithCache } from './simulation-cache.mapper';
 import { mapSimulationBotConfiguration } from './simulation-bot-config.mapper';
@@ -36,6 +37,12 @@ import {
 } from './simulation-research.utils';
 import { PATTERNS, SERVICE_NAMES } from 'src/utils/constants';
 import { invalidateSimulationResearchReport } from 'src/utils/simulation-research-report-cache';
+import {
+  BEHAVIORAL_FILTER_KEYS,
+  BehavioralFilterRanges,
+  buildBehavioralFilterVariants,
+  validateBehavioralFilterRanges,
+} from 'src/microservices/analyticsService/modules/simulations/utils/unfortunate-trader-features';
 import {
   DEFAULT_SCORE_FORMULAR,
   DEFAULT_SIZING_FORMULAR,
@@ -326,6 +333,9 @@ export class SimulationsService {
       input.followerRiskSize,
       input.followerRiskCollateral,
     );
+    validateBehavioralFilterRanges(
+      this.normalizeBehavioralFilters(input.behavioralFilters),
+    );
 
     this.validatePlanWindow(input.days ?? 1, input.gapDays ?? 0);
   }
@@ -446,6 +456,9 @@ export class SimulationsService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      behavioralFiltersJson: JSON.stringify(
+        this.normalizeBehavioralFilters(record.behavioralFilters),
+      ),
       status: record.status ?? SimulationStatus.Created,
       aiReportReady: record.aiReportReady ?? false,
       aiReportGenerating: record.aiReportGenerating ?? false,
@@ -595,15 +608,26 @@ export class SimulationsService {
       followerRiskCollateral: input.followerRiskCollateral,
       score,
     });
+    const behavioralFilters = this.normalizeBehavioralFilters(
+      input.behavioralFilters,
+    );
+    const simulationVariants = combinations.flatMap((combination) =>
+      buildBehavioralFilterVariants(behavioralFilters).map(
+        (simulationBehavioralFilters) => ({
+          combination,
+          behavioralFilters: simulationBehavioralFilters,
+        }),
+      ),
+    );
 
-    if (combinations.length === 0) {
+    if (simulationVariants.length === 0) {
       throw new Error(
         'Simulation research produced no valid parameter combinations',
       );
     }
 
     const workflow = await this.workflowConfig.get();
-    if (combinations.length > workflow.maxSimulationsPerResearch) {
+    if (simulationVariants.length > workflow.maxSimulationsPerResearch) {
       throw new Error(
         `Simulation research can generate at most ${workflow.maxSimulationsPerResearch} simulations`,
       );
@@ -650,58 +674,69 @@ export class SimulationsService {
           score: this.serializeRangeGroups(score),
           scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
           sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
+          behavioralFilters: JSON.parse(JSON.stringify(behavioralFilters)),
           status: SimulationStatus.Created,
           progressPhase: 'created',
           progressMessage: 'Research created',
           progressPercent: 0,
           totalRanges: totalSimulationPlans,
           completedRanges: 0,
-          totalPlans: totalSimulationPlans * combinations.length,
+          totalPlans: totalSimulationPlans * simulationVariants.length,
           completedPlans: 0,
         },
       });
 
       await tx.simulation.createMany({
-        data: combinations.map((combination) => ({
-          title: input.title,
-          description: input.description,
-          platform: input.platform,
-          researchId: createdResearch.id,
-          direction: combination.direction,
-          startAt: normalizedStartAt,
-          endAt: normalizedEndAt,
-          days,
-          gapDays,
-          status: SimulationStatus.Created,
-          progressPhase: 'created',
-          progressMessage: 'Simulation created',
-          progressPercent: 0,
-          totalSimulationPlans,
-          selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
-          trade: this.serializeRanges(combination.trade),
-          r2: this.serializeRanges(combination.r2),
-          slope: this.serializeRanges(combination.slope),
-          standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
-          collateral: this.serializeRanges(combination.collateral),
-          size: this.serializeRanges(combination.size),
-          leverage: this.serializeRanges(combination.leverage),
-          leaderExecutionCollateral: this.serializeRanges(
-            combination.leaderExecutionCollateral,
-          ),
-          leaderExecutionSize: this.serializeRanges(
-            combination.leaderExecutionSize,
-          ),
-          leaderExecutionLeverage: this.serializeRanges(
-            combination.leaderExecutionLeverage,
-          ),
-          followerRiskSize: this.serializeRanges(combination.followerRiskSize),
-          followerRiskCollateral: this.serializeRanges(
-            combination.followerRiskCollateral,
-          ),
-          score: this.serializeRanges(combination.score),
-          scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
-          sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
-        })),
+        data: simulationVariants.map(
+          ({
+            combination,
+            behavioralFilters: simulationBehavioralFilters,
+          }) => ({
+            title: input.title,
+            description: input.description,
+            platform: input.platform,
+            researchId: createdResearch.id,
+            direction: combination.direction,
+            startAt: normalizedStartAt,
+            endAt: normalizedEndAt,
+            days,
+            gapDays,
+            status: SimulationStatus.Created,
+            progressPhase: 'created',
+            progressMessage: 'Simulation created',
+            progressPercent: 0,
+            totalSimulationPlans,
+            selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
+            behavioralFilters: JSON.parse(
+              JSON.stringify(simulationBehavioralFilters),
+            ),
+            trade: this.serializeRanges(combination.trade),
+            r2: this.serializeRanges(combination.r2),
+            slope: this.serializeRanges(combination.slope),
+            standardCollateralUsd: DEFAULT_STANDARD_COLLATERAL_USD,
+            collateral: this.serializeRanges(combination.collateral),
+            size: this.serializeRanges(combination.size),
+            leverage: this.serializeRanges(combination.leverage),
+            leaderExecutionCollateral: this.serializeRanges(
+              combination.leaderExecutionCollateral,
+            ),
+            leaderExecutionSize: this.serializeRanges(
+              combination.leaderExecutionSize,
+            ),
+            leaderExecutionLeverage: this.serializeRanges(
+              combination.leaderExecutionLeverage,
+            ),
+            followerRiskSize: this.serializeRanges(
+              combination.followerRiskSize,
+            ),
+            followerRiskCollateral: this.serializeRanges(
+              combination.followerRiskCollateral,
+            ),
+            score: this.serializeRanges(combination.score),
+            scoreFormular: input.scoreFormular ?? DEFAULT_SCORE_FORMULAR,
+            sizingFormular: input.sizingFormular ?? DEFAULT_SIZING_FORMULAR,
+          }),
+        ),
       });
 
       return tx.simulationResearch.findUniqueOrThrow({
@@ -835,6 +870,7 @@ export class SimulationsService {
           score: this.normalizeResearchGroups(sourceSimulation.score) as any,
           scoreFormular: sourceSimulation.scoreFormular,
           sizingFormular: sourceSimulation.sizingFormular,
+          behavioralFilters: sourceSimulation.behavioralFilters as any,
           leaderExecutionCollateral: this.serializeRangeGroups(
             input.leaderExecutionCollateral,
           ),
@@ -890,6 +926,7 @@ export class SimulationsService {
             score: sourceSimulation.score as any,
             scoreFormular: sourceSimulation.scoreFormular,
             sizingFormular: sourceSimulation.sizingFormular,
+            behavioralFilters: sourceSimulation.behavioralFilters as any,
             leaderExecutionCollateral: this.serializeRanges(
               variant.leaderExecutionCollateral,
             ),
@@ -981,6 +1018,10 @@ export class SimulationsService {
                   evaluationCopiedPnlUsd: sourceBot.evaluationCopiedPnlUsd,
                   evaluationProfitFactor: sourceBot.evaluationProfitFactor,
                   evaluationMaxDrawdownUsd: sourceBot.evaluationMaxDrawdownUsd,
+                  behavioralFeatures:
+                    sourceBot.behavioralFeatures === null
+                      ? Prisma.JsonNull
+                      : sourceBot.behavioralFeatures,
                 })),
               });
             }
@@ -1137,7 +1178,42 @@ export class SimulationsService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      behavioralFilters: this.normalizeBehavioralFilters(
+        record.behavioralFilters,
+      ),
+      behavioralFiltersJson: JSON.stringify(
+        this.normalizeBehavioralFilters(record.behavioralFilters),
+      ),
     };
+  }
+
+  private normalizeBehavioralFilters(value: unknown): BehavioralFilterRanges {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const source = value as Record<string, unknown>;
+    return Object.fromEntries(
+      BEHAVIORAL_FILTER_KEYS.flatMap((key) => {
+        const ranges = source[key];
+        if (!Array.isArray(ranges)) return [];
+        const normalized = ranges.flatMap((range) => {
+          if (
+            !range ||
+            typeof range !== 'object' ||
+            typeof (range as { min?: unknown }).min !== 'number'
+          )
+            return [];
+          const max = (range as { max?: unknown }).max;
+          if (max !== undefined && max !== null && typeof max !== 'number')
+            return [];
+          return [
+            {
+              min: (range as { min: number }).min,
+              max: typeof max === 'number' ? max : null,
+            },
+          ];
+        });
+        return normalized.length ? [[key, normalized]] : [];
+      }),
+    ) as BehavioralFilterRanges;
   }
 
   async getSimulation(id: number): Promise<Simulation | null> {
@@ -1545,6 +1621,7 @@ export class SimulationsService {
             score: true,
             scoreFormular: true,
             sizingFormular: true,
+            behavioralFilters: true,
             _count: { select: { simulationPlans: true } },
           },
         });
@@ -1602,6 +1679,7 @@ export class SimulationsService {
             score: sourceSimulation.score as any,
             scoreFormular: sourceSimulation.scoreFormular,
             sizingFormular: sourceSimulation.sizingFormular,
+            behavioralFilters: sourceSimulation.behavioralFilters as any,
             leaderExecutionCollateral: this.serializeRanges(
               variant.leaderExecutionCollateral,
             ),
@@ -1681,6 +1759,11 @@ export class SimulationsService {
         ),
         score: this.normalizeResearchGroups(research.score),
       });
+      const simulationVariants = combinations.flatMap((combination) =>
+        buildBehavioralFilterVariants(
+          this.normalizeBehavioralFilters(research.behavioralFilters),
+        ).map((behavioralFilters) => ({ combination, behavioralFilters })),
+      );
       const totalSimulationPlans = countSimulationPlanWindows(
         research.startAt,
         research.endAt,
@@ -1688,7 +1771,7 @@ export class SimulationsService {
         research.gapDays,
       );
       await tx.simulation.createMany({
-        data: combinations.map((combination) => ({
+        data: simulationVariants.map(({ combination, behavioralFilters }) => ({
           title: research.title,
           description: research.description,
           platform: research.platform,
@@ -1704,6 +1787,7 @@ export class SimulationsService {
           progressPercent: 0,
           totalSimulationPlans,
           selectedLeaderCount: DEFAULT_SELECTED_LEADER_COUNT,
+          behavioralFilters: behavioralFilters as any,
           trade: this.serializeRanges(combination.trade),
           r2: this.serializeRanges(combination.r2),
           slope: this.serializeRanges(combination.slope),
@@ -1753,7 +1837,7 @@ export class SimulationsService {
           progressPercent: 0,
           totalRanges: totalSimulationPlans,
           completedRanges: 0,
-          totalPlans: totalSimulationPlans * combinations.length,
+          totalPlans: totalSimulationPlans * simulationVariants.length,
           completedPlans: 0,
         },
         include: { simulations: { select: { status: true } } },

@@ -27,6 +27,7 @@ type EvaluateMessage = {
     contracts: ContractContext[];
     eventLogWindowStartedAt: string;
     eventLogWindowEndedAt: string;
+    behavioralEvaluationStartedAt: string;
   };
 };
 
@@ -124,6 +125,9 @@ async function evaluate(
   const setupStartedAt = performance.now();
   const rangeStartedAt = new Date(input.range.startedAt);
   const eventLogWindowStartedAt = new Date(input.eventLogWindowStartedAt);
+  const behavioralEvaluationStartedAt = new Date(
+    input.behavioralEvaluationStartedAt,
+  );
   const eventLogWindowEndedAt = new Date(input.eventLogWindowEndedAt);
   const recentActivityCutoff = new Date(rangeStartedAt);
   recentActivityCutoff.setUTCDate(recentActivityCutoff.getUTCDate() - 30);
@@ -195,6 +199,12 @@ async function evaluate(
         timings.historyConversionMs +=
           performance.now() - historyConversionStartedAt;
         const positionBuildStartedAt = performance.now();
+        const allPositions =
+          EventLogsService.buildPerpTradePositionsWithSummary(
+            input.simulation.platform,
+            histories,
+            {},
+          ).positions;
         const positions = EventLogsService.buildPerpTradePositionsWithSummary(
           input.simulation.platform,
           histories,
@@ -209,11 +219,21 @@ async function evaluate(
         const evaluation =
           SimulationLeaderEvaluatorService.evaluateLeaderPositionsForSimulation(
             leaderAddress,
-            SimulationLeaderEvaluatorService.getClosedPositionsBefore(
+            SimulationLeaderEvaluatorService.getClosedPositionsInRange(
               positions,
+              behavioralEvaluationStartedAt,
               rangeStartedAt,
             ),
             input.simulation,
+            {
+              startedAt: behavioralEvaluationStartedAt,
+              endedAt: rangeStartedAt,
+            },
+            SimulationLeaderEvaluatorService.getClosedPositionsInRange(
+              allPositions,
+              behavioralEvaluationStartedAt,
+              rangeStartedAt,
+            ),
           );
         timings.scoringMs += performance.now() - scoringStartedAt;
         if (

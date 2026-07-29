@@ -16,7 +16,8 @@ export class UpdateSimulationWorkflowConfigInput {
   @Field(() => Int, { nullable: true }) maxOutstandingDynamicPlans?: number;
   @Field(() => Int, { nullable: true }) finalizerBatchSize?: number;
   @Field(() => Int, { nullable: true }) finalizerConcurrency?: number;
-  @Field(() => Int, { nullable: true }) sourceDerivedRecalculationConcurrency?: number;
+  @Field(() => Int, { nullable: true })
+  sourceDerivedRecalculationConcurrency?: number;
   @Field(() => Int, { nullable: true }) finalizerBotCacheConcurrency?: number;
   @Field(() => Int, { nullable: true }) finalizerRetryDelayMs?: number;
   @Field(() => Int, { nullable: true }) maxAwaitingFinalizationPlans?: number;
@@ -75,6 +76,16 @@ export class FloatMinMaxInput {
 }
 
 @InputType()
+export class BehavioralFloatRangeInput {
+  @Field(() => Float)
+  min: number;
+
+  /** Null represents an unbounded upper limit. */
+  @Field(() => Float, { nullable: true })
+  max?: number | null;
+}
+
+@InputType()
 export class IntRangeGroupInput {
   @ValidateNested({ each: true })
   @Type(() => IntMinMaxInput)
@@ -88,6 +99,24 @@ export class FloatRangeGroupInput {
   @Type(() => FloatMinMaxInput)
   @Field(() => [FloatMinMaxInput])
   ranges: FloatMinMaxInput[];
+}
+
+@InputType()
+export class BehavioralFiltersInput {
+  @ValidateNested({ each: true })
+  @Type(() => BehavioralFloatRangeInput)
+  @Field(() => [BehavioralFloatRangeInput], { nullable: true })
+  negativeActiveDayRate?: BehavioralFloatRangeInput[];
+
+  @ValidateNested({ each: true })
+  @Type(() => BehavioralFloatRangeInput)
+  @Field(() => [BehavioralFloatRangeInput], { nullable: true })
+  directionalLossPurity?: BehavioralFloatRangeInput[];
+
+  @ValidateNested({ each: true })
+  @Type(() => BehavioralFloatRangeInput)
+  @Field(() => [BehavioralFloatRangeInput], { nullable: true })
+  medianPostLossLeverageRatio?: BehavioralFloatRangeInput[];
 }
 
 @InputType()
@@ -193,6 +222,11 @@ export class CreateSimulationResearchInput {
     defaultValue: DEFAULT_SIZING_FORMULAR,
   })
   sizingFormular?: SimulationSizingFormular;
+
+  @ValidateNested()
+  @Type(() => BehavioralFiltersInput)
+  @Field(() => BehavioralFiltersInput, { nullable: true })
+  behavioralFilters?: BehavioralFiltersInput;
 }
 
 @InputType()

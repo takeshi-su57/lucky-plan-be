@@ -22,6 +22,7 @@ type EvaluateLeadersTaskInput = {
   contracts: ContractContext[];
   eventLogWindowStartedAt: string;
   eventLogWindowEndedAt: string;
+  behavioralEvaluationStartedAt: string;
 };
 
 type PrebuildPlatformCacheTaskInput = {
@@ -56,6 +57,9 @@ export class SimulationEvaluatorWorkerEvaluationService {
     );
 
     const rangeStartedAt = new Date(input.range.startedAt);
+    const behavioralEvaluationStartedAt = new Date(
+      input.behavioralEvaluationStartedAt,
+    );
     const recentActivityCutoff = dayjs(rangeStartedAt)
       .subtract(CANDIDATE_RECENT_ACTIVITY_DAYS, 'day')
       .toDate();
@@ -82,6 +86,11 @@ export class SimulationEvaluatorWorkerEvaluationService {
         records.map((record) => ({ ...record, date: new Date(record.date) })),
         contractById,
       );
+      const allPositions = EventLogsService.buildPerpTradePositionsWithSummary(
+        input.simulation.platform,
+        histories,
+        {},
+      ).positions;
       const positions = EventLogsService.buildPerpTradePositionsWithSummary(
         input.simulation.platform,
         histories,
@@ -92,8 +101,9 @@ export class SimulationEvaluatorWorkerEvaluationService {
         },
       ).positions;
       const closedPositions =
-        SimulationLeaderEvaluatorService.getClosedPositionsBefore(
+        SimulationLeaderEvaluatorService.getClosedPositionsInRange(
           positions,
+          behavioralEvaluationStartedAt,
           rangeStartedAt,
         );
       const evaluation =
@@ -101,6 +111,15 @@ export class SimulationEvaluatorWorkerEvaluationService {
           leaderAddress,
           closedPositions,
           input.simulation,
+          {
+            startedAt: behavioralEvaluationStartedAt,
+            endedAt: rangeStartedAt,
+          },
+          SimulationLeaderEvaluatorService.getClosedPositionsInRange(
+            allPositions,
+            behavioralEvaluationStartedAt,
+            rangeStartedAt,
+          ),
         );
       if (
         evaluation.rejectedReason ||
@@ -356,7 +375,8 @@ export class SimulationEvaluatorWorkerEvaluationService {
       typeof value.range.endedAt !== 'string' ||
       !Array.isArray(value.contracts) ||
       typeof value.eventLogWindowStartedAt !== 'string' ||
-      typeof value.eventLogWindowEndedAt !== 'string'
+      typeof value.eventLogWindowEndedAt !== 'string' ||
+      typeof value.behavioralEvaluationStartedAt !== 'string'
     ) {
       throw new Error('Incomplete evaluation task input');
     }

@@ -160,6 +160,7 @@ export class SimulationAutoRunnerService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      behavioralFiltersJson: JSON.stringify(record.behavioralFilters ?? {}),
     };
   }
 
@@ -208,6 +209,7 @@ export class SimulationAutoRunnerService {
       sizingFormular:
         (record.sizingFormular as SimulationSizingFormular | null) ??
         DEFAULT_SIZING_FORMULAR,
+      behavioralFiltersJson: JSON.stringify(record.behavioralFilters ?? {}),
       status: record.status ?? SimulationStatus.Created,
       aiReportReady: record.aiReportReady ?? false,
       aiReportGenerating: record.aiReportGenerating ?? false,
@@ -873,6 +875,9 @@ export class SimulationAutoRunnerService {
       evaluationCopiedPnlUsd: candidate.copiedNetPnlUsd,
       evaluationProfitFactor: candidate.copiedProfitFactor,
       evaluationMaxDrawdownUsd: candidate.copiedDrawdownUsd,
+      behavioralFeatures: candidate.behavioralFeatures
+        ? JSON.parse(JSON.stringify(candidate.behavioralFeatures))
+        : undefined,
     }));
 
     if (botInputs.length === 0) {

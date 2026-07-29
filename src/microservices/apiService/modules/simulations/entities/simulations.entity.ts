@@ -168,6 +168,9 @@ export class SimulationBot {
   @Field(() => LeaderEvaluationMetrics)
   evaluationMetrics: LeaderEvaluationMetrics;
 
+  @Field(() => String, { nullable: true })
+  behavioralFeaturesJson?: string | null;
+
   @Field(() => Int)
   simulationPlanId: number;
 
@@ -413,6 +416,11 @@ export class Simulation {
   @Field(() => SimulationSizingFormular)
   sizingFormular: SimulationSizingFormular;
 
+  @Field(() => String)
+  behavioralFiltersJson: string;
+
+  behavioralFilters: Record<string, Array<{ min: number; max: number | null }>>;
+
   @Field(() => Int)
   totalSimulationPlans: number;
 
@@ -484,6 +492,9 @@ export class SimulationResearch {
 
   @Field(() => BotMode)
   direction: BotMode;
+
+  @Field(() => String)
+  behavioralFiltersJson: string;
 
   @Field(() => [SimulationTradeRangeGroup])
   trade: SimulationTradeRangeGroup[];

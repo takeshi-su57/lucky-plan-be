@@ -75,9 +75,13 @@ export class DistributedSimulationEvaluatorService {
       score: simulation.score,
       scoreFormular: simulation.scoreFormular,
       sizingFormular: simulation.sizingFormular,
+      behavioralFilters: simulation.behavioralFilters,
     };
     const workflow = await this.workflowConfig.get();
-    const eventLogWindowStartedAt = dayjs(range.startedAt)
+    const behavioralEvaluationStartedAt = dayjs(range.startedAt)
+      .subtract(workflow.leaderScoringWindowDays, 'day')
+      .toDate();
+    const eventLogWindowStartedAt = dayjs(behavioralEvaluationStartedAt)
       .subtract(workflow.leaderScoringWindowDays, 'day')
       .toDate();
     const eventLogWindowEndedAt = range.startedAt;
@@ -105,6 +109,8 @@ export class DistributedSimulationEvaluatorService {
           dispatchTiming,
           eventLogWindowStartedAt: eventLogWindowStartedAt.toISOString(),
           eventLogWindowEndedAt: eventLogWindowEndedAt.toISOString(),
+          behavioralEvaluationStartedAt:
+            behavioralEvaluationStartedAt.toISOString(),
         }),
       ),
     });

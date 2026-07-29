@@ -197,6 +197,7 @@ model SimulationResearch {
   score                     Json   @default("[]")
   scoreFormular             String @default("RiskAdjustedCopyScore")
   sizingFormular            String @default("ScoreScaledCollateralSizing")
+  behavioralFilters         Json   @default("{}")
   sourceSimulationId        Int?
 
   cursor                   DateTime?
@@ -418,6 +419,7 @@ model Simulation {
   score                     Json   @default("{\"min\":0,\"max\":1}")
   scoreFormular             String @default("RiskAdjustedCopyScore")
   sizingFormular            String @default("ScoreScaledCollateralSizing")
+  behavioralFilters         Json   @default("{}")
 
   totalSimulationPlans Int   @default(0)
   completedPlans       Int   @default(0)
@@ -531,6 +533,7 @@ model SimulationBot {
   evaluationCopiedPnlUsd   Float @default(0)
   evaluationProfitFactor   Float @default(0)
   evaluationMaxDrawdownUsd Float @default(0)
+  behavioralFeatures       Json?
 
   openedPositions              Int   @default(0)
   totalPositions               Int   @default(0)

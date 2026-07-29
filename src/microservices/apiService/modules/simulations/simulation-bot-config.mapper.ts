@@ -11,6 +11,7 @@ export type PersistedSimulationBotConfiguration = {
   evaluationCopiedPnlUsd: number;
   evaluationProfitFactor: number;
   evaluationMaxDrawdownUsd: number;
+  behavioralFeatures?: unknown;
 };
 
 function normalizeRanges(value: unknown) {
@@ -44,5 +45,9 @@ export function mapSimulationBotConfiguration<
       copiedProfitFactor: bot.evaluationProfitFactor,
       copiedMaxDrawdownUsd: bot.evaluationMaxDrawdownUsd,
     },
+    behavioralFeaturesJson:
+      bot.behavioralFeatures === null || bot.behavioralFeatures === undefined
+        ? null
+        : JSON.stringify(bot.behavioralFeatures),
   };
 }

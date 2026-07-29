@@ -24,6 +24,13 @@ import {
 import { SIMULATION_SYSTEM_CONFIG } from './simulation.constants';
 import { WindowRange } from './utils/simulation-range.utils';
 import { getEventLogStableId } from 'src/microservices/apiService/modules/trade-histories/event-log-identity.utils';
+import {
+  calculateUnfortunateTraderFeaturesV1,
+  findBehavioralFilterRejection,
+  positionToEpisode,
+  PositionEpisode,
+  UnfortunateTraderFeaturesV1,
+} from './utils/unfortunate-trader-features';
 
 type ValueRange = {
   min: number;
@@ -69,6 +76,7 @@ export type CandidateEvaluation = {
   copiedNetPnlUsd: number;
   copiedDrawdownUsd: number;
   copiedProfitFactor: number;
+  behavioralFeatures?: UnfortunateTraderFeaturesV1;
   rejectedReason?: string;
 };
 
@@ -125,6 +133,8 @@ export class SimulationLeaderEvaluatorService {
     leaderAddress: string,
     closedPositions: PerpTradePosition[],
     simulation: Simulation,
+    behavioralEvaluationRange?: WindowRange,
+    behavioralClosedPositions: PerpTradePosition[] = closedPositions,
   ): CandidateEvaluation {
     const rawPositionPnls = getPositionPnls(
       closedPositions,
@@ -137,6 +147,17 @@ export class SimulationLeaderEvaluatorService {
       SimulationLeaderEvaluatorService.calculateAverageMaxDepositedUsd(
         closedPositions,
       );
+    const behavioralFeatures = behavioralEvaluationRange
+      ? calculateUnfortunateTraderFeaturesV1({
+          traderAddress: leaderAddress,
+          platform: simulation.platform,
+          evaluationStart: behavioralEvaluationRange.startedAt,
+          evaluationEnd: behavioralEvaluationRange.endedAt,
+          episodes: behavioralClosedPositions
+            .map(positionToEpisode)
+            .filter((episode): episode is PositionEpisode => !!episode),
+        })
+      : undefined;
 
     const baseEvaluation = {
       leaderAddress,
@@ -150,10 +171,21 @@ export class SimulationLeaderEvaluatorService {
       copiedNetPnlUsd: 0,
       copiedDrawdownUsd: 0,
       copiedProfitFactor: 0,
+      behavioralFeatures,
     };
     const effectiveSlopeRanges = simulation.slope.map((range) =>
       getDirectionalSlopeRange(simulation.direction, range),
     );
+
+    if (behavioralFeatures) {
+      const behavioralRejection = findBehavioralFilterRejection(
+        behavioralFeatures,
+        simulation.behavioralFilters ?? {},
+      );
+      if (behavioralRejection) {
+        return { ...baseEvaluation, rejectedReason: behavioralRejection };
+      }
+    }
 
     if (!valueMatchesAnyRange(rawTradeCount, simulation.trade)) {
       return { ...baseEvaluation, rejectedReason: 'TRADE_COUNT_OUT_OF_RANGE' };
@@ -238,6 +270,27 @@ export class SimulationLeaderEvaluatorService {
       const closedAt = position.histories[position.histories.length - 1]?.date;
 
       return closedAt ? new Date(closedAt).getTime() < beforeTime : false;
+    });
+  }
+
+  static getClosedPositionsInRange(
+    positions: PerpTradePosition[],
+    startedAt: Date,
+    endedAt: Date,
+  ) {
+    const startTime = startedAt.getTime();
+    const endTime = endedAt.getTime();
+    return positions.filter((position) => {
+      if (!SimulationLeaderEvaluatorService.isClosedPosition(position)) {
+        return false;
+      }
+      const closedAt = position.histories[position.histories.length - 1]?.date;
+      const closedTime = closedAt?.getTime();
+      return (
+        closedTime !== undefined &&
+        closedTime >= startTime &&
+        closedTime < endTime
+      );
     });
   }
 
