@@ -292,8 +292,9 @@ export class LogsService {
 
   private async readAllFileLogs(): Promise<StoredLog[]> {
     const records: StoredLog[] = [];
-    for (const file of await this.logFiles())
-      records.push(...(await this.readFileLogs(file)));
+    for (const file of await this.logFiles()) {
+      for (const record of await this.readFileLogs(file)) records.push(record);
+    }
     return records.sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
