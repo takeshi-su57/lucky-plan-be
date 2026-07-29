@@ -9,7 +9,7 @@ import { LogsService } from 'src/global/logs.service';
 
 import { PrismaService } from 'src/global/prisma.service';
 import { ServiceStatus } from 'src/types';
-import { getReadableError, getStartOfDay } from 'src/utils';
+import { delay, getReadableError, getStartOfDay } from 'src/utils';
 import { PnlSnapshotV2DetailsPaginatedResponse } from './entities/event-logs.entity';
 import { Contract } from '../contracts/entities/contract.entity';
 import { getWeb3Info } from 'src/web3/utils';
@@ -39,9 +39,27 @@ function getKey(address: string, platform: Platform) {
 const timestampGapByThreeMonthPnlSnapshot = 3 * 30 * 24 * 60 * 60 * 1000;
 
 const BATCH_SIZE = 2000;
-// Each Prisma upsert is executed within one transaction. Keep this deliberately
-// small so the transaction finishes within Prisma's default timeout.
-const PNL_SNAPSHOT_UPSERT_BATCH_SIZE = 50;
+const PNL_SNAPSHOT_UPSERT_BATCH_SIZE = 100;
+const PNL_SNAPSHOT_UPSERT_CONCURRENCY = 10;
+// The initial write is attempted immediately, followed by at most four retries.
+const PNL_SNAPSHOT_UPSERT_RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000];
+
+function isTransientPnlSnapshotWriteError(error: unknown) {
+  const message = getReadableError(error).toLowerCase();
+
+  return [
+    'transaction api error',
+    'expired transaction',
+    'deadlock detected',
+    'could not serialize access',
+    'connection terminated',
+    'connection reset',
+    'econnreset',
+    'etimedout',
+    'timeout',
+  ].some((pattern) => message.includes(pattern));
+}
+
 @Injectable()
 export class PnlSnapshotsService {
   status: ServiceStatus;
@@ -365,7 +383,7 @@ export class PnlSnapshotsService {
         const historiesPnlMapKeys = Array.from(tempCache1.keys());
 
         if (historiesPnlMapKeys.length > 20_000) {
-          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache1);
+          await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache1);
           tempCache1.clear();
         }
 
@@ -375,7 +393,7 @@ export class PnlSnapshotsService {
       const cachedKeys1 = Array.from(tempCache1.keys());
 
       if (cachedKeys1.length > 0) {
-        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache1);
+        await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache1);
         tempCache1.clear();
       }
 
@@ -426,7 +444,7 @@ export class PnlSnapshotsService {
         const cachedKeys = Array.from(tempCache.keys());
 
         if (cachedKeys.length > 20_000) {
-          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+          await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache);
           tempCache.clear();
         }
 
@@ -436,7 +454,7 @@ export class PnlSnapshotsService {
       const cachedKeys = Array.from(tempCache.keys());
 
       if (cachedKeys.length > 0) {
-        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+        await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache);
         tempCache.clear();
       }
 
@@ -486,6 +504,7 @@ export class PnlSnapshotsService {
   }
 
   private async storeCacheToPnlsnapshotV2(
+    platform: Platform,
     dateStr: string,
     tempCache: Map<string, number>,
   ) {
@@ -520,7 +539,7 @@ export class PnlSnapshotsService {
 
       await this.logger.nativeLog({
         severity: 'Debug',
-        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        summary: `PnlSnapshotsV2Service>storeCacheToPnlsnapshotV2: ${platform} ${dateStr}`,
         details: `pnlRecords chunk ${i} ~ ${i + chunk.length} ${pnlRecords.length}`,
       });
 
@@ -548,40 +567,90 @@ export class PnlSnapshotsService {
 
       await this.logger.nativeLog({
         severity: 'Debug',
-        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        summary: `PnlSnapshotsV2Service>storeCacheToPnlsnapshotV2: ${platform} ${dateStr}`,
         details: `upsertInputs chunk ${i} ~ ${i + chunk.length} ${upsertInputs.length}`,
       });
 
-      await this.prismaService.$transaction(
-        upsertInputs.map((input) => {
-          return this.prismaService.pnlSnapshotV2.upsert({
-            where: {
-              address_platform_dateStr: {
-                address: input.address.toLowerCase(),
-                dateStr: input.dateStr,
-                platform: input.platform,
-              },
-            },
-            update: {
-              accUSDPnl: input.accUSDPnl,
-            },
-            create: input,
-          });
-        }),
-      );
+      for (
+        let inputOffset = 0;
+        inputOffset < upsertInputs.length;
+        inputOffset += PNL_SNAPSHOT_UPSERT_CONCURRENCY
+      ) {
+        await Promise.all(
+          upsertInputs
+            .slice(inputOffset, inputOffset + PNL_SNAPSHOT_UPSERT_CONCURRENCY)
+            .map((input) =>
+              this.upsertPnlSnapshotWithRetry(
+                input,
+                platform,
+                dateStr,
+                i,
+                chunk.length,
+              ),
+            ),
+        );
+      }
 
       this.logger.nativeLog({
         severity: 'Debug',
-        summary: 'Time for store cache',
+        summary: `PnlSnapshotsV2Service>storeCacheToPnlsnapshotV2: ${platform} ${dateStr}`,
         details: `${Date.now() - chunkTime}ms`,
       });
     }
 
     this.logger.nativeLog({
       severity: 'Debug',
-      summary: 'Time for store cache',
+      summary: `PnlSnapshotsV2Service>storeCacheToPnlsnapshotV2: ${platform} ${dateStr}`,
       details: `${Date.now() - startedTime}ms`,
     });
+  }
+
+  private async upsertPnlSnapshotWithRetry(
+    input: {
+      address: string;
+      platform: Platform;
+      dateStr: string;
+      accUSDPnl: number;
+    },
+    platform: Platform,
+    dateStr: string,
+    chunkOffset: number,
+    chunkLength: number,
+  ) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await this.prismaService.pnlSnapshotV2.upsert({
+          where: {
+            address_platform_dateStr: {
+              address: input.address,
+              dateStr: input.dateStr,
+              platform: input.platform,
+            },
+          },
+          update: {
+            accUSDPnl: input.accUSDPnl,
+          },
+          create: input,
+        });
+        return;
+      } catch (error) {
+        const retryDelay = PNL_SNAPSHOT_UPSERT_RETRY_DELAYS_MS[attempt];
+
+        if (
+          retryDelay === undefined ||
+          !isTransientPnlSnapshotWriteError(error)
+        ) {
+          throw error;
+        }
+
+        await this.logger.nativeLog({
+          severity: 'Warning',
+          summary: `PnlSnapshotsV2Service>storeCacheToPnlsnapshotV2: ${platform} ${dateStr}`,
+          details: `upsert failed for chunk ${chunkOffset} ~ ${chunkOffset + chunkLength}; retry ${attempt + 1}/${PNL_SNAPSHOT_UPSERT_RETRY_DELAYS_MS.length} in ${retryDelay}ms: ${getReadableError(error)}`,
+        });
+        await delay(retryDelay);
+      }
+    }
   }
 
   async buildSnapshots(
@@ -618,7 +687,7 @@ export class PnlSnapshotsService {
 
       await this.logger.nativeLog({
         severity: 'Debug',
-        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr}`,
         details: 'deleted old pnl snapshot',
       });
 
@@ -631,7 +700,7 @@ export class PnlSnapshotsService {
         const chunkTime = Date.now();
         await this.logger.nativeLog({
           severity: 'Debug',
-          summary: `PnlSnapshotsV2Service>buildSnapshots`,
+          summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr}`,
           details: `find many perp trading event logs lastCursor=${lastCursor ? getEventLogStableId(lastCursor) : null}`,
         });
 
@@ -680,13 +749,13 @@ export class PnlSnapshotsService {
 
         // we need to clean cache for prevent memory execeed.
         if (storedKeys.length > 50_000) {
-          await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+          await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache);
           tempCache.clear();
         }
 
         await this.logger.nativeLog({
           severity: 'Debug',
-          summary: `PnlSnapshotsV2Service>buildSnapshots`,
+          summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr}`,
           details: `chunk time ${Date.now() - chunkTime}ms`,
         });
       }
@@ -694,13 +763,13 @@ export class PnlSnapshotsService {
       const storedKeys = Array.from(tempCache.keys());
 
       if (storedKeys.length > 0) {
-        await this.storeCacheToPnlsnapshotV2(dateStr, tempCache);
+        await this.storeCacheToPnlsnapshotV2(platform, dateStr, tempCache);
         tempCache.clear();
       }
 
       this.logger.nativeLog({
         severity: 'Debug',
-        summary: `PnlSnapshotsV2Service>buildSnapshots`,
+        summary: `PnlSnapshotsV2Service>buildSnapshots: ${platform} ${dateStr}`,
         details: `total time ${Date.now() - startedTime}ms`,
       });
 
