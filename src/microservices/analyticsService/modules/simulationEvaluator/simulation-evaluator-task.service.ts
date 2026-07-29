@@ -611,6 +611,11 @@ export class SimulationEvaluatorTaskService
     }>,
     activeEvaluationCount: number,
   ) {
+    // An idle worker polling while there is no ready evaluation is expected.
+    // Presence is already recorded by its heartbeat, so logging it repeatedly
+    // only creates noise.
+    if (readyTasks.length === 0) return;
+
     const now = Date.now();
     if ((this.lastNoClaimDiagnosticAt.get(worker.id) ?? 0) > now - 30_000)
       return;
@@ -619,9 +624,7 @@ export class SimulationEvaluatorTaskService
     const reason =
       activeEvaluationCount >= claimCapacity
         ? 'claim-capacity-full'
-        : readyTasks.length === 0
-          ? 'no-ready-evaluation-in-scan'
-          : 'cache-coverage-rejected-scanned-tasks';
+        : 'cache-coverage-rejected-scanned-tasks';
     this.logger.debug(
       JSON.stringify({
         event: 'simulation-evaluator.no-claim',
