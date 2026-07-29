@@ -257,7 +257,7 @@ describe('materialized simulation finalization', () => {
       {} as never,
       {
         get: jest.fn(async () => ({
-          finalizerConcurrency: 2,
+          finalizerConcurrency: 0,
           sourceDerivedRecalculationConcurrency: 3,
         })),
       } as never,
