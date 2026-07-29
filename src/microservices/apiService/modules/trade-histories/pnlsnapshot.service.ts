@@ -39,6 +39,9 @@ function getKey(address: string, platform: Platform) {
 const timestampGapByThreeMonthPnlSnapshot = 3 * 30 * 24 * 60 * 60 * 1000;
 
 const BATCH_SIZE = 2000;
+// Each Prisma upsert is executed within one transaction. Keep this deliberately
+// small so the transaction finishes within Prisma's default timeout.
+const PNL_SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 @Injectable()
 export class PnlSnapshotsService {
   status: ServiceStatus;
@@ -490,10 +493,14 @@ export class PnlSnapshotsService {
 
     const startedTime = Date.now();
 
-    for (let i = 0; i < storedKeys.length; i += BATCH_SIZE / 10) {
+    for (
+      let i = 0;
+      i < storedKeys.length;
+      i += PNL_SNAPSHOT_UPSERT_BATCH_SIZE
+    ) {
       const chunkTime = Date.now();
 
-      const chunk = storedKeys.slice(i, i + BATCH_SIZE / 10);
+      const chunk = storedKeys.slice(i, i + PNL_SNAPSHOT_UPSERT_BATCH_SIZE);
 
       const pnlRecords = await this.prismaService.pnlSnapshotV2.findMany({
         where: {
