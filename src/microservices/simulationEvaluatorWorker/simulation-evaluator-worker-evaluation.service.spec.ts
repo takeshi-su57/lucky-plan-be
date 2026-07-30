@@ -7,7 +7,7 @@ import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluat
 describe('SimulationEvaluatorWorkerEvaluationService prebuild checkpoints', () => {
   it('refreshes a fully covered cache window when requested', async () => {
     const client = {
-      getPrebuildChunk: jest.fn(async () => ({
+      getPrebuildChunk: jest.fn(async (..._args: unknown[]) => ({
         eventLogs: [],
         nextCursor: null,
         done: true,
