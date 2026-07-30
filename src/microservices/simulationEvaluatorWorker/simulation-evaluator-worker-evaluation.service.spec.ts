@@ -5,6 +5,46 @@ import { Platform } from 'generated/prisma/enums';
 import { SimulationEvaluatorWorkerEvaluationService } from './simulation-evaluator-worker-evaluation.service';
 
 describe('SimulationEvaluatorWorkerEvaluationService prebuild checkpoints', () => {
+  it('refreshes a fully covered cache window when requested', async () => {
+    const client = {
+      getPrebuildChunk: jest.fn(async () => ({
+        eventLogs: [],
+        nextCursor: null,
+        done: true,
+        totalRecords: 0,
+        compressedBytes: 0,
+      })),
+      reportTaskProgress: jest.fn(),
+    };
+    const cache = {
+      isSqliteEventLogCache: jest.fn(() => false),
+      hasPlatformCoverage: jest.fn(() => true),
+      getPrebuildTaskCheckpoint: jest.fn(() => null),
+      mergeEventLogs: jest.fn(async () => undefined),
+      savePrebuildTaskCheckpoint: jest.fn(),
+      markPlatformCoverage: jest.fn(),
+      clearPrebuildTaskCheckpoint: jest.fn(),
+    };
+    const service = new SimulationEvaluatorWorkerEvaluationService(
+      client as never,
+      cache as never,
+    );
+
+    await service.prebuildPlatformCache('task-1', 'lease-1', {
+      platform: Platform.GNS,
+      eventLogWindowStartedAt: '2026-01-01T00:00:00.000Z',
+      eventLogWindowEndedAt: '2026-02-01T00:00:00.000Z',
+      refreshExisting: true,
+    });
+
+    expect(client.getPrebuildChunk).toHaveBeenCalledWith(
+      'task-1',
+      'lease-1',
+      null,
+    );
+    expect(cache.markPlatformCoverage).toHaveBeenCalled();
+  });
+
   it('atomically commits a completed SQLite prebuild chunk', async () => {
     const startedAt = '2026-01-01T00:00:00.000Z';
     const endedAt = '2026-02-01T00:00:00.000Z';

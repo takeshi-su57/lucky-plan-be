@@ -29,6 +29,7 @@ type PrebuildPlatformCacheTaskInput = {
   platform: Platform;
   eventLogWindowStartedAt: string;
   eventLogWindowEndedAt: string;
+  refreshExisting?: boolean;
 };
 
 @Injectable()
@@ -155,7 +156,10 @@ export class SimulationEvaluatorWorkerEvaluationService {
       throw new Error('Invalid cache-prebuild input');
     }
 
-    if (this.cache.hasPlatformCoverage(platform, startedAt, endedAt)) {
+    if (
+      !input.refreshExisting &&
+      this.cache.hasPlatformCoverage(platform, startedAt, endedAt)
+    ) {
       this.cache.clearPrebuildTaskCheckpoint(taskId);
       return {
         platform,
@@ -466,7 +470,9 @@ export class SimulationEvaluatorWorkerEvaluationService {
       !this.isRecord(value) ||
       !Object.values(Platform).includes(value.platform as Platform) ||
       typeof value.eventLogWindowStartedAt !== 'string' ||
-      typeof value.eventLogWindowEndedAt !== 'string'
+      typeof value.eventLogWindowEndedAt !== 'string' ||
+      (value.refreshExisting !== undefined &&
+        typeof value.refreshExisting !== 'boolean')
     ) {
       throw new Error('Invalid cache-prebuild input');
     }

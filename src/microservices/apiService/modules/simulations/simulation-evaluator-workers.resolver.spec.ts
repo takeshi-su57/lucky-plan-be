@@ -7,6 +7,53 @@ import {
 import { SimulationEvaluatorWorkersResolver } from './simulation-evaluator-workers.resolver';
 
 describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
+  it('queues every monthly fragment when refreshing existing cache coverage', async () => {
+    const prisma = {
+      simulationEvaluatorTask: { deleteMany: jest.fn() },
+      simulationEvaluatorWorkerPlatformCache: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            coveredStartAt: new Date('2025-01-01T00:00:00.000Z'),
+            coveredEndAt: new Date('2025-06-01T00:00:00.000Z'),
+          },
+        ] as never),
+      },
+    };
+    const tasks = {
+      createTask: jest.fn(async (input: any) => ({
+        id: input.requiredCacheStartAt.toISOString(),
+      })),
+    };
+    const resolver = new SimulationEvaluatorWorkersResolver(
+      prisma as never,
+      {} as never,
+      tasks as never,
+      {} as never,
+    );
+
+    await expect(
+      resolver.prebuildSimulationEvaluatorWorker(
+        'worker-1',
+        'GNS',
+        '2024-01-01T00:00:00.000Z',
+        '2025-02-01T00:00:00.000Z',
+        true,
+      ),
+    ).resolves.toBeTruthy();
+
+    expect(
+      prisma.simulationEvaluatorWorkerPlatformCache.findMany,
+    ).not.toHaveBeenCalled();
+    expect(tasks.createTask).toHaveBeenCalledTimes(13);
+    expect(tasks.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requiredCacheStartAt: new Date('2025-01-01T00:00:00.000Z'),
+        requiredCacheEndAt: new Date('2025-02-01T00:00:00.000Z'),
+        input: expect.objectContaining({ refreshExisting: true }),
+      }),
+    );
+  });
+
   it('uses scheduling capacity and reports every downstream stage', async () => {
     const taskCounts: Record<string, number> = {
       [SimulationEvaluatorTaskStatus.Queued]: 2,
@@ -67,24 +114,24 @@ describe('SimulationEvaluatorWorkersResolver pipeline summary', () => {
                 },
               ] as never)
             : Promise.resolve([
-          {
-            totalSimulationPlans: 2,
-            automationLeaseToken: null,
-            automationLeaseExpiresAt: null,
-            _count: { executionPlans: 2 },
-          },
-          {
-            totalSimulationPlans: 2,
-            automationLeaseToken: null,
-            automationLeaseExpiresAt: null,
-            _count: { executionPlans: 2 },
-          },
-          {
-            totalSimulationPlans: 2,
-            automationLeaseToken: 'lease-1',
-            automationLeaseExpiresAt: new Date(Date.now() + 60_000),
-            _count: { executionPlans: 2 },
-          },
+                {
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: null,
+                  automationLeaseExpiresAt: null,
+                  _count: { executionPlans: 2 },
+                },
+                {
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: null,
+                  automationLeaseExpiresAt: null,
+                  _count: { executionPlans: 2 },
+                },
+                {
+                  totalSimulationPlans: 2,
+                  automationLeaseToken: 'lease-1',
+                  automationLeaseExpiresAt: new Date(Date.now() + 60_000),
+                  _count: { executionPlans: 2 },
+                },
               ] as never),
         ),
       },

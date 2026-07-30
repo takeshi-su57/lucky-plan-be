@@ -106,7 +106,7 @@ Evaluator clients are parent orchestrators. The parent is the only process that 
 
 For leader-evaluation tasks, the parent forks child processes up to its active capacity. Children receive task input over IPC and read the shared file-based event-log cache directly. They never access SQLite, the server, or prebuild tasks. The parent session heartbeat file makes orphaned children exit after a parent crash or restart.
 
-Administrators use the dedicated **Evaluator Workers** settings tab to approve/reject clients, prebuild cache windows, pause a client after its assigned tasks drain, resume it, and request a new child-process capacity. The UI shows requested and active capacity separately.
+Administrators use the dedicated **Evaluator Workers** settings tab to approve/reject clients, prebuild cache windows, pause a client after its assigned tasks drain, resume it, and request a new child-process capacity. The UI shows requested and active capacity separately. Cache prebuilds fill only uncovered windows by default; select **Refresh already cached months** when newly ingested historical event logs must be fetched for an already-covered period. Refreshes merge/upsert fetched logs and do not delete unrelated cached data.
 
 ### Web3 Layer
 

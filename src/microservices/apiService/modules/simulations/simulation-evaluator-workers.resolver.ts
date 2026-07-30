@@ -493,6 +493,8 @@ export class SimulationEvaluatorWorkersResolver {
     @Args('platform') platformText: string,
     @Args('startedAt') startedAtText: string,
     @Args('endedAt') endedAtText: string,
+    @Args('refreshExisting', { type: () => Boolean, nullable: true })
+    refreshExisting = false,
   ) {
     if (!Object.values(Platform).includes(platformText as Platform))
       throw new Error('Invalid platform');
@@ -523,26 +525,33 @@ export class SimulationEvaluatorWorkersResolver {
         requiredCacheEndAt: { gt: startedAt },
       },
     });
-    const fragments =
-      await this.prisma.simulationEvaluatorWorkerPlatformCache.findMany({
-        where: {
-          workerId,
-          platform,
-          status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
-          coveredStartAt: { not: null },
-          coveredEndAt: { not: null },
-        },
-        select: { coveredStartAt: true, coveredEndAt: true },
-      });
-    const missing = missingRanges(
-      fragments.map((fragment) => ({
-        coveredStartAt: fragment.coveredStartAt!,
-        coveredEndAt: fragment.coveredEndAt!,
-      })),
-      startedAt,
-      endedAt,
+    const ranges = refreshExisting
+      ? [{ coveredStartAt: startedAt, coveredEndAt: endedAt }]
+      : missingRanges(
+          (
+            await this.prisma.simulationEvaluatorWorkerPlatformCache.findMany({
+              where: {
+                workerId,
+                platform,
+                status: SimulationEvaluatorWorkerPlatformCacheStatus.Ready,
+                coveredStartAt: { not: null },
+                coveredEndAt: { not: null },
+              },
+              select: { coveredStartAt: true, coveredEndAt: true },
+            })
+          ).map((fragment) => ({
+            coveredStartAt: fragment.coveredStartAt!,
+            coveredEndAt: fragment.coveredEndAt!,
+          })),
+          startedAt,
+          endedAt,
+        );
+    const tasks = await this.createPrebuildTasks(
+      workerId,
+      platform,
+      ranges,
+      refreshExisting,
     );
-    const tasks = await this.createPrebuildTasks(workerId, platform, missing);
     // The GraphQL contract predates multi-fragment prebuilds. Return all task
     // IDs while callers that only need success can continue ignoring the value.
     return tasks.map((task) => task.id).join(',');
@@ -813,6 +822,7 @@ export class SimulationEvaluatorWorkersResolver {
     workerId: string,
     platform: Platform,
     ranges: Array<{ coveredStartAt: Date; coveredEndAt: Date }>,
+    refreshExisting = false,
   ) {
     return Promise.all(
       ranges
@@ -830,6 +840,7 @@ export class SimulationEvaluatorWorkersResolver {
               platform,
               eventLogWindowStartedAt: range.coveredStartAt.toISOString(),
               eventLogWindowEndedAt: range.coveredEndAt.toISOString(),
+              refreshExisting,
             },
           }),
         ),
