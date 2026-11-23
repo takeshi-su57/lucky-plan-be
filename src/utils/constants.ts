@@ -70,6 +70,8 @@ export const PATTERNS = {
   Leaderboard: {
     GetAdaptionStatus: 'GET_ADAPTION_STATUS',
     StartAdaption: 'START_ADAPTION',
+    GetRpcWorkers: 'GET_RPC_WORKERS',
+    ReloadRpcWorkers: 'RELOAD_RPC_WORKERS',
   },
 };
 

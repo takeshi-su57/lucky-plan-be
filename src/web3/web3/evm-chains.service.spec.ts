@@ -23,8 +23,9 @@ jest.mock('viem', () => ({
 }));
 
 describe('EvmChainsService aggressive public clients', () => {
-  it('groups dRPC token URLs into one worker for the shared IP limit', () => {
+  it('creates one batch-free worker per dRPC token with the free-plan range', () => {
     const originalTokens = [...privateRPCProviders.drpc.tokens];
+    const originalAlchemy = [...privateRPCProviders.alchemy.tokens];
     privateRPCProviders.drpc.tokens = ['token-a', 'token-b'];
     privateRPCProviders.alchemy.tokens = [];
 
@@ -33,24 +34,24 @@ describe('EvmChainsService aggressive public clients', () => {
         .createAggressivePublicClients(arbitrum)
         .filter((client: any) => client.provider === 'drpc');
 
-      expect(clients).toHaveLength(1);
-      expect(clients[0].id).toBe('drpc:42161');
-      expect(clients[0].url).toBe('drpc:2-tokens');
+      // Per-token workers; the shared per-IP limit is enforced by the
+      // RpcWorkerPoolService group concurrency cap instead.
+      expect(clients.map((client: any) => client.id)).toEqual([
+        'drpc:42161:0',
+        'drpc:42161:1',
+      ]);
+      expect(clients.map((client: any) => client.url)).toEqual([
+        'https://lb.drpc.live/arbitrum/token-a',
+        'https://lb.drpc.live/arbitrum/token-b',
+      ]);
+      expect(clients[0].maxBlockRange).toBe(100);
       expect(clients[0].client.transport).toEqual({
-        type: 'fallback',
-        transports: [
-          {
-            type: 'http',
-            url: 'https://lb.drpc.live/arbitrum/token-a',
-          },
-          {
-            type: 'http',
-            url: 'https://lb.drpc.live/arbitrum/token-b',
-          },
-        ],
+        type: 'http',
+        url: 'https://lb.drpc.live/arbitrum/token-a',
       });
     } finally {
       privateRPCProviders.drpc.tokens = originalTokens;
+      privateRPCProviders.alchemy.tokens = originalAlchemy;
     }
   });
 });

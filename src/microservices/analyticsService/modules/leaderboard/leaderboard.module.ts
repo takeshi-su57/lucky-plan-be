@@ -8,6 +8,7 @@ import { GnsModule } from 'src/web3/platform/gns/gns.module';
 import { Web3Module } from 'src/web3/web3/web3.module';
 import { LeaderboardController } from './leaderboard.controller';
 import { LeaderboardService } from './leaderboard.service';
+import { RpcWorkerPoolService } from './rpc-worker-pool.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { LeaderboardService } from './leaderboard.service';
     AvntModule,
   ],
   controllers: [LeaderboardController],
-  providers: [LeaderboardService],
+  providers: [LeaderboardService, RpcWorkerPoolService],
   exports: [LeaderboardService],
 })
 export class LeaderboardModule {}

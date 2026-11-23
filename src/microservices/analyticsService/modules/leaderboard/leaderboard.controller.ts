@@ -16,6 +16,16 @@ export class LeaderboardController {
     return this.leaderboardService.getAllStatus();
   }
 
+  @MessagePattern(PATTERNS.Leaderboard.GetRpcWorkers)
+  getRpcWorkers() {
+    return this.leaderboardService.getRpcWorkers();
+  }
+
+  @MessagePattern(PATTERNS.Leaderboard.ReloadRpcWorkers)
+  async reloadRpcWorkers() {
+    return await this.leaderboardService.reloadRpcWorkers();
+  }
+
   @MessagePattern(PATTERNS.Leaderboard.StartAdaption)
   startAdaption(payload: StartAdaptionPayload) {
     this.leaderboardService.startAdaption(
