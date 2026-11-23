@@ -58,6 +58,54 @@ model Contract {
   @@unique([chainId, address, version, platform])
 }
 
+enum RpcEndpointProvider {
+  DRPC
+  ALCHEMY
+  PUBLIC
+  CUSTOM
+}
+
+enum RpcEndpointTier {
+  Free
+  Paid
+}
+
+enum RpcEndpointState {
+  Active
+  Paused
+  Disabled
+}
+
+/// RPC endpoint used as a worker by the aggressive leaderboard backfill.
+/// `url` may embed an API key and must never be returned unmasked.
+model RpcEndpoint {
+  id                 Int                 @id @default(autoincrement())
+  chainId            Int
+  provider           RpcEndpointProvider
+  tier               RpcEndpointTier     @default(Free)
+  label              String?
+  url                String
+  /// Largest eth_getLogs block span the endpoint accepts. Null = unknown.
+  maxBlockRange      Int?
+  /// Requests this endpoint may run in parallel (paid plans allow many).
+  concurrency        Int                 @default(1)
+  /// Paused = stopped by an admin; Disabled = stopped automatically.
+  state              RpcEndpointState    @default(Active)
+  stateReason        String?
+  stateChangedAt     DateTime?
+  /// Result of the last on-demand health check (eth_blockNumber).
+  lastCheckedAt      DateTime?
+  lastCheckOk        Boolean?
+  lastCheckLatencyMs Int?
+  lastCheckErrorKind String?
+  lastCheckError     String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([chainId, url])
+  @@index([chainId, state])
+}
+
 model PerpTradingEventLog {
   contractId      Int
   jsonLog         String
@@ -94,7 +142,7 @@ model PnlSnapshotV2InitializedFlag {
 }
 
 model LogReview {
-  weekStart DateTime @id
+  weekStart  DateTime @id
   reviewedAt DateTime @default(now())
   reviewedBy String
 }

@@ -27,6 +27,7 @@ import { AvntModule } from 'src/web3/platform/avnt/avnt.module';
 import { PricesModule } from './modules/prices/prices.module';
 import { SLTPModule } from './modules/sltp/sltp.module';
 import { SimulationsModule } from './modules/simulations/simulations.module';
+import { RpcWorkersModule } from './modules/rpc-workers/rpc-workers.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -81,6 +82,7 @@ import { ApiController } from './api.controller';
     PricesModule,
     SLTPModule,
     SimulationsModule,
+    RpcWorkersModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],

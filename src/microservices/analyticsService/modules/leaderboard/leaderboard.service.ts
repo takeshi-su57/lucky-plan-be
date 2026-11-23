@@ -15,7 +15,6 @@ import { LogsService } from 'src/global/logs.service';
 import { EvmAdapterService } from 'src/web3/web3/evm-adapter.service';
 import { EventLogsService } from 'src/microservices/apiService/modules/trade-histories/event-logs.service';
 import { PrismaService } from 'src/global/prisma.service';
-import { EvmChainsService } from 'src/web3/web3/evm-chains.service';
 import { CreatePerpTradingEventLogInput } from 'src/microservices/apiService/modules/trade-histories/dto/event-logs.input';
 import { contractAddresses as avntContractAddresses } from 'src/web3/platform/avnt/v1/configs';
 
@@ -27,47 +26,92 @@ import { delay } from 'src/utils';
 import { avntGeneralAbi } from 'src/web3/platform/avnt/v1/abi/AvntGeneral';
 import { assertGmxV1BackfillReady } from 'src/web3/platform/gmx/v1/configs/backfill-preflight';
 
+import {
+  AggressiveRangeQueue,
+  AggressiveRangeQueueSnapshot,
+  BlockRange,
+} from './aggressive-range-queue';
+import { classifyRpcError } from './rpc-error-classifier';
+import {
+  PenaltyOptions,
+  RpcPoolWorker,
+  RpcWorkerPoolService,
+} from './rpc-worker-pool.service';
+
 type AggressiveAdaptionOptions = {
   basePenaltyMs?: number;
   maxPenaltyMs?: number;
 };
 
-type AggressiveTask = {
-  fromBlock: bigint;
-  toBlock: bigint;
-  status: 'created' | 'processing' | 'failed' | 'completed';
-  attempts: number;
+export type AggressiveAdaptionView = AggressiveRangeQueueSnapshot & {
+  contractId: number;
+  chainId: number;
+  startedAt: number;
 };
 
-type AggressiveWorker = {
-  id: string;
-  url: string;
-  client: PublicClient;
-  isBusy: boolean;
-  penaltyLevel: number;
-  availableAt: number;
+type AggressiveRun = {
+  contract: Contract;
+  queue: AggressiveRangeQueue;
+  startedAt: number;
 };
+
+/** Marks errors thrown by the RPC so DB failures don't penalize workers. */
+class RpcCallError extends Error {
+  constructor(readonly original: unknown) {
+    super(getReadableError(original));
+  }
+}
 
 @Injectable()
 export class LeaderboardService {
   isReceivedKillProcess = false;
   status: Record<number, ServiceStatus> = {};
 
+  /** Largest block span per getLogs call; workers may be limited further. */
   static BATCH_SIZE = 4000n;
+
+  private readonly aggressiveRuns = new Map<number, AggressiveRun>();
+  private readonly tradeLogEventsCache = new Map<
+    string,
+    readonly AbiEvent[] | null
+  >();
 
   constructor(
     private readonly evmAdapterService: EvmAdapterService,
-    private readonly evmChainsService: EvmChainsService,
     private readonly contractsService: ContractsService,
     private readonly eventLogsService: EventLogsService,
     private readonly logger: LogsService,
     private readonly prismaService: PrismaService,
+    private readonly rpcWorkerPool: RpcWorkerPoolService,
   ) {
     this.isReceivedKillProcess = false;
   }
 
   getAllStatus() {
     return this.status;
+  }
+
+  getAggressiveAdaptions(): AggressiveAdaptionView[] {
+    return Array.from(this.aggressiveRuns.values()).map((run) => ({
+      contractId: run.contract.id,
+      chainId: run.contract.chainId,
+      startedAt: run.startedAt,
+      ...run.queue.snapshot(),
+    }));
+  }
+
+  getRpcWorkers() {
+    return {
+      workers: this.rpcWorkerPool.snapshot(),
+      adaptions: this.getAggressiveAdaptions(),
+      rateGroups: this.rpcWorkerPool.rateGroups(),
+      settings: this.rpcWorkerPool.backfillSettings(),
+    };
+  }
+
+  async reloadRpcWorkers() {
+    await this.rpcWorkerPool.reloadAll();
+    return true;
   }
 
   async checkContractsForLeaderboard() {
@@ -227,16 +271,8 @@ export class LeaderboardService {
         await this.cleanLogs(contract.id, Number(fromBlock), Number(endBlock));
       }
 
-      const workers = this.evmChainsService
-        .getAggressivePublicClients(contract.chainId)
-        .map((worker) => ({
-          id: worker.id,
-          url: worker.url,
-          client: worker.client,
-          isBusy: false,
-          penaltyLevel: 0,
-          availableAt: 0,
-        }));
+      await this.rpcWorkerPool.ensureChain(contract.chainId);
+      const workers = this.rpcWorkerPool.getWorkers(contract.chainId);
 
       if (workers.length === 0) {
         throw new Error(`No aggressive public clients for ${contract.chainId}`);
@@ -252,9 +288,10 @@ export class LeaderboardService {
         contract,
         fromBlock,
         endBlock,
-        workers,
-        basePenaltyMs: options.basePenaltyMs ?? 2_100,
-        maxPenaltyMs: options.maxPenaltyMs ?? 60 * 60_000,
+        penalty: {
+          basePenaltyMs: options.basePenaltyMs ?? 2_100,
+          maxPenaltyMs: options.maxPenaltyMs ?? 5 * 60_000,
+        },
       });
     } catch (err) {
       this.logger.log({
@@ -277,118 +314,140 @@ export class LeaderboardService {
     contract,
     fromBlock,
     endBlock,
-    workers,
-    basePenaltyMs,
-    maxPenaltyMs,
+    penalty,
   }: {
     contract: Contract;
     fromBlock: bigint;
     endBlock: bigint;
-    workers: AggressiveWorker[];
-    basePenaltyMs: number;
-    maxPenaltyMs: number;
+    penalty: PenaltyOptions;
   }) {
-    const tasks = this.createAggressiveTasks(fromBlock, endBlock);
-    let nextCheckpointIndex = 0;
+    const queue = new AggressiveRangeQueue(
+      fromBlock,
+      endBlock,
+      LeaderboardService.BATCH_SIZE,
+    );
+    const run: AggressiveRun = { contract, queue, startedAt: Date.now() };
+    this.aggressiveRuns.set(contract.id, run);
 
-    await new Promise<void>((resolve) => {
-      const reportInterval = setInterval(() => {
-        this.reportAggressiveAdaptionTasks(contract, tasks, workers);
-      }, 60_000);
-      const finish = () => {
-        clearInterval(reportInterval);
-        resolve();
-      };
+    // Checkpoint writes are chained so they land in order.
+    let checkpointWrite: Promise<unknown> = Promise.resolve();
 
-      const schedule = () => {
-        if (
-          this.isReceivedKillProcess ||
-          tasks.every((task) => task.status === 'completed')
-        ) {
-          finish();
-          return;
-        }
+    try {
+      await new Promise<void>((resolve) => {
+        let finished = false;
 
-        const now = Date.now();
-        const availableWorkers = workers.filter(
-          (worker) => !worker.isBusy && worker.availableAt <= now,
-        );
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          clearInterval(tick);
+          clearInterval(reportInterval);
+          resolve();
+        };
 
-        for (const worker of availableWorkers) {
-          const task =
-            tasks.find((item) => item.status === 'failed') ||
-            tasks.find((item) => item.status === 'created');
+        const onComplete = (range: BlockRange) => {
+          const checkpoint = queue.complete(range);
 
-          if (!task) {
-            break;
+          if (checkpoint === null) return;
+
+          checkpointWrite = checkpointWrite
+            .then(() =>
+              this.contractsService.updateLastLeaderboardBlockNumber(
+                contract.id,
+                Number(checkpoint),
+              ),
+            )
+            .then(() =>
+              this.logger.log({
+                severity: 'Info',
+                summary: 'leaderboard>startAggressiveAdaption',
+                details: `chainId:${contract.chainId} contractId:${contract.id} checkpoint:${Number(checkpoint)}`,
+              }),
+            )
+            .catch((err) =>
+              this.logger.log({
+                severity: 'Error',
+                summary: 'leaderboard>startAggressiveAdaption',
+                details: `contractId:${contract.id} checkpoint write failed ${getReadableError(err)}`,
+              }),
+            );
+        };
+
+        const schedule = () => {
+          if (finished) return;
+
+          if (this.isReceivedKillProcess || queue.isDone()) {
+            finish();
+            return;
           }
 
-          this.runAggressiveTask({
-            contract,
-            task,
-            worker,
-            basePenaltyMs,
-            maxPenaltyMs,
-          })
-            .then(async () => {
-              while (tasks[nextCheckpointIndex]?.status === 'completed') {
-                await this.contractsService.updateLastLeaderboardBlockNumber(
-                  contract.id,
-                  Number(tasks[nextCheckpointIndex].toBlock),
-                );
+          const now = Date.now();
 
-                this.logger.log({
-                  severity: 'Info',
-                  summary: 'leaderboard>startAggressiveAdaption',
-                  details: `chainId:${contract.chainId} block:${Number(task.fromBlock)} - ${Number(task.toBlock)}`,
-                });
-                nextCheckpointIndex++;
-              }
-            })
-            .finally(schedule);
-        }
+          for (const worker of this.rpcWorkerPool.getWorkers(
+            contract.chainId,
+          )) {
+            if (!queue.hasClaimable()) break;
+            if (!this.rpcWorkerPool.isAvailable(worker, now)) continue;
 
-        const hasBusyWorker = workers.some((worker) => worker.isBusy);
-        const hasRunnableTask = tasks.some(
-          (task) => task.status === 'created' || task.status === 'failed',
-        );
+            const range = queue.claim(
+              worker.maxBlockRange ? BigInt(worker.maxBlockRange) : null,
+            );
 
-        if (!hasBusyWorker && hasRunnableTask) {
-          const nextAvailableAt = Math.min(
-            ...workers.map((worker) => worker.availableAt),
-          );
-          setTimeout(schedule, Math.max(nextAvailableAt - Date.now(), 1));
-        }
-      };
+            if (!range) break;
 
-      schedule();
-    });
+            this.rpcWorkerPool.acquire(worker, {
+              contractId: contract.id,
+              fromBlock: range.fromBlock,
+              toBlock: range.toBlock,
+              startedAt: now,
+            });
+
+            this.runAggressiveTask({ contract, range, worker, queue, penalty })
+              .then((ok) => ok && onComplete(range))
+              .finally(schedule);
+          }
+        };
+
+        // Wakes the loop for penalty expiry, resumed or newly added workers.
+        const tick = setInterval(schedule, 250);
+        const reportInterval = setInterval(() => {
+          this.reportAggressiveAdaptionTasks(contract, queue);
+        }, 60_000);
+
+        schedule();
+      });
+
+      await checkpointWrite;
+    } finally {
+      if (this.aggressiveRuns.get(contract.id) === run) {
+        this.aggressiveRuns.delete(contract.id);
+      }
+    }
   }
 
   private reportAggressiveAdaptionTasks(
     contract: Contract,
-    tasks: AggressiveTask[],
-    workers: AggressiveWorker[],
+    queue: AggressiveRangeQueue,
   ) {
     const now = Date.now();
+    const workers = this.rpcWorkerPool.getWorkers(contract.chainId);
     const report = {
       contractId: contract.id,
       chainId: contract.chainId,
-      remainingTasks: tasks.filter((task) => task.status !== 'completed')
-        .length,
-      createdTasks: tasks.filter((task) => task.status === 'created').length,
-      failedTasks: tasks.filter((task) => task.status === 'failed').length,
-      processingTasks: tasks.filter((task) => task.status === 'processing')
-        .length,
-      completedTasks: tasks.filter((task) => task.status === 'completed')
-        .length,
-      workingWorkers: workers.filter((worker) => worker.isBusy).length,
-      availableWorkers: workers.filter(
-        (worker) => !worker.isBusy && worker.availableAt <= now,
+      ...queue.snapshot(),
+      workingWorkers: workers.filter((worker) => worker.assignment).length,
+      availableWorkers: workers.filter((worker) =>
+        this.rpcWorkerPool.isAvailable(worker, now),
       ).length,
-      penaltyWorkers: workers
-        .filter((worker) => !worker.isBusy && worker.availableAt > now)
-        .sort((a, b) => b.penaltyLevel - a.penaltyLevel).length,
+      penaltyWorkers: workers.filter(
+        (worker) =>
+          worker.state === 'Active' &&
+          !worker.assignment &&
+          worker.availableAt > now,
+      ).length,
+      pausedWorkers: workers.filter((worker) => worker.state === 'Paused')
+        .length,
+      disabledWorkers: workers.filter((worker) => worker.state === 'Disabled')
+        .length,
     };
 
     this.logger.log({
@@ -398,56 +457,41 @@ export class LeaderboardService {
     });
   }
 
-  private createAggressiveTasks(fromBlock: bigint, endBlock: bigint) {
-    const tasks: AggressiveTask[] = [];
-    let cursor = fromBlock;
-
-    while (cursor <= endBlock) {
-      const toBlock =
-        cursor + LeaderboardService.BATCH_SIZE < endBlock
-          ? cursor + LeaderboardService.BATCH_SIZE
-          : endBlock;
-
-      tasks.push({
-        fromBlock: cursor,
-        toBlock,
-        status: 'created',
-        attempts: 0,
-      });
-
-      cursor = toBlock + 1n;
-    }
-
-    return tasks;
-  }
-
+  /** Runs one range on one worker. Resolves true when the range is done. */
   private async runAggressiveTask({
     contract,
-    task,
+    range,
     worker,
-    basePenaltyMs,
-    maxPenaltyMs,
+    queue,
+    penalty,
   }: {
     contract: Contract;
-    task: AggressiveTask;
-    worker: AggressiveWorker;
-    basePenaltyMs: number;
-    maxPenaltyMs: number;
-  }) {
-    task.status = 'processing';
-    task.attempts++;
-    worker.isBusy = true;
+    range: BlockRange;
+    worker: RpcPoolWorker;
+    queue: AggressiveRangeQueue;
+    penalty: PenaltyOptions;
+  }): Promise<boolean> {
+    const rpc = async <T>(call: () => Promise<T>) => {
+      try {
+        return await call();
+      } catch (err) {
+        throw new RpcCallError(err);
+      }
+    };
+    const rangeBlocks = Number(range.toBlock - range.fromBlock + 1n);
 
     try {
       const eventLogs = await this.fetchEventLogs({
         contract,
         getLogs: async (address, events) =>
-          await worker.client.getLogs({
-            fromBlock: task.fromBlock,
-            toBlock: task.toBlock,
-            address,
-            events,
-          }),
+          await rpc(() =>
+            worker.client.getLogs({
+              fromBlock: range.fromBlock,
+              toBlock: range.toBlock,
+              address,
+              events: events as readonly AbiEvent[] | undefined,
+            }),
+          ),
       });
       const perpTradeEventLogs = eventLogs.filter((log) =>
         getWeb3Info(
@@ -458,32 +502,48 @@ export class LeaderboardService {
 
       await this.handlePerpTradeEventLogs({
         contract,
-        fromBlock: task.fromBlock,
-        toBlock: task.toBlock,
+        fromBlock: range.fromBlock,
+        toBlock: range.toBlock,
         getBlock: async (blockNumber) =>
-          await this.getValidBlockFromClient(worker.client, blockNumber),
+          await rpc(() =>
+            this.getValidBlockFromClient(worker.client, blockNumber),
+          ),
         perpTradeEventLogs,
       });
 
-      task.status = 'completed';
-      worker.penaltyLevel = Math.max(worker.penaltyLevel - 1, 0);
+      this.rpcWorkerPool.markSuccess(worker, rangeBlocks);
+      return true;
     } catch (err) {
-      task.status = 'failed';
-      worker.penaltyLevel += 1;
-      worker.availableAt =
-        Date.now() +
-        Math.min(
-          basePenaltyMs * 2 ** Math.max(worker.penaltyLevel - 1, 0),
-          maxPenaltyMs,
-        );
+      if (!(err instanceof RpcCallError)) {
+        // Decoding or DB failure: not the endpoint's fault.
+        this.rpcWorkerPool.releaseWithoutPenalty(worker);
+        queue.release(range, { split: false });
+
+        this.logger.log({
+          severity: 'Error',
+          summary: 'leaderboard>startAggressiveAdaption',
+          details: `worker:${worker.key} contractId:${contract.id} block:${Number(range.fromBlock)} - ${Number(range.toBlock)} non-rpc failure ${getReadableError(err)}`,
+        });
+        return false;
+      }
+
+      const classified = classifyRpcError(err.original);
+      await this.rpcWorkerPool.markFailure(
+        worker,
+        classified,
+        rangeBlocks,
+        penalty,
+      );
+      queue.release(range, {
+        split: classified.kind === 'response_too_large',
+      });
 
       this.logger.log({
         severity: 'Error',
         summary: 'leaderboard>startAggressiveAdaption',
-        details: `worker:${worker.id} chainId:${contract.id} block:${Number(task.fromBlock)} - ${Number(task.toBlock)} ${getReadableError(err)}`,
+        details: `worker:${worker.key} chainId:${contract.chainId} contractId:${contract.id} block:${Number(range.fromBlock)} - ${Number(range.toBlock)} kind:${classified.kind} status:${classified.status ?? '-'} ${classified.message}`,
       });
-    } finally {
-      worker.isBusy = false;
+      return false;
     }
   }
 
@@ -502,8 +562,9 @@ export class LeaderboardService {
     }
 
     const info = getWeb3Info(contract.platform, contract.version);
-    const rawLogs = info.logEvents
-      ? await getLogs(contract.address as Address, info.logEvents)
+    const events = info.logEvents ?? this.getTradeLogEvents(contract);
+    const rawLogs = events
+      ? await getLogs(contract.address as Address, events)
       : await getLogs(contract.address as Address);
     const logs = rawLogs.filter((log) => log.topics.length > 0);
 
@@ -540,6 +601,37 @@ export class LeaderboardService {
     return info.normalizeEventLogs
       ? info.normalizeEventLogs(decodedLogs)
       : decodedLogs;
+  }
+
+  /**
+   * GNS diamonds emit many non-trade events (fees, prices, ...). Filtering by
+   * trade-event topics on the RPC side keeps responses well under provider
+   * size limits. Only trade events are used downstream anyway.
+   */
+  private getTradeLogEvents(contract: Contract): readonly AbiEvent[] | null {
+    if (contract.platform !== Platform.GNS) {
+      return null;
+    }
+
+    const cacheKey = `${contract.platform}:${contract.version}`;
+
+    if (this.tradeLogEventsCache.has(cacheKey)) {
+      return this.tradeLogEventsCache.get(cacheKey)!;
+    }
+
+    const info = getWeb3Info(contract.platform, contract.version);
+    const events = (
+      info.abi as readonly { type: string; name?: string }[]
+    ).filter(
+      (item) =>
+        item.type === 'event' &&
+        !!item.name &&
+        info.tradeEventNames.includes(item.name),
+    ) as unknown as AbiEvent[];
+
+    const result = events.length > 0 ? events : null;
+    this.tradeLogEventsCache.set(cacheKey, result);
+    return result;
   }
 
   private async fetchAvntEventLogs(

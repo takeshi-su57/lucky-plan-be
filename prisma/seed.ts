@@ -2,9 +2,18 @@ import {
   ContractStatus,
   Platform,
   PrismaClient,
+  RpcEndpointProvider,
+  RpcEndpointState,
+  RpcEndpointTier,
   Version,
 } from 'generated/prisma/client';
 import 'dotenv/config';
+import {
+  FREE_PLAN_MAX_BLOCK_RANGE,
+  getPrivateProviderUrl,
+  privateRPCProviders,
+  publicRpcProviders,
+} from 'src/web3/web3/rpc-providers';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { gmxV1VaultDeployments } from 'src/web3/platform/gmx/v1/configs';
 
@@ -347,7 +356,135 @@ async function main() {
     `Contract seed complete: ensured ${contractData.length} contract(s).`,
   );
 }
+const envList = (name: string) =>
+  (process.env[name] ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+/**
+ * Seeds aggressive-backfill workers. Tokens are read from .env at seed time,
+ * never written into this file. Existing rows are left untouched so admin
+ * pause/resume decisions and learned block ranges survive a re-seed.
+ */
+async function seedRpcEndpoints() {
+  type Row = {
+    chainId: number;
+    url: string;
+    provider: RpcEndpointProvider;
+    tier: RpcEndpointTier;
+    label: string;
+    maxBlockRange: number | null;
+    state: RpcEndpointState;
+    stateReason: string | null;
+  };
+
+  const rows: Row[] = [];
+  const chainIds = Object.keys(privateRPCProviders.drpc.networks).map(Number);
+
+  const addPrivate = (
+    key: 'drpc' | 'alchemy',
+    provider: RpcEndpointProvider,
+    envName: string,
+    tier: RpcEndpointTier,
+  ) => {
+    envList(envName).forEach((token, index) => {
+      for (const chainId of chainIds) {
+        const url = getPrivateProviderUrl(key, chainId, token);
+
+        if (!url) continue;
+
+        // Paid keys serve live trading; keep them out of backfill unless an
+        // admin opts in. Alchemy free (10 blocks) is too small to be useful.
+        const paused =
+          tier === RpcEndpointTier.Paid ||
+          provider === RpcEndpointProvider.ALCHEMY;
+
+        rows.push({
+          chainId,
+          url,
+          provider,
+          tier,
+          label: `${key}${tier === RpcEndpointTier.Paid ? ' paid' : ''} #${index + 1}`,
+          maxBlockRange:
+            tier === RpcEndpointTier.Free
+              ? (FREE_PLAN_MAX_BLOCK_RANGE[key] ?? null)
+              : null,
+          state: paused ? RpcEndpointState.Paused : RpcEndpointState.Active,
+          stateReason: paused
+            ? tier === RpcEndpointTier.Paid
+              ? 'Paid key: paused by seed to protect live trading quota'
+              : 'Free plan allows only 10-block getLogs: paused by seed'
+            : null,
+        });
+      }
+    });
+  };
+
+  addPrivate(
+    'drpc',
+    RpcEndpointProvider.DRPC,
+    'DRPC_TOKENS',
+    RpcEndpointTier.Free,
+  );
+  addPrivate(
+    'drpc',
+    RpcEndpointProvider.DRPC,
+    'DRPC_PAID_TOKENS',
+    RpcEndpointTier.Paid,
+  );
+  addPrivate(
+    'alchemy',
+    RpcEndpointProvider.ALCHEMY,
+    'ALCHEMY_TOKENS',
+    RpcEndpointTier.Free,
+  );
+
+  for (const [chainId, urls] of Object.entries(publicRpcProviders)) {
+    urls.forEach((url) =>
+      rows.push({
+        chainId: Number(chainId),
+        url,
+        provider: RpcEndpointProvider.PUBLIC,
+        tier: RpcEndpointTier.Free,
+        label: new URL(url).hostname,
+        maxBlockRange: null,
+        state: RpcEndpointState.Active,
+        stateReason: null,
+      }),
+    );
+  }
+
+  // Earlier seeds used wrong Alchemy hostnames (DNS does not resolve).
+  for (const [wrong, right] of [
+    [
+      'https://ethereum-mainnet.g.alchemy.com/',
+      'https://eth-mainnet.g.alchemy.com/',
+    ],
+    [
+      'https://avalanche-mainnet.g.alchemy.com/',
+      'https://avax-mainnet.g.alchemy.com/',
+    ],
+  ]) {
+    await prisma.$executeRaw`
+      UPDATE "RpcEndpoint" SET url = replace(url, ${wrong}, ${right}),
+        "lastCheckedAt" = NULL, "lastCheckOk" = NULL,
+        "lastCheckErrorKind" = NULL, "lastCheckError" = NULL
+      WHERE url LIKE ${wrong + '%'}`;
+  }
+
+  const result = await prisma.rpcEndpoint.createMany({
+    data: rows,
+    skipDuplicates: true,
+  });
+
+  console.log(
+    `RPC endpoint seed complete: created ${result.count} of ${rows.length} endpoint(s).`,
+  );
+}
+
 main()
+  .then(() => seedRpcEndpoints())
   .then(async () => {
     await prisma.$disconnect();
   })
