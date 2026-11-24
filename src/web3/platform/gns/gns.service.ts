@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Address, zeroAddress } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
-import { Platform, Version } from 'generated/prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { gnsMultiCollatDiamondAbi } from './v10/abi/GNSMultiCollatDiamond';
 
@@ -25,14 +22,10 @@ import {
   GetTradesPayload,
   GetTradePayload,
   GetCollateralPricePayload,
-  TradingVariable,
   WithdrawPositivePnlPayload,
-  Collateral,
-  Pair,
 } from './v10/types';
 
 import { ChainPriority } from 'src/types';
-import { Contract } from 'src/microservices/apiService/modules/contracts/entities/contract.entity';
 
 @Injectable()
 export class GnsService {
@@ -40,77 +33,7 @@ export class GnsService {
     private readonly contractsService: ContractsService,
     private readonly chainsService: EvmChainsService,
     private readonly logger: LogsService,
-  ) {
-    // this.loadTradingVariablesFromContracts();
-  }
-
-  async loadTradingVariablesFromContracts() {
-    const allContracts = await this.contractsService.findAll();
-
-    const contracts = allContracts.filter(
-      (contract) =>
-        contract.platform === Platform.GNS && contract.version === Version.V10,
-    );
-
-    const variables: Record<number, TradingVariable> = {};
-
-    const promises = contracts.map(
-      async (contract) =>
-        (variables[contract.id] = await this.getTradingVariable(contract)),
-    );
-
-    await Promise.all(promises);
-
-    const collaterals: Record<number, Collateral[]> = {};
-    const pairs: Record<number, (Pair | undefined)[]> = {};
-
-    for (const contract of contracts) {
-      collaterals[contract.chainId] = variables[contract.id].collaterals;
-      pairs[contract.chainId] = variables[contract.id].pairs;
-    }
-
-    const collateralsConfigPath = path.join(
-      __dirname,
-      'collaterals-config.json',
-    );
-    const pairsConfigPath = path.join(__dirname, 'pairs-config.json');
-    // Ensure the directory exists before writing the file
-    const ensureDirectoryExistence = (filePath: string) => {
-      const dirname = path.dirname(filePath);
-      if (fs.existsSync(dirname)) {
-        return true;
-      }
-      fs.mkdirSync(dirname, { recursive: true });
-    };
-
-    // Ensure the directory exists for collateralsConfigPath
-    ensureDirectoryExistence(collateralsConfigPath);
-
-    // Ensure the directory exists for pairsConfigPath
-    ensureDirectoryExistence(pairsConfigPath);
-
-    console.log('collateralsConfigPath', collateralsConfigPath);
-    console.log('pairsConfigPath', pairsConfigPath);
-
-    fs.writeFileSync(
-      collateralsConfigPath,
-      JSON.stringify(
-        collaterals,
-        (_, v) => (typeof v === 'bigint' ? v.toString() : v),
-        2,
-      ),
-    );
-    fs.writeFileSync(
-      pairsConfigPath,
-      JSON.stringify(
-        pairs,
-        (_, v) => (typeof v === 'bigint' ? v.toString() : v),
-        2,
-      ),
-    );
-
-    console.log('stored on the config.json');
-  }
+  ) {}
 
   async openTrade(payload: OpenTradePayload) {
     const contract = await this.contractsService.findOne(payload.contractId);
@@ -562,90 +485,6 @@ export class GnsService {
         });
       },
     );
-  }
-
-  async getTradingVariable(contract: Contract): Promise<TradingVariable> {
-    this.logger.nativeLog({
-      severity: 'Info',
-      summary: 'GnsService>getTradingVariable',
-      details: `Started loading trading variable for contract: ${contract.id}`,
-    });
-
-    const refData = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.LOW,
-      async (publicClient) => {
-        return await publicClient.multicall({
-          contracts: [
-            {
-              address: contract.address as Address,
-              abi: gnsMultiCollatDiamondAbi,
-              functionName: 'pairsCount',
-              args: [],
-            },
-            {
-              address: contract.address as Address,
-              abi: gnsMultiCollatDiamondAbi,
-              functionName: 'getCollaterals',
-              args: [],
-            },
-          ],
-        });
-      },
-    );
-
-    if (refData[0].status === 'failure' || refData[1].status === 'failure') {
-      throw new Error('Failed at getting trading variable');
-    }
-
-    const pairsData = await this.chainsService.readWithSemaphore(
-      contract.chainId,
-      ChainPriority.LOW,
-      async (publicClient) => {
-        return await publicClient.multicall({
-          contracts: Array.from(Array(Number(refData[0].result)).keys()).map(
-            (item) =>
-              ({
-                address: contract.address as Address,
-                abi: gnsMultiCollatDiamondAbi,
-                functionName: 'pairs',
-                args: [BigInt(item)],
-              }) as {
-                abi: typeof gnsMultiCollatDiamondAbi;
-                functionName: 'pairs';
-                args: [bigint];
-                address: Address;
-              },
-          ),
-        });
-      },
-    );
-
-    const failedPair = pairsData.find((pair) => pair.status === 'failure');
-
-    if (failedPair) {
-      throw new Error('Failed at getting trading variable');
-    }
-
-    this.logger.nativeLog({
-      severity: 'Info',
-      summary: 'GnsService>getTradingVariable',
-      details: `Finished loading trading variable for contract: ${contract.id}`,
-    });
-
-    return {
-      pairs: pairsData
-        .map((item) => item.result)
-        .filter((item) => item !== undefined)
-        .map((item, index) => ({
-          ...item,
-          pairIndex: index,
-        })),
-      collaterals: refData[1].result.map((item, index) => ({
-        ...item,
-        collateralIndex: index + 1,
-      })),
-    };
   }
 
   async getCollateralPrice(payload: GetCollateralPricePayload) {

@@ -282,6 +282,10 @@ export class EventLogsService {
               nextHistory.operation === PerpTradeHistoryOperation.PNL_WITHDRAW)
           ) {
             nextHistory.collateralUsdPrice = prevCollateralUsdPrice;
+            // These GNS events carry no side (and PnL withdrawals no pair);
+            // the trade's opening event is the source of truth for both.
+            nextHistory.isLong = history.isLong;
+            nextHistory.pair = nextHistory.pair || history.pair;
           } else {
             prevCollateralUsdPrice = nextHistory.collateralUsdPrice;
           }

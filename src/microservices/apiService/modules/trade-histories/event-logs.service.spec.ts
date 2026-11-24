@@ -132,4 +132,59 @@ describe('EventLogsService', () => {
     ).toEqual([[1], [2, 3]]);
     expect(result.totalPnl).toBe(3);
   });
+
+  it('gives GNS leverage updates and PnL withdrawals the side and pair of the opening trade', () => {
+    const service = new EventLogsService({} as never);
+    const at = (minute: number) => new Date(`2026-05-01T00:0${minute}:00.000Z`);
+
+    const open = {
+      ...history('p1', 100),
+      isLong: false,
+      date: at(0),
+    };
+    const leverageUpdate = {
+      ...history('p1', 150),
+      id: 2,
+      // LeverageUpdateExecuted has no side; the parser defaults to long.
+      isLong: true,
+      operation: PerpTradeHistoryOperation.DECREASE_LEVERAGE,
+      date: at(1),
+    };
+    const pnlWithdraw = {
+      ...history('p1', 0),
+      id: 3,
+      isLong: true,
+      pair: '',
+      operation: PerpTradeHistoryOperation.PNL_WITHDRAW,
+      date: at(2),
+    };
+    const close = {
+      ...history('p1', 0),
+      id: 4,
+      isLong: false,
+      operation: PerpTradeHistoryOperation.CLOSE,
+      date: at(3),
+    };
+
+    const result = service.convertToPerpTradePositionsWithSummary(
+      Platform.GNS,
+      [open, leverageUpdate, pnlWithdraw, close],
+      {},
+    );
+
+    const histories = result.positions[0].histories;
+
+    expect(histories.map((item) => item.isLong)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(histories.map((item) => item.pair)).toEqual([
+      'ETH/USD',
+      'ETH/USD',
+      'ETH/USD',
+      'ETH/USD',
+    ]);
+  });
 });

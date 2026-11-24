@@ -3,7 +3,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getMarketInfo, getTokenInfo } from '../configs';
+import { getMarketInfo, getTokenInfo, resolveGmxMarketPair } from '../configs';
 
 export const eventName = 'PositionIncrease';
 
@@ -110,9 +110,7 @@ export function eventToPerpTradeHistory(
 
   const marketInfo = getMarketInfo(chainId, event.args.market);
 
-  const pair = marketInfo
-    ? `${marketInfo.indexToken.baseSymbol || marketInfo.indexToken.symbol}/usd`.toLowerCase()
-    : '';
+  const pair = resolveGmxMarketPair(chainId, event.args.market);
 
   return {
     positionKey: event.args.positionKey,

@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getPairName } from '../configs';
+import { resolvePairName } from '../configs';
 import { MarginUpdateType } from '../types';
 
 export const eventName = 'MarginUpdated';
@@ -38,11 +38,7 @@ export function parseMarginUpdateEvent(event: MarginUpdateEvent) {
 export function eventToPerpTradeHistory(
   event: MarginUpdateEvent,
 ): PurePerpTradeHistory | null {
-  const pairName = getPairName(Number(event.args.pairIndex));
-
-  if (!pairName) {
-    return null;
-  }
+  const pairName = resolvePairName(Number(event.args.pairIndex));
 
   const usdPnl = 0;
   const usdBasePnl = 0;

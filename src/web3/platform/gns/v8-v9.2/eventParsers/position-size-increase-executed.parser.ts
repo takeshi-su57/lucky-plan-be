@@ -4,7 +4,7 @@ import {
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getGnsPositionKey } from '../../utils';
-import { getCollateral, getPairName } from '../../v9/configs';
+import { getCollateral, resolvePairName } from '../../v9/configs';
 import {
   V92PositionSizeIncreaseArgs,
   V92PositionSizeIncreaseEvent,
@@ -47,9 +47,9 @@ export function eventToPerpTradeHistory(
   }
 
   const collateral = getCollateral(chainId, Number(args.collateralIndex));
-  const pairName = getPairName(chainId, Number(args.pairIndex));
+  const pairName = resolvePairName(chainId, Number(args.pairIndex));
 
-  if (!collateral || !pairName) {
+  if (!collateral) {
     return null;
   }
 

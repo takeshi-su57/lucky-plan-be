@@ -3,7 +3,7 @@ import {
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getGnsPositionKey } from '../../utils';
-import { getCollateral, getPairName } from '../../v9/configs';
+import { getCollateral, resolvePairName } from '../../v9/configs';
 import { EarlyDiamondExecutionArgs } from './types';
 
 export function earlyDiamondExecutionToPerpTradeHistory({
@@ -16,9 +16,9 @@ export function earlyDiamondExecutionToPerpTradeHistory({
   operation: PerpTradeHistoryOperation;
 }): PurePerpTradeHistory | null {
   const collateral = getCollateral(chainId, Number(args.t.collateralIndex));
-  const pairName = getPairName(chainId, Number(args.t.pairIndex));
+  const pairName = resolvePairName(chainId, Number(args.t.pairIndex));
 
-  if (!collateral || !pairName) {
+  if (!collateral) {
     return null;
   }
 

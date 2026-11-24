@@ -1,81 +1,24 @@
-import { Collateral, Pair } from '../types';
-import { pairConfigs } from './pairsConfig';
-import { collateralConfigs } from './collateralsConfig';
+import { Collateral } from '../types';
+import {
+  deserializeGnsCollateral,
+  gnsCollateralsSnapshot,
+} from '../../configs';
 
-export const pairConfigsMap: Record<number, Pair[]> = {};
-export const pairIndexConfigsMap: Record<number, Record<string, Pair>> = {};
+// Pairs live in one registry shared by every GNS version; it is seeded from
+// `gns/configs/pairs.generated.json` and topped up at runtime by
+// GnsConfigSyncService.
+export {
+  getGnsPair as getPair,
+  getGnsPairByName as getPairByName,
+  getGnsPairIndex as getPairIndex,
+  getGnsPairName as getPairName,
+  resolveGnsPairName as resolvePairName,
+} from '../../pair-registry';
+
 export const collateralConfigsMap: Record<number, Collateral[]> = {};
 
-for (const [chainId, pairs] of Object.entries(pairConfigs)) {
-  pairConfigsMap[+chainId] = pairs.map((pair) => ({
-    ...pair,
-    feed: {
-      ...pair.feed,
-      maxDeviationP: BigInt(pair.feed.maxDeviationP),
-    },
-    spreadP: BigInt(pair.spreadP),
-    groupIndex: BigInt(pair.groupIndex),
-    feeIndex: BigInt(pair.feeIndex),
-  }));
-
-  const tempPairIndexConfigsMap: Record<string, Pair> = {};
-
-  pairConfigsMap[+chainId].forEach((pair) => {
-    tempPairIndexConfigsMap[`${pair.from}/${pair.to}`.toLowerCase()] = {
-      ...pair,
-      feed: {
-        ...pair.feed,
-        maxDeviationP: BigInt(pair.feed.maxDeviationP),
-      },
-    };
-  });
-
-  pairIndexConfigsMap[+chainId] = tempPairIndexConfigsMap;
-}
-
-for (const [chainId, collaterals] of Object.entries(collateralConfigs)) {
-  collateralConfigsMap[+chainId] = collaterals.map((collateral) => ({
-    ...collateral,
-    precision: BigInt(collateral.precision),
-    precisionDelta: BigInt(collateral.precisionDelta),
-    __placeholder: BigInt(collateral.__placeholder),
-  }));
-}
-
-export function getPair(chainId: number, pairIndex: number): Pair | null {
-  if (!pairConfigsMap[chainId]) {
-    throw new Error(`Pair configs not found for chainId: ${chainId}`);
-  }
-
-  return pairConfigsMap[chainId][pairIndex] || null;
-}
-
-export function getPairByName(chainId: number, pairName: string): Pair | null {
-  if (!pairConfigsMap[chainId]) {
-    throw new Error(`Pair configs not found for chainId: ${chainId}`);
-  }
-
-  return pairIndexConfigsMap[chainId][pairName.toLowerCase()] || null;
-}
-
-export function getPairIndex(chainId: number, pairName: string): number {
-  if (!pairConfigsMap[chainId]) {
-    throw new Error(`Pair configs not found for chainId: ${chainId}`);
-  }
-
-  const pair = pairIndexConfigsMap[chainId][pairName.toLowerCase()];
-
-  return pair ? pair.pairIndex : -1;
-}
-
-export function getPairName(chainId: number, pairIndex: number): string | null {
-  if (!pairConfigsMap[chainId]) {
-    throw new Error(`Pair configs not found for chainId: ${chainId}`);
-  }
-
-  const pair = pairConfigsMap[chainId][pairIndex];
-
-  return pair ? `${pair.from}/${pair.to}`.toLowerCase() : null;
+for (const [chainId, collaterals] of Object.entries(gnsCollateralsSnapshot)) {
+  collateralConfigsMap[+chainId] = collaterals.map(deserializeGnsCollateral);
 }
 
 export function getCollateral(
@@ -87,6 +30,16 @@ export function getCollateral(
   }
 
   return collateralConfigsMap[chainId][collateralIndex - 1] || null;
+}
+
+/**
+ * Replaces a chain's collaterals with a list read from chain at runtime
+ * (GnsConfigSyncService). Collateral indexes are append-only like pairs.
+ */
+export function setCollaterals(chainId: number, collaterals: Collateral[]) {
+  collateralConfigsMap[chainId] = [...collaterals].sort(
+    (a, b) => a.collateralIndex - b.collateralIndex,
+  );
 }
 
 export function getCollaterals(chainId: number): Collateral[] {

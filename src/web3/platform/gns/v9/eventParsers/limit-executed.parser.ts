@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getCollateral, getPairName } from '../configs';
+import { getCollateral, resolvePairName } from '../configs';
 import { PendingOrderType } from '../types';
 
 export const eventName = 'LimitExecuted';
@@ -37,7 +37,7 @@ export function eventToPerpTradeHistory(
 ): PurePerpTradeHistory | null {
   const collateral = getCollateral(chainId, event.args.t.collateralIndex);
 
-  const pairName = getPairName(chainId, Number(event.args.t.pairIndex));
+  const pairName = resolvePairName(chainId, Number(event.args.t.pairIndex));
 
   const operationMap: Record<string, PerpTradeHistoryOperation> = {
     [PendingOrderType.LIMIT_OPEN]: PerpTradeHistoryOperation.OPEN,
@@ -46,7 +46,7 @@ export function eventToPerpTradeHistory(
     [PendingOrderType.TP_CLOSE]: PerpTradeHistoryOperation.CLOSE,
   };
 
-  if (!operationMap[event.args.orderType] || !collateral || !pairName) {
+  if (!operationMap[event.args.orderType] || !collateral) {
     return null;
   }
 

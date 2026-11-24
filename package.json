@@ -23,7 +23,10 @@
     "postbuild:worker": "node scripts/build-evaluator-worker-release.js",
     "build:cross": "npm run build:worker",
     "backfill:pnl-snapshot-cache": "ts-node -r tsconfig-paths/register src/pnl-snapshot-cache-backfill.main.ts",
-    "config:generate:gmx-v1": "ts-node -r tsconfig-paths/register src/gmx-v1-config.main.ts"
+    "config:generate:gmx-v1": "ts-node -r tsconfig-paths/register src/gmx-v1-config.main.ts",
+    "config:generate:gmx-v2": "ts-node -r tsconfig-paths/register src/gmx-v2-config.main.ts",
+    "config:generate:gns": "ts-node -r tsconfig-paths/register src/gns-config.main.ts",
+    "config:generate:avnt": "ts-node -r tsconfig-paths/register src/avnt-config.main.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

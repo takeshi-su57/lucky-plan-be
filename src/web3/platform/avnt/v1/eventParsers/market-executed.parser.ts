@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getPairName } from '../configs';
+import { resolvePairName } from '../configs';
 
 export const eventName = 'MarketExecuted';
 
@@ -37,11 +37,7 @@ export function parseMarketExecutedEvent(event: MarketExecutedEvent) {
 export function eventToPerpTradeHistory(
   event: MarketExecutedEvent,
 ): PurePerpTradeHistory | null {
-  const pairName = getPairName(Number(event.args.t.pairIndex));
-
-  if (!pairName) {
-    return null;
-  }
+  const pairName = resolvePairName(Number(event.args.t.pairIndex));
 
   const operation = event.args.open
     ? PerpTradeHistoryOperation.OPEN

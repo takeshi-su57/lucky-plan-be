@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getCollateral, getPairName } from '../configs';
+import { getCollateral, resolvePairName } from '../configs';
 import { CancelReason } from '../types';
 
 export const eventName = 'PositionSizeIncreaseExecuted';
@@ -40,13 +40,9 @@ export function eventToPerpTradeHistory(
 ): PurePerpTradeHistory | null {
   const collateral = getCollateral(chainId, event.args.collateralIndex);
 
-  const pairName = getPairName(chainId, Number(event.args.pairIndex));
+  const pairName = resolvePairName(chainId, Number(event.args.pairIndex));
 
-  if (
-    !collateral ||
-    !pairName ||
-    event.args.cancelReason !== CancelReason.NONE
-  ) {
+  if (!collateral || event.args.cancelReason !== CancelReason.NONE) {
     return null;
   }
 
