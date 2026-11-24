@@ -40,10 +40,12 @@ import {
   getGnsPositionKey,
   parseGnsPositionKey,
 } from 'src/web3/platform/gns/utils';
-import { getCollateral } from 'src/web3/platform/gns/v10/configs';
+import {
+  getCollateral,
+  getCollaterals,
+} from 'src/web3/platform/gns/v10/configs';
 import { TradeType } from 'src/web3/platform/gns/v10/types';
 import { PnlSnapshotsService } from '../trade-histories/pnlsnapshot.service';
-import { collateralConfigs } from 'src/web3/platform/gns/v10/configs/collateralsConfig';
 import { EvmChainsService } from 'src/web3/web3/evm-chains.service';
 
 @Injectable()
@@ -1771,7 +1773,7 @@ export class FollowerService {
 
     ethMap[firstEntity.address] = ethBalance;
 
-    const activeCollaterals = collateralConfigs[contract.chainId].filter(
+    const activeCollaterals = getCollaterals(contract.chainId).filter(
       (item) => item.isActive,
     );
 

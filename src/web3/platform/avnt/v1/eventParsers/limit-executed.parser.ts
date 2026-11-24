@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getPairName } from '../configs';
+import { resolvePairName } from '../configs';
 import { LimitOrder } from '../types';
 
 export const eventName = 'LimitExecuted';
@@ -38,7 +38,7 @@ export function parseLimitExecutedEvent(event: LimitExecutedEvent) {
 export function eventToPerpTradeHistory(
   event: LimitExecutedEvent,
 ): PurePerpTradeHistory | null {
-  const pairName = getPairName(Number(event.args.t.pairIndex));
+  const pairName = resolvePairName(Number(event.args.t.pairIndex));
 
   const operationMap: Record<string, PerpTradeHistoryOperation> = {
     [LimitOrder.OPEN]: PerpTradeHistoryOperation.OPEN,
@@ -47,7 +47,7 @@ export function eventToPerpTradeHistory(
     [LimitOrder.TP]: PerpTradeHistoryOperation.CLOSE,
   };
 
-  if (!operationMap[event.args.orderType] || !pairName) {
+  if (!operationMap[event.args.orderType]) {
     return null;
   }
 

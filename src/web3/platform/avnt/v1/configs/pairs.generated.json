@@ -1,0 +1,1340 @@
+[
+  {
+    "pairIndex": 0,
+    "from": "ETH",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 1,
+    "from": "BTC",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 2,
+    "from": "SOL",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 3,
+    "from": "BNB",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 4,
+    "from": "ARB",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 5,
+    "from": "DOGE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 6,
+    "from": "AVAX",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 7,
+    "from": "OP",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 8,
+    "from": "POL",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 9,
+    "from": "TIA",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 10,
+    "from": "SEI",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 11,
+    "from": "EUR",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 12,
+    "from": "USD",
+    "to": "JPY",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 13,
+    "from": "GBP",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 14,
+    "from": "USD",
+    "to": "CAD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 15,
+    "from": "USD",
+    "to": "CHF",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 16,
+    "from": "USD",
+    "to": "SEK",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 17,
+    "from": "AUD",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 18,
+    "from": "NZD",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 19,
+    "from": "USD",
+    "to": "SGD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 20,
+    "from": "XAG",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 21,
+    "from": "XAU",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 22,
+    "from": "SHIB",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 23,
+    "from": "PEPE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 24,
+    "from": "BONK",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 25,
+    "from": "WIF",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 26,
+    "from": "RENDER",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 27,
+    "from": "WLD",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 28,
+    "from": "FET",
+    "to": "USD",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 29,
+    "from": "ARKM",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 30,
+    "from": "PENDLE",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 31,
+    "from": "ONDO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 32,
+    "from": "",
+    "to": "",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 33,
+    "from": "DYM",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 34,
+    "from": "ORDI",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 35,
+    "from": "STX",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 36,
+    "from": "ENA",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 37,
+    "from": "AERO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 38,
+    "from": "ETHFI",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 39,
+    "from": "JUP",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 40,
+    "from": "REZ",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 41,
+    "from": "LINK",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 42,
+    "from": "LDO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 43,
+    "from": "NEAR",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 44,
+    "from": "INJ",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 45,
+    "from": "ZK",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 46,
+    "from": "ZRO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 47,
+    "from": "",
+    "to": "",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 48,
+    "from": "AAVE",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 49,
+    "from": "SUI",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 50,
+    "from": "TAO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 51,
+    "from": "EIGEN",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 52,
+    "from": "USD",
+    "to": "TRY",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 53,
+    "from": "BRETT",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 54,
+    "from": "POPCAT",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 55,
+    "from": "GOAT",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 56,
+    "from": "APE",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 57,
+    "from": "APT",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 58,
+    "from": "CHILLGUY",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 59,
+    "from": "XRP",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 60,
+    "from": "TRUMP",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 61,
+    "from": "FARTCOIN",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 62,
+    "from": "HYPE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 63,
+    "from": "BERA",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 64,
+    "from": "KAITO",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 65,
+    "from": "USOILSPOT",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 66,
+    "from": "USD",
+    "to": "CNH",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 67,
+    "from": "USD",
+    "to": "INR",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 68,
+    "from": "USD",
+    "to": "KRW",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 69,
+    "from": "USD",
+    "to": "MXN",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 70,
+    "from": "USD",
+    "to": "ZAR",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 71,
+    "from": "PENGU",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 72,
+    "from": "VIRTUAL",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 73,
+    "from": "USD",
+    "to": "BRL",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 74,
+    "from": "USD",
+    "to": "IDR",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 75,
+    "from": "PUMP",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 76,
+    "from": "ZORA",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 77,
+    "from": "USD",
+    "to": "TWD",
+    "numTiers": "3"
+  },
+  {
+    "pairIndex": 78,
+    "from": "US500",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 79,
+    "from": "US100",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 80,
+    "from": "COIN",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 81,
+    "from": "NVDA",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 82,
+    "from": "AAPL",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 83,
+    "from": "AMZN",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 84,
+    "from": "MSFT",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 85,
+    "from": "META",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 86,
+    "from": "TSLA",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 87,
+    "from": "GOOG",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 88,
+    "from": "AVNT",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 89,
+    "from": "ASTER",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 90,
+    "from": "XPL",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 91,
+    "from": "HOOD",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 92,
+    "from": "ZEC",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 93,
+    "from": "XMR",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 94,
+    "from": "MON",
+    "to": "USD",
+    "numTiers": "2"
+  },
+  {
+    "pairIndex": 95,
+    "from": "LIT",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 96,
+    "from": "WTI",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 97,
+    "from": "BRENT",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 98,
+    "from": "AMD",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 99,
+    "from": "INTC",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 100,
+    "from": "MU",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 101,
+    "from": "SNDK",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 102,
+    "from": "CBRS",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 103,
+    "from": "EWY",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 104,
+    "from": "BABA",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 105,
+    "from": "SPCX",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 106,
+    "from": "CRCL",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 107,
+    "from": "MRVL",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 108,
+    "from": "MSTR",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 109,
+    "from": "BB",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 110,
+    "from": "PLTR",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 111,
+    "from": "AVGO",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 112,
+    "from": "NFLX",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 113,
+    "from": "CRWV",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 114,
+    "from": "SK HYNIX",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 115,
+    "from": "ETH_UPSIDE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 116,
+    "from": "BTC_UPSIDE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 117,
+    "from": "SOL_UPSIDE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 118,
+    "from": "XRP_UPSIDE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 119,
+    "from": "HYPE_UPSIDE",
+    "to": "USD",
+    "numTiers": "1"
+  },
+  {
+    "pairIndex": 120,
+    "from": "LLY",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 121,
+    "from": "BE",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 122,
+    "from": "LITE",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 123,
+    "from": "STRC",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 124,
+    "from": "DELL",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 125,
+    "from": "NBIS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 126,
+    "from": "IREN",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 127,
+    "from": "ARM",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 128,
+    "from": "MRNA",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 129,
+    "from": "RKLB",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 130,
+    "from": "WDC",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 131,
+    "from": "NOW",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 132,
+    "from": "CASHCAT",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 133,
+    "from": "PONS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 134,
+    "from": "VVV",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 135,
+    "from": "AMGN",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 136,
+    "from": "CSCO",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 137,
+    "from": "KLAC",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 138,
+    "from": "LRCX",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 139,
+    "from": "TXN",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 140,
+    "from": "PANW",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 141,
+    "from": "APP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 142,
+    "from": "ALAB",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 143,
+    "from": "DDOG",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 144,
+    "from": "CEG",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 145,
+    "from": "SNPS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 146,
+    "from": "CDNS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 147,
+    "from": "MPWR",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 148,
+    "from": "FTNT",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 149,
+    "from": "ADBE",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 150,
+    "from": "INTU",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 151,
+    "from": "ADI",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 152,
+    "from": "TER",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 153,
+    "from": "NXPI",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 154,
+    "from": "SHOP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 155,
+    "from": "WDAY",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 156,
+    "from": "ADSK",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 157,
+    "from": "MCHP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 158,
+    "from": "BKNG",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 159,
+    "from": "MELI",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 160,
+    "from": "ISRG",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 161,
+    "from": "TMUS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 162,
+    "from": "ABNB",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 163,
+    "from": "DASH",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 164,
+    "from": "PDD",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 165,
+    "from": "PYPL",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 166,
+    "from": "TTWO",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 167,
+    "from": "WMT",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 168,
+    "from": "GILD",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 169,
+    "from": "VRTX",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 170,
+    "from": "REGN",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 171,
+    "from": "LIN",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 172,
+    "from": "ADP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 173,
+    "from": "HON",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 174,
+    "from": "USELESS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 175,
+    "from": "STX",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 176,
+    "from": "AXON",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 177,
+    "from": "VST",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 178,
+    "from": "ANET",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 179,
+    "from": "UBER",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 180,
+    "from": "BA",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 181,
+    "from": "SOFI",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 182,
+    "from": "GRAB",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 183,
+    "from": "ASTS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 184,
+    "from": "BOT",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 185,
+    "from": "035420",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 186,
+    "from": "004020",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 187,
+    "from": "005380",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 188,
+    "from": "005930",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 189,
+    "from": "005940",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 190,
+    "from": "009150",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 191,
+    "from": "009540",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 192,
+    "from": "011200",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 193,
+    "from": "034730",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 194,
+    "from": "035720",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 195,
+    "from": "042700",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 196,
+    "from": "051910",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 197,
+    "from": "066570",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 198,
+    "from": "259960",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 199,
+    "from": "272210",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 200,
+    "from": "373220",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 201,
+    "from": "069500",
+    "to": "KRW",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 202,
+    "from": "AMAT",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 203,
+    "from": "ASML",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 204,
+    "from": "CRWD",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 205,
+    "from": "QCOM",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 206,
+    "from": "COST",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 207,
+    "from": "PEP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 208,
+    "from": "SBUX",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 209,
+    "from": "AEP",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 210,
+    "from": "CMCSA",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 211,
+    "from": "MAR",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 212,
+    "from": "BKR",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 213,
+    "from": "HONA",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 214,
+    "from": "CSX",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 215,
+    "from": "MDLZ",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 216,
+    "from": "MNST",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 217,
+    "from": "ROST",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 218,
+    "from": "ORLY",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 219,
+    "from": "XEL",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 220,
+    "from": "FANG",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 221,
+    "from": "CTAS",
+    "to": "USD",
+    "numTiers": "0"
+  },
+  {
+    "pairIndex": 222,
+    "from": "ANT",
+    "to": "USD",
+    "numTiers": "0"
+  }
+]

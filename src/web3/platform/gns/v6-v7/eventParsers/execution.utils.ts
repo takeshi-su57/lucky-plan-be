@@ -3,7 +3,7 @@ import {
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
 import { getLegacyGnsPositionKey } from '../../utils';
-import { getCollateral, getPairName } from '../../v9/configs';
+import { getCollateral, resolvePairName } from '../../v9/configs';
 import { LegacyExecutionArgs } from './types';
 
 const LEGACY_CALLBACK_COLLATERAL_INDEX: Record<string, number> = {
@@ -47,9 +47,9 @@ export function legacyExecutionToPerpTradeHistory({
   }
 
   const collateral = getCollateral(chainId, collateralIndex);
-  const pairName = getPairName(chainId, Number(args.t.pairIndex));
+  const pairName = resolvePairName(chainId, Number(args.t.pairIndex));
 
-  if (!collateral || !pairName) {
+  if (!collateral) {
     return null;
   }
 

@@ -28,6 +28,7 @@ import { PricesModule } from './modules/prices/prices.module';
 import { SLTPModule } from './modules/sltp/sltp.module';
 import { SimulationsModule } from './modules/simulations/simulations.module';
 import { RpcWorkersModule } from './modules/rpc-workers/rpc-workers.module';
+import { PlatformConfigsApiModule } from './modules/platform-configs/platform-configs.module';
 
 import { ApiResolver } from './api.resolver';
 import { ApiController } from './api.controller';
@@ -83,6 +84,7 @@ import { ApiController } from './api.controller';
     SLTPModule,
     SimulationsModule,
     RpcWorkersModule,
+    PlatformConfigsApiModule,
   ],
   controllers: [ApiController],
   providers: [ApiService, ApiResolver],

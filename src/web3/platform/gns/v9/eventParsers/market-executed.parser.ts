@@ -6,7 +6,7 @@ import {
   PurePerpTradeHistory,
   PerpTradeHistoryOperation,
 } from 'src/microservices/apiService/modules/trade-histories/entities/event-logs.entity';
-import { getCollateral, getPairName } from '../configs';
+import { getCollateral, resolvePairName } from '../configs';
 
 export const eventName = 'MarketExecuted';
 
@@ -36,9 +36,9 @@ export function eventToPerpTradeHistory(
 ): PurePerpTradeHistory | null {
   const collateral = getCollateral(chainId, event.args.t.collateralIndex);
 
-  const pairName = getPairName(chainId, Number(event.args.t.pairIndex));
+  const pairName = resolvePairName(chainId, Number(event.args.t.pairIndex));
 
-  if (!collateral || !pairName) {
+  if (!collateral) {
     return null;
   }
 
